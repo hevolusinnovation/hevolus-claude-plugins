@@ -1,0 +1,12 @@
+{
+  "name": "blueprints",
+  "displayName": "XRCopilotLab BluePrints",
+  "version": "1.0.0",
+  "description": "Scrive e applica manifest di blueprint XRCopilotLab: topic, ruoli aziendali, agenti con system message e skill, agent task e processi BPM pubblicati. Porta con sé la CLI, che scarica al primo uso.",
+  "author": {
+    "name": "Hevolus Innovation — AI Team",
+    "url": "https://github.com/hevolusinnovation"
+  },
+  "repository": "https://github.com/hevolusinnovation/hevolus-claude-plugins",
+  "keywords": ["xrcopilotlab", "blueprint", "bpm", "provisioning"]
+}

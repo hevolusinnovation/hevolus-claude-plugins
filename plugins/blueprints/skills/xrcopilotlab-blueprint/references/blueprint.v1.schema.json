@@ -1,0 +1,864 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xrcopilotlab.hevolus.it/schemas/blueprint.v1.schema.json",
+  "title": "XRCopilotLab Blueprint manifest v1",
+  "description": "Descrizione dichiarativa di tutto ciò che un blueprint crea su un tenant XRCopilotLab. I nomi si scrivono senza prefisso: il planner antepone BP-<TAG>-. I segreti non compaiono mai come valore, solo come nome di una chiave di App Configuration.",
+  "type": "object",
+  "required": [
+    "blueprint",
+    "tag",
+    "tenant"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "blueprint": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Identificativo logico del blueprint, stabile fra le versioni."
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1
+    },
+    "tag": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]{2,20}$",
+      "description": "Contesto o cliente: entra nel prefisso di ogni entità creata."
+    },
+    "description": {
+      "type": "string"
+    },
+    "extends": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "RISERVATO: accettato ma non ancora applicato."
+    },
+    "tenant": {
+      "type": "object",
+      "required": [
+        "companyId"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "companyId": {
+          "type": "string",
+          "description": "GUID del tenant di destinazione."
+        },
+        "topic": {
+          "type": "string",
+          "description": "Nome del topic da CREARE (senza prefisso: lo aggiunge il planner)."
+        },
+        "topicId": {
+          "type": "string",
+          "description": "Id di un topic già esistente, quando il nome è ambiguo. Alternativa a existingTopic."
+        },
+        "existingTopic": {
+          "type": "string",
+          "description": "Nome di un topic GIÀ ESISTENTE in cui mettere gli agenti, come compare nella UI. Non viene creato né modificato, e il rollback non lo tocca."
+        }
+      },
+      "oneOf": [
+        {
+          "required": [
+            "topic"
+          ]
+        },
+        {
+          "required": [
+            "existingTopic"
+          ]
+        },
+        {
+          "required": [
+            "topicId"
+          ]
+        },
+        {
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "topic"
+                ]
+              },
+              {
+                "required": [
+                  "existingTopic"
+                ]
+              },
+              {
+                "required": [
+                  "topicId"
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "connections": {
+      "type": "array",
+      "description": "Connessioni verso sistemi di terze parti. Verificate ma non ancora create (milestone 2).",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "name",
+          "provider"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "examples": [
+              "webhook"
+            ]
+          },
+          "baseUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "auth": {
+            "$ref": "#/$defs/auth"
+          }
+        }
+      }
+    },
+    "mcpServers": {
+      "type": "array",
+      "description": "Server MCP. Verificati ma non ancora creati (milestone 2).",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "kind",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "builder",
+              "external"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "systemPrompt": {
+            "type": "string"
+          },
+          "connection": {
+            "type": "string",
+            "description": "kind=builder: chiave della connessione usata dai tool."
+          },
+          "variables": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "tools": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "method",
+                "path"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "method": {
+                  "enum": [
+                    "GET",
+                    "POST",
+                    "PUT",
+                    "PATCH",
+                    "DELETE"
+                  ]
+                },
+                "path": {
+                  "type": "string"
+                },
+                "parameters": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "required": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "body": {
+                  "type": "string"
+                },
+                "transform": {
+                  "type": "string",
+                  "description": "Funzione JavaScript che trasforma la risposta."
+                }
+              }
+            }
+          },
+          "testTool": {
+            "type": "string"
+          },
+          "publish": {
+            "type": "boolean",
+            "default": true
+          },
+          "url": {
+            "type": "string",
+            "description": "kind=external: URL del server già ospitato."
+          },
+          "auth": {
+            "$ref": "#/$defs/auth"
+          },
+          "timeoutSeconds": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "businessRoles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email"
+            },
+            "description": "Utenti già esistenti nel tenant: il blueprint li aggiunge al ruolo, non li crea."
+          }
+        }
+      }
+    },
+    "agents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "systemMessage": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "temperature": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "maxTokens": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "language": {
+            "type": "string",
+            "examples": [
+              "it",
+              "en"
+            ]
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "SkillId già presenti nel catalogo del tenant."
+          },
+          "mcp": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Chiavi di mcpServers."
+          }
+        }
+      }
+    },
+    "agentTasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "agent": {
+            "type": "string",
+            "description": "Chiave di un agente. In alternativa a orchestrator."
+          },
+          "orchestrator": {
+            "type": "string",
+            "description": "Chiave di un orchestratore. In alternativa ad agent."
+          },
+          "prompt": {
+            "type": "string"
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "agent"
+            ]
+          },
+          {
+            "required": [
+              "orchestrator"
+            ]
+          }
+        ]
+      }
+    },
+    "orchestrators": {
+      "type": "array",
+      "description": "Verificati ma non ancora creati (milestone 2).",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "connections": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "processes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "description": "Se assente si usa spec.name."
+          },
+          "description": {
+            "type": "string"
+          },
+          "spec": {
+            "$ref": "#/$defs/processSpec"
+          },
+          "bpmnFile": {
+            "type": "string",
+            "description": "Percorso di un .bpmn, relativo al manifest. Alternativo a spec."
+          },
+          "publish": {
+            "type": "boolean",
+            "default": true
+          },
+          "owners": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          "starterRoles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Chiavi di businessRoles."
+          },
+          "webhook": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "name": {
+                "type": "string"
+              },
+              "allowedIps": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "spec"
+            ]
+          },
+          {
+            "required": [
+              "bpmnFile"
+            ]
+          }
+        ]
+      }
+    },
+    "external": {
+      "type": "object",
+      "description": "Risorse fuori dalla piattaforma. Verificate ma non ancora create (milestone 2).",
+      "additionalProperties": false,
+      "properties": {
+        "mailbox": {
+          "type": "string",
+          "format": "email"
+        },
+        "auth": {
+          "enum": [
+            "interactive",
+            "appRegistration"
+          ]
+        },
+        "ingress": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "logicapp",
+                "scheduledAgentTask"
+              ]
+            },
+            "target": {
+              "type": "string",
+              "pattern": "^processes\\.[A-Za-z0-9_-]+\\.webhook$"
+            },
+            "pollMinutes": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        },
+        "calendar": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "logicapp"
+              ]
+            },
+            "exposeAs": {
+              "type": "string"
+            },
+            "calendarUser": {
+              "type": "string"
+            }
+          }
+        },
+        "manualSteps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resourceGroup": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "auth": {
+      "type": "object",
+      "description": "I campi che portano una credenziale contengono il NOME di una chiave App Configuration (Blueprints:Secrets:<TAG>:<nome>), mai il valore.",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "None",
+            "Bearer",
+            "Basic",
+            "CustomHeaders",
+            "OAuth2ClientCredentials"
+          ]
+        },
+        "tokenUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "clientId": {
+          "type": "string"
+        },
+        "clientSecret": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "header": {
+          "type": "string"
+        },
+        "secret": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        }
+      }
+    },
+    "processSpec": {
+      "type": "object",
+      "description": "Identica alla ProcessSpec accettata da POST processes/{companyId}/generate. I riferimenti per nome (roleName, agentTaskName, calledProcessName) si scrivono SENZA prefisso: li qualifica il planner.",
+      "required": [
+        "version",
+        "name",
+        "activities",
+        "flows"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": 1
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "categoryName": {
+          "type": "string",
+          "description": "Categoria del catalogo del tenant: NON viene prefissata."
+        },
+        "criticality": {
+          "enum": [
+            "Low",
+            "Medium",
+            "High",
+            "Critical"
+          ]
+        },
+        "dataSensitivity": {
+          "enum": [
+            "Public",
+            "Internal",
+            "Confidential",
+            "Regulated"
+          ]
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "activities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "type"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+              },
+              "type": {
+                "enum": [
+                  "Start",
+                  "End",
+                  "Task",
+                  "CallActivity"
+                ]
+              },
+              "name": {
+                "type": "string"
+              },
+              "performer": {
+                "enum": [
+                  "HumanOnly",
+                  "AiAssisted",
+                  "Automated"
+                ]
+              },
+              "roleName": {
+                "type": "string"
+              },
+              "assignmentExpression": {
+                "type": "string"
+              },
+              "agentTaskName": {
+                "type": "string"
+              },
+              "outputVariable": {
+                "type": "string"
+              },
+              "taskCategoryName": {
+                "type": "string"
+              },
+              "expectedDurationMinutes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "maxLeadTimeMinutes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "form": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/formField"
+                }
+              },
+              "calledProcessName": {
+                "type": "string"
+              },
+              "inputMapping": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "outputMapping": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "gateways": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "type"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+              },
+              "type": {
+                "enum": [
+                  "Exclusive",
+                  "Parallel"
+                ]
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "flows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "from",
+              "to"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_-]*$"
+              },
+              "from": {
+                "type": "string"
+              },
+              "to": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "condition": {
+                "type": "object",
+                "required": [
+                  "var",
+                  "op"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "var": {
+                    "type": "string"
+                  },
+                  "op": {
+                    "enum": [
+                      "eq",
+                      "neq",
+                      "gt",
+                      "lt",
+                      "gte",
+                      "lte",
+                      "exists"
+                    ]
+                  },
+                  "value": {
+                    "description": "Numero, booleano o stringa: il tipo YAML è preservato."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "formField": {
+      "type": "object",
+      "required": [
+        "key",
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "text",
+            "textarea",
+            "number",
+            "bool",
+            "date",
+            "select",
+            "user"
+          ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "readonly": {
+          "type": "boolean"
+        },
+        "context": {
+          "type": "boolean",
+          "description": "Campo di sola lettura alimentato da una variabile a monte."
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "optionsTargetName": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

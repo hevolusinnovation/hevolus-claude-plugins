@@ -1,0 +1,20 @@
+{
+  "name": "hevolus",
+  "description": "Plugin Claude Code di Hevolus Innovation: strumenti interni condivisi dal team, installabili senza clonare i repository di prodotto.",
+  "owner": {
+    "name": "Hevolus Innovation — AI Team",
+    "url": "https://github.com/hevolusinnovation"
+  },
+  "version": "1.0.0",
+  "plugins": [
+    {
+      "name": "blueprints",
+      "displayName": "XRCopilotLab BluePrints",
+      "source": "./plugins/blueprints",
+      "version": "1.0.0",
+      "description": "Configura un ambiente XRCopilotLab — topic, ruoli, agenti, agent task, processi BPM — da un manifest YAML, mostrando il piano e chiedendo conferma prima di creare qualcosa.",
+      "category": "productivity",
+      "tags": ["xrcopilotlab", "blueprint", "bpm", "provisioning", "agenti"]
+    }
+  ]
+}

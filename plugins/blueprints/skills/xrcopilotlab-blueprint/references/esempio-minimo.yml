@@ -1,0 +1,147 @@
+# Blueprint di prova: il giro completo su un tenant di collaudo.
+# Crea un topic, un ruolo con un membro, un agente, un agent task e un processo BPM pubblicato
+# con webhook di avvio.
+#
+#   xrcopilotlab-bp validate blueprints/test-agenda.yml
+#   xrcopilotlab-bp pipeline --env staging blueprints/test-agenda.yml
+
+blueprint: test-agenda
+version: 1
+tag: TEST
+description: Presa in carico di un avviso di udienza arrivato via email
+
+tenant:
+  companyId: 00000000-0000-0000-0000-000000000000   # tenant di prova
+  topic: Agenda di Studio
+
+businessRoles:
+  - key: referente
+    name: Referente agenda
+    description: Presidia il calendario delle udienze e conferma le date proposte
+    members:
+      - test@hevolus.it
+
+agents:
+  - key: agenda
+    name: Agenda
+    description: Legge un avviso di udienza e ne propone gli estremi
+    language: it
+    temperature: 0.2
+    systemMessage: |
+      Sei l'assistente di agenda di uno studio legale.
+      Ricevi il testo di un avviso di udienza e restituisci, in italiano:
+      data e ora, sede e sezione, numero di ruolo, parti, e il tipo di adempimento.
+      Se un dato non è presente nel testo scrivi «non indicato»: non dedurlo e non inventarlo.
+      Non calcolare termini processuali: non è compito tuo.
+    skills: []
+
+agentTasks:
+  - key: estrai-udienza
+    name: Estrazione udienza
+    description: Estrae gli estremi dell'udienza dal testo dell'avviso
+    agent: agenda
+    prompt: |
+      Estrai gli estremi dell'udienza dal seguente avviso:
+      {{testoAvviso}}
+
+processes:
+  - key: presa-in-carico
+    publish: true
+    owners:
+      - test@hevolus.it
+    starterRoles:
+      - referente
+    webhook:
+      enabled: true
+    spec:
+      version: 1
+      name: Presa in carico avviso di udienza
+      description: Dall'avviso ricevuto alla conferma della data da parte del referente
+      criticality: Medium
+      dataSensitivity: Confidential
+      activities:
+        - id: start
+          type: Start
+          name: Avviso ricevuto
+          form:
+            - key: testoAvviso
+              label: Testo dell'avviso
+              type: textarea
+              required: true
+              description: Il corpo della email ricevuta sulla casella di ascolto
+            - key: mittente
+              label: Mittente
+              type: text
+
+        - id: estrai
+          type: Task
+          name: Estrai gli estremi
+          performer: Automated
+          agentTaskName: Estrazione udienza
+          outputVariable: proposta
+          expectedDurationMinutes: 2
+
+        - id: conferma
+          type: Task
+          name: Conferma del referente
+          performer: HumanOnly
+          roleName: Referente agenda
+          expectedDurationMinutes: 10
+          maxLeadTimeMinutes: 1440
+          form:
+            - key: proposta
+              label: Proposta dell'assistente
+              type: textarea
+              context: true
+            - key: confermato
+              label: Estremi confermati
+              type: bool
+            - key: dataUdienza
+              label: Data dell'udienza
+              type: date
+            - key: note
+              label: Note
+              type: textarea
+
+        - id: registra
+          type: Task
+          name: Registra in calendario
+          performer: HumanOnly
+          roleName: Referente agenda
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 480
+          form:
+            - key: dataUdienza
+              label: Data confermata
+              type: date
+              context: true
+            - key: registrato
+              label: Registrato sul calendario comune
+              type: bool
+              required: true
+
+        - id: fine
+          type: End
+          name: Presa in carico conclusa
+
+      gateways:
+        - id: esito
+          type: Exclusive
+          name: Estremi confermati?
+
+      flows:
+        - from: start
+          to: estrai
+        - from: estrai
+          to: conferma
+        - from: conferma
+          to: esito
+        - from: esito
+          to: registra
+          condition: { var: confermato, op: eq, value: true }
+          label: confermati
+        - from: esito
+          to: estrai
+          label: da rifare
+        - from: registra
+          to: fine

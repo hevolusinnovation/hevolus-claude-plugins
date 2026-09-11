@@ -1,0 +1,441 @@
+# Studio Polis — Agenda e calendario di studio
+#
+# Deriva dall'assessment Agent Ready del 4 agosto 2026, scenario «Agenda e gestione delle
+# scadenze». Copre la presa in carico di un avviso di udienza: dall'arrivo dell'avviso alla
+# registrazione sul calendario comune, con l'assegnazione tracciata nel flusso invece che
+# annotata sulla carta.
+#
+# Copre due strade: un'udienza nuova, che va assegnata e registrata, e il rinvio di un'udienza già
+# a calendario, che va spostata senza riassegnare e senza creare un doppione.
+#
+# Risponde a quattro delle criticità che lo Studio ha censito nella propria procedura:
+#   · la registrazione dipende da una sola persona senza sostituto  → il ruolo ha più membri
+#   · nessuna conferma che un avviso sia stato letto e registrato   → passi di conferma con soglia
+#   · l'assegnazione è decisa in riunione e annotata solo sulla carta → passo di assegnazione
+#   · i rinvii mancanti vivono nelle bozze email di un referente     → alert automatico agli owner
+#
+# Fuori perimetro, per scelta: il computo dei termini processuali. Non esiste come componente e
+# l'assessment lo mette fra le cose da costruire, quindi qui i termini li scrive il professionista.
+#
+#   xrcopilotlab-bp validate blueprints/studiopolis-agenda.yml --graph
+
+blueprint: studiopolis-agenda
+version: 2
+tag: STUDIOPOLIS
+description: Presa in carico di un avviso di udienza e registrazione sul calendario comune
+
+tenant:
+  companyId: 4da69cbc-d935-4050-f410-08d8392ca08f
+  topic: Agenda di Studio
+
+# --------------------------------------------------------------------------------------------
+# Chi fa cosa
+# --------------------------------------------------------------------------------------------
+# Il sostituto non è un concetto del motore: è semplicemente un secondo membro dello stesso
+# ruolo. Chi ha il ruolo vede il compito e lo prende in carico, quindi un'assenza non ferma più
+# la registrazione — che è esattamente la prima criticità della procedura dello Studio.
+
+businessRoles:
+  - key: referente-agenda
+    name: Referente agenda
+    description: >
+      Presidia il calendario comune: verifica gli avvisi in arrivo, assegna l'udienza e la
+      registra. Va popolato con il referente del penale, quello del civile e i rispettivi
+      sostituti.
+    members:
+      - giuseppe.zileni@hevolus.it     # membro di prova: i referenti reali si aggiungono dalla UI
+
+  - key: responsabile-agenda
+    name: Responsabile agenda
+    description: Riceve gli avvisi di superamento soglia sugli avvisi fermi
+    members:
+      - giuseppe.zileni@hevolus.it     # membro di prova
+
+# --------------------------------------------------------------------------------------------
+# L'agente che legge l'avviso
+# --------------------------------------------------------------------------------------------
+
+agents:
+  - key: agenda
+    name: Agenda
+    description: Estrae gli estremi di un'udienza dal testo di un avviso
+    language: it
+    temperature: 0.1        # è un compito di estrazione: la fantasia qui è un difetto
+    systemMessage: |
+      Sei l'assistente di agenda di uno studio legale.
+
+      Ricevi il testo di un avviso di udienza — una comunicazione di cancelleria, una PEC, il
+      corpo di una email inoltrata — e restituisci gli estremi, in italiano, in questa forma:
+
+      - Data e ora
+      - Autorità giudiziaria, sede e sezione
+      - Numero di ruolo (R.G. o R.G.N.R.)
+      - Parti
+      - Tipo di adempimento (udienza, rinvio, deposito, notifica)
+      - Giudice, se indicato
+
+      Regole che non ammettono eccezioni:
+      - Se un dato non è presente nel testo, scrivi «non indicato». Non dedurlo, non stimarlo,
+        non completarlo con quello che sembra plausibile.
+      - Non calcolare termini processuali e non proporre scadenze derivate: non è compito tuo,
+        e un termine sbagliato ha conseguenze irreparabili.
+      - Se il testo è ambiguo o sembra riferirsi a più procedimenti, dillo esplicitamente in
+        fondo invece di sceglierne uno.
+    skills: []
+
+    # Milestone 2: il calendario comune si scrive con un server MCP su Microsoft Graph.
+    # mcp: [calendario]
+
+agentTasks:
+  - key: estrazione-avviso
+    name: Estrazione avviso
+    description: Legge l'avviso ricevuto e ne propone gli estremi
+    agent: agenda
+    prompt: |
+      Estrai gli estremi dell'udienza dal seguente avviso.
+      Materia: {{materia}}. Fascicolo: {{fascicolo}}.
+
+      {{testoAvviso}}
+
+# --------------------------------------------------------------------------------------------
+# Il processo
+# --------------------------------------------------------------------------------------------
+
+processes:
+  - key: presa-in-carico-udienza
+    publish: true
+    owners:
+      - giuseppe.zileni@hevolus.it     # destinatario di prova degli alert di soglia
+    starterRoles:
+      - referente-agenda
+    webhook:
+      enabled: true               # per l'ingresso automatico dalla casella di ascolto
+    spec:
+      version: 1
+      name: Presa in carico avviso di udienza
+      description: >
+        Dall'avviso ricevuto alla registrazione sul calendario comune, con verifica del
+        referente, assegnazione al professionista e conferma di presa visione.
+      criticality: High
+      dataSensitivity: Confidential
+
+      activities:
+        - id: start
+          type: Start
+          name: Avviso ricevuto
+          form:
+            - key: testoAvviso
+              label: Testo dell'avviso
+              type: textarea
+              required: true
+              description: Il corpo della comunicazione, come è arrivato
+            - key: materia
+              label: Materia
+              type: select
+              required: true
+              options: [Penale, Civile]
+            - key: fascicolo
+              label: Fascicolo
+              type: text
+              description: Riferimento interno del fascicolo, se noto
+            - key: mittente
+              label: Mittente
+              type: text
+
+        - id: estrai
+          type: Task
+          name: Estrai gli estremi
+          performer: Automated
+          agentTaskName: Estrazione avviso
+          outputVariable: proposta
+          expectedDurationMinutes: 2
+
+        - id: verifica
+          type: Task
+          name: Verifica del referente
+          performer: HumanOnly
+          roleName: Referente agenda
+          expectedDurationMinutes: 10
+          maxLeadTimeMinutes: 480        # mezza giornata lavorativa
+          form:
+            - key: proposta
+              label: Estremi proposti
+              type: textarea
+              context: true
+              description: Quello che l'assistente ha letto nell'avviso, da verificare sul testo
+            - key: datiCompleti
+              label: Estremi completi e corretti
+              type: bool
+            - key: dataUdienza
+              label: Data dell'udienza
+              type: date
+            - key: oraUdienza
+              label: Ora
+              type: text
+            - key: sede
+              label: Sede e sezione
+              type: text
+            - key: tipoAdempimento
+              label: Tipo di adempimento
+              type: select
+              options: [Udienza, Rinvio, Deposito, Notifica, Altro]
+            - key: giaACalendario
+              label: L'udienza è già sul calendario comune
+              type: bool
+              description: >
+                Spuntare se questo avviso sposta un'udienza già registrata. Il flusso aggiornerà
+                l'evento esistente invece di crearne uno nuovo, e non rifarà l'assegnazione.
+
+        - id: chiarimenti
+          type: Task
+          name: Richiedi chiarimenti
+          performer: HumanOnly
+          roleName: Referente agenda
+          expectedDurationMinutes: 15
+          maxLeadTimeMinutes: 2880       # due giorni: è il passo che si dimentica più spesso
+          form:
+            - key: proposta
+              label: Estremi proposti
+              type: textarea
+              context: true
+            - key: richiestaInviata
+              label: Richiesta di chiarimento inviata
+              type: bool
+              required: true
+            - key: noteChiarimento
+              label: A chi e cosa è stato chiesto
+              type: textarea
+
+        - id: assegna
+          type: Task
+          name: Assegna l'udienza
+          performer: HumanOnly
+          roleName: Referente agenda
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 1440
+          form:
+            - key: dataUdienza
+              label: Data dell'udienza
+              type: date
+              context: true
+            - key: sede
+              label: Sede e sezione
+              type: text
+              context: true
+            - key: professionista
+              label: Professionista incaricato
+              type: user
+              required: true
+              description: Riceverà il compito di conferma direttamente nella sua lista
+
+        - id: conferma
+          type: Task
+          name: Conferma del professionista
+          # L'assegnazione decisa al passo precedente guida questo: il compito arriva alla
+          # persona scelta, non a una coda di ruolo. È la traccia che la procedura dello Studio
+          # oggi affida a un'annotazione a margine di una fotocopia.
+          performer: HumanOnly
+          assignmentExpression: professionista
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 2880
+          form:
+            - key: dataUdienza
+              label: Data dell'udienza
+              type: date
+              context: true
+            - key: sede
+              label: Sede e sezione
+              type: text
+              context: true
+            - key: tipoAdempimento
+              label: Adempimento
+              type: text
+              context: true
+            - key: presaVisione
+              label: Presa visione
+              type: bool
+              required: true
+            - key: terminiDaPresidiare
+              label: Termini da presidiare
+              type: textarea
+              description: >
+                Da compilare a mano: il computo dei termini non è automatizzato e resta una
+                valutazione del professionista.
+
+        - id: registra
+          type: Task
+          name: Registra sul calendario comune
+          performer: HumanOnly
+          roleName: Referente agenda
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 480
+          form:
+            - key: dataUdienza
+              label: Data dell'udienza
+              type: date
+              context: true
+            - key: registrato
+              label: Registrato sul calendario comune
+              type: bool
+              required: true
+            - key: linkEvento
+              label: Link all'evento
+              type: text
+
+        # --- Ramo del rinvio: l'udienza è già a calendario ---
+        # Non si riassegna e non si crea un evento nuovo: si sposta quello che c'è, e chi segue
+        # il fascicolo deve accorgersene. Senza questo ramo un rinvio produrrebbe un doppione a
+        # calendario, che è precisamente il disallineamento che il processo dovrebbe togliere.
+
+        - id: aggiorna
+          type: Task
+          name: Sposta l'udienza a calendario
+          performer: HumanOnly
+          roleName: Referente agenda
+          expectedDurationMinutes: 10
+          maxLeadTimeMinutes: 480
+          form:
+            - key: dataUdienza
+              label: Nuova data
+              type: date
+              context: true
+            - key: sede
+              label: Sede e sezione
+              type: text
+              context: true
+            - key: udienzaPrecedente
+              label: Udienza da spostare
+              type: text
+              required: true
+              description: Link all'evento a calendario, oppure numero di ruolo e data precedente
+            - key: professionista
+              label: Professionista che segue il fascicolo
+              type: user
+              required: true
+              description: Riceverà l'avviso del rinvio nella sua lista
+            - key: eventoAggiornato
+              label: Evento spostato sul calendario comune
+              type: bool
+              required: true
+
+        - id: avvisa-rinvio
+          type: Task
+          name: Avviso del rinvio al professionista
+          performer: HumanOnly
+          assignmentExpression: professionista
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 2880
+          form:
+            - key: dataUdienza
+              label: Nuova data
+              type: date
+              context: true
+            - key: sede
+              label: Sede e sezione
+              type: text
+              context: true
+            - key: udienzaPrecedente
+              label: Udienza spostata
+              type: text
+              context: true
+            - key: presaVisioneRinvio
+              label: Presa visione del rinvio
+              type: bool
+              required: true
+            - key: terminiDaPresidiare
+              label: Termini da presidiare
+              type: textarea
+              description: >
+                Un rinvio può spostare anche i termini collegati: la valutazione resta del
+                professionista.
+
+        - id: fine
+          type: End
+          name: Udienza a calendario
+
+      gateways:
+        - id: completezza
+          type: Exclusive
+          name: Estremi completi?
+        - id: natura
+          type: Exclusive
+          name: Udienza già a calendario?
+
+      flows:
+        - from: start
+          to: estrai
+        - from: estrai
+          to: verifica
+        - from: verifica
+          to: completezza
+        - from: completezza
+          to: chiarimenti
+          condition: { var: datiCompleti, op: eq, value: false }
+          label: da chiarire
+        - from: chiarimenti
+          to: verifica
+        - from: completezza
+          to: natura
+          label: completi
+        - from: natura
+          to: aggiorna
+          condition: { var: giaACalendario, op: eq, value: true }
+          label: rinvio
+        - from: natura
+          to: assegna
+          label: udienza nuova
+        - from: assegna
+          to: conferma
+        - from: conferma
+          to: registra
+        - from: registra
+          to: fine
+        - from: aggiorna
+          to: avvisa-rinvio
+        - from: avvisa-rinvio
+          to: fine
+
+# --------------------------------------------------------------------------------------------
+# Milestone 2 — dichiarato, non ancora creato
+# --------------------------------------------------------------------------------------------
+# La CLI verifica queste sezioni e le segnala nel piano, ma non le crea ancora. Restano qui
+# perché sono il bersaglio: quando la milestone 2 arriva, il file è già quello giusto.
+#
+# connections:
+#   - key: graph
+#     name: Microsoft Graph
+#     provider: webhook
+#     baseUrl: https://graph.microsoft.com/v1.0
+#     auth:
+#       kind: OAuth2ClientCredentials
+#       tokenUrl: https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token
+#       clientId: Blueprints:Secrets:STUDIOPOLIS:graph-client-id
+#       clientSecret: Blueprints:Secrets:STUDIOPOLIS:graph-client-secret
+#       scope: https://graph.microsoft.com/.default
+#
+# mcpServers:
+#   - key: calendario
+#     kind: builder
+#     name: Calendario comune
+#     connection: graph
+#     variables: { calendario: agenda@studiopolis.it }
+#     tools:
+#       - name: crea_evento
+#         method: POST
+#         path: /users/{{calendario}}/events
+#         description: Crea un'udienza sul calendario comune di studio
+#       - name: cerca_eventi
+#         method: GET
+#         path: /users/{{calendario}}/calendarView
+#         description: Verifica se l'udienza è già a calendario
+#     testTool: cerca_eventi
+#     publish: true
+#
+# external:
+#   mailbox: ascolto@studiopolis.it
+#   auth: interactive
+#   ingress:
+#     kind: logicapp
+#     target: processes.presa-in-carico-udienza.webhook
+#   manualSteps:
+#     - authorize-office365-connection

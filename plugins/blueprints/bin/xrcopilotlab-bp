@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# Avvia xrcopilotlab-bp, procurandoselo al primo uso.
+#
+# Il binario autonomo pesa una cinquantina di megabyte: tenerlo dentro il repository del
+# marketplace vorrebbe dire farlo scaricare a tutto il team anche solo per leggere la skill.
+# Sta quindi fra gli allegati di una release, e questo script lo mette in cache la prima volta.
+#
+# L'ordine in cui lo cerca — variabile d'ambiente, strumento globale, cache, download — serve a
+# non intralciare chi sviluppa: chi ha già la CLI installata continua a usare la sua.
+
+set -euo pipefail
+
+REPO="hevolusinnovation/xrcopilotlab-webapp-dotnet"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VERSION="$(cat "$HERE/version.txt")"
+CACHE_DIR="${CLAUDE_PLUGIN_DATA:-$HOME/.xrcopilotlab-bp/cache}/bin"
+
+die() { echo "xrcopilotlab-bp: $*" >&2; exit 70; }
+
+# 1. Un percorso imposto a mano vince su tutto: serve a provare una build locale.
+if [ -n "${XRCOPILOTLAB_BP_BIN:-}" ]; then
+  exec "$XRCOPILOTLAB_BP_BIN" "$@"
+fi
+
+# 2. Lo strumento globale .NET, se chi usa il plugin sviluppa anche sul repository.
+if [ -x "$HOME/.dotnet/tools/xrcopilotlab-bp" ]; then
+  exec "$HOME/.dotnet/tools/xrcopilotlab-bp" "$@"
+fi
+
+# 3. La copia già scaricata.
+case "$(uname -s)" in
+  Darwin)
+    if [ "$(uname -m)" = "arm64" ]; then RID="osx-arm64"; else RID="osx-x64"; fi
+    ;;
+  Linux)
+    case "$(uname -m)" in
+      aarch64|arm64) RID="linux-arm64" ;;
+      *)             RID="linux-x64" ;;
+    esac
+    ;;
+  *)
+    die "sistema operativo non riconosciuto: $(uname -s). Su Windows si usa xrcopilotlab-bp.cmd."
+    ;;
+esac
+
+BIN="$CACHE_DIR/xrcopilotlab-bp-$VERSION-$RID"
+if [ -x "$BIN" ]; then
+  exec "$BIN" "$@"
+fi
+
+ASSET="xrcopilotlab-bp-$RID"
+TAG="bp-v$VERSION"
+
+istruzioni_accesso() {
+  echo "xrcopilotlab-bp: per scaricare la CLI serve l'accesso a GitHub." >&2
+  echo "  · installa GitHub CLI e fai 'gh auth login', oppure" >&2
+  echo "  · esporta GH_TOKEN con un token che possa leggere $REPO, oppure" >&2
+  echo "  · scarica a mano $ASSET dalla release $TAG e indicalo con:" >&2
+  echo "      export XRCOPILOTLAB_BP_BIN=/percorso/del/binario" >&2
+  exit 70
+}
+
+scarica() {
+  # nome dell'allegato = $1, file di destinazione = $2
+  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    gh release download "$TAG" --repo "$REPO" --pattern "$1" --output "$2" --clobber
+    return $?
+  fi
+
+  TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+  [ -n "$TOKEN" ] || istruzioni_accesso
+
+  ASSET_ID="$(ASSET_NAME="$1" curl -fsSL \
+      -H "Authorization: Bearer $TOKEN" \
+      "https://api.github.com/repos/$REPO/releases/tags/$TAG" \
+    | python3 -c 'import json,os,sys; a=[x["id"] for x in json.load(sys.stdin).get("assets",[]) if x["name"]==os.environ["ASSET_NAME"]]; print(a[0] if a else "")')"
+
+  [ -n "$ASSET_ID" ] || die "la release $TAG non contiene l'allegato $1."
+
+  curl -fsSL -H "Authorization: Bearer $TOKEN" -H "Accept: application/octet-stream" \
+    "https://api.github.com/repos/$REPO/releases/assets/$ASSET_ID" -o "$2"
+}
+
+# 4. Scaricare. Succede una volta per versione, e lo si annuncia: cinquanta megabyte che arrivano
+#    in silenzio sembrano un comando bloccato.
+echo "Prima esecuzione: scarico la CLI ($ASSET, ~52 MB) dalla release $TAG." >&2
+
+mkdir -p "$CACHE_DIR"
+TMP="$(mktemp "$CACHE_DIR/.download.XXXXXX")"
+trap 'rm -f "$TMP" "$TMP.sha256"' EXIT
+
+scarica "$ASSET" "$TMP"
+
+# Verifica dell'impronta: si sta per eseguire ciò che si è appena scaricato.
+if scarica "$ASSET.sha256" "$TMP.sha256" 2>/dev/null && [ -s "$TMP.sha256" ]; then
+  ATTESA="$(awk '{print $1}' "$TMP.sha256" | tr -d '\r')"
+  OTTENUTA="$(shasum -a 256 "$TMP" | awk '{print $1}')"
+  if [ "$ATTESA" != "$OTTENUTA" ]; then
+    die "impronta non corrispondente (attesa $ATTESA, ottenuta $OTTENUTA). Non eseguo il file."
+  fi
+else
+  echo "xrcopilotlab-bp: la release non pubblica l'impronta, download non verificato." >&2
+fi
+
+chmod +x "$TMP"
+mv "$TMP" "$BIN"
+trap - EXIT
+
+echo "CLI pronta in $BIN" >&2
+exec "$BIN" "$@"
