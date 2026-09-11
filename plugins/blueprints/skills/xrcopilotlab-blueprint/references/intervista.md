@@ -7,6 +7,11 @@ Una domanda per volta. Non chiedere ciò che puoi dedurre, non inventare ciò ch
 detto, e quando una risposta è incompleta chiedi l'esempio concreto invece della regola generale:
 «l'ultima volta che è successo, chi l'ha fatto?» funziona meglio di «chi se ne occupa di solito?».
 
+Se esiste un **dossier di assessment**, l'intervista non parte da zero: si legge il capitolo
+«Elementi per il provisioning», si traduce ciò che c'è, e le domande qui sotto servono solo per i
+buchi rimasti. Le più frequenti sono le email dei membri di un ruolo e le condizioni esatte dei
+bivi, che nei dossier restano spesso a livello di intenzione.
+
 ## L'ordine delle domande
 
 **1. Di chi è questo processo.** Tag (cliente o contesto) e tenant. Il tag è maiuscole e cifre,

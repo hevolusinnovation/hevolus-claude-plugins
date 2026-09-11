@@ -31,6 +31,20 @@ e [`references/esempio-minimo.yml`](references/esempio-minimo.yml) (il giro più
 
 Se l'utente ha già un manifest, saltare al punto 2.
 
+**Se porta un dossier di assessment** — il documento prodotto su Claude Desktop dalla skill
+`xrcopilotlab-assessment` — la fonte è quello, non un'intervista da capo. Il capitolo **«Elementi
+per il provisioning»** contiene già tag, topic, ruoli aziendali con i membri, agenti con il system
+message, agent task e il disegno del processo; il capitolo del processo contiene attività, modalità,
+corsie, moduli e condizioni. Leggili, traducili, e **chiedi solo ciò che manca davvero**: fare
+ripetere all'utente cose che ha già scritto è il modo più veloce per perderne la fiducia.
+
+Due cose vanno comunque verificate, perché il dossier non può saperle: che i **nomi non siano già
+occupati** sul tenant (lo dice il preflight del piano) e che i **valori dei segreti** siano stati
+impostati con `secrets set` — nel dossier c'è solo il loro nome, ed è giusto così.
+
+Se il dossier promette qualcosa che il motore non fa — un timer, un ricongiungimento dopo un fork,
+un allegato in un processo dichiarativo — dirlo subito: è meglio scoprirlo qui che a piano rifiutato.
+
 Altrimenti condurre l'intervista seguendo [`references/intervista.md`](references/intervista.md):
 una domanda per volta, senza chiedere ciò che si può dedurre e senza inventare ciò che non è stato
 detto.
