@@ -52,6 +52,28 @@ Quello che serve è il tuo **account `hevolus.it`** — lo stesso della posta az
 quindi un account Microsoft personale non può funzionare: non è un permesso che manca, è che quelle
 risorse non sono sue.
 
+#### E non è l'account con cui entri in XRCopilotLab
+
+È la confusione più facile, e chi ci cade ha le sue ragioni: su XRCopilotLab l'accesso è già suo.
+Ma il prodotto si usa con un'identità **Azure AD B2C** — la pagina è `xrcopilotlab.b2clogin.com`,
+con email e password registrate sul momento oppure **Login with Google**. È una directory
+**diversa** da quella aziendale, e le due non si incontrano mai.
+
+| | Chi **usa** XRCopilotLab | Chi **esegue** il plugin |
+|---|---|---|
+| Directory | Azure AD B2C (`xrcopilotlab.onmicrosoft.com`) | Entra ID aziendale (`hevolus.it`) |
+| Identità | email registrata, o account Google | account `hevolus.it` |
+| Serve a | chat, UI, processi, work item | leggere App Configuration e Key Vault, comandare l'API |
+| Conta qui? | **no** | sì, è l'unica che conta |
+
+Avere un account XRCopilotLab, anche da amministratore del tenant, **non dà alcun accesso al
+plugin**. E i ruoli Azure, per conto loro, non ti fanno entrare nel prodotto.
+
+> **A chi è destinato.** Il plugin blueprints è uno strumento dell'**AI Team di Hevolus**, che
+> configura XRCopilotLab a valle di un assessment. Non è pensato per il cliente: lui nel prodotto
+> entra, ma la CLI parla con la sottoscrizione Azure di Hevolus, dove non ha — e non deve avere —
+> alcun ruolo.
+
 | Coordinate | |
 |---|---|
 | Tenant | `hevolus.it` — `45bb21a6-d8f8-4218-b74d-f4a5d5c2138e` |
@@ -173,6 +195,18 @@ Dove invece gli utenti del prodotto contano davvero è **dentro il manifest**: i
 aziendali, gli owner di un processo e i destinatari di un passo di approvazione devono già esistere
 sul tenant. Il blueprint aggiunge le persone ai ruoli, non le crea — e se un indirizzo non esiste il
 piano si ferma prima di toccare qualsiasi cosa.
+
+Quegli indirizzi sono **utenti B2C del prodotto**, non identità Azure. La differenza si vede subito
+con due esempi:
+
+- `mario@gmail.com`, registrato su XRCopilotLab con Google → membro di ruolo **valido**;
+- un collega con un ottimo account `hevolus.it` che nel prodotto non è mai entrato → **non valido**,
+  e il piano si ferma.
+
+Quindi, prima di scrivere un indirizzo in un manifest, la domanda non è «ha un account Hevolus?» ma
+«**è già un utente di quel tenant?**». Quando la stessa persona ha entrambe le cose — identità Azure
+per lanciare il comando e utente del prodotto per ricevere i compiti — la mail è la stessa stringa in
+due panni diversi, e sembra che l'account sia uno solo. Non lo è.
 
 ## Struttura del repository
 

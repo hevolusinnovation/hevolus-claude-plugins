@@ -73,6 +73,45 @@ Quello che serve è un'identità **nel tenant `hevolus.it`**, perché App Config
 Cosmos e lo storage vivono nella sottoscrizione di Hevolus. Un account Microsoft personale non può
 funzionare: non è una questione di permessi mancanti, è che quelle risorse non sono sue.
 
+### E non è l'account con cui si entra in XRCopilotLab
+
+Questa è la confusione da sciogliere per prima, perché l'utente ha ragione a sentirsi già dentro.
+XRCopilotLab si usa con un'identità **Azure AD B2C** — la pagina di accesso è
+`xrcopilotlab.b2clogin.com`, con email e password registrate sul momento oppure **Login with
+Google**. È una directory **diversa** da quella aziendale, e le due non si incontrano mai.
+
+| | Chi **usa** XRCopilotLab | Chi **esegue** la CLI |
+|---|---|---|
+| Directory | Azure AD B2C (`xrcopilotlab.onmicrosoft.com`) | Entra ID aziendale (`hevolus.it`) |
+| Identità | email registrata, o account Google | account `hevolus.it` |
+| Serve a | chat, UI, processi, work item | leggere App Configuration e Key Vault, comandare l'API |
+| Conta qui? | **no** | sì, è l'unica che conta |
+
+Quindi non è solo che il *ruolo* dentro il prodotto non conta: **non conta nemmeno l'account**. Chi
+amministra un tenant XRCopilotLab con un'identità B2C non ha, per ciò stesso, alcun accesso alla
+CLI — e chi ha i ruoli Azure non entra, per ciò stesso, nel prodotto.
+
+Conseguenza pratica: **questo strumento è per l'AI Team di Hevolus**, che configura XRCopilotLab a
+valle di un assessment. Non è uno strumento da mettere in mano al cliente, che sul prodotto entra
+ma sulla CLI no.
+
+### Gli indirizzi nel manifest sono utenti del prodotto, non identità Azure
+
+Vale quando scrivi `businessRoles[].members`, `processes[].owners` e i `recipients` di un passo
+`humanApproval`. Il preflight li confronta con gli utenti **del tenant XRCopilotLab**
+(`Api.Users.GetUsersAsync`), cioè con la directory B2C:
+
+- un `mario@gmail.com` registrato con Google è un membro di ruolo **valido**;
+- un collega con un ottimo account `hevolus.it` che non è mai entrato nel prodotto **non lo è**, e
+  il piano si ferma con «l'utente non esiste nel tenant».
+
+Il blueprint aggiunge le persone ai ruoli, non le crea. Quindi, prima di scrivere un indirizzo nel
+manifest, la domanda non è «ha un account Hevolus?» ma «**è già un utente di quel tenant?**».
+
+Attenzione a un caso che nasconde la distinzione: quando la stessa persona ha entrambe le cose —
+identità Azure per lanciare la CLI e utente del prodotto per ricevere i compiti — la mail è la
+stessa stringa in due panni diversi, e sembra che ci sia un solo account. Non c'è.
+
 I ruoli sono due, più due solo per chi imposta segreti:
 
 | Per fare | Ruoli sull'ambiente |
