@@ -107,6 +107,9 @@ successive.
 
 Se qualcosa si blocca qui, salta al [punto 6](#6-quando-qualcosa-non-va).
 
+> **Verificato.** Il giro completo — installazione, download del binario, controllo dell'impronta
+> ed esecuzione — è stato provato su una macchina senza la CLI e senza il repository di prodotto.
+
 ---
 
 ## 4. Creare un blueprint
