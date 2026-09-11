@@ -1,8 +1,9 @@
 # assessment
 
-Traduce una proposta di progetto in una soluzione di agenti orchestrati su XRCopilotLab: estrae
-scenari e obiettivi, progetta l'orchestrazione, verifica la fattibilità delle fonti dati e genera
-il dossier tecnico in Markdown e Word. Produce la valutazione tecnica, non il pricing.
+Traduce una proposta di progetto in una soluzione XRCopilotLab: estrae scenari e obiettivi, sceglie
+fra chat con agenti orchestrati e processo BPM, verifica la fattibilità delle fonti dati e genera il
+dossier tecnico in Markdown e Word — compreso il capitolo da cui nasce il blueprint di provisioning.
+Produce la valutazione tecnica, non il pricing.
 
 Gira su **Claude Desktop**, non su Claude Code: si installa caricando il pacchetto su
 [claude.ai/customize/plugins](https://claude.ai/customize/plugins). Lo zip si costruisce dalla radice

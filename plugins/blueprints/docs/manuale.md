@@ -17,6 +17,7 @@ installare niente a mano.
 1. [Cosa ti serve prima](#1-cosa-ti-serve-prima)
 2. [Installare il plugin](#2-installare-il-plugin)
 3. [Il primo avvio](#3-il-primo-avvio)
+3-bis. [Dove si lavora: ambiente e cliente](#3-bis-dove-si-lavora-ambiente-e-cliente)
 4. [Creare un blueprint](#4-creare-un-blueprint)
 5. [I comandi, uno per uno](#5-i-comandi-uno-per-uno)
 6. [Quando qualcosa non va](#6-quando-qualcosa-non-va)
@@ -95,7 +96,7 @@ La prima volta che chiedi qualcosa al plugin succedono due cose, una sola volta 
 Vedi comparire:
 
 ```
-Prima esecuzione: scarico la CLI (xrcopilotlab-bp-osx-arm64, ~52 MB) dalla release bp-v1.1.1.
+Prima esecuzione: scarico la CLI (xrcopilotlab-bp-osx-arm64, ~52 MB) dalla release bp-v2.1.2.
 CLI pronta in /Users/tuonome/.claude/plugins/data/blueprints/bin/...
 ```
 
@@ -109,6 +110,42 @@ Se qualcosa si blocca qui, salta al [punto 6](#6-quando-qualcosa-non-va).
 
 > **Verificato.** Il giro completo — installazione, download del binario, controllo dell'impronta
 > ed esecuzione — è stato provato su una macchina senza la CLI e senza il repository di prodotto.
+
+---
+
+## 3-bis. Dove si lavora: ambiente e cliente
+
+Due domande a cui rispondi una volta per sessione, e a cui il plugin ti aiuta a rispondere.
+
+**L'ambiente** è dove finisce il lavoro. Sono tre, già dentro la CLI — non devi configurare niente:
+
+| `--env` | Cos'è |
+|---|---|
+| `staging` | L'ambiente di prova. È quello che si usa quasi sempre |
+| `preview` | L'anteprima |
+| `prod` | **La produzione.** Da qui dipendono le demo e chi lavora |
+
+Senza `--env`, e solo dentro un clone del repository di prodotto, si usa l'ambiente di sviluppo.
+
+**Il cliente** non lo scrivi: il plugin te lo chiede scegliendolo da un elenco di nomi.
+
+```
+  Per quale tenant, in Staging?
+
+   1. Confindustria Como
+   2. Studio Polis
+   3. Hevolus Innovation
+
+  Numero (1-3), oppure vuoto per annullare:
+```
+
+Prima di ogni comando che scrive qualcosa, vedi sempre una riga che dice dove sei. In produzione
+non è una riga: è un riquadro.
+
+> **In produzione si lavora solo sul tenant di Hevolus.** Gli ambienti dei clienti non compaiono
+> nell'elenco, e non si raggiungono nemmeno scrivendo il loro identificativo. Non è un permesso che
+> ti manca: è una scelta. L'ambiente di un cliente si configura dall'interfaccia di XRCopilotLab,
+> non da qui.
 
 ---
 
@@ -165,14 +202,15 @@ possa capire cosa sta succedendo, e perché a volte è comodo lanciarli a mano.
 | `status --run <id>` | Dettaglio di un'esecuzione: chi ha approvato, cosa è stato creato |
 | `rollback --run <id>` | Smonta ciò che quell'esecuzione ha creato |
 | `delete --tag <TAG> --confirm <TAG>` | Cancella il blueprint dall'archivio. Con `--with-entities` smonta prima il tenant |
+| `--help` | L'elenco aggiornato di comandi e opzioni, per la versione che hai installata |
 
 Un giro completo, se vuoi rifarlo a mano:
 
 ```bash
 xrcopilotlab-bp validate blueprints/rossi-udienze.yml --graph
-xrcopilotlab-bp push     blueprints/rossi-udienze.yml
-xrcopilotlab-bp plan     --tag ROSSI --company <id-del-tenant>
-xrcopilotlab-bp apply    --tag ROSSI --company <id-del-tenant> --yes
+xrcopilotlab-bp push     blueprints/rossi-udienze.yml --env staging
+xrcopilotlab-bp plan     --tag ROSSI --env staging          # il cliente te lo chiede
+xrcopilotlab-bp apply    --tag ROSSI --env staging --yes
 ```
 
 Due cose da sapere su questi comandi.
@@ -314,9 +352,17 @@ li aggiunge a un ruolo, non li fa nascere.
 **Non crea skill.** Le skill del catalogo (ricerca giuridica, analisi documentale, e le altre) si
 assegnano a un agente, ma devono già essere disponibili sul tenant.
 
-**Non collega ancora sistemi esterni.** Connessioni, server MCP, orchestratori e le risorse fuori
-dalla piattaforma — una casella di posta, un calendario — si possono già dichiarare nel file e
-vengono verificati, ma non ancora creati. Il piano te lo segnala invece di ignorarli in silenzio.
+**Non configura i clienti in produzione.** In produzione si lavora sul solo tenant di Hevolus: gli
+ambienti dei clienti si configurano dall'interfaccia di XRCopilotLab. È una scelta, non un limite
+tecnico.
+
+**Non reagisce nell'istante in cui arriva una mail.** Può leggere una casella e far partire un
+processo, ma guardando a intervalli — ogni cinque minuti, per dire. Il *push*, cioè reagire
+nell'attimo, richiede infrastruttura fuori dalla piattaforma e un'autorizzazione che una persona
+deve dare di persona: resta un passo manuale.
+
+**Non eredita fra blueprint.** Un blueprint che ne estende un altro (`extends`) si può scrivere ma
+non viene ancora applicato.
 
 **Non calcola niente al posto tuo.** Se un processo deve tenere conto di termini, scadenze o
 regole di calcolo, quelle restano una valutazione di chi lavora: il plugin le raccoglie in un

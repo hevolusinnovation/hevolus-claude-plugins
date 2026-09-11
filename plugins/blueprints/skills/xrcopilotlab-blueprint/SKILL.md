@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint
-description: Genera un manifest YAML di blueprint XRCopilotLab (topic, ruoli aziendali, agenti con system message e skill, agent task, processi BPM pubblicati con webhook) e lo applica a un tenant con la CLI `xrcopilotlab-bp`, fermandosi a mostrare il piano prima di creare qualcosa. Usa quando l'utente chiede di "creare un blueprint", "configurare un cliente o un contesto da zero", "generare lo YAML del blueprint", "provisionare agenti e processi", "applicare un blueprint", "creare un processo BPM da riga di comando", oppure nomina `xrcopilotlab-bp`. NON usare per modificare un singolo agente o processo già esistente: per quello si va dalla UI.
+description: Genera un manifest YAML di blueprint XRCopilotLab (topic, ruoli aziendali, agenti con system message e skill, agent task, processi BPM pubblicati con webhook) e lo applica a un tenant con la CLI `xrcopilotlab-bp`, fermandosi a mostrare il piano prima di creare qualcosa. Usa quando l'utente chiede di "creare un blueprint", "configurare un cliente o un contesto da zero", "generare lo YAML del blueprint", "provisionare agenti e processi", "applicare un blueprint", "creare un processo BPM da riga di comando", oppure nomina `xrcopilotlab-bp`. Usa anche quando chiede orientamento sui blueprint — "come funziona", "cosa posso fare", "help", "quali ambienti ci sono", "quali blueprint esistono" — o invoca la skill senza argomenti: in quel caso risponde con le informazioni e si ferma, senza iniziare un'intervista. NON usare per modificare un singolo agente o processo già esistente: per quello si va dalla UI.
 ---
 
 # xrcopilotlab-blueprint
@@ -10,8 +10,38 @@ Porta l'utente da «vorrei un ambiente così» a un blueprint applicato su un te
 Il lavoro è in due metà: **scrivere il manifest** e **applicarlo**. La seconda passa sempre dalla
 CLI, mai da chiamate dirette all'API, e si ferma a chiedere il permesso prima di toccare il tenant.
 
-Input: `$ARGS` — la descrizione del contesto da configurare, oppure il percorso di un manifest già
-scritto da rivedere o applicare.
+Input: `$ARGS` — la descrizione del contesto da configurare, il percorso di un manifest già scritto
+da rivedere o applicare, oppure **niente**.
+
+## 0. Se `$ARGS` è vuoto, o chiede aiuto
+
+`help`, `aiuto`, `?`, «cosa sai fare», «come funziona» — e anche l'invocazione senza argomenti — non
+sono l'inizio di un'intervista: sono una richiesta di orientamento. Rispondere, e **fermarsi lì**.
+Chi arriva così non ha ancora deciso cosa fare, e partire a chiedere «di che cliente si tratta?» lo
+costringe a una conversazione che non aveva chiesto.
+
+Cosa riportare, in quest'ordine:
+
+1. **A cosa serve**: descrivere un ambiente in un file e crearlo su un tenant — topic, agenti,
+   connessioni, server MCP, orchestratori, agent task, processi BPM — mostrando il piano e
+   chiedendo conferma prima di toccare qualcosa.
+2. **Su cosa si può lavorare adesso.** Gli ambienti sono `staging`, `preview`, `prod`; senza `--env`
+   vale lo sviluppo, cioè il `local.settings.json` del clone. Dire che in produzione si lavora solo
+   sul tenant di Hevolus, e perché.
+3. **I blueprint che esistono già**, se c'è una cartella `blueprints/`: elencare i file con tag e
+   versione. È la risposta più utile, perché quasi sempre chi chiede aiuto vuole ripartire da uno.
+4. **Cosa c'è già sul tenant**, se l'utente ha indicato un ambiente: `xrcopilotlab-bp status` lo
+   dice in una riga per blueprint. Non lanciarlo di propria iniziativa su un ambiente non indicato.
+5. **I tre percorsi possibili**, come domanda finale: partire da un dossier di assessment, fare
+   l'intervista da zero, oppure rivedere o applicare un manifest che esiste.
+
+Per l'elenco dei comandi e delle opzioni **non scrivere a memoria**: eseguire `xrcopilotlab-bp
+--help` e riportarne l'esito. È l'unica versione che non può essere in ritardo rispetto al binario
+installato, che potrebbe non essere l'ultimo.
+
+Se la domanda è puntuale — «come si scrive un gateway», «che vuol dire BP060», «come si cancella un
+blueprint» — rispondere a quella e basta, pescando dal riferimento giusto qui sotto, senza recitare
+tutto l'orientamento.
 
 ## Cosa leggere prima
 
