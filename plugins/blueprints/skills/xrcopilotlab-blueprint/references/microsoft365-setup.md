@@ -12,6 +12,59 @@ non può crearli, e non deve poterlo fare.
 Un'app che legge la posta in arrivo, risponde (anche con allegati) e scrive il calendario — **di
 quella sola casella**, non di tutto il tenant.
 
+## La decisione che viene prima: una app per tutti, o una per cliente
+
+Il cliente è un'altra azienda, quindi un altro tenant. Due modelli, e non si equivalgono:
+
+| | App nel tenant del cliente | **App multi-tenant nostra** |
+|---|---|---|
+| Chi la crea | il cliente | noi, una volta sola |
+| Cosa ci consegna | `appId` **e client secret** | niente |
+| Segreti che viaggiano fra aziende | sì | **no** |
+| Al decimo cliente | dieci app, dieci segreti, dieci scadenze | sempre la stessa |
+| Se il cliente revoca | deve cancellare l'app | toglie il consenso, un clic |
+
+**Multi-tenant è la strada normale**, ed è quella descritta qui sotto. L'app nel tenant del cliente
+si fa solo quando la sua policy vieta di consentire applicazioni esterne: succede, ma è l'eccezione,
+e costa al cliente creare l'app, consentirla, generare un segreto e trasmetterlo in modo sicuro — a
+ogni scadenza.
+
+La scelta si fa **prima** di creare l'app, perché è `--sign-in-audience` e non si cambia comodamente
+dopo. Anche quando si comincia con una casella interna di collaudo: se quell'app dovrà poi servire
+un cliente, va creata multi-tenant da subito.
+
+## Cosa chiedere al cliente
+
+Con il modello multi-tenant sono tre cose, tutte dal suo amministratore Microsoft 365:
+
+1. **il consenso** alla nostra applicazione, da un link che gli mandiamo noi;
+2. **l'indirizzo della casella** da sorvegliare;
+3. **la restrizione a quella sola casella**, che deve fare lui in Exchange.
+
+Nessuna password, nessun segreto, nessun accesso condiviso.
+
+Il punto 3 va chiesto **prima** del punto 1, e conviene dirgli perché: finché non c'è, i permessi
+valgono su tutte le caselle dell'azienda. Essere noi a chiedere di essere limitati è anche il modo
+più rapido di togliere la domanda che un cliente attento farebbe comunque.
+
+Testo pronto da inoltrare:
+
+> Per attivare la lettura automatica ci serve, dal vostro amministratore Microsoft 365:
+>
+> **1.** L'autorizzazione della nostra applicazione sul vostro tenant. Vi inviamo un link: chi ha i
+> privilegi di amministratore accede, vede i permessi richiesti e conferma. I permessi sono tre, e
+> solo questi: leggere la posta, inviare posta, leggere e scrivere il calendario.
+>
+> **2.** L'indirizzo della casella su cui arrivano i messaggi da lavorare.
+>
+> **3.** Una restrizione che limiti la nostra applicazione a quella sola casella. Si imposta da
+> Exchange Online con un comando, che vi forniamo pronto. Chiediamo di applicarla **prima**
+> dell'autorizzazione al punto 1: finché non c'è, i permessi valgono su tutte le caselle, e
+> preferiamo che quella finestra non esista.
+>
+> Nessuna password ci viene comunicata: l'autorizzazione resta vostra e la potete revocare in
+> qualunque momento dal portale Microsoft, senza passare da noi.
+
 ## Chi serve
 
 | Passo | Ruolo necessario |
@@ -40,7 +93,7 @@ JSON
 
 APP_ID=$(az ad app create \
   --display-name "xrcopilotlab-blueprints-m365" \
-  --sign-in-audience AzureADMyOrg \
+  --sign-in-audience AzureADMultipleOrgs \
   --required-resource-accesses @/tmp/graph-perms.json \
   --query appId -o tsv)
 
@@ -49,6 +102,9 @@ az ad sp create --id "$APP_ID"
 
 echo "appId = $APP_ID"
 ```
+
+`AzureADMultipleOrgs` è ciò che rende l'app consentibile da un altro tenant. Con `AzureADMyOrg`
+vale solo per `hevolus.it`, e per il primo cliente andrebbe rifatta.
 
 I tre GUID sono `Mail.Read`, `Mail.Send` e `Calendars.ReadWrite` applicativi. Sono stabili, ma si
 rileggono con:
@@ -125,5 +181,9 @@ a posto.
 
 ## Quando il cliente dà la casella definitiva
 
-Si cambia `variables.mailbox` nel manifest e si rifà il passo 3 sulla nuova casella. Il resto —
-app, consenso, segreti — resta com'è.
+Se è **nello stesso tenant**: si cambia `variables.mailbox` nel manifest e si rifà il passo 3 sulla
+nuova casella. Il resto resta com'è.
+
+Se è **nel tenant del cliente**: l'app è la stessa (per questo si crea multi-tenant), ma servono il
+consenso del suo amministratore e una policy sul suo Exchange. I segreti restano i nostri: il
+`clientSecret` è dell'app, non del tenant che la consente.

@@ -223,9 +223,34 @@ variabile è fissata alla creazione del server e nel prompt non compare mai.
 Il validatore segnala un `{{segnaposto}}` che non è né una variabile né un parametro: resterebbe
 nell'URL così com'è, e il sintomo sarebbe un 404 che sembra «l'endpoint non esiste».
 
+### La domanda da fare per prima: di che tipo è l'account
+
+«Microsoft» sono due cose diverse, e sbagliarla manda a costruire l'impianto sbagliato:
+
+- **Microsoft 365 aziendale** (una casella su un tenant) → permessi **applicativi**, consenso di un
+  amministratore, Application Access Policy. È il caso normale per un cliente;
+- **account Microsoft personale** (`@outlook.com`, `@hotmail.com`, `@live.com`) → **non ha un
+  tenant**, quindi le credenziali client non funzionano affatto. Serve OAuth **delegato**,
+  autorizzato una volta da una persona con il pulsante *Autorizza* della pagina Connections.
+
+E prima ancora: **la casella è davvero su un'API?** IMAP non è HTTP, e un connettore dichiarativo
+non lo può raggiungere. Se il cliente ha la posta su un hosting qualunque, la risposta non è questa
+pagina — vedi la issue sull'ingresso da una casella qualsiasi.
+
+Chiederlo costa una riga; assumerlo costa la riprogettazione di tutto lo scenario.
+
+### Una app per tutti i clienti, non una per cliente
+
+L'app si crea **multi-tenant** (`--sign-in-audience AzureADMultipleOrgs`) anche quando si comincia
+con una casella interna di collaudo: è la stessa app che poi il cliente consentirà sul proprio
+tenant. Creata single-tenant, al primo cliente va rifatta.
+
+Il modello cambia anche cosa si chiede al cliente: con il multi-tenant sono un consenso, un
+indirizzo e una restrizione — nessun segreto che viaggia fra due aziende.
+
 ### I quattro passi che il blueprint NON può fare
 
-Procedura completa, con i comandi e chi serve per ciascun passo:
+Procedura completa, con i comandi, chi serve per ciascun passo e il testo da inoltrare al cliente:
 [`microsoft365-setup.md`](microsoft365-setup.md).
 
 
