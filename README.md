@@ -6,6 +6,7 @@ serve — oggi e quelli che arriveranno.
 ```
 /plugin marketplace add hevolusinnovation/hevolus-claude-plugins
 /plugin install blueprints@hevolus
+/plugin install assessment@hevolus
 ```
 
 ## Cosa c'è dentro
@@ -13,6 +14,19 @@ serve — oggi e quelli che arriveranno.
 | Plugin | Cosa fa | Manuale |
 |---|---|---|
 | **blueprints** | Configura un ambiente XRCopilotLab da un file: topic, ruoli, agenti, agent task, processi BPM. Mostra il piano e chiede conferma prima di creare | [manuale.md](plugins/blueprints/docs/manuale.md) |
+| **assessment** | Traduce una proposta di progetto nella soluzione XRCopilotLab: scenari, agenti orchestrati o processo BPM, fattibilità delle fonti dati, dossier tecnico in Markdown e Word | [manuale.md](plugins/assessment/docs/manuale.md) |
+
+I due plugin sono i due tempi dello stesso lavoro: **assessment** produce il dossier a partire dalla
+proposta del cliente, **blueprints** lo traduce in un manifest e configura il tenant.
+
+```
+plugin assessment                          plugin blueprints
+  proposta del cliente                       dossier dell'assessment
+        ↓                                            ↓
+  dossier .md/.docx        ──────────▶         manifest .yml
+                                                     ↓
+                                        piano → conferma → tenant configurato
+```
 
 Chi usa un plugin **non ha bisogno di clonare i repository di prodotto**, né di essere uno
 sviluppatore: gli strumenti che servono arrivano da soli al primo utilizzo.

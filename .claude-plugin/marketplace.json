@@ -5,7 +5,7 @@
     "name": "Hevolus Innovation — AI Team",
     "url": "https://github.com/hevolusinnovation"
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "plugins": [
     {
       "name": "blueprints",
@@ -14,7 +14,29 @@
       "version": "1.0.0",
       "description": "Configura un ambiente XRCopilotLab — topic, ruoli, agenti, agent task, processi BPM — da un manifest YAML, mostrando il piano e chiedendo conferma prima di creare qualcosa.",
       "category": "productivity",
-      "tags": ["xrcopilotlab", "blueprint", "bpm", "provisioning", "agenti"]
+      "tags": [
+        "xrcopilotlab",
+        "blueprint",
+        "bpm",
+        "provisioning",
+        "agenti"
+      ]
+    },
+    {
+      "name": "assessment",
+      "displayName": "XRCopilotLab Assessment",
+      "source": "./plugins/assessment",
+      "version": "1.0.0",
+      "description": "Traduce una proposta di progetto in una soluzione XRCopilotLab: scenari e obiettivi, agenti orchestrati o processo BPM, fattibilità delle fonti dati, dossier tecnico in Markdown e Word pronto da tradurre in un blueprint.",
+      "category": "productivity",
+      "tags": [
+        "xrcopilotlab",
+        "assessment",
+        "agenti",
+        "mcp",
+        "bpm",
+        "dossier"
+      ]
     }
   ]
 }
