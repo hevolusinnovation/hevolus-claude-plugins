@@ -192,6 +192,76 @@ dichiarabile in questa forma: `kind: external` pretende l'URL di un server già 
 caso si annota nella `description` dell'agente che lo userà e si mette fra i passi manuali del piano
 di attivazione.
 
+## Posta, calendario, file: Microsoft 365 si collega così
+
+Quando la richiesta nomina una **casella**, un **calendario**, dei **contatti** o dei **file** su
+Microsoft 365 — «deve leggere le mail che arrivano», «deve scrivere sul calendario comune», «deve
+mandare la risposta con l'allegato» — la risposta è sempre la stessa forma, e va proposta senza
+farsela chiedere:
+
+1. una `connections` verso `https://graph.microsoft.com/v1.0` con `kind: OAuth2ClientCredentials`;
+2. un `mcpServers` con `kind: builder` che espone **solo i tool che servono a quel cliente**;
+3. gli agenti che li useranno, con `mcp: [<chiave>]`.
+
+### La casella è una VARIABILE, non un parametro
+
+```yaml
+variables:
+  mailbox: test@hevolus.it          # fissata qui: il modello non la vede
+
+tools:
+  - name: posta_in_arrivo
+    path: /users/{{mailbox}}/mailFolders/inbox/messages    # sostituita alla creazione
+    parameters:
+      da: Momento da cui guardare, ISO 8601                # questo sì, lo sceglie il modello
+```
+
+Non è una questione di comodità. Un permesso applicativo `Mail.Read` vale su **tutto il tenant**:
+se la casella fosse un parametro del tool, sarebbe l'agente a decidere di chi leggere la posta. Una
+variabile è fissata alla creazione del server e nel prompt non compare mai.
+
+Il validatore segnala un `{{segnaposto}}` che non è né una variabile né un parametro: resterebbe
+nell'URL così com'è, e il sintomo sarebbe un 404 che sembra «l'endpoint non esiste».
+
+### I quattro passi che il blueprint NON può fare
+
+Procedura completa, con i comandi e chi serve per ciascun passo:
+[`microsoft365-setup.md`](microsoft365-setup.md).
+
+
+Il blueprint crea connessione, server, tool e collegamento agli agenti. I permessi no — vivono in
+Entra e in Exchange. Vanno **riportati all'utente come passi da fare prima di applicare**, e
+verificati nell'interfaccia:
+
+1. **registrazione applicativa** nel tenant del cliente;
+2. **permessi applicativi Graph** con consenso amministratore, solo quelli che servono:
+   `Mail.Read` per leggere · `Mail.Send` per rispondere, allegati compresi ·
+   `Calendars.ReadWrite` per il calendario;
+3. ⚠️ **Application Access Policy in Exchange Online**, che limita l'app a quella sola casella:
+   ```powershell
+   New-ApplicationAccessPolicy -AppId <appId> -PolicyScopeGroupId <casella> -AccessRight RestrictAccess
+   ```
+   Va fatta **prima** del consenso. Senza, quei permessi leggono e scrivono la posta e il
+   calendario di **chiunque** nel tenant. Una sola policy copre posta, calendario e contatti,
+   perché vivono tutti in Exchange;
+4. i **segreti**, citati per nome nel manifest e impostati con `secrets set` — client id e client
+   secret. Il loro valore non si chiede e non si scrive mai.
+
+**Gli allegati non richiedono permessi sui file**: viaggiano dentro la chiamata di invio, come
+contenuto codificato in base64. Chiedere `Files.Read.All` per mandare un allegato significa
+chiedere accesso a tutto SharePoint per niente — e quel permesso l'Application Access Policy non lo
+restringe.
+
+### Il tool di prova si sceglie in sola lettura
+
+`testTool` viene esercitato durante l'apply. Su Microsoft 365 si punta a una lettura su una finestra
+vuota (`cerca_eventi` fra due date del passato): esercita credenziale, permesso e policy senza
+lasciare traccia. Un tool di prova che scrivesse lascerebbe un impegno in agenda a ogni
+applicazione.
+
+Un esempio completo — sei tool fra posta e calendario, con i prerequisiti scritti in testa — è nel
+manifest di Studio Polis.
+
 ## Quando la fonte non deve solo essere letta, ma far *partire* qualcosa
 
 Capita spesso, e non solo con la posta: arriva un documento, cambia una riga in un gestionale, si
