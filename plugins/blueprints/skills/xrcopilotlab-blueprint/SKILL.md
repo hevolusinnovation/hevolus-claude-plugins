@@ -55,6 +55,7 @@ tutto l'orientamento.
 | Sempre, prima di scrivere lo YAML | [`references/regole-del-grafo.md`](references/regole-del-grafo.md) — cosa il validatore accetta |
 | Quando parti da zero e devi intervistare | [`references/intervista.md`](references/intervista.md) — l'ordine delle domande e come tradurre le risposte |
 | Quando serve una fonte esterna che non è ancora collegata | [`references/mcp-builder.md`](references/mcp-builder.md) — il ciclo connessione → MCP → agente, verificato su VIES |
+| Quando l'ambiente ha dei documenti — sempre, se c'è un topic | [`references/knowledge.md`](references/knowledge.md) — topic, profili, agenti: i tre livelli e la sequenza |
 | Per il significato di un campo | [`references/manifest-reference.md`](references/manifest-reference.md) |
 | Per un comando o un codice di uscita | [`references/cli-reference.md`](references/cli-reference.md) |
 | Manuale d'uso del plugin | [`../../docs/manuale.md`](../../docs/manuale.md) |
@@ -219,6 +220,11 @@ Sei errori che si fanno se non si sta attenti:
    come compare nella UI) o `topicId` ne riusano uno esistente. Se l'utente vuole aggiungere agenti
    a un topic che ha già, è `existingTopic`: chiediglielo invece di crearne uno nuovo con un nome
    simile.
+8. **Il topic non è il RAG.** Il topic è il repository dei file; il **profilo** è ciò che li
+   indicizza e che si collega all'agente. Un agente su un topic pieno di file ma senza profilo non
+   vede niente. I profili si dichiarano in `knowledge:` e sono **knowledge graph per default**; il
+   tipo dei file **non si scrive** se non lo chiede l'utente. Prima di scrivere quella sezione:
+   [`references/knowledge.md`](references/knowledge.md).
 
 L'id dei flussi lasciarlo fuori: lo genera la CLI, e il file resta leggibile.
 

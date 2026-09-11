@@ -1,2 +1,5 @@
 .DS_Store
 dist/
+
+# la cartella dove l'app Claude scarica i file di questa sessione
+Claude outputs/

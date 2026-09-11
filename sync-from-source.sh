@@ -20,11 +20,12 @@ fi
 
 mkdir -p "$DEST/references"
 
-# La skill e i due riferimenti che le appartengono.
+# La skill e i riferimenti che le appartengono.
 cp "$SRC/.claude/skills/xrcopilotlab-blueprint/SKILL.md"                       "$DEST/SKILL.md"
 cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/regole-del-grafo.md" "$DEST/references/"
 cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/intervista.md"       "$DEST/references/"
 cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/mcp-builder.md"      "$DEST/references/"
+cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/knowledge.md"        "$DEST/references/"
 
 # I riferimenti che nel repository stanno altrove e qui devono viaggiare con la skill.
 cp "$SRC/docs/blueprints/manifest-reference.md" "$DEST/references/"

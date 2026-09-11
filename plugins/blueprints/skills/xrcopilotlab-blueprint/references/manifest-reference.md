@@ -63,6 +63,56 @@ businessRoles:
     members: [utente@studio.it]    # gli utenti devono già esistere: il blueprint li aggiunge, non li crea
 ```
 
+## `knowledge`
+
+I profili: il **RAG**. I tre livelli non sono intercambiabili, e confonderli produce un ambiente che
+non fallisce — risponde a vuoto.
+
+```
+TOPIC      il repository dei file. Un file caricato qui non è interrogabile da nessuno.
+  └─ PROFILO   ne seleziona un sottoinsieme e lo indicizza. Si attiva, consuma licenza,
+     │         e si collega agli agenti.
+     └─ AGENTE  non vede il topic: vede i profili che gli sono stati collegati.
+```
+
+```yaml
+knowledge:
+  - key: contabilita
+    name: Contabilita di gruppo     # senza prefisso: lo aggiunge il planner
+    description: ...
+    language: it
+    # knowledgeGraph: true          # È IL DEFAULT: si scrive solo per metterlo a false
+    files:
+      - path: data/mapping.xlsx     # relativo alla cartella del manifest
+        fileType: reference         # DA OMETTERE salvo richiesta esplicita (= original)
+      - path: data/giornale.xlsx
+```
+
+**Il profilo è knowledge graph salvo richiesta contraria.** `knowledgeGraph: false` chiede l'indice
+di ricerca classico, e si scrive solo se qualcuno lo ha chiesto: il grafo è ciò che regge le domande
+che attraversano più documenti, cioè quelle per cui si costruisce un agente invece di una ricerca.
+
+**Il tipo del file non si dichiara.** Un file caricato senza dire altro è `original`, ed è la forma
+giusta quasi sempre. `reference`, `target` e `template` si scrivono solo quando l'utente li chiede o
+quando un dossier distingue di proposito i ruoli. Lo *scope* non è dichiarabile ed è sempre `None`:
+indica la provenienza del file, non il suo ruolo, e l'API rifiuta con 400 un file di profilo che ne
+porti un altro.
+
+**I file viaggiano con la versione.** Il `push` li archivia accanto al manifest, in
+`blueprints/<company>/<bp>/v<N>/files/`, e l'`apply` legge da lì: è ciò che permette a un collega di
+applicare la stessa versione dalla sua macchina senza avere la cartella dei dati.
+
+Tre cose da sapere prima di scrivere questa sezione:
+
+| | |
+|---|---|
+| **L'attivazione consuma licenza** | Serve un prodotto di scope `XRCopilotLab.Profile`. Senza, l'API risponde **403** e il run si ferma lasciando profilo e file sul tenant: si attiva dall'interfaccia quando la licenza c'è. |
+| **L'indicizzazione prosegue dopo l'apply** | `activateIndex` torna appena il lavoro è in coda. Finché non è completa l'agente risponde su una knowledge parziale — sintomo identico a quello di un prompt sbagliato. |
+| **`.xlsm` e `.xls` non vengono ingeriti** | Passano il caricamento e poi rompono. Il validatore li rifiuta con `BP027`: vanno convertiti in `.xlsx` prima. |
+
+Il **rollback** toglie il profilo e **lascia i documenti** nel topic, dichiarandoli: disfa
+configurazione, non cancella i file di un cliente.
+
 ## `agents`
 
 ```yaml
@@ -78,7 +128,11 @@ agents:
     language: it          # lingua dell'endpoint di default
     skills: []            # SkillId già a catalogo, es. legal-research
     mcp: []               # chiavi di mcpServers (milestone 2)
+    knowledge: []         # chiavi di knowledge[]: i profili che l'agente interroga
 ```
+
+Un agente **senza `knowledge`** non ha accesso ai documenti, per quanti file ci siano nel topic:
+vede i profili, non il repository.
 
 Ogni agente riceve un **endpoint di default** come quando lo si crea dall'interfaccia: senza, un
 agente esiste ma non è interrogabile.
@@ -406,7 +460,7 @@ variante a polling: quella il blueprint la crea per intero, questa no.
 | `BP020`–`BP023` | Riferimenti fra sezioni e alternative esclusive |
 | `BP030`–`BP033` | Processi: specifica non valida, ruolo, agent task o sotto-processo sconosciuto |
 | `BP040`–`BP044` | Connessioni e server MCP |
-| `BP024`–`BP026` | Agent task: trigger, schedulazione, code di uscita |
+| `BP024`–`BP027` | Agent task: trigger, schedulazione, code di uscita; file di knowledge inutilizzabile (`BP027`) |
 | `BP050`–`BP052` | Risorse esterne, ed equivalenti nativi |
 | `BP060`–`BP064` | Preflight: collisione di nome, skill, utente, segreto o topic mancante |
 | `BP070` | Sezione dichiarata ma non ancora applicata |

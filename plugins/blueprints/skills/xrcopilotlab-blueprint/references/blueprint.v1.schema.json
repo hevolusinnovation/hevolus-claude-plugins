@@ -333,6 +333,70 @@
         }
       }
     },
+    "knowledge": {
+      "type": "array",
+      "description": "Profili di knowledge creati nel topic: i RAG che gli agenti interrogano.",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "name"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nome del profilo, senza prefisso."
+          },
+          "description": {
+            "type": "string"
+          },
+          "language": {
+            "type": "string",
+            "examples": [
+              "it",
+              "en"
+            ]
+          },
+          "knowledgeGraph": {
+            "type": "boolean",
+            "description": "Assente = true. Si scrive false solo per chiedere l'indice di ricerca classico."
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "path"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Percorso relativo alla cartella del manifest. Il push lo archivia con la versione."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Nome nel topic. Se assente vale il nome del file."
+                },
+                "fileType": {
+                  "enum": [
+                    "original",
+                    "reference",
+                    "target",
+                    "template"
+                  ],
+                  "description": "Da lasciare vuoto (= original) salvo richiesta esplicita."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "agents": {
       "type": "array",
       "items": {
@@ -387,6 +451,13 @@
               "type": "string"
             },
             "description": "Chiavi di mcpServers."
+          },
+          "knowledge": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Chiavi di knowledge[]: i profili che l'agente interroga."
           }
         }
       }
