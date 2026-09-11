@@ -170,6 +170,20 @@ va conservata adesso.
 Se l'applicazione fallisce a metà, dire com'è messo: cosa è stato creato, che il run riparte con
 `--resume <runId>`, e che `rollback --run <runId>` smonta ciò che l'inventario elenca.
 
+## 7. Cancellare un blueprint
+
+`delete --tag <TAG>` toglie dall'archivio le versioni del manifest, gli artefatti nello storage e i
+run. **Non è il contrario di `apply`**: quello è `rollback`, che smonta le entità dal tenant.
+
+Se il blueprint ha ancora entità vive il comando si ferma con **3** e dice quante. Le due strade
+vanno riportate all'utente senza sceglierne una: `rollback --run <runId>` prima, oppure
+`--with-entities` per smontarle nello stesso comando — che le rimuove **prima** di cancellare
+l'archivio, perché l'inventario è l'unica cosa che sa come si chiamano.
+
+Vale lo stesso cancello di `apply`: si mostra cosa sparisce, si chiede il sì, e `--yes` solo dopo
+averlo ricevuto. Qui l'errore costa di più, perché non c'è un `--resume` che rimetta le cose a
+posto.
+
 ## Codici di uscita
 
 | Codice | Cosa fare |
@@ -184,6 +198,8 @@ Se l'applicazione fallisce a metà, dire com'è messo: cosa è stato creato, che
 ## Cosa non fare
 
 - Non chiamare l'API direttamente: tutto passa dalla CLI.
+- Non lanciare `delete --with-entities` per «ripulire» di propria iniziativa: cancella insieme
+  l'archivio e ciò che sta sul tenant, e non esiste un annulla.
 - Non lanciare `apply` o `pipeline` con `--yes` senza un consenso esplicito **per quel piano**. Un
   consenso dato prima, per un piano diverso, non vale. Il flag registra un'approvazione umana: se
   non c'è stata, sta registrando il falso.

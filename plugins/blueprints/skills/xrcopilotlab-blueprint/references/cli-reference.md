@@ -93,6 +93,8 @@ Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 | `--overwrite` | Consente di riscrivere una versione già pubblicata. Solo per iterare in sviluppo. |
 | `--resume <runId>` | Riprende un run interrotto invece di crearne uno nuovo. |
 | `--skip-external` | Salta la fase esterna nella pipeline. |
+| `--blueprint <id>` | Blueprint su cui operare, quando due condividono il tag. |
+| `--with-entities` | In `delete`, smonta dal tenant le entità ancora vive prima di cancellare l'archivio. |
 | `--watch` | In `status`, attende la conclusione del run. |
 
 Variabili d'ambiente: `XRCOPILOTLAB_BP_PROFILES` (percorso dei profili), `XRCOPILOTLAB_BP_DEBUG`
@@ -206,6 +208,32 @@ Un fallimento su una singola entità non ferma il resto: è meglio un rollback c
 ciò che non si riesce a togliere, che uno lasciato a metà. Le entità non rimosse vengono elencate.
 
 La pubblicazione di una versione non ha operazione inversa: sparisce insieme al processo.
+
+## `delete --tag <TAG> [--version <n>] [--with-entities]`
+
+Toglie un blueprint dall'**archivio**: le versioni del manifest in Cosmos, i file nello storage —
+il `.bpmn` esportato compreso — e i run che lo riguardano. Con `--version` si cancella una versione
+sola, con i suoi run; senza, l'intero blueprint. `--blueprint <id>` serve quando due blueprint
+condividono il tag.
+
+**Cancellare l'archivio e smontare il tenant sono due cose diverse**, e il comando le tiene
+separate. Finché le entità create vivono, l'inventario del run è l'unica cosa che sa come si
+chiamano e dove stanno: se il piano ne trova, si ferma con **3** e indica le due strade —
+`rollback --run <runId>` prima, oppure `--with-entities` per farlo qui.
+
+Con `--with-entities` l'ordine non è negoziabile: **prima il tenant, poi l'archivio**. Se qualche
+entità non si riesce a rimuovere, il comando esce **4** lasciando l'archivio dov'è e l'inventario
+aggiornato con ciò che resta — così si può riprovare. L'ordine inverso lascerebbe agenti e processi
+orfani, riconducibili a un blueprint solo a memoria.
+
+Come `apply`, mostra cosa sparisce e **chiede conferma**: senza terminale serve `--yes`, altrimenti
+esce **6** senza cancellare nulla.
+
+```bash
+xrcopilotlab-bp delete --tag TEST --company <guid>                   # solo l'archivio
+xrcopilotlab-bp delete --tag TEST --company <guid> --with-entities   # anche il tenant
+xrcopilotlab-bp delete --tag TEST --version 2 --company <guid>       # una versione sola
+```
 
 ## `external <file.yml>`
 
