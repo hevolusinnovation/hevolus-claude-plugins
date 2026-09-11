@@ -10,13 +10,13 @@ del repository con `./build-desktop-plugin.sh`.
 
 **Manuale d'uso: [docs/manuale.md](docs/manuale.md).**
 
-```
-/plugin marketplace add hevolusinnovation/hevolus-claude-plugins
-/plugin install assessment@hevolus
+```bash
+./build-desktop-plugin.sh          # → dist/Xrcopilotlab-<versione>.zip
 ```
 
-Poi, dentro Claude Code, basta caricare la proposta e chiedere di valutarla: la skill si attiva da
-sola, anche senza nominare XRCopilotLab.
+Poi si carica lo zip su [claude.ai/customize/plugins](https://claude.ai/customize/plugins) e si
+conferma dall'anteprima. Da lì, in una chat di Claude Desktop, basta caricare la proposta e chiedere
+di valutarla: la skill si attiva da sola, anche senza nominare XRCopilotLab.
 
 ## Cosa contiene
 
@@ -27,4 +27,9 @@ sola, anche senza nominare XRCopilotLab.
 | `docs/manuale.md` | Il manuale per chi lo usa |
 
 A differenza di `blueprints`, questa skill non ha una sorgente in un repository di prodotto: vive
-qui e si modifica qui.
+qui e si modifica qui. Dopo ogni modifica va **alzata la versione** in
+`.claude-plugin/plugin.json` e ricostruito lo zip: è l'unico segnale che chi l'ha già installata
+vede.
+
+Il dossier che produce è la sorgente del manifest che il plugin `blueprints` applica al tenant —
+per questo chiude con il capitolo «Elementi per il provisioning».
