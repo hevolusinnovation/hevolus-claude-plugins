@@ -1,6 +1,6 @@
 {
   "name": "hevolus",
-  "description": "Plugin Claude Code di Hevolus Innovation: strumenti interni condivisi dal team, installabili senza clonare i repository di prodotto.",
+  "description": "Plugin Claude di Hevolus Innovation: strumenti interni condivisi dal team, installabili senza clonare i repository di prodotto. Il catalogo pubblica i plugin per Claude Code; l'assessment si distribuisce come pacchetto per Claude Desktop, costruito da questo stesso repository.",
   "owner": {
     "name": "Hevolus Innovation — AI Team",
     "url": "https://github.com/hevolusinnovation"
@@ -20,22 +20,6 @@
         "bpm",
         "provisioning",
         "agenti"
-      ]
-    },
-    {
-      "name": "assessment",
-      "displayName": "XRCopilotLab Assessment",
-      "source": "./plugins/assessment",
-      "version": "1.0.0",
-      "description": "Traduce una proposta di progetto in una soluzione XRCopilotLab: scenari e obiettivi, agenti orchestrati o processo BPM, fattibilità delle fonti dati, dossier tecnico in Markdown e Word pronto da tradurre in un blueprint.",
-      "category": "productivity",
-      "tags": [
-        "xrcopilotlab",
-        "assessment",
-        "agenti",
-        "mcp",
-        "bpm",
-        "dossier"
       ]
     }
   ]

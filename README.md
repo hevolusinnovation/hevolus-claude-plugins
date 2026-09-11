@@ -1,31 +1,37 @@
-# Plugin Claude Code di Hevolus
+# Plugin Claude di Hevolus
 
-Catalogo dei plugin Claude Code interni. Si aggiunge una volta sola, e da lì si installa quello che
-serve — oggi e quelli che arriveranno.
+Gli strumenti interni dell'AI Team, in un posto solo. Quelli per **Claude Code** si installano dal
+catalogo — si aggiunge una volta sola, e da lì si prende quello che serve:
 
 ```
 /plugin marketplace add hevolusinnovation/hevolus-claude-plugins
 /plugin install blueprints@hevolus
-/plugin install assessment@hevolus
 ```
+
+**L'assessment non passa dal catalogo**, perché non gira su Claude Code: sta su **Claude Desktop**,
+dove la proposta del cliente si carica e si legge in chat. Si installa caricando un pacchetto su
+[claude.ai/customize/plugins](https://claude.ai/customize/plugins); il pacchetto lo costruisce
+`./build-desktop-plugin.sh` da questo repository, dove la skill vive insieme all'altra così che le
+due restino allineate.
 
 ## Cosa c'è dentro
 
-| Plugin | Cosa fa | Manuale |
-|---|---|---|
-| **blueprints** | Configura un ambiente XRCopilotLab da un file: topic, ruoli, agenti, agent task, processi BPM. Mostra il piano e chiede conferma prima di creare | [manuale.md](plugins/blueprints/docs/manuale.md) |
-| **assessment** | Traduce una proposta di progetto nella soluzione XRCopilotLab: scenari, agenti orchestrati o processo BPM, fattibilità delle fonti dati, dossier tecnico in Markdown e Word | [manuale.md](plugins/assessment/docs/manuale.md) |
+| Plugin | Dove gira | Cosa fa | Manuale |
+|---|---|---|---|
+| **blueprints** | Claude Code | Configura un ambiente XRCopilotLab da un file: topic, ruoli, agenti, agent task, processi BPM. Mostra il piano e chiede conferma prima di creare | [manuale.md](plugins/blueprints/docs/manuale.md) |
+| **assessment** | Claude Desktop | Traduce una proposta di progetto nella soluzione XRCopilotLab: scenari, agenti orchestrati o processo BPM, fattibilità delle fonti dati, dossier tecnico in Markdown e Word | [manuale.md](plugins/assessment/docs/manuale.md) |
 
-I due plugin sono i due tempi dello stesso lavoro: **assessment** produce il dossier a partire dalla
-proposta del cliente, **blueprints** lo traduce in un manifest e configura il tenant.
+I due plugin sono i due tempi dello stesso lavoro, su due strumenti diversi: l'assessment si fa in
+chat su Claude Desktop, dove la proposta del cliente si carica e si legge; il provisioning si fa da
+Claude Code, dove la CLI può parlare con il tenant.
 
 ```
-plugin assessment                          plugin blueprints
-  proposta del cliente                       dossier dell'assessment
-        ↓                                            ↓
-  dossier .md/.docx        ──────────▶         manifest .yml
-                                                     ↓
-                                        piano → conferma → tenant configurato
+Claude Desktop · plugin assessment          Claude Code · plugin blueprints
+  proposta del cliente                        dossier dell'assessment
+        ↓                                             ↓
+  dossier .md/.docx        ──────────▶          manifest .yml
+                                                      ↓
+                                       piano → conferma → tenant configurato
 ```
 
 Chi usa un plugin **non ha bisogno di clonare i repository di prodotto**, né di essere uno
@@ -97,6 +103,24 @@ corrispondente di `.claude-plugin/marketplace.json`.
 
 > I tre numeri devono coincidere: il tag della release, `version.txt` e la versione del plugin. Se
 > divergono, l'avviatore cerca un allegato che non esiste e lo dice solo a chi prova a usarlo.
+
+### Il plugin assessment: sorgente qui, distribuzione su Claude Desktop
+
+Non è elencato in `.claude-plugin/marketplace.json` di proposito: il catalogo serve a Claude Code, e
+da lì l'assessment non si usa.
+
+La skill vive in `plugins/assessment/`, con la stessa forma degli altri plugin. Il pacchetto che i
+colleghi caricano su Claude Desktop lo produce:
+
+```bash
+./build-desktop-plugin.sh                       # → dist/Xrcopilotlab-<versione>.zip
+./build-desktop-plugin.sh ~/OneDrive/Assessments  # o dove serve consegnarlo
+```
+
+Lo script prende la versione da `plugins/assessment/.claude-plugin/plugin.json`, rinomina il plugin
+in `xrcopilotlab` (il nome con cui appare nell'app) e usa `docs/manuale.md` come README del
+pacchetto. Alzare la versione **prima** di ricostruire lo zip: è l'unico modo in cui chi l'ha già
+installato vede che è cambiato.
 
 ### Aggiungere un plugin nuovo
 

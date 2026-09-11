@@ -4,6 +4,10 @@ Traduce una proposta di progetto in una soluzione di agenti orchestrati su XRCop
 scenari e obiettivi, progetta l'orchestrazione, verifica la fattibilità delle fonti dati e genera
 il dossier tecnico in Markdown e Word. Produce la valutazione tecnica, non il pricing.
 
+Gira su **Claude Desktop**, non su Claude Code: si installa caricando il pacchetto su
+[claude.ai/customize/plugins](https://claude.ai/customize/plugins). Lo zip si costruisce dalla radice
+del repository con `./build-desktop-plugin.sh`.
+
 **Manuale d'uso: [docs/manuale.md](docs/manuale.md).**
 
 ```
