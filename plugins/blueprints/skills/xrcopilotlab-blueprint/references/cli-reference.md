@@ -42,11 +42,59 @@ Due strade, scelte in quest'ordine:
    chiave di sottoscrizione e il parametro `api-version`. Senza quel parametro APIM non risolve
    l'API e risponde 404, con un errore che non dice perché.
 
-## Profili: quando servono davvero
+## Ambiente e tenant: si scelgono per nome
 
-Un profilo serve solo per lavorare **fuori** da un clone del repository, per puntare a un ambiente
-diverso da quello del `local.settings.json`, o per sovrascrivere un singolo valore. Sta in
-`~/.xrcopilotlab-bp/profiles.json`, e si seleziona con `--env <nome>`.
+Gli ambienti sono **dentro il binario** — `staging`, `dev`, `prod` — e si scelgono con `--env`.
+Nessun file da scrivere, nessuno da scaricare:
+
+```bash
+xrcopilotlab-bp plan --env prod --tag COMO
+```
+
+Senza `--env`, dentro un clone, vale l'ambiente del `local.settings.json`. Un `--env` esplicito
+vince sempre su quello: chiederne uno e ritrovarsi altrove sarebbe il peggiore dei difetti.
+
+**Il tenant non si scrive, si sceglie.** Quando `--company` non c'è, la CLI elenca i tenant
+dell'ambiente per nome e chiede quale:
+
+```
+  Per quale tenant, in Staging?
+
+   1. Confindustria Como
+   2. Studio Polis
+   3. Hevolus Innovation
+
+  Numero (1-3), oppure vuoto per annullare: 1
+```
+
+`--company <guid>` continua a valere per gli script e per chi lo sa già. Se il tenant è uno solo,
+viene preso senza chiedere. Se non c'è un terminale — la CLI eseguita da un assistente, o in una
+pipeline — l'elenco viene stampato e l'esecuzione si ferma con **6**: scegliere un tenant al posto
+di qualcuno non è una decisione da prendere in automatico.
+
+### In produzione si lavora solo sul tenant di Hevolus
+
+L'elenco lo filtra il **server**, non la CLI: in produzione l'API restituisce i soli tenant il cui
+nome contiene «hevolus», e gli ambienti dei clienti non escono mai dal server. Una CLI più vecchia,
+o una chiamata fatta a mano, vedrebbero la stessa cosa.
+
+Il controllo vale anche per `--company` scritto a mano: in produzione un tenant fuori elenco viene
+rifiutato con **3**, e lo è anche quando l'elenco non è leggibile — non poter verificare non è una
+ragione per procedere.
+
+Provisionare in produzione l'ambiente di un cliente **non si fa da riga di comando**: si fa
+dall'interfaccia. Non è un permesso che manca, è una scelta.
+
+Prima di ogni comando che scrive, la CLI annuncia dove sta per lavorare. L'ambiente è riconosciuto
+dall'**endpoint** di App Configuration a cui si è effettivamente collegati, non dal nome del
+profilo: un profilo chiamato «collaudo» ma puntato alla produzione viene annunciato come
+produzione.
+
+## Profili: quando servono ancora
+
+Ora quasi mai. Servono per un ambiente che non è fra quelli noti, o per sovrascrivere un singolo
+valore. Stanno in `~/.xrcopilotlab-bp/profiles.json`, si selezionano con lo stesso `--env <nome>`, e
+un profilo con lo stesso nome di un ambiente noto vince su quello.
 
 ```jsonc
 {
@@ -84,8 +132,8 @@ Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 
 | Opzione | Significato |
 |---|---|
-| `--env <nome>` | Profilo di ambiente. Facoltativa: senza, l'ambiente si deduce dal repository. |
-| `--company <guid>` | Tenant, se diverso da quello del manifest o del profilo. |
+| `--env <nome>` | Ambiente: `staging`, `dev`, `prod`, o un profilo scritto a mano. Senza, si deduce dal repository. |
+| `--company <guid>` | Tenant. Senza, lo si sceglie per nome da un elenco. |
 | `--tag <TAG>` | Blueprint su cui operare, per i comandi che partono da uno già pubblicato. |
 | `--version <n>` | Versione del manifest. Senza, si usa la più recente. |
 | `--yes` | Non chiede conferma. |
@@ -110,10 +158,10 @@ Distinti perché uno script — o la skill di Claude — possa reagire senza int
 | `0` | Tutto a posto |
 | `1` | Uso sbagliato: argomenti o configurazione mancanti |
 | `2` | Il manifest non è valido |
-| `3` | Il piano non è applicabile: collisioni, segreti o dipendenze mancanti |
+| `3` | Il piano non è applicabile: collisioni, segreti o dipendenze mancanti — oppure, in produzione, il tenant indicato non è fra quelli ammessi |
 | `4` | Una fase è fallita durante l'esecuzione |
 | `5` | La pipeline è ferma su un passo manuale |
-| `6` | Il piano è valido ma nessuno lo ha approvato |
+| `6` | Manca una decisione umana: il piano non è stato approvato, o il tenant non è stato scelto |
 | `70` | Errore imprevisto |
 
 ---

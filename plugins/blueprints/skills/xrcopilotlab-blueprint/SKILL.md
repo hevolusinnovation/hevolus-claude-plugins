@@ -131,8 +131,18 @@ xrcopilotlab-bp push blueprints/<file>.yml
 xrcopilotlab-bp plan --tag <TAG> --company <guid>
 ```
 
-Dentro il repository non serve altro: l'ambiente si deduce dal `local.settings.json` dell'Api. Fuori
-dal repository, o per puntare a un ambiente diverso, si aggiunge `--env <profilo>`.
+L'ambiente si sceglie con `--env staging`, `--env dev` o `--env prod`: sono dentro il binario, non
+c'è nulla da configurare. Dentro un clone del repository, senza `--env`, vale quello del
+`local.settings.json`.
+
+Il **tenant** non si scrive: senza `--company` la CLI ne elenca i nomi e chiede quale. Eseguita da
+un assistente l'input non è un terminale, quindi stampa l'elenco e si ferma con **6** — vuol dire
+riportare i nomi all'utente e chiedere quale, non indovinarne uno.
+
+In **produzione** si lavora sul solo tenant di Hevolus: l'API non elenca gli ambienti dei clienti e
+li rifiuta anche se il GUID viene scritto a mano (**3**). Non è un permesso che manca, è una scelta:
+l'ambiente di un cliente si configura dall'interfaccia. Se qualcuno chiede di applicare un blueprint
+sul tenant di un cliente in produzione, la risposta è questa, non un tentativo.
 
 **Mostrare il piano all'utente e fermarsi.** Non «riassumere che è tutto a posto»: riportare cosa
 verrà creato e il grafo del processo, perché è su quello che la persona deve decidere.
@@ -192,10 +202,10 @@ detto per un altro piano, o prima che il piano esistesse, non vale qui più che 
 |---|---|
 | `0` | Procedere |
 | `2` | Manifest non valido: correggerlo, non girare l'errore all'utente |
-| `3` | Piano bloccato da collisioni o segreti mancanti: riportare, non forzare |
+| `3` | Piano bloccato da collisioni o segreti mancanti: riportare, non forzare. In produzione, anche: il tenant indicato non è di Hevolus — non cercare strade alternative |
 | `4` | Esecuzione fallita: riportare lo stato, proporre `--resume` o `rollback` |
 | `5` | In attesa di un passo manuale |
-| `6` | Piano valido ma non approvato. **Non aggiungere `--yes` di propria iniziativa**: chiedere il sì |
+| `6` | Manca una decisione umana. Piano non approvato: **non aggiungere `--yes` di propria iniziativa**, chiedere il sì. Tenant non scelto: riportare l'elenco dei nomi e chiedere quale |
 
 ## Cosa non fare
 
