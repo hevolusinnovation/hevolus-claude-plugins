@@ -35,7 +35,104 @@ Claude Desktop · plugin assessment          Claude Code · plugin blueprints
 ```
 
 Chi usa un plugin **non ha bisogno di clonare i repository di prodotto**, né di essere uno
-sviluppatore: gli strumenti che servono arrivano da soli al primo utilizzo.
+sviluppatore: gli strumenti che servono arrivano da soli al primo utilizzo. L'**accesso**, invece,
+no — e vale la pena leggere il paragrafo qui sotto prima di provare, perché è il punto contro cui si
+sbatte per primo.
+
+## ⚠️ Prima di cominciare: l'accesso
+
+Riguarda il plugin **blueprints**. L'assessment gira su Claude Desktop e non tocca Azure: lì non
+serve niente di tutto questo.
+
+**L'account con cui usi Claude non c'entra niente.** Personale o aziendale, non cambia nulla: la CLI
+non parla con Claude, parla con **Azure**.
+
+Quello che serve è il tuo **account `hevolus.it`** — lo stesso della posta aziendale. Le risorse
+(App Configuration, Key Vault, Cosmos, storage) vivono nella sottoscrizione **Azure AI** di Hevolus,
+quindi un account Microsoft personale non può funzionare: non è un permesso che manca, è che quelle
+risorse non sono sue.
+
+| Coordinate | |
+|---|---|
+| Tenant | `hevolus.it` — `45bb21a6-d8f8-4218-b74d-f4a5d5c2138e` |
+| Sottoscrizione | **Azure AI** — `73961d27-722e-4282-be21-bfb36e97c0f0` |
+
+### I ruoli che ti servono
+
+Sono ruoli **del piano dati**, assegnati sull'App Configuration e sul Key Vault dell'ambiente su cui
+lavori (o ereditati dal resource group). Non servono ruoli su Cosmos, sullo storage o sull'API:
+tutto passa da riferimenti a Key Vault dentro App Configuration.
+
+| Cosa vuoi fare | Ruoli necessari |
+|---|---|
+| `validate` — controllare un manifest | **nessuno**, non tocca la rete |
+| `push`, `plan`, `apply`, `status`, `rollback`, `delete` | **App Configuration Data Reader** · **Key Vault Secrets User** |
+| in più, `secrets set` — impostare un segreto | **App Configuration Data Owner** · **Key Vault Secrets Officer** |
+
+Le risorse su cui vanno assegnati, per ambiente:
+
+| Ambiente | App Configuration | Key Vault |
+|---|---|---|
+| `staging` | `appcs-xrcopilotlab-staging-01` | `kv-xrcopilotlab-stg-01` |
+| `preview` | `appcs-xrcopilotlab-preview-italynorth` | `kv-xrcopilotlab-preview` |
+| `prod` | `appcs-xrcopilotlab-prod-italynorth` | *(da verificare con chi amministra)* |
+
+> Nella sottoscrizione esiste anche un `kv-xrcopilotlab-staging`, che **non** è quello usato da
+> staging. Se ti viene chiesto su quale vault assegnare un ruolo, è `kv-xrcopilotlab-stg-01`.
+
+Se non li hai, non è qualcosa che puoi risolvere da solo: scrivi a chi amministra la sottoscrizione
+riportando **il nome della risorsa** e **il ruolo** che il messaggio d'errore nomina.
+
+### L'accesso ad Azure: una volta per macchina
+
+```bash
+az login --tenant hevolus.it
+```
+
+E, se hai più sottoscrizioni:
+
+```bash
+az account set --subscription "Azure AI"
+```
+
+**Azure CLI non è obbligatoria.** Se non ce l'hai, basta lanciare **una volta** un qualsiasi comando
+del plugin dal **tuo terminale**, per esempio `xrcopilotlab-bp status`: si apre una pagina del
+browser per l'accesso, ed è normale. Il token resta in cache: succede una volta sola su quella
+macchina, non a ogni comando.
+
+**Questo primo accesso devi farlo tu, e non può farlo Claude.** Non è una scelta di prodotto: senza
+un terminale vero il ramo che apre il browser è disattivato di proposito, perché altrimenti il
+comando resterebbe appeso ad aspettare una pagina che nessuno vede. Fatto l'accesso una volta, tutti
+i comandi successivi — compresi quelli che lancia Claude per te — usano il token in cache e
+funzionano.
+
+Se vedi un errore di autenticazione, quindi, la risposta non è riprovare: è fare l'accesso nel tuo
+terminale.
+
+### E il tuo ruolo dentro XRCopilotLab? Non c'entra — ed è bene saperlo
+
+Verrebbe da pensare che, trattandosi di operazioni sul backend di XRCopilotLab, contino i permessi
+che hai **dentro** il prodotto. Non è così, e la ragione è precisa: la CLI si presenta all'API con
+una **chiave** — la function key della rotta interna, o la subscription key di APIM — e **mai con la
+tua identità**. Nessun token utente, nessun accesso Entra verso l'API.
+
+Tre conseguenze che conviene avere chiare:
+
+1. **Il tuo ruolo su XRCopilotLab non ti abilita e non ti blocca.** Essere amministratore del
+   prodotto non ti serve; non esserlo non ti ferma.
+2. **Il vero cancello è Azure.** Chi può leggere l'App Configuration di un ambiente legge anche la
+   chiave dell'API, e con quella può agire sul tenant. In pratica **App Configuration Data Reader è
+   il permesso che conta**: va dato con la stessa attenzione con cui si darebbe un ruolo di
+   amministrazione sul prodotto, perché in questo contesto lo è.
+3. **La traccia nei run è un nome, non un'identità verificata.** Il campo `CreatedBy` e la firma
+   dell'approvazione riportano il tuo utente del sistema operativo. Serve a ricostruire chi ha fatto
+   cosa fra colleghi, non a dimostrarlo: per sapere *chi poteva* farlo, si guarda chi ha i ruoli
+   Azure sopra.
+
+Dove invece gli utenti del prodotto contano davvero è **dentro il manifest**: i membri dei ruoli
+aziendali, gli owner di un processo e i destinatari di un passo di approvazione devono già esistere
+sul tenant. Il blueprint aggiunge le persone ai ruoli, non le crea — e se un indirizzo non esiste il
+piano si ferma prima di toccare qualsiasi cosa.
 
 ## Struttura del repository
 
