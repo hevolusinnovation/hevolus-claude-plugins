@@ -70,10 +70,12 @@ scarica() {
   TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
   [ -n "$TOKEN" ] || istruzioni_accesso
 
-  ASSET_ID="$(ASSET_NAME="$1" curl -fsSL \
+  # Il nome dell'allegato si passa come argomento a python3, non come variabile d'ambiente:
+  # in una pipeline la variabile in testa vale per il primo comando, non per quello a valle.
+  ASSET_ID="$(curl -fsSL \
       -H "Authorization: Bearer $TOKEN" \
       "https://api.github.com/repos/$REPO/releases/tags/$TAG" \
-    | python3 -c 'import json,os,sys; a=[x["id"] for x in json.load(sys.stdin).get("assets",[]) if x["name"]==os.environ["ASSET_NAME"]]; print(a[0] if a else "")')"
+    | python3 -c 'import json,sys; a=[x["id"] for x in json.load(sys.stdin).get("assets",[]) if x["name"]==sys.argv[1]]; print(a[0] if a else "")' "$1")"
 
   [ -n "$ASSET_ID" ] || die "la release $TAG non contiene l'allegato $1."
 
@@ -104,6 +106,7 @@ fi
 
 chmod +x "$TMP"
 mv "$TMP" "$BIN"
+rm -f "$TMP.sha256"
 trap - EXIT
 
 echo "CLI pronta in $BIN" >&2

@@ -95,7 +95,7 @@ La prima volta che chiedi qualcosa al plugin succedono due cose, una sola volta 
 Vedi comparire:
 
 ```
-Prima esecuzione: scarico la CLI (xrcopilotlab-bp-osx-arm64, ~52 MB) dalla release bp-v1.0.0.
+Prima esecuzione: scarico la CLI (xrcopilotlab-bp-osx-arm64, ~52 MB) dalla release bp-v1.1.1.
 CLI pronta in /Users/tuonome/.claude/plugins/data/blueprints/bin/...
 ```
 
@@ -164,6 +164,7 @@ possa capire cosa sta succedendo, e perché a volte è comodo lanciarli a mano.
 | `status` | Elenco dei blueprint e delle esecuzioni sul tenant |
 | `status --run <id>` | Dettaglio di un'esecuzione: chi ha approvato, cosa è stato creato |
 | `rollback --run <id>` | Smonta ciò che quell'esecuzione ha creato |
+| `delete --tag <TAG> --confirm <TAG>` | Cancella il blueprint dall'archivio. Con `--with-entities` smonta prima il tenant |
 
 Un giro completo, se vuoi rifarlo a mano:
 
@@ -182,6 +183,12 @@ file, puoi ometterlo nei primi due comandi.
 **`--yes` non è una scorciatoia.** Registra che una persona ha approvato quel piano, con nome e
 ora, e resta scritto nell'esecuzione. Va usato dopo aver letto il piano, non per saltare la
 domanda.
+
+**Su `delete` il `--yes` non vale affatto.** Cancellare non ha marcia indietro — spariscono le
+versioni del file, i documenti esportati e l'elenco di ciò che era stato creato — quindi il comando
+ti mostra un riquadro rosso con tutto ciò che sparisce e ti chiede di **scrivere il tag** del
+blueprint. Se scrivi un tag diverso non cancella niente e te lo dice: serve proprio a fermare il
+comando di un altro blueprint riusato con una modifica sola.
 
 ---
 
@@ -262,6 +269,16 @@ smonta l'esecuzione precedente e si riapplica. Il plugin ti guida.
 
 **Provare una variante senza disfare quella che c'è.** Si cambia il tag — da `ROSSI` a `ROSSI2` — e
 si applica. Nasce tutto in parallelo con un nome diverso, e le due versioni convivono.
+
+**Buttare via del tutto un blueprint**, per esempio la variante di prova che non è piaciuta:
+
+```bash
+xrcopilotlab-bp delete --tag ROSSI2 --confirm ROSSI2 --company <id-del-tenant> --with-entities
+```
+
+Senza `--with-entities` cancella solo l'archivio, e se sul tenant ci sono ancora agenti o processi
+creati da quel blueprint si ferma: quell'elenco è l'unica cosa che sa come si chiamano, e buttarlo
+via mentre esistono vorrebbe dire doverli poi cercare a mano uno per uno.
 
 ---
 

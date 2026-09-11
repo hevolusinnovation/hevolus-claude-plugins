@@ -89,13 +89,13 @@ dove sta il codice. Quattro piattaforme da un solo runner, perché la pubblicazi
 
 ```bash
 # nel repository xrcopilotlab-webapp-dotnet
-git tag bp-v1.0.1 && git push origin bp-v1.0.1
+git tag bp-v1.1.2 && git push origin bp-v1.1.2
 ```
 
 Poi qui si allinea il numero, che è quello che l'avviatore cerca:
 
 ```bash
-echo "1.0.1" > plugins/blueprints/bin/version.txt
+echo "1.1.2" > plugins/blueprints/bin/version.txt
 ```
 
 E si alza la versione del plugin in `plugins/blueprints/.claude-plugin/plugin.json` e nella voce
