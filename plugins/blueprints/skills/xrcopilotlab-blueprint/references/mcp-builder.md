@@ -173,19 +173,88 @@ agents:
       ...le regole sui gap, sul perimetro e sulla citazione della fonte...
 ```
 
-**Oggi la CLI verifica questa sezione ma non la crea** (`BP070`): connessioni e server MCP arrivano
-con la milestone 2. Dichiararli serve comunque, e conviene farlo:
+**La CLI ora crea questa sezione per intero**: la connessione, il server, la prova di un tool e la
+pubblicazione nel catalogo del tenant, più il collegamento all'agente che lo userà. Il piano le
+elenca come qualsiasi altra operazione, e si approvano insieme al resto.
 
-- il piano li riporta, quindi chi applica il blueprint sa che restano da fare a mano e con quali
-  parametri esatti — invece di scoprirlo quando l'agente non risponde;
-- quando la milestone 2 arriverà, il manifest è già pronto e il ciclo diventa automatico;
-- il manifest resta la descrizione completa dell'ambiente, che è la ragione per cui esiste.
+Due cose da sapere scrivendo i tool:
+
+- **il valore di un parametro è la sua descrizione**, non il suo tipo: `vatNumber: Partita IVA senza
+  prefisso` è ciò che il modello legge per decidere come chiamare il tool. Per il controllo pieno si
+  scrive l'oggetto, `{ type: integer, description: ... }`;
+- **`testTool` senza `testArguments` non prova niente**, e infatti la prova non viene nemmeno
+  messa nel piano. Provare un tool prima di pubblicare è l'unico modo per accorgersi adesso di un
+  path sbagliato: dopo, il sintomo è un agente che «non trova niente».
 
 **Quando invece il MCP va scritto come servizio** — perché la fonte non è HTTP, richiede logica di
 trasformazione, o custodisce un token per ogni entità autorizzata come nel caso di LinkedIn — non è
 dichiarabile in questa forma: `kind: external` pretende l'URL di un server già ospitato. In quel
 caso si annota nella `description` dell'agente che lo userà e si mette fra i passi manuali del piano
 di attivazione.
+
+## Quando la fonte non deve solo essere letta, ma far *partire* qualcosa
+
+Capita spesso, e non solo con la posta: arriva un documento, cambia una riga in un gestionale, si
+apre un ticket — e da lì deve partire un processo. La forma è sempre la stessa, e sta tutta dentro
+il tenant:
+
+```yaml
+connections:
+  - key: fonte
+    name: fonte-cliente
+    provider: webhook
+    baseUrl: https://graph.microsoft.com/v1.0        # o qualunque altra API HTTP
+    auth:
+      kind: OAuth2ClientCredentials
+      tokenUrl: https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token
+      clientId: Blueprints:Secrets:<TAG>:fonte-client-id
+      clientSecret: Blueprints:Secrets:<TAG>:fonte-client-secret
+      scope: https://graph.microsoft.com/.default
+
+mcpServers:
+  - key: fonte
+    kind: builder
+    name: Fonte-MCP
+    connection: fonte
+    tools:
+      - name: leggi_novita
+        method: GET
+        path: /users/protocollo@studio.it/mailFolders/inbox/messages
+        description: Messaggi non letti arrivati nella casella di protocollo.
+        parameters:
+          da: Data e ora ISO 8601 da cui guardare
+        required: [da]
+        query:
+          $filter: "isRead eq false and receivedDateTime ge {{da}}"
+
+agents:
+  - key: lettore
+    name: Lettore protocollo
+    mcp: [fonte]
+    systemMessage: |
+      ...cosa estrarre da ogni messaggio, e cosa NON dedurre...
+
+agentTasks:
+  - key: sorveglia
+    name: Sorveglianza protocollo
+    agent: lettore
+    prompt: Elenca le novità dall'ultimo giro, una per riga.
+    trigger: scheduled
+    schedule: { cron: "*/5 * * * *", timeZone: Europe/Rome }
+    outputActions:
+      - type: webhook
+        url: processes.presa-in-carico.webhook    # il planner mette indirizzo e chiave
+```
+
+Cinque pezzi, tutti entità del tenant: nessuna Logic App, nessun resource group, niente che il
+rollback non sappia smontare. E il `processes.<chiave>.webhook` non è una comodità di scrittura —
+la chiave di un webhook si vede **una volta sola** e non è più recuperabile, quindi è il planner a
+metterla, e non passa da nessuna parte dove qualcuno debba copiarla.
+
+**Il limite, detto prima**: è polling. Fra l'evento e l'avvio del processo passa al più l'intervallo
+del cron. Per una casella di protocollo «entro cinque minuti» di norma va bene; se il caso pretende
+la reazione immediata serve l'ingresso push, che vuole una Logic App e un'autorizzazione umana — ed
+è l'unica cosa che il blueprint non crea.
 
 ## La checklist, in cinque passi
 

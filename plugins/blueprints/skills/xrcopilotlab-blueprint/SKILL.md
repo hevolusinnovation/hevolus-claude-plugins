@@ -86,9 +86,10 @@ farsi è una sola: quella fonte è **HTTP interrogabile**?
 
 Se sì, non si scrive un servizio: si costruisce con **MCP Builder**, e il manifest lo **dichiara** —
 una `connections` con provider, baseUrl e autenticazione, e un `mcpServers` con `kind: builder` e i
-tool, che sono già `{nome, metodo, path}`. La CLI oggi lo verifica ma non lo crea (`BP070`):
-dichiararlo serve comunque, perché il piano riporta con quali parametri esatti va fatto a mano, e
-quando la milestone 2 arriverà il manifest è già pronto.
+tool, che sono già `{nome, metodo, path}`. **La CLI lo crea**: connessione, server, prova di un tool
+e pubblicazione, più il collegamento all'agente. Le autenticazioni coprono `None`, `Bearer`,
+`Basic`, `CustomHeaders` e `OAuth2ClientCredentials` — quindi anche Microsoft Graph, e con esso una
+casella o un calendario.
 
 Se no — la fonte non è HTTP, richiede logica di trasformazione, o custodisce un token per ogni
 entità autorizzata come LinkedIn — il server va scritto, e **non è dichiarabile**: `kind: external`
@@ -180,9 +181,10 @@ vanno riportate all'utente senza sceglierne una: `rollback --run <runId>` prima,
 `--with-entities` per smontarle nello stesso comando — che le rimuove **prima** di cancellare
 l'archivio, perché l'inventario è l'unica cosa che sa come si chiamano.
 
-Vale lo stesso cancello di `apply`: si mostra cosa sparisce, si chiede il sì, e `--yes` solo dopo
-averlo ricevuto. Qui l'errore costa di più, perché non c'è un `--resume` che rimetta le cose a
-posto.
+Il cancello è **più duro** di quello di `apply`: `--yes` non vale, serve `--confirm <TAG>` con il
+tag esatto del blueprint. Si riporta all'utente l'avviso che il comando stampa — quante entità,
+quante versioni, e che non esiste un annulla — e si attende un sì che nomini quel blueprint. Un sì
+detto per un altro piano, o prima che il piano esistesse, non vale qui più che altrove.
 
 ## Codici di uscita
 
@@ -198,13 +200,16 @@ posto.
 ## Cosa non fare
 
 - Non chiamare l'API direttamente: tutto passa dalla CLI.
-- Non lanciare `delete --with-entities` per «ripulire» di propria iniziativa: cancella insieme
-  l'archivio e ciò che sta sul tenant, e non esiste un annulla.
+- Non lanciare `delete` per «ripulire» di propria iniziativa, e `--confirm <TAG>` solo dopo un sì
+  esplicito per quel blueprint: cancella l'archivio e, con `--with-entities`, ciò che sta sul
+  tenant. Non esiste un annulla.
 - Non lanciare `apply` o `pipeline` con `--yes` senza un consenso esplicito **per quel piano**. Un
   consenso dato prima, per un piano diverso, non vale. Il flag registra un'approvazione umana: se
   non c'è stata, sta registrando il falso.
 - Non chiedere, ripetere o scrivere il valore di un segreto.
 - Non usare `--overwrite` di propria iniziativa: una versione pubblicata è immutabile, e alzare
   `version:` è la strada normale.
-- Non promettere ciò che la milestone 1 non fa: connessioni, server MCP, orchestratori e risorse
-  esterne si dichiarano nel manifest ma non vengono ancora creati.
+- Non promettere le due cose che restano fuori: l'ereditarietà fra blueprint (`extends`) e
+  l'ingresso **push** della posta (`external` con `ingress.kind: logicapp`), che vuole una Logic App
+  e un'autorizzazione umana. Tutto il resto — connessioni, server MCP, orchestratori, agent task
+  schedulati con le loro code di uscita — il blueprint lo crea davvero.

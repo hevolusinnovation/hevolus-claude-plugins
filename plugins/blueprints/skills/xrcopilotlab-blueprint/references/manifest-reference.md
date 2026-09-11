@@ -97,8 +97,39 @@ agentTasks:
       ...{{variabile}}...
 ```
 
-`agent` e `orchestrator` sono alternativi: indicarne due, o nessuno, è un errore (`BP021`). Gli
-agent task su orchestratore sono dichiarabili ma non ancora creati (milestone 2).
+`agent` e `orchestrator` sono alternativi: indicarne due, o nessuno, è un errore (`BP021`).
+
+### Quando parte, e dove va a finire l'esito
+
+```yaml
+agentTasks:
+  - key: sorveglia-posta
+    name: Sorveglianza protocollo
+    agent: lettore-posta
+    prompt: Elenca i messaggi non letti arrivati da ieri.
+    trigger: scheduled              # manual (default) | scheduled | webhook
+    schedule:
+      cron: "*/5 * * * *"           # cinque campi
+      timeZone: Europe/Rome         # fuso IANA, default UTC
+    outputActions:
+      - type: webhook
+        url: processes.presa-in-carico.webhook
+      - type: email
+        recipients: [protocollo@studio.it]
+        subject: "{{taskName}} — {{date}}"
+```
+
+La casella in-app riceve **sempre** l'esito e non va dichiarata: in `outputActions` si elencano le
+destinazioni aggiuntive.
+
+`url` accetta un indirizzo assoluto oppure la forma `processes.<chiave>.webhook`. La seconda è
+quella che conta: il planner ci mette l'indirizzo e la chiave del webhook che **questo stesso
+blueprint** sta creando, e la chiave — che si vede una volta sola e non è più recuperabile — non
+deve passare da nessuna parte.
+
+È così che un agent task schedulato diventa l'**ingresso** di un processo a partire da una fonte
+esterna: l'agente legge la fonte attraverso il proprio server MCP, e a ogni giro consegna il
+risultato al processo. Non serve nulla fuori dal tenant.
 
 ## `processes`
 
@@ -218,9 +249,16 @@ form:
 Il tipo **allegato** non è ancora accettato dalla specifica dichiarativa della piattaforma: un
 processo che ne ha bisogno si disegna nel designer e si importa con `bpmnFile`.
 
-## `connections` e `mcpServers` — milestone 2
+## `connections` e `mcpServers`
 
-Dichiarabili e verificati, non ancora creati. Il piano lo segnala con un avviso.
+Una **connessione** è la portatrice delle credenziali verso un sistema di terze parti; un **server
+MCP** dichiarativo è l'insieme di chiamate HTTP che un agente può fare su quella connessione. Il
+blueprint crea entrambi, prova un tool e pubblica il server nel catalogo del tenant.
+
+Le autenticazioni ammesse sono `None`, `Bearer`, `Basic`, `CustomHeaders` e
+`OAuth2ClientCredentials`: coprono praticamente ogni API HTTP, Microsoft Graph compreso. Restano
+fuori le due varianti PKCE, e non per dimenticanza — pretendono che una persona autorizzi
+l'accesso dal browser, cosa che un blueprint applicato senza nessuno davanti non può fare.
 
 ```yaml
 connections:
@@ -245,9 +283,16 @@ mcpServers:
       - name: cerca_eventi
         method: GET
         path: /users/{{mailbox}}/calendarView
-        parameters: { start: string, end: string }
+        # Il valore di un parametro è la sua DESCRIZIONE: è quella che il modello legge per
+        # decidere come chiamare il tool. Per il controllo pieno si scrive l'oggetto.
+        parameters:
+          start: Inizio della finestra, ISO 8601
+          end: { type: string, description: Fine della finestra, ISO 8601 }
+        required: [start, end]
+        query: { startDateTime: "{{start}}", endDateTime: "{{end}}" }
         transform: return data.value.map(e => ({ subject: e.subject }));
     testTool: cerca_eventi
+    testArguments: { start: "2026-01-01T00:00:00Z", end: "2026-01-02T00:00:00Z" }
     publish: true
 
   - key: normattiva
@@ -257,28 +302,100 @@ mcpServers:
     auth: { kind: CustomHeaders, header: X-API-Key, secret: Blueprints:Secrets:LEGAL:mcp-apikey }
 ```
 
-## `external` — milestone 2
+## `orchestrators`
+
+Un orchestratore sono **step** e **flows**: i nodi e gli archi che li collegano. Si chiamano `flows`
+e non `connections` perché nel manifest `connections` sono già le connessioni verso i sistemi di
+terze parti, e la stessa parola con due sensi costa un'ora a chi legge.
+
+```yaml
+orchestrators:
+  - key: arricchimento
+    name: Arricchimento scheda
+    steps:
+      - { key: avvio, name: Avvio, type: start }
+
+      - key: profilo
+        name: Profilo
+        type: agent
+        agent: profilo                   # chiave di agents[]
+        userMessageTemplate: "{{input}}"
+        timeoutSeconds: 90
+        requireStructuredOutput: true
+        outputSchema: { type: object, properties: { nome: { type: string } } }
+
+      - key: fonti
+        name: Fonti pubbliche
+        type: parallelGroup
+        agents: [web, registro]          # girano insieme
+        agentOutputs: { web: notizie }   # dove finisce l'output di ciascuno
+        maxParallel: 2
+
+      - { key: fine, name: Fine, type: terminate }
+
+    flows:
+      - { from: avvio, to: profilo }
+      - { from: profilo, to: fonti }
+      - { from: fonti, to: fine }
+```
+
+### I tipi di step
+
+| `type` | Cosa fa | Campi propri |
+|---|---|---|
+| `start` | Ingresso dell'orchestrazione | — |
+| `agent` | Esegue un agente | `agent`, `userMessageTemplate`, `requireStructuredOutput`, `outputSchema`, `skillMetadata`, `allowAgentInteraction`, `allowFileUploadOnPause`, `useTempFiles`, `maxLoopIterations`, `loopInstruction` |
+| `parallelGroup` | Più agenti insieme | `agents`, `agentOutputs`, `maxParallel` |
+| `handoffGroup` | Più agenti che si passano il turno | `agents`, `agentOutputs` |
+| `condition` | Bivio su una condizione | `condition` — **due** flussi uscenti, `condition: true` e `condition: false` |
+| `switch` | Più vie su un valore | `switchVariable`, `cases`, `defaultCase` — un flusso per ogni caso, con `label` |
+| `userQuestion` | Chiede all'utente | `question`, `contextVariable`, `ctas`, `allowFileUpload` |
+| `humanApproval` | Attende un sì o un no | `title`, `recipients`, `timeoutHours` — **due** flussi, `label: approved` e `label: rejected` |
+| `sendMessage` | Mostra un messaggio | `text` |
+| `action` | Esegue un'azione | `provider` (`email`/`webhook`/`javascript`), `action`, `connection`, `input` |
+| `terminate` | Uscita | — |
+
+Ogni step che non sia `terminate` vuole almeno un flusso uscente. Le regole del grafo non sono
+riscritte dalla CLI: si delega al validatore della piattaforma, lo stesso che gira sul server, ed è
+da lì che arrivano i messaggi dei rilievi `BP092`.
+
+`recipients` di `humanApproval` devono essere utenti del tenant: il preflight lo verifica.
+
+## `external`
+
+Serve molto meno di quanto sembri, e conviene sapere perché.
+
+Quasi tutto ciò che un tempo si scriveva qui ha un **equivalente nativo**, che il blueprint crea
+davvero:
+
+| Cosa volevi | Come si scrive oggi |
+|---|---|
+| Leggere una casella o un calendario | `connections` verso Microsoft Graph (`OAuth2ClientCredentials`) + `mcpServers` con `kind: builder` |
+| Far partire un processo quando arriva qualcosa | Un agente con quel server MCP + `agentTasks` con `trigger: scheduled` e un `outputActions` `webhook` verso `processes.<chiave>.webhook` |
+| `auth: appRegistration` | Le credenziali dell'app registrata stanno nella `connections` che interroga la fonte, citate per nome |
+
+Scrivere quelle cose in `external` produce un errore `BP052` che indica la forma nativa: non è
+pignoleria, è che lì non verrebbero create.
+
+Resta scoperta **una sola** cosa: l'ingresso **push**, cioè reagire nell'attimo in cui la mail
+arriva invece di guardare ogni N minuti. Vuole una Logic App con il connettore Office 365, e con
+essa un'autorizzazione che una macchina non può dare al posto di una persona.
 
 ```yaml
 external:
-  mailbox: test@hevolus.it
+  mailbox: protocollo@studio.it
   auth: interactive                  # interactive | appRegistration
   ingress:
-    kind: logicapp                   # logicapp | scheduledAgentTask
+    kind: logicapp                   # l'unica modalità che richiede ancora infrastruttura
     target: processes.presa-in-carico.webhook
-  calendar:
-    kind: logicapp
-    exposeAs: mcpServers.calendario
   manualSteps:
     - authorize-office365-connection
-  resourceGroup: rg-...
+  resourceGroup: rg-...              # obbligatori con kind: logicapp
   location: italynorth
 ```
 
-`auth: interactive` non richiede una registrazione di applicazione: il connettore Office 365 di una
-Logic App si autorizza una volta sola con un accesso alla casella. `appRegistration` usa i permessi
-applicativi di Microsoft Graph con una Application Access Policy che limita l'accesso a quella sola
-casella, ed è la forma da preferire in produzione.
+`xrcopilotlab-bp external <manifest>` elenca i passi manuali ed esce **5**. La differenza con la
+variante a polling: quella il blueprint la crea per intero, questa no.
 
 ## Codici dei rilievi
 
@@ -289,6 +406,8 @@ casella, ed è la forma da preferire in produzione.
 | `BP020`–`BP023` | Riferimenti fra sezioni e alternative esclusive |
 | `BP030`–`BP033` | Processi: specifica non valida, ruolo, agent task o sotto-processo sconosciuto |
 | `BP040`–`BP044` | Connessioni e server MCP |
-| `BP050`–`BP051` | Risorse esterne |
+| `BP024`–`BP026` | Agent task: trigger, schedulazione, code di uscita |
+| `BP050`–`BP052` | Risorse esterne, ed equivalenti nativi |
 | `BP060`–`BP064` | Preflight: collisione di nome, skill, utente, segreto o topic mancante |
 | `BP070` | Sezione dichiarata ma non ancora applicata |
+| `BP090`–`BP092` | Orchestratori: tipo di step, campi, grafo |

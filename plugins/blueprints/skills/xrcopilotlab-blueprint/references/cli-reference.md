@@ -95,6 +95,7 @@ Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 | `--skip-external` | Salta la fase esterna nella pipeline. |
 | `--blueprint <id>` | Blueprint su cui operare, quando due condividono il tag. |
 | `--with-entities` | In `delete`, smonta dal tenant le entità ancora vive prima di cancellare l'archivio. |
+| `--confirm <TAG>` | Conferma forte di `delete`: si scrive il tag del blueprint. `--yes` non vale. |
 | `--watch` | In `status`, attende la conclusione del run. |
 
 Variabili d'ambiente: `XRCOPILOTLAB_BP_PROFILES` (percorso dei profili), `XRCOPILOTLAB_BP_DEBUG`
@@ -209,7 +210,7 @@ ciò che non si riesce a togliere, che uno lasciato a metà. Le entità non rimo
 
 La pubblicazione di una versione non ha operazione inversa: sparisce insieme al processo.
 
-## `delete --tag <TAG> [--version <n>] [--with-entities]`
+## `delete --tag <TAG> --confirm <TAG> [--version <n>] [--with-entities]`
 
 Toglie un blueprint dall'**archivio**: le versioni del manifest in Cosmos, i file nello storage —
 il `.bpmn` esportato compreso — e i run che lo riguardano. Con `--version` si cancella una versione
@@ -226,20 +227,34 @@ entità non si riesce a rimuovere, il comando esce **4** lasciando l'archivio do
 aggiornato con ciò che resta — così si può riprovare. L'ordine inverso lascerebbe agenti e processi
 orfani, riconducibili a un blueprint solo a memoria.
 
-Come `apply`, mostra cosa sparisce e **chiede conferma**: senza terminale serve `--yes`, altrimenti
-esce **6** senza cancellare nulla.
+**La conferma è più dura di quella di `apply`, e `--yes` non vale.** Il comando stampa un avviso
+riquadrato con ciò che sparisce, poi chiede di **scrivere il tag** del blueprint: al terminale lo si
+digita, altrove lo si passa come `--confirm <TAG>`. Un tag diverso da quello del blueprint in
+cancellazione ferma tutto — è il caso che la regola esiste per intercettare, il comando di un altro
+blueprint riusato con una modifica sola.
+
+La ragione è che `apply` ha una marcia indietro e `delete` no: spariscono le versioni, gli artefatti
+e l'inventario, cioè proprio le informazioni con cui si rimedierebbe. Un «s» si batte per riflesso e
+`--yes` si copia da un comando all'altro; il tag no, perché non si può dare senza aver letto cosa si
+sta cancellando. Senza conferma il comando esce **6** e non tocca niente.
 
 ```bash
-xrcopilotlab-bp delete --tag TEST --company <guid>                   # solo l'archivio
-xrcopilotlab-bp delete --tag TEST --company <guid> --with-entities   # anche il tenant
-xrcopilotlab-bp delete --tag TEST --version 2 --company <guid>       # una versione sola
+xrcopilotlab-bp delete --tag TEST --confirm TEST --company <guid>                  # solo l'archivio
+xrcopilotlab-bp delete --tag TEST --confirm TEST --company <guid> --with-entities  # anche il tenant
+xrcopilotlab-bp delete --tag TEST --confirm TEST --version 2 --company <guid>      # una versione sola
 ```
 
 ## `external <file.yml>`
 
-Risorse fuori dalla piattaforma: casella di posta, ingresso della posta, calendario. **Non ancora
-implementato** (milestone 2). Oggi il comando riepiloga cosa il manifest dichiara e quali passi
-manuali servono.
+Dice cosa resta da fare fuori dalla piattaforma — e cosa non serve più.
+
+Quasi tutto ciò che un tempo richiedeva questa fase si ottiene ora in modo nativo: una connessione
+verso la fonte, un server MCP che la interroga, un agent task schedulato che consegna l'esito al
+webhook di un processo. In quel caso il comando lo dice ed esce **0**: non c'è niente da creare.
+
+Resta l'ingresso **push** (`ingress.kind: logicapp`), che vuole una Logic App con il connettore
+Office 365 e un'autorizzazione che una persona deve dare. Lì il comando elenca i passi manuali ed
+esce **5**.
 
 ## `pipeline <file.yml>`
 
@@ -250,7 +265,7 @@ Percorre tutte le fasi in sequenza:
 3. **push** — registra la versione;
 4. **plan** — stampa il piano e chiede conferma, salvo `--yes`;
 5. **apply** — esegue;
-6. **external** — le risorse esterne.
+6. **external** — ciò che resta fuori dalla piattaforma, se c'è.
 
 L'ordine non è arbitrario: la fase esterna viene **dopo** l'applicazione perché l'ingresso della
 posta deve puntare a un webhook che prima non esisteva.

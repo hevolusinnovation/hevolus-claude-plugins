@@ -210,8 +210,38 @@
                 },
                 "parameters": {
                   "type": "object",
+                  "description": "Parametri del tool. Il valore è la descrizione ('nome: a cosa serve'), oppure un oggetto con type/description/enum quando serve il controllo pieno. La descrizione è ciò che il modello legge per decidere come chiamare il tool.",
                   "additionalProperties": {
-                    "type": "string"
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                          "type": {
+                            "enum": [
+                              "string",
+                              "number",
+                              "integer",
+                              "boolean",
+                              "array",
+                              "object"
+                            ]
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "enum": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    ]
                   }
                 },
                 "required": {
@@ -226,6 +256,24 @@
                 "transform": {
                   "type": "string",
                   "description": "Funzione JavaScript che trasforma la risposta."
+                },
+                "query": {
+                  "type": "object",
+                  "description": "Parametri di query, con i placeholder {{nome}}.",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "headers": {
+                  "type": "object",
+                  "description": "Header specifici di questo tool, oltre a quelli della connessione.",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                },
+                "contentType": {
+                  "type": "string",
+                  "description": "Content-type del corpo. Default application/json; per SOAP text/xml."
                 }
               }
             }
@@ -247,6 +295,10 @@
           "timeoutSeconds": {
             "type": "integer",
             "minimum": 1
+          },
+          "testArguments": {
+            "type": "object",
+            "description": "Argomenti con cui esercitare testTool. Senza, il test non si esegue."
           }
         }
       }
@@ -368,6 +420,71 @@
           },
           "prompt": {
             "type": "string"
+          },
+          "trigger": {
+            "enum": [
+              "manual",
+              "scheduled",
+              "webhook"
+            ],
+            "description": "Come parte il task. Default manual."
+          },
+          "schedule": {
+            "type": "object",
+            "description": "Obbligatoria con trigger: scheduled.",
+            "required": [
+              "cron"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "cron": {
+                "type": "string",
+                "description": "Espressione cron a cinque campi, es. '*/5 * * * *'."
+              },
+              "timeZone": {
+                "type": "string",
+                "description": "Fuso IANA, es. Europe/Rome. Default UTC."
+              }
+            }
+          },
+          "outputActions": {
+            "type": "array",
+            "description": "Destinazioni aggiuntive del risultato. La casella in-app riceve sempre l'esito e non va dichiarata.",
+            "items": {
+              "type": "object",
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "enum": [
+                    "email",
+                    "webhook"
+                  ]
+                },
+                "recipients": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "subject": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "URL assoluto, oppure 'processes.<chiave>.webhook' per avviare un processo di questo stesso blueprint: indirizzo e chiave li mette il planner."
+                },
+                "headers": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
           }
         },
         "oneOf": [
@@ -386,12 +503,12 @@
     },
     "orchestrators": {
       "type": "array",
-      "description": "Verificati ma non ancora creati (milestone 2).",
       "items": {
         "type": "object",
         "required": [
           "key",
-          "name"
+          "name",
+          "steps"
         ],
         "additionalProperties": false,
         "properties": {
@@ -406,15 +523,221 @@
           },
           "steps": {
             "type": "array",
+            "minItems": 1,
             "items": {
-              "type": "object"
+              "type": "object",
+              "required": [
+                "key",
+                "name",
+                "type"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "description": "Citata dai flussi."
+                },
+                "name": {
+                  "type": "string"
+                },
+                "type": {
+                  "enum": [
+                    "start",
+                    "agent",
+                    "condition",
+                    "switch",
+                    "parallelGroup",
+                    "handoffGroup",
+                    "userQuestion",
+                    "humanApproval",
+                    "sendMessage",
+                    "action",
+                    "terminate"
+                  ]
+                },
+                "description": {
+                  "type": "string"
+                },
+                "timeoutSeconds": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "displayOutput": {
+                  "type": "boolean"
+                },
+                "agent": {
+                  "type": "string",
+                  "description": "type: agent — chiave dell'agente eseguito."
+                },
+                "userMessageTemplate": {
+                  "type": "string",
+                  "description": "type: agent — con i placeholder {{variabile}}."
+                },
+                "requireStructuredOutput": {
+                  "type": "boolean",
+                  "description": "type: agent — pretende una risposta conforme a outputSchema."
+                },
+                "outputSchema": {
+                  "type": "object",
+                  "description": "type: agent — schema JSON della risposta attesa."
+                },
+                "skillMetadata": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "type: agent — parametri passati alla skill dello step, non all'agente."
+                },
+                "allowAgentInteraction": {
+                  "type": "boolean",
+                  "description": "type: agent — default true."
+                },
+                "allowFileUploadOnPause": {
+                  "type": "boolean",
+                  "description": "type: agent — default false."
+                },
+                "useTempFiles": {
+                  "type": "boolean",
+                  "description": "type: agent — default true."
+                },
+                "maxLoopIterations": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "type: agent — quante volte può rieseguire in un ciclo."
+                },
+                "loopInstruction": {
+                  "type": "string",
+                  "description": "type: agent — istruzione aggiunta al prompt nelle riesecuzioni."
+                },
+                "condition": {
+                  "type": "object",
+                  "description": "type: condition — ha due rami, true e false, entrambi obbligatori."
+                },
+                "switchVariable": {
+                  "type": "string",
+                  "description": "type: switch — variabile confrontata con i casi."
+                },
+                "cases": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "type: switch — ogni caso vuole un flusso con la propria label."
+                },
+                "defaultCase": {
+                  "type": "string",
+                  "description": "type: switch — se dichiarato, vuole anch'esso il proprio flusso."
+                },
+                "agents": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "type: parallelGroup | handoffGroup — chiavi degli agenti del gruppo."
+                },
+                "agentOutputs": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "type: parallelGroup | handoffGroup — chiave agente → variabile di contesto."
+                },
+                "maxParallel": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "type: parallelGroup — quanti girano insieme. Default 5."
+                },
+                "question": {
+                  "type": "string",
+                  "description": "type: userQuestion."
+                },
+                "contextVariable": {
+                  "type": "string",
+                  "description": "type: userQuestion | humanApproval — dove finisce la risposta."
+                },
+                "ctas": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "type: userQuestion — risposte rapide."
+                },
+                "allowFileUpload": {
+                  "type": "boolean",
+                  "description": "type: userQuestion."
+                },
+                "title": {
+                  "type": "string",
+                  "description": "type: humanApproval."
+                },
+                "recipients": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "description": "type: humanApproval — devono essere utenti del tenant."
+                },
+                "timeoutHours": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 168,
+                  "description": "type: humanApproval — default 72."
+                },
+                "text": {
+                  "type": "string",
+                  "description": "type: sendMessage."
+                },
+                "provider": {
+                  "enum": [
+                    "email",
+                    "webhook",
+                    "javascript"
+                  ],
+                  "description": "type: action."
+                },
+                "action": {
+                  "type": "string",
+                  "description": "type: action — es. 'send' per il provider email."
+                },
+                "connection": {
+                  "type": "string",
+                  "description": "type: action — chiave della connessione, quando il provider la richiede."
+                },
+                "input": {
+                  "type": "object",
+                  "description": "type: action — ingresso, nella forma dichiarata dal provider."
+                }
+              }
             }
           },
-          "connections": {
+          "flows": {
             "type": "array",
             "items": {
-              "type": "object"
-            }
+              "type": "object",
+              "required": [
+                "from",
+                "to"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "condition": {
+                  "type": "boolean",
+                  "description": "Ramo di uno step condition: true o false. Entrambi obbligatori."
+                },
+                "label": {
+                  "type": "string",
+                  "description": "Caso di uno switch, oppure 'approved'/'rejected' per humanApproval."
+                }
+              }
+            },
+            "description": "Archi fra gli step. Si chiamano flows e non connections: connections, nel manifest, sono le connessioni verso i sistemi di terze parti."
           }
         }
       }
