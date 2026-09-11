@@ -19,6 +19,7 @@ scritto da rivedere o applicare.
 |---|---|
 | Sempre, prima di scrivere lo YAML | [`references/regole-del-grafo.md`](references/regole-del-grafo.md) — cosa il validatore accetta |
 | Quando parti da zero e devi intervistare | [`references/intervista.md`](references/intervista.md) — l'ordine delle domande e come tradurre le risposte |
+| Quando serve una fonte esterna che non è ancora collegata | [`references/mcp-builder.md`](references/mcp-builder.md) — il ciclo connessione → MCP → agente, verificato su VIES |
 | Per il significato di un campo | [`references/manifest-reference.md`](references/manifest-reference.md) |
 | Per un comando o un codice di uscita | [`references/cli-reference.md`](references/cli-reference.md) |
 | Manuale d'uso del plugin | [`../../docs/manuale.md`](../../docs/manuale.md) |
@@ -77,6 +78,26 @@ Sei errori che si fanno se non si sta attenti:
    simile.
 
 L'id dei flussi lasciarlo fuori: lo genera la CLI, e il file resta leggibile.
+
+### Quando serve una fonte esterna che non è ancora collegata
+
+Un agente che deve leggere da un sistema esterno ha bisogno di un **server MCP**, e la domanda da
+farsi è una sola: quella fonte è **HTTP interrogabile**?
+
+Se sì, non si scrive un servizio: si costruisce con **MCP Builder**, e il manifest lo **dichiara** —
+una `connections` con provider, baseUrl e autenticazione, e un `mcpServers` con `kind: builder` e i
+tool, che sono già `{nome, metodo, path}`. La CLI oggi lo verifica ma non lo crea (`BP070`):
+dichiararlo serve comunque, perché il piano riporta con quali parametri esatti va fatto a mano, e
+quando la milestone 2 arriverà il manifest è già pronto.
+
+Se no — la fonte non è HTTP, richiede logica di trasformazione, o custodisce un token per ogni
+entità autorizzata come LinkedIn — il server va scritto, e **non è dichiarabile**: `kind: external`
+pretende l'URL di un server già ospitato, e inventarlo metterebbe nel manifest un dato falso. Si
+annota nella `description` dell'agente che lo userà e finisce fra i passi manuali del piano di
+attivazione.
+
+Procedura completa, con l'errore del path duplicato che costa un 404 e le regole di prompt sui gap:
+[`references/mcp-builder.md`](references/mcp-builder.md).
 
 ## 3. Validare
 
