@@ -1,0 +1,7 @@
+# Gli avviatori di Windows devono conservare i fine riga CRLF: un .cmd normalizzato a LF può
+# comportarsi in modo strano quando viene interpretato da cmd.exe.
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Tutto il resto resta a LF, compreso l'avviatore POSIX.
+*.sh  text eol=lf
