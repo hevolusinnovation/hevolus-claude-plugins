@@ -44,8 +44,8 @@ Due strade, scelte in quest'ordine:
 
 ## Ambiente e tenant: si scelgono per nome
 
-Gli ambienti sono **dentro il binario** — `staging`, `dev`, `prod` — e si scelgono con `--env`.
-Nessun file da scrivere, nessuno da scaricare:
+Gli ambienti sono **dentro il binario** — `staging`, `preview`, `prod` — e si scelgono con
+`--env`. Nessun file da scrivere, nessuno da scaricare:
 
 ```bash
 xrcopilotlab-bp plan --env prod --tag COMO
@@ -114,7 +114,7 @@ un profilo con lo stesso nome di un ambiente noto vince su quello.
       // Solo per scavalcare ciò che c'è in App Configuration:
       "cosmos":  { "endpoint": "...", "key": "env:...", "database": "...", "container": "blueprints" },
       "storage": { "connectionString": "env:XRCOPILOTLAB_BP_STORAGE", "container": "blueprints" },
-      "keyVaultUri": "https://kv-xrcopilotlab-staging.vault.azure.net/"
+      "keyVaultUri": "https://kv-xrcopilotlab-stg-01.vault.azure.net/"
     }
   }
 }
@@ -124,7 +124,14 @@ Ogni valore può essere scritto direttamente oppure nella forma **`env:NOME`**, 
 variabile d'ambiente: è la forma da preferire per tutto ciò che è una credenziale, così il file non
 ne contiene nessuna.
 
-`keyVaultUri` serve solo a `secrets set`, che deve sapere dove scrivere il valore.
+`keyVaultUri` serve solo a `secrets set`, che deve sapere dove scrivere il valore. Per `staging` e
+`preview` **non va scritto**: lo portano gli ambienti incorporati. Resta da indicare a mano solo per
+`prod` e per un endpoint non riconosciuto.
+
+⚠️ Se lo si scrive, va preso dai riferimenti a Key Vault **già presenti** nell'App Configuration di
+quell'ambiente — non dedotto dal nome. Nella sottoscrizione esistono sia `kv-xrcopilotlab-staging`
+sia `kv-xrcopilotlab-stg-01`: il nome più ovvio è quello sbagliato, e scriverci un segreto non dà
+nessun errore — semplicemente nessuno lo legge.
 
 Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 
@@ -132,7 +139,7 @@ Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 
 | Opzione | Significato |
 |---|---|
-| `--env <nome>` | Ambiente: `staging`, `dev`, `prod`, o un profilo scritto a mano. Senza, si deduce dal repository. |
+| `--env <nome>` | Ambiente: `staging`, `preview`, `prod`, o un profilo scritto a mano. Senza, vale lo sviluppo (il `local.settings.json` del clone). |
 | `--company <guid>` | Tenant. Senza, lo si sceglie per nome da un elenco. |
 | `--tag <TAG>` | Blueprint su cui operare, per i comandi che partono da uno già pubblicato. |
 | `--version <n>` | Versione del manifest. Senza, si usa la più recente. |

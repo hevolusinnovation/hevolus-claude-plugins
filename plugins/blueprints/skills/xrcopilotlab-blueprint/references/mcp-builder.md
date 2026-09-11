@@ -251,7 +251,7 @@ indirizzo e una restrizione — nessun segreto che viaggia fra due aziende.
 ### I quattro passi che il blueprint NON può fare
 
 Procedura completa, con i comandi, chi serve per ciascun passo e il testo da inoltrare al cliente:
-[`microsoft365-setup.md`](microsoft365-setup.md).
+[`docs/blueprints/microsoft365-setup.md`](../../../../docs/blueprints/microsoft365-setup.md).
 
 
 Il blueprint crea connessione, server, tool e collegamento agli agenti. I permessi no — vivono in
@@ -271,6 +271,53 @@ verificati nell'interfaccia:
    perché vivono tutti in Exchange;
 4. i **segreti**, citati per nome nel manifest e impostati con `secrets set` — client id e client
    secret. Il loro valore non si chiede e non si scrive mai.
+
+### Quei quattro passi non sono un blocco unico: verificare chi può fare cosa
+
+È l'errore che costa più tempo, e si evita con due letture. I quattro passi hanno **tre** livelli di
+privilegio diversi, e trattarli come una cosa sola manda l'utente a chiedere a un amministratore
+cose che potrebbe fare da sé — o peggio, a cercare scorciatoie che non esistono.
+
+```bash
+# L'utente può creare registrazioni applicative?
+az rest --method GET --url "https://graph.microsoft.com/v1.0/policies/authorizationPolicy" \
+  --query "defaultUserRolePermissions.allowedToCreateApps"
+
+# Ha ruoli di directory, cioè può dare il consenso?
+az rest --method GET --url "https://graph.microsoft.com/v1.0/me/memberOf" --query "value[].displayName"
+```
+
+Con `allowedToCreateApps: true` — che è il default di molti tenant — **il passo 1 lo può fare
+l'assistente**, creando l'app con i permessi *richiesti e non concessi*: in quello stato non accede a
+niente, e ciò che resta all'amministratore sono due azioni circoscritte invece di «creare tutto».
+
+```bash
+az ad app create --display-name "<nome>" --sign-in-audience AzureADMyOrg \
+  --required-resource-accesses @permessi.json
+az ad sp create --id <appId>     # solo l'oggetto in Enterprise applications: non concede nulla
+```
+
+Gli id dei permessi si leggono, non si scrivono a memoria:
+
+```bash
+az ad sp show --id 00000003-0000-0000-c000-000000000000 \
+  --query "appRoles[?value=='Mail.Read' || value=='Mail.Send' || value=='Calendars.ReadWrite'].[value,id]" -o tsv
+```
+
+**Il client secret no.** Va generato dall'utente — dal portale o da `az ad app credential reset` —
+perché il valore viene stampato, e stampato dentro la sessione finirebbe nella trascrizione. Chi ha
+creato l'app ne è **owner**, quindi può generarlo senza chiedere niente a nessuno: verificarlo con
+`az ad app owner list --id <appId>` ed è un'attesa in meno.
+
+Restano all'amministratore, in quest'ordine: **prima** l'Application Access Policy, **poi** il
+consenso. E lo stato del consenso si controlla invece di darlo per fatto — zero assegnazioni vuol
+dire che l'app non accede ancora a niente, e l'applicazione si fermerebbe sulla prova del tool:
+
+```bash
+az rest --method GET \
+  --url "https://graph.microsoft.com/v1.0/servicePrincipals(appId='<appId>')/appRoleAssignments" \
+  --query "length(value)"
+```
 
 **Gli allegati non richiedono permessi sui file**: viaggiano dentro la chiamata di invio, come
 contenuto codificato in base64. Chiedere `Files.Read.All` per mandare un allegato significa

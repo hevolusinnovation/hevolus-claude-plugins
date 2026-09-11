@@ -14,19 +14,200 @@
 #   · l'assegnazione è decisa in riunione e annotata solo sulla carta → passo di assegnazione
 #   · i rinvii mancanti vivono nelle bozze email di un referente     → alert automatico agli owner
 #
-# Fuori perimetro, per scelta: il computo dei termini processuali. Non esiste come componente e
-# l'assessment lo mette fra le cose da costruire, quindi qui i termini li scrive il professionista.
+# ── Cosa aggiunge la versione 4 ───────────────────────────────────────────────────────────────
+# Tre caselle della tabella dello scenario Agenda che fino alla v3 restavano scoperte:
+#
+#   · «Briefing periodico e promemoria · BPM nativo, da configurare»
+#       I promemoria a soglia c'erano già (maxLeadTimeMinutes → alert agli owner). Mancava il
+#       briefing: ora è un agent task schedulato al lunedì mattina, prima della riunione
+#       settimanale che lo Studio già fa.
+#
+#   · «Riconciliazione delle due agende · Orchestratore, da configurare»
+#       Un orchestratore legge in parallelo la casella e il calendario comune e dice dove NON
+#       coincidono. Risponde a una criticità che lo Studio ha censito da sé: «nessuna
+#       riconciliazione periodica tra carta e digitale».
+#
+#   · «Computo e verifica dei termini · Agente Termini, da costruire»
+#       Fino alla v3 era fuori perimetro per scelta, e la ragione era buona: su questa materia
+#       un errore è irreparabile. Rientra nella forma che l'assessment stesso prescrive —
+#       **propone e motiva, non decide**: ogni termine arriva al professionista come proposta
+#       con la regola applicata e il conteggio, in un campo di sola lettura accanto alla
+#       casella che resta sua e modificabile a mano. Se il flusso salta la proposta, il
+#       processo funziona esattamente come prima.
+#
+# Resta fuori il calendario Google del penale in sola lettura: vedi la nota in fondo al file.
 #
 #   xrcopilotlab-bp validate blueprints/studiopolis-agenda.yml --graph
 
 blueprint: studiopolis-agenda
-version: 2
+version: 4
 tag: STUDIOPOLIS
 description: Presa in carico di un avviso di udienza e registrazione sul calendario comune
 
 tenant:
   companyId: 4da69cbc-d935-4050-f410-08d8392ca08f
   topic: Agenda di Studio
+
+# --------------------------------------------------------------------------------------------
+# Microsoft 365: la casella di ascolto e il calendario comune
+# --------------------------------------------------------------------------------------------
+# Una sola connessione verso Microsoft Graph, e sopra un server MCP che espone quello che serve
+# allo Studio: leggere la posta in arrivo, mandare una risposta anche con un allegato, leggere e
+# scrivere il calendario comune.
+#
+# ── La casella è una VARIABILE, non un parametro ──────────────────────────────────────────────
+# `variables.mailbox` è fissata qui e il modello non la vede. Fosse un parametro del tool,
+# sarebbe l'agente a decidere di quale casella leggere — e con un permesso applicativo quella
+# scelta vale su tutto il tenant. Non è comodità: è chi decide.
+#
+# ── Prerequisiti da fare a mano, PRIMA di applicare ───────────────────────────────────────────
+# Il blueprint crea connessione, server MCP e collegamento all'agente. Non può creare i permessi:
+#   1. registrazione applicativa nel tenant hevolus.it;
+#   2. permessi APPLICATIVI di Microsoft Graph, con consenso amministratore:
+#        Mail.Read           leggere la posta in arrivo
+#        Mail.Send           rispondere, con o senza allegati
+#        Calendars.ReadWrite leggere e scrivere il calendario comune
+#   3. ⚠️ Application Access Policy in Exchange Online che limiti l'app a QUESTA casella:
+#        New-ApplicationAccessPolicy -AppId <appId> `
+#          -PolicyScopeGroupId test@hevolus.it -AccessRight RestrictAccess
+#      Senza, quei tre permessi leggono e scrivono la posta e il calendario di CHIUNQUE nel
+#      tenant. Va fatta prima del consenso, e copre tutte e tre le risorse perché vivono tutte
+#      in Exchange. Gli allegati viaggiano dentro la chiamata di invio: nessun permesso sui file.
+#   4. i due segreti, che nel manifest compaiono solo come nome:
+#        xrcopilotlab-bp secrets set --tag STUDIOPOLIS graph-client-id
+#        xrcopilotlab-bp secrets set --tag STUDIOPOLIS graph-client-secret
+#
+# Il tenant id nell'URL del token è quello di hevolus.it. `test@hevolus.it` è la casella di
+# collaudo: per andare in esercizio si cambia `variables.mailbox` e si rifà la policy.
+
+connections:
+  - key: graph
+    name: microsoft-graph
+    provider: webhook
+    baseUrl: https://graph.microsoft.com/v1.0
+    auth:
+      kind: OAuth2ClientCredentials
+      tokenUrl: https://login.microsoftonline.com/45bb21a6-d8f8-4218-b74d-f4a5d5c2138e/oauth2/v2.0/token
+      clientId: Blueprints:Secrets:STUDIOPOLIS:graph-client-id
+      clientSecret: Blueprints:Secrets:STUDIOPOLIS:graph-client-secret
+      # .default chiede i permessi applicativi già consentiti: non se ne aggiungono qui.
+      scope: https://graph.microsoft.com/.default
+
+mcpServers:
+  - key: m365
+    kind: builder
+    name: Microsoft365-MCP
+    description: >
+      Posta e calendario della casella di ascolto dello Studio su Microsoft 365.
+    connection: graph
+    variables:
+      mailbox: test@hevolus.it
+    systemPrompt: >
+      Gli strumenti lavorano su UNA sola casella, quella dello Studio: non chiedere di quale
+      casella si tratta e non provare a cambiarla. Le date sono ISO 8601 con fuso. Prima di
+      scrivere in calendario, verifica con cerca_eventi che non ci sia già la stessa udienza:
+      un doppione in agenda costa più di una mancata scrittura.
+    tools:
+      - name: posta_in_arrivo
+        method: GET
+        path: /users/{{mailbox}}/mailFolders/inbox/messages
+        description: >
+          Messaggi arrivati nella casella dello Studio, dal più recente. Restituisce mittente,
+          oggetto, data e anteprima: per il testo completo serve leggi_messaggio.
+        parameters:
+          da: Momento da cui guardare, ISO 8601 con fuso, es. 2026-09-11T00:00:00Z
+          soloNonLetti: { type: boolean, description: Se limitarsi ai messaggi non ancora letti }
+        required: [da]
+        query:
+          $filter: "receivedDateTime ge {{da}}"
+          $orderby: receivedDateTime desc
+          $top: "25"
+          $select: id,receivedDateTime,from,subject,bodyPreview,hasAttachments,isRead
+
+      - name: leggi_messaggio
+        method: GET
+        path: /users/{{mailbox}}/messages/{{messaggioId}}
+        description: Corpo completo di un messaggio, dato il suo identificativo.
+        parameters:
+          messaggioId: Identificativo del messaggio, come restituito da posta_in_arrivo
+        required: [messaggioId]
+
+      - name: invia_messaggio
+        method: POST
+        path: /users/{{mailbox}}/sendMail
+        description: >
+          Manda un messaggio dalla casella dello Studio, con un allegato facoltativo. Il
+          contenuto dell'allegato è il file codificato in base64, non un percorso né un URL.
+        parameters:
+          a: Destinatario
+          oggetto: Oggetto del messaggio
+          corpo: Corpo del messaggio, in HTML
+          allegatoNome: Nome del file allegato, con l'estensione. Omettere se non c'è allegato
+          allegatoContenuto: Contenuto dell'allegato codificato in base64. Omettere se non c'è
+        required: [a, oggetto, corpo]
+        body: |
+          {"message":{"subject":"{{oggetto}}",
+           "body":{"contentType":"HTML","content":"{{corpo}}"},
+           "toRecipients":[{"emailAddress":{"address":"{{a}}"}}],
+           "attachments":[{"@odata.type":"#microsoft.graph.fileAttachment",
+                           "name":"{{allegatoNome}}","contentBytes":"{{allegatoContenuto}}"}]},
+           "saveToSentItems":true}
+
+      - name: cerca_eventi
+        method: GET
+        path: /users/{{mailbox}}/calendarView
+        description: >
+          Impegni del calendario comune in una finestra di tempo. Da usare SEMPRE prima di
+          scrivere, per non creare un doppione.
+        parameters:
+          inizio: Inizio della finestra, ISO 8601 con fuso
+          fine: Fine della finestra, ISO 8601 con fuso
+        required: [inizio, fine]
+        query:
+          startDateTime: "{{inizio}}"
+          endDateTime: "{{fine}}"
+          $orderby: start/dateTime
+          $select: id,subject,start,end,location,body
+
+      - name: crea_evento
+        method: POST
+        path: /users/{{mailbox}}/events
+        description: Registra un impegno sul calendario comune.
+        parameters:
+          titolo: Titolo dell'impegno
+          inizio: Inizio, ISO 8601 con fuso
+          fine: Fine, ISO 8601 con fuso
+          luogo: Luogo dell'impegno
+          note: Annotazioni
+        required: [titolo, inizio, fine]
+        body: |
+          {"subject":"{{titolo}}",
+           "start":{"dateTime":"{{inizio}}","timeZone":"Europe/Rome"},
+           "end":{"dateTime":"{{fine}}","timeZone":"Europe/Rome"},
+           "location":{"displayName":"{{luogo}}"},
+           "body":{"contentType":"HTML","content":"{{note}}"}}
+
+      - name: sposta_evento
+        method: PATCH
+        path: /users/{{mailbox}}/events/{{eventoId}}
+        description: >
+          Sposta un impegno già registrato. È la via giusta per un rinvio: aggiorna quello che
+          c'è invece di creare un secondo impegno accanto al primo.
+        parameters:
+          eventoId: Identificativo dell'impegno, come restituito da cerca_eventi
+          inizio: Nuovo inizio, ISO 8601 con fuso
+          fine: Nuova fine, ISO 8601 con fuso
+        required: [eventoId, inizio, fine]
+        body: |
+          {"start":{"dateTime":"{{inizio}}","timeZone":"Europe/Rome"},
+           "end":{"dateTime":"{{fine}}","timeZone":"Europe/Rome"}}
+
+    # Il tool di prova è in sola lettura e su una finestra vuota: esercita credenziale, permesso
+    # e policy senza toccare la casella. Una prova che scrivesse lascerebbe traccia in agenda.
+    testTool: cerca_eventi
+    testArguments:
+      inizio: "2020-01-01T00:00:00Z"
+      fine: "2020-01-02T00:00:00Z"
 
 # --------------------------------------------------------------------------------------------
 # Chi fa cosa
@@ -83,8 +264,250 @@ agents:
         fondo invece di sceglierne uno.
     skills: []
 
-    # Milestone 2: il calendario comune si scrive con un server MCP su Microsoft Graph.
-    # mcp: [calendario]
+    # Posta e calendario dello Studio. L'agente estrae dall'avviso e, quando il processo glielo
+    # chiede, registra o sposta l'impegno sul calendario comune senza uscire dal flusso.
+    mcp: [m365]
+
+  - key: sorveglianza
+    name: Sorveglianza posta
+    description: Guarda la casella dello Studio e riconosce gli avvisi di udienza
+    language: it
+    temperature: 0
+    mcp: [m365]
+    systemMessage: |
+      Guardi la casella di ascolto di uno studio legale e riconosci quali messaggi
+      sono avvisi di udienza.
+
+      # Cosa fai
+      1. Chiami posta_in_arrivo con il momento che ti viene indicato.
+      2. Per ogni messaggio che sembra un avviso — cancelleria, PEC, comunicazione
+         di un collega che inoltra un rinvio — chiami leggi_messaggio per averne il
+         testo intero.
+      3. Restituisci il testo dell'avviso, e nient'altro: né preamboli, né
+         riassunti, né commenti. Quel testo viene consegnato a un processo che lo
+         farà leggere a chi di dovere.
+
+      # Cosa NON fai
+      Non estrai gli estremi dell'udienza: non è il tuo compito, c'è un altro
+      agente che lo fa dentro il processo, e farlo due volte con criteri diversi
+      produce due verità.
+      Non scarti un messaggio perché ti sembra poco importante: se è un avviso,
+      passa. Nel dubbio passa: un falso positivo lo chiude un referente in dieci
+      secondi, un avviso perso è un termine perso.
+      Non rispondi ai messaggi e non segni niente come letto.
+      Se non c'è nessun avviso nuovo, restituisci esattamente: NESSUN AVVISO
+
+  # ------------------------------------------------------------------------------------------
+  # I termini: l'unico agente del file che parla di diritto, ed è quello che decide di meno
+  # ------------------------------------------------------------------------------------------
+  # L'assessment lo dice in una riga che vale come specifica: «propone e motiva, non decide».
+  # Qui quella riga è vincolata da due cose, non da una raccomandazione nel prompt:
+  #   · il suo esito entra nel modulo come campo `context`, cioè in SOLA LETTURA;
+  #   · accanto resta `terminiDaPresidiare`, che il professionista scrive e che è l'unico
+  #     campo che il processo porta avanti.
+  # Un termine proposto e non confermato, quindi, non diventa niente.
+
+  - key: termini
+    name: Termini
+    description: Propone i termini da presidiare motivando ogni conteggio, senza mai confermarli
+    language: it
+    temperature: 0        # un conteggio non ha varianti stilistiche
+    skills: []
+    systemMessage: |
+      Proponi i termini processuali da presidiare a partire dagli estremi di
+      un'udienza. Non li confermi e non li decidi: li propone tu, li conferma
+      il professionista.
+
+      # La regola dei tre pezzi
+      Per ogni termine devi poter dire TRE cose, e le scrivi tutte e tre:
+        1. la data;
+        2. la regola che la produce, citata (articolo, legge);
+        3. il conteggio che hai fatto per arrivarci.
+      Se anche uno solo dei tre ti manca, quel termine NON lo proponi: scrivi
+      che non sei in grado di calcolarlo e di' quale dei tre pezzi manca.
+
+      # Cosa devi tenere in conto, e dichiarare
+      - Sospensione feriale dal 1° al 31 agosto (L. 742/1969), dove si applica:
+        se si applica dillo, se non si applica dillo lo stesso.
+      - Termine che scade di sabato o in giorno festivo: proroga al primo
+        giorno seguente non festivo (art. 155 c.p.c.).
+      - Termine libero o non libero: dillo per ciascuno, esplicitamente.
+      - Termine a ritroso: dillo, e indica da quale data conti all'indietro.
+      - Il rito cambia i termini. Se non sai quale rito è, NON ne scegli uno:
+        lo chiedi, e nel frattempo non proponi il termine che ne dipende.
+
+      # Formato
+      Una riga per termine, in ordine di data:
+        DATA — adempimento — regola applicata — conteggio
+      E in fondo, sempre, esattamente questa riga:
+        Proposta da verificare: nessuno di questi termini è confermato finché non lo conferma il professionista.
+
+      # Cosa NON fai
+      Non presenti mai un termine come certo, accertato o «da calendario».
+      Non arrotondi e non sposti una data perché ti sembra più sensata.
+      Non inventi una regola, e non ne citi una di cui non sei sicuro: meglio
+      un termine in meno che una regola sbagliata, perché la regola sbagliata
+      è quella che il professionista non ricontrolla.
+      Se gli estremi dell'udienza sono incompleti o ambigui, non proponi nulla
+      e dici quale dato ti serve.
+
+  # ------------------------------------------------------------------------------------------
+  # Le due viste che vanno confrontate
+  # ------------------------------------------------------------------------------------------
+  # `calendario` legge il calendario comune, `ricognizione` legge la casella. Sono due agenti e
+  # non uno perché l'orchestratore li fa girare in PARALLELO: il confronto vale quanto vale la
+  # loro indipendenza, e un unico agente che leggesse entrambe le fonti tenderebbe a far
+  # coincidere ciò che ha appena letto.
+  #
+  # `ricognizione` non è `sorveglianza`: quello passa UN avviso per avviare il processo e non
+  # deve estrarne niente, questo li ELENCA tutti su una finestra per essere confrontato.
+
+  - key: calendario
+    name: Calendario di studio
+    description: Legge gli impegni del calendario comune su una finestra di tempo
+    language: it
+    temperature: 0
+    mcp: [m365]
+    systemMessage: |
+      Leggi il calendario comune dello Studio e restituisci gli impegni di una
+      finestra di tempo.
+
+      # Cosa fai
+      1. Ti viene indicata una finestra. Se non è indicata, usa i prossimi 14
+         giorni a partire da oggi.
+      2. Chiami cerca_eventi su quella finestra.
+      3. Restituisci gli impegni in ordine di data, uno per riga:
+           DATA ORA — titolo — luogo — annotazioni
+      4. Segnali a parte, in fondo, gli impegni le cui annotazioni non nominano
+         nessun professionista: sono quelli che rischiano di arrivare a udienza
+         senza che nessuno se ne sia preso carico.
+
+      # Cosa NON fai
+      Non scrivi in calendario e non sposti niente: qui sei in sola lettura.
+      Non deduci il professionista dal nome delle parti o dalla materia.
+      Non calcoli termini: c'è un altro agente che lo fa, e con dei vincoli.
+      Se nella finestra non c'è nessun impegno, lo dici in una riga senza
+      aggiungere commenti.
+
+  - key: ricognizione
+    name: Ricognizione posta
+    description: Elenca gli avvisi di udienza arrivati in casella su una finestra di tempo
+    language: it
+    temperature: 0
+    mcp: [m365]
+    systemMessage: |
+      Elenchi gli avvisi di udienza arrivati nella casella di ascolto in una
+      finestra di tempo, per poterli confrontare con il calendario comune.
+
+      # Cosa fai
+      1. Ti viene indicata una finestra. Se non è indicata, usa gli ultimi 14
+         giorni.
+      2. Chiami posta_in_arrivo su quella finestra, e per ogni messaggio che
+         sembra un avviso chiami leggi_messaggio.
+      3. Per ciascuno restituisci una riga:
+           DATA UDIENZA — autorità e sede — numero di ruolo — parti — mittente dell'avviso
+         Un dato che nell'avviso non c'è si scrive «non indicato».
+
+      # Cosa NON fai
+      Non completi un dato mancante con quello che sembra plausibile: il
+      confronto a valle serve proprio a trovare le differenze, e un buco
+      riempito a caso diventa una differenza inventata.
+      Non scarti un avviso perché ti pare già a calendario: non lo sai, e
+      stabilirlo è il compito di chi confronta.
+      Non rispondi ai messaggi e non segni niente come letto.
+      Se nella finestra non c'è nessun avviso, lo dici in una riga.
+
+  - key: riconciliatore
+    name: Riconciliazione agende
+    description: Confronta gli avvisi in casella con il calendario comune e riporta i disallineamenti
+    language: it
+    temperature: 0
+    skills: []
+    systemMessage: |
+      Ricevi due elenchi — gli avvisi arrivati in casella e gli impegni del
+      calendario comune — e dici dove NON coincidono.
+
+      # Cosa restituisci, in quest'ordine
+      1. **Avvisi senza impegno a calendario** — un avviso è arrivato ma sul
+         calendario non c'è niente che gli corrisponda. È il caso più grave:
+         è un'udienza che nessuno vedrà.
+      2. **Impegni a calendario senza avviso** — c'è l'impegno ma non se ne
+         trova l'avviso nella finestra. Spesso è solo un avviso più vecchio
+         della finestra: dillo come ipotesi, non come fatto.
+      3. **Doppioni** — due impegni che descrivono la stessa udienza. Tipico
+         dopo un rinvio registrato creando un evento nuovo invece di spostare
+         quello che c'era.
+      4. **Divergenze** — stessa udienza in entrambi, ma data, ora, sede o
+         numero di ruolo non coincidono. Riporta i due valori affiancati,
+         senza dire quale sia quello giusto.
+
+      Se una sezione è vuota, scrivi «nessuno» invece di ometterla: sapere che
+      il controllo è stato fatto vale quanto il risultato.
+
+      # Come accoppi
+      Il numero di ruolo è il criterio forte. In mancanza, data più autorità
+      più parti. Se un accoppiamento è incerto, mettilo fra le divergenze e
+      di' perché è incerto.
+
+      # Cosa NON fai
+      Non hai strumenti e non leggi nulla per conto tuo: lavori solo sui due
+      elenchi che ti vengono dati.
+      Non correggi il calendario e non proponi di correggerlo tu: riporti, e
+      chi presidia l'agenda decide.
+      Non fai sparire una differenza perché è piccola. Un'ora di scarto su
+      un'udienza è esattamente il genere di dettaglio per cui esiste questo
+      confronto.
+
+# ----------------------------------------------------------------------------------------------
+# L'orchestrazione della riconciliazione
+# ----------------------------------------------------------------------------------------------
+# Due letture in parallelo e un confronto. Il parallelo qui non è una micro-ottimizzazione: è
+# ciò che tiene le due viste indipendenti l'una dall'altra.
+
+orchestrators:
+  - key: riconciliazione
+    name: Riconciliazione agende
+    description: >
+      Confronta gli avvisi arrivati in casella con gli impegni del calendario comune e riporta
+      doppioni, divergenze e udienze che stanno in una sola delle due viste.
+    steps:
+      - key: avvio
+        name: Avvio
+        type: start
+
+      - key: letture
+        name: Le due viste
+        type: parallelGroup
+        description: >
+          La casella e il calendario, letti insieme e senza che l'uno veda l'altro.
+        agents: [ricognizione, calendario]
+        agentOutputs:
+          ricognizione: avvisiInCasella
+          calendario: eventiACalendario
+        maxParallel: 2
+        timeoutSeconds: 240
+
+      - key: confronto
+        name: Confronto
+        type: agent
+        agent: riconciliatore
+        displayOutput: true
+        timeoutSeconds: 180
+        userMessageTemplate: |
+          Avvisi arrivati in casella:
+          {{avvisiInCasella}}
+
+          Impegni sul calendario comune:
+          {{eventiACalendario}}
+
+      - key: fine
+        name: Fine
+        type: terminate
+
+    flows:
+      - { from: avvio, to: letture }
+      - { from: letture, to: confronto }
+      - { from: confronto, to: fine }
 
 agentTasks:
   - key: estrazione-avviso
@@ -96,6 +519,117 @@ agentTasks:
       Materia: {{materia}}. Fascicolo: {{fascicolo}}.
 
       {{testoAvviso}}
+
+  # ------------------------------------------------------------------------------------------
+  # L'ingresso: nessuno incolla più il testo di un avviso
+  # ------------------------------------------------------------------------------------------
+  # Ogni cinque minuti il sorvegliante guarda la casella e, se trova un avviso, il suo esito
+  # viene consegnato al webhook del processo — indirizzo e chiave li mette il planner, e quella
+  # chiave, che si vede una volta sola, non passa da nessuna parte.
+  #
+  # `body` non è un dettaglio: senza, verrebbe mandata la busta di default (executionId,
+  # taskName, agentResponse...), le cui chiavi non sono i campi del modulo di avvio. Le chiavi
+  # del corpo DIVENTANO le variabili del caso, quindi devono chiamarsi come quei campi.
+  #
+  # La latenza è l'intervallo del cron. Per reagire nell'attimo servirebbe il push: issue #991.
+
+  - key: sorveglianza-posta
+    name: Sorveglianza posta
+    description: Ogni cinque minuti cerca avvisi nuovi e avvia la presa in carico
+    agent: sorveglianza
+    prompt: |
+      Cerca gli avvisi arrivati negli ultimi dieci minuti e restituisci il testo
+      del primo che trovi. La finestra è più larga dell'intervallo di proposito:
+      meglio riconsiderare un messaggio che perderlo fra due giri.
+    trigger: scheduled
+    schedule:
+      cron: "*/5 * * * *"
+      timeZone: Europe/Rome
+    outputActions:
+      - type: webhook
+        url: processes.presa-in-carico-udienza.webhook
+        body:
+          testoAvviso: "{{agentResponse}}"
+          # La materia non si deduce dal testo senza sbagliarla: il referente la sceglie nel
+          # modulo. Qui si lascia il default, e il processo la fa confermare.
+          materia: Civile
+          fascicolo: "da attribuire"
+
+  # ------------------------------------------------------------------------------------------
+  # La proposta dei termini, dentro il processo
+  # ------------------------------------------------------------------------------------------
+  # Gira dopo la verifica del referente, cioè su estremi che una persona ha già controllato sul
+  # testo dell'avviso: proporre termini su una lettura non verificata sarebbe costruire un
+  # conteggio su un dato sbagliato.
+
+  - key: proposta-termini
+    name: Proposta termini
+    description: Propone i termini da presidiare sull'udienza appena verificata, motivando ciascuno
+    agent: termini
+    prompt: |
+      Materia: {{materia}}
+      Tipo di adempimento: {{tipoAdempimento}}
+      Data dell'udienza: {{dataUdienza}}
+      Ora: {{oraUdienza}}
+      Sede e sezione: {{sede}}
+      Fascicolo: {{fascicolo}}
+
+      Proponi i termini da presidiare, uno per riga, con la regola applicata e
+      il conteggio. Se un dato che ti serve non è qui sopra, non proporre il
+      termine che ne dipende e di' quale dato manca.
+
+  # ------------------------------------------------------------------------------------------
+  # Il briefing, al lunedì mattina
+  # ------------------------------------------------------------------------------------------
+  # L'orario non è scelto a caso: lo Studio una riunione settimanale la fa già, e il briefing
+  # serve se arriva prima, non dopo. Le soglie sui singoli passi del processo restano dove sono
+  # — quelle avvisano che una COSA è ferma, questo dice che SETTIMANA è.
+
+  - key: briefing-settimanale
+    name: Briefing settimanale
+    description: Ogni lunedì mattina manda ai referenti il quadro delle udienze della settimana
+    agent: calendario
+    prompt: |
+      Finestra: da oggi ai prossimi sette giorni.
+
+      Restituisci il quadro delle udienze della settimana in ordine di data, e
+      in fondo l'elenco di quelle le cui annotazioni non nominano nessun
+      professionista.
+    trigger: scheduled
+    schedule:
+      cron: "30 7 * * 1"
+      timeZone: Europe/Rome
+    outputActions:
+      - type: email
+        recipients:
+          - giuseppe.zileni@hevolus.it     # destinatario di prova: i referenti si aggiungono qui
+        subject: "{{taskName}} — {{date}}"
+
+  # ------------------------------------------------------------------------------------------
+  # La riconciliazione, al venerdì
+  # ------------------------------------------------------------------------------------------
+  # «Nessuna riconciliazione periodica tra carta e digitale» è una delle criticità che lo Studio
+  # ha messo per iscritto nella propria procedura. Questo è il passo che la chiude, ed è l'unico
+  # agent task del file che non lancia un agente ma un'orchestrazione.
+  #
+  # La finestra guarda anche indietro di proposito: un disallineamento nato la settimana scorsa
+  # è ancora un disallineamento, e guardando solo avanti non lo si vedrebbe mai.
+
+  - key: riconciliazione-settimanale
+    name: Riconciliazione settimanale
+    description: Ogni venerdì confronta casella e calendario e manda ai referenti i disallineamenti
+    orchestrator: riconciliazione
+    prompt: |
+      Finestra: dai sette giorni passati ai trenta giorni futuri.
+    trigger: scheduled
+    schedule:
+      cron: "0 17 * * 5"
+      timeZone: Europe/Rome
+    outputActions:
+      - type: email
+        recipients:
+          - giuseppe.zileni@hevolus.it     # destinatario di prova
+        subject: "{{taskName}} — {{date}}"
 
 # --------------------------------------------------------------------------------------------
 # Il processo
@@ -206,6 +740,24 @@ processes:
               label: A chi e cosa è stato chiesto
               type: textarea
 
+        # --- La proposta dei termini ---
+        # Sta qui, fra il gateway della completezza e quello della natura, per una ragione sola:
+        # è l'unico punto attraversato da ENTRAMBE le strade. L'udienza nuova e il rinvio hanno
+        # tutti e due bisogno dei termini, e un rinvio ne sposta di collegati — metterla su un
+        # ramo solo vorrebbe dire duplicarla, o dimenticarla sull'altro.
+        #
+        # È `Automated`, quindi non genera un work item e non ferma nessuno: se l'agente non
+        # sa proporre niente, il flusso prosegue e il professionista scrive i termini a mano
+        # come faceva nella v3.
+
+        - id: proponi-termini
+          type: Task
+          name: Proponi i termini
+          performer: Automated
+          agentTaskName: Proposta termini
+          outputVariable: terminiProposti
+          expectedDurationMinutes: 2
+
         - id: assegna
           type: Task
           name: Assegna l'udienza
@@ -255,12 +807,20 @@ processes:
               label: Presa visione
               type: bool
               required: true
+            - key: terminiProposti
+              label: Termini proposti dall'assistente
+              type: textarea
+              context: true
+              description: >
+                Proposta, non calendario: ogni riga porta la regola applicata e il conteggio,
+                perché siano ricontrollabili. Nessuno di questi termini vale finché non lo
+                riporta qui sotto il professionista.
             - key: terminiDaPresidiare
               label: Termini da presidiare
               type: textarea
               description: >
-                Da compilare a mano: il computo dei termini non è automatizzato e resta una
-                valutazione del professionista.
+                È questo il campo che conta, ed è del professionista: l'assistente propone
+                qui sopra, ma il termine che il processo porta avanti è quello che scrive lei.
 
         - id: registra
           type: Task
@@ -342,12 +902,19 @@ processes:
               label: Presa visione del rinvio
               type: bool
               required: true
+            - key: terminiProposti
+              label: Termini proposti dall'assistente
+              type: textarea
+              context: true
+              description: >
+                Proposta calcolata sulla NUOVA data. Un rinvio sposta anche i termini
+                collegati, ed è il caso in cui è più facile dimenticarne uno.
             - key: terminiDaPresidiare
               label: Termini da presidiare
               type: textarea
               description: >
-                Un rinvio può spostare anche i termini collegati: la valutazione resta del
-                professionista.
+                È questo il campo che conta, ed è del professionista: la valutazione resta
+                sua, anche quando la proposta qui sopra sembra completa.
 
         - id: fine
           type: End
@@ -375,8 +942,10 @@ processes:
         - from: chiarimenti
           to: verifica
         - from: completezza
-          to: natura
+          to: proponi-termini
           label: completi
+        - from: proponi-termini
+          to: natura
         - from: natura
           to: aggiorna
           condition: { var: giaACalendario, op: eq, value: true }
@@ -395,47 +964,30 @@ processes:
         - from: avvisa-rinvio
           to: fine
 
-# --------------------------------------------------------------------------------------------
-# Milestone 2 — dichiarato, non ancora creato
-# --------------------------------------------------------------------------------------------
-# La CLI verifica queste sezioni e le segnala nel piano, ma non le crea ancora. Restano qui
-# perché sono il bersaglio: quando la milestone 2 arriva, il file è già quello giusto.
+# ----------------------------------------------------------------------------------------------
+# Il calendario Google del penale: perché non è qui
+# ----------------------------------------------------------------------------------------------
+# L'assessment prevede, nel transitorio, di leggere in sola lettura il calendario Google del
+# penale tramite il suo indirizzo iCal privato, senza toccare l'account. Tecnicamente è un GET
+# HTTP, quindi sembrerebbe un tool MCP come gli altri. Non lo è, per due ragioni indipendenti.
 #
-# connections:
-#   - key: graph
-#     name: Microsoft Graph
-#     provider: webhook
-#     baseUrl: https://graph.microsoft.com/v1.0
-#     auth:
-#       kind: OAuth2ClientCredentials
-#       tokenUrl: https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token
-#       clientId: Blueprints:Secrets:STUDIOPOLIS:graph-client-id
-#       clientSecret: Blueprints:Secrets:STUDIOPOLIS:graph-client-secret
-#       scope: https://graph.microsoft.com/.default
+# 1. **Quell'indirizzo È la credenziale.** Chi ha l'URL legge il calendario, punto. E un
+#    riferimento a un segreto il planner lo risolve SOLO in auth.clientId, auth.clientSecret,
+#    auth.secret e auth.password (BlueprintPlanner.CollectSecretKeys): non in baseUrl, non in
+#    mcpServers[].variables, non nel path di un tool. Scriverlo qui significherebbe committare
+#    in chiaro la chiave di lettura dell'agenda penale — esattamente ciò che la regola 5 dei
+#    blueprint vieta, e per un motivo che qui è molto concreto.
 #
-# mcpServers:
-#   - key: calendario
-#     kind: builder
-#     name: Calendario comune
-#     connection: graph
-#     variables: { calendario: agenda@studiopolis.it }
-#     tools:
-#       - name: crea_evento
-#         method: POST
-#         path: /users/{{calendario}}/events
-#         description: Crea un'udienza sul calendario comune di studio
-#       - name: cerca_eventi
-#         method: GET
-#         path: /users/{{calendario}}/calendarView
-#         description: Verifica se l'udienza è già a calendario
-#     testTool: cerca_eventi
-#     publish: true
+# 2. **La risposta è text/calendar, non JSON.** Il `transform` di un tool builder lavora su una
+#    risposta già deserializzata; un ICS andrebbe prima parsato a mano in JavaScript, dentro il
+#    manifest. È il genere di cosa che funziona il primo giorno e si rompe al primo evento
+#    ricorrente.
 #
-# external:
-#   mailbox: ascolto@studiopolis.it
-#   auth: interactive
-#   ingress:
-#     kind: logicapp
-#     target: processes.presa-in-carico-udienza.webhook
-#   manualSteps:
-#     - authorize-office365-connection
+# Le tre strade, in ordine di preferenza:
+#   a) far confluire il calendario Google in quello comune — è il punto d'arrivo che
+#      l'assessment indica comunque, e toglie il problema invece di aggirarlo;
+#   b) creare la connessione a mano dall'interfaccia, dove il token finisce in un campo
+#      credenziale e non in git, e collegarci poi un server MCP: il blueprint non la crea, ma
+#      nemmeno la ostacola;
+#   c) attendere che i riferimenti ai segreti siano risolti anche fuori da `auth`, che è una
+#      modifica al planner, non a questo file.

@@ -482,6 +482,10 @@
                   "additionalProperties": {
                     "type": "string"
                   }
+                },
+                "body": {
+                  "type": "object",
+                  "description": "Forma del corpo della POST. I valori accettano {{agentResponse}}, {{taskName}}, {{status}}, {{executionId}}, {{timestamp}}. Verso il webhook di un processo le chiavi diventano le variabili del caso: devono chiamarsi come i campi del modulo di avvio."
                 }
               }
             }

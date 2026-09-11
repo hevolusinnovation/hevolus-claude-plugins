@@ -25,14 +25,19 @@ Cosa riportare, in quest'ordine:
 1. **A cosa serve**: descrivere un ambiente in un file e crearlo su un tenant — topic, agenti,
    connessioni, server MCP, orchestratori, agent task, processi BPM — mostrando il piano e
    chiedendo conferma prima di toccare qualcosa.
-2. **Su cosa si può lavorare adesso.** Gli ambienti sono `staging`, `preview`, `prod`; senza `--env`
+2. **Cosa serve per poterlo usare**, in due righe: un accesso `hevolus.it` — non c'entra l'account
+   con cui si usa Claude — e, la prima volta su quella macchina, un accesso ad Azure che si fa dal
+   proprio terminale. Dettagli in [§ Con quale identità gira](#con-quale-identità-gira--da-chiarire-al-primo-comando-che-fallisce-o-prima):
+   vale la pena dirlo qui, perché è il punto contro cui si sbatte prima di riuscire a fare qualsiasi
+   altra cosa.
+3. **Su cosa si può lavorare adesso.** Gli ambienti sono `staging`, `preview`, `prod`; senza `--env`
    vale lo sviluppo, cioè il `local.settings.json` del clone. Dire che in produzione si lavora solo
    sul tenant di Hevolus, e perché.
-3. **I blueprint che esistono già**, se c'è una cartella `blueprints/`: elencare i file con tag e
+4. **I blueprint che esistono già**, se c'è una cartella `blueprints/`: elencare i file con tag e
    versione. È la risposta più utile, perché quasi sempre chi chiede aiuto vuole ripartire da uno.
-4. **Cosa c'è già sul tenant**, se l'utente ha indicato un ambiente: `xrcopilotlab-bp status` lo
+5. **Cosa c'è già sul tenant**, se l'utente ha indicato un ambiente: `xrcopilotlab-bp status` lo
    dice in una riga per blueprint. Non lanciarlo di propria iniziativa su un ambiente non indicato.
-5. **I tre percorsi possibili**, come domanda finale: partire da un dossier di assessment, fare
+6. **I tre percorsi possibili**, come domanda finale: partire da un dossier di assessment, fare
    l'intervista da zero, oppure rivedere o applicare un manifest che esiste.
 
 Per l'elenco dei comandi e delle opzioni **non scrivere a memoria**: eseguire `xrcopilotlab-bp
@@ -57,6 +62,75 @@ tutto l'orientamento.
 Lo schema è in [`references/blueprint.v1.schema.json`](references/blueprint.v1.schema.json).
 Due esempi commentati: [`references/esempio-agenda.yml`](references/esempio-agenda.yml) (scenario reale)
 e [`references/esempio-minimo.yml`](references/esempio-minimo.yml) (il giro più corto).
+
+## Con quale identità gira — da chiarire al primo comando che fallisce, o prima
+
+Domanda che arriva sempre, e la risposta breve è: **l'account con cui si usa Claude non c'entra
+niente.** La CLI non parla con Claude, parla con **Azure**. Personale o aziendale, il piano non
+cambia di una riga.
+
+Quello che serve è un'identità **nel tenant `hevolus.it`**, perché App Configuration, Key Vault,
+Cosmos e lo storage vivono nella sottoscrizione di Hevolus. Un account Microsoft personale non può
+funzionare: non è una questione di permessi mancanti, è che quelle risorse non sono sue.
+
+I ruoli sono due, più due solo per chi imposta segreti:
+
+| Per fare | Ruoli sull'ambiente |
+|---|---|
+| `validate` | nessuno — non tocca la rete |
+| `push`, `plan`, `apply`, `status`, `rollback`, `delete` | **App Configuration Data Reader** e **Key Vault Secrets User** |
+| in più, `secrets set` | **App Configuration Data Owner** e **Key Vault Secrets Officer** |
+
+Tutto passa da lì: la chiave di Cosmos e la stringa dello storage sono riferimenti a Key Vault
+dentro App Configuration, quindi non servono ruoli su Cosmos, sullo storage o sull'API.
+
+Si verificano così, senza indovinare:
+
+```bash
+az account show --query "{tenant:tenantId, utente:user.name}" -o tsv
+az role assignment list --assignee <id-utente> --scope <id-della-risorsa> --include-inherited \
+  --query "[].roleDefinitionName" -o tsv
+```
+
+### `az login` non è obbligatorio, ma il primo accesso sì — e non lo puoi fare tu
+
+`BlueprintCredential` prova in quest'ordine: prima tutto ciò che è **già** configurato sulla
+macchina (variabili d'ambiente, identità gestita, Visual Studio, Azure CLI), e **solo in fondo**
+apre il browser, con un token che resta in cache fra le esecuzioni. Chi ha già fatto `az login` non
+nota differenza; chi non ha Azure CLI installata non deve installarla.
+
+C'è però una condizione che cambia tutto quando la skill gira dentro un assistente: **il ramo del
+browser esiste solo con un terminale vero.** `ConsoleOutput.IsInteractive` è falso appena
+ingresso o uscita sono rediretti — cioè sempre, quando il comando lo lancia l'assistente. È una
+scelta voluta (meglio fallire dicendo cosa manca che restare appesi a una pagina che nessuno apre),
+ma la conseguenza è precisa:
+
+> **Il primo accesso lo deve fare la persona, nel proprio terminale. Non è eseguibile nel flusso.**
+
+Quindi, davanti a un errore di autenticazione, non riprovare e non cercare scorciatoie: far
+lanciare all'utente **uno** di questi, una volta per macchina —
+
+```
+az login
+```
+
+— oppure, se non ha Azure CLI, un qualsiasi comando della CLI dal **suo** terminale (`xrcopilotlab-bp
+status`): si apre il browser, e da lì in poi il token in cache vale anche per i comandi che lanci tu.
+
+### Se l'utente non è tecnico
+
+È il caso per cui esiste il plugin, e conviene dirgli tre cose e non di più:
+
+1. serve l'accesso Hevolus, quello con cui entra nella posta aziendale;
+2. la prima volta si apre una pagina del browser: è normale, è l'accesso ad Azure, e succede una
+   volta sola su quella macchina;
+3. se compare un errore che parla di ruoli o di permessi, non è qualcosa che può risolvere da sé —
+   va chiesto a chi amministra la sottoscrizione, riportando **il nome della risorsa** e **il ruolo**
+   che il messaggio nomina.
+
+Non fargli installare Azure CLI, non fargli scrivere un profilo, non fargli maneggiare una chiave:
+niente di tutto ciò è necessario, e ognuna di quelle strade ha un modo di finire male che lui non
+può riconoscere.
 
 ## 1. Capire il processo
 
@@ -127,8 +201,16 @@ pretende l'URL di un server già ospitato, e inventarlo metterebbe nel manifest 
 annota nella `description` dell'agente che lo userà e finisce fra i passi manuali del piano di
 attivazione.
 
-Procedura completa, con l'errore del path duplicato che costa un 404 e le regole di prompt sui gap:
-[`references/mcp-builder.md`](references/mcp-builder.md).
+**Microsoft 365 — posta, calendario, contatti, file — ha una forma sola, e va proposta senza
+farsela chiedere**: connessione a Graph con `OAuth2ClientCredentials`, server `builder` con i soli
+tool che servono, e l'identità per-utente (la casella) in `variables` e **mai** fra i parametri del
+tool — altrimenti è il modello a decidere di chi legge la posta, su un permesso che vale per tutto
+il tenant. I quattro passi che il blueprint non può fare — registrazione applicativa, consenso
+amministratore, **Application Access Policy** che limita l'app a quella casella, segreti con
+`secrets set` — si riportano all'utente prima di applicare, perché li confermi nell'interfaccia.
+
+Procedura completa, la scelta di un tool di prova in sola lettura, l'errore del path duplicato che
+costa un 404 e le regole di prompt sui gap: [`references/mcp-builder.md`](references/mcp-builder.md).
 
 ## 3. Validare
 
@@ -146,13 +228,28 @@ costa una versione nuova.
 ## 4. Segreti, se il manifest ne cita
 
 Il valore di un segreto **non si chiede e non si maneggia**. Stampare all'utente il comando da
-lanciare, con il prefisso `!` così gira nella sua shell:
+lanciare, dicendogli di darlo **nel suo terminale**:
 
 ```
-! xrcopilotlab-bp secrets set --tag STUDIOPOLIS graph-client-secret
+xrcopilotlab-bp secrets set --env staging --tag STUDIOPOLIS graph-client-secret
 ```
 
-Poi verificare con `xrcopilotlab-bp secrets check blueprints/<file>.yml`.
+**Questo è l'unico comando che non va proposto con il prefisso `!`**, ed è una differenza che
+costa: il `!` lo esegue dentro la sessione, quindi l'interazione finisce nella trascrizione — cioè
+esattamente il posto in cui un segreto non deve passare. Il comando chiede il valore con una
+lettura mascherata: va data dove la maschera serve a qualcosa.
+
+Per un valore che l'utente ha già altrove c'è **`--from-env NOME_VARIABILE`**, che lo legge da una
+variabile d'ambiente invece che dal prompt.
+
+Poi verificare con `xrcopilotlab-bp secrets check blueprints/<file>.yml --env <ambiente>`.
+`--env` non è un dettaglio: senza, la verifica può guardare un ambiente diverso da quello in cui il
+piano andrà a cercare la chiave, e si finisce a rifare due volte la stessa cosa.
+
+Se `secrets set` risponde che non sa in quale Key Vault scrivere, **non indovinare il vault dal
+nome**: si prende da quelli a cui puntano i riferimenti già presenti nell'App Configuration di
+quell'ambiente. Vault dal nome plausibile ma inutilizzati esistono davvero, e scriverci un segreto
+non dà nessun errore — semplicemente nessuno lo legge.
 
 ## 5. Piano, e approvazione umana
 
@@ -161,9 +258,9 @@ xrcopilotlab-bp push blueprints/<file>.yml
 xrcopilotlab-bp plan --tag <TAG> --company <guid>
 ```
 
-L'ambiente si sceglie con `--env staging`, `--env dev` o `--env prod`: sono dentro il binario, non
-c'è nulla da configurare. Dentro un clone del repository, senza `--env`, vale quello del
-`local.settings.json`.
+Dentro il repository, senza `--env`, si lavora sull'ambiente del `local.settings.json`. Per
+sceglierlo si aggiunge `--env staging`, `--env preview` o `--env prod`: gli ambienti sono dentro il
+binario, non c'è nulla da configurare.
 
 Il **tenant** non si scrive: senza `--company` la CLI ne elenca i nomi e chiede quale. Eseguita da
 un assistente l'input non è un terminale, quindi stampa l'elenco e si ferma con **6** — vuol dire
