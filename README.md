@@ -83,6 +83,45 @@ Le risorse su cui vanno assegnati, per ambiente:
 Se non li hai, non è qualcosa che puoi risolvere da solo: scrivi a chi amministra la sottoscrizione
 riportando **il nome della risorsa** e **il ruolo** che il messaggio d'errore nomina.
 
+### Chi abilita chi, in pratica
+
+**L'utente da abilitare sei tu**, con il tuo `nome.cognome@hevolus.it` — non un account condiviso,
+non un service principal. Se le persone che useranno il plugin sono più di due o tre, conviene
+assegnare i ruoli a un **gruppo di sicurezza** e gestire lì le entrate e le uscite: un posto solo da
+guardare quando qualcuno cambia squadra.
+
+**Chi può assegnarli** è un **Owner** o uno **User Access Administrator** sul resource group (o
+sulla sottoscrizione). Chi sia oggi si chiede ad Azure invece di tenerne un elenco qui, che
+invecchierebbe:
+
+```bash
+az role assignment list \
+  --scope /subscriptions/73961d27-722e-4282-be21-bfb36e97c0f0/resourceGroups/rg-xrcopilotlab-staging-itn-01 \
+  --include-inherited \
+  --query "[?roleDefinitionName=='Owner' || roleDefinitionName=='User Access Administrator'].principalName" -o tsv
+```
+
+**I comandi da girare a chi amministra** — per staging, e assegnati sulla **singola risorsa**, non
+sul resource group: così il permesso non si estende in silenzio ad altro che vive lì accanto.
+
+```bash
+UTENTE=nome.cognome@hevolus.it
+SUB=/subscriptions/73961d27-722e-4282-be21-bfb36e97c0f0/resourceGroups/rg-xrcopilotlab-staging-itn-01
+APPCS=$SUB/providers/Microsoft.AppConfiguration/configurationStores/appcs-xrcopilotlab-staging-01
+KV=$SUB/providers/Microsoft.KeyVault/vaults/kv-xrcopilotlab-stg-01
+
+# per USARE il plugin
+az role assignment create --assignee "$UTENTE" --role "App Configuration Data Reader" --scope "$APPCS"
+az role assignment create --assignee "$UTENTE" --role "Key Vault Secrets User"        --scope "$KV"
+
+# SOLO per chi deve anche impostare segreti (secrets set)
+az role assignment create --assignee "$UTENTE" --role "App Configuration Data Owner"  --scope "$APPCS"
+az role assignment create --assignee "$UTENTE" --role "Key Vault Secrets Officer"     --scope "$KV"
+```
+
+Le due righe in fondo servono a poche persone: chi scrive i segreti di una connessione. Darle a
+tutti per comodità significa dare a tutti la scrittura sulla configurazione di un ambiente.
+
 ### L'accesso ad Azure: una volta per macchina
 
 ```bash
@@ -120,10 +159,11 @@ Tre conseguenze che conviene avere chiare:
 
 1. **Il tuo ruolo su XRCopilotLab non ti abilita e non ti blocca.** Essere amministratore del
    prodotto non ti serve; non esserlo non ti ferma.
-2. **Il vero cancello è Azure.** Chi può leggere l'App Configuration di un ambiente legge anche la
-   chiave dell'API, e con quella può agire sul tenant. In pratica **App Configuration Data Reader è
-   il permesso che conta**: va dato con la stessa attenzione con cui si darebbe un ruolo di
-   amministrazione sul prodotto, perché in questo contesto lo è.
+2. **Il vero cancello è Azure.** L'App Configuration di un ambiente contiene
+   `InternalApi:FunctionKey`, cioè la chiave con cui si comanda l'API di XRCopilotLab su quel
+   tenant. Quindi **App Configuration Data Reader ha un nome che suona innocuo e non lo è**: chi
+   legge la configurazione può agire sul backend del prodotto. Va concesso a chi affideresti
+   l'amministrazione di XRCopilotLab, non come un banale permesso di sola lettura.
 3. **La traccia nei run è un nome, non un'identità verificata.** Il campo `CreatedBy` e la firma
    dell'approvazione riportano il tuo utente del sistema operativo. Serve a ricostruire chi ha fatto
    cosa fra colleghi, non a dimostrarlo: per sapere *chi poteva* farlo, si guarda chi ha i ruoli
