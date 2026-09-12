@@ -108,10 +108,39 @@ Tre cose da sapere prima di scrivere questa sezione:
 |---|---|
 | **L'attivazione consuma licenza** | Serve un prodotto di scope `XRCopilotLab.Profile`. Senza, l'API risponde **403** e il run si ferma lasciando profilo e file sul tenant: si attiva dall'interfaccia quando la licenza c'è. |
 | **L'indicizzazione prosegue dopo l'apply** | `activateIndex` torna appena il lavoro è in coda. Finché non è completa l'agente risponde su una knowledge parziale — sintomo identico a quello di un prompt sbagliato. |
-| **`.xlsm` e `.xls` non vengono ingeriti** | Passano il caricamento e poi rompono. Il validatore li rifiuta con `BP027`: vanno convertiti in `.xlsx` prima. |
+| **`.xls` non viene ingerito** | Passa il caricamento e poi rompe: è il formato binario pre-2007, che nessun lettore OpenXML apre. Il validatore lo rifiuta con `BP027`: va convertito in `.xlsx` prima. Un **`.xlsm` invece va bene così com'è** — è un pacchetto OpenXML con dentro un `vbaProject.bin` che il lettore ignora, e la pipeline canonica lo ingerisce come un `.xlsx`. |
 
 Il **rollback** toglie il profilo e **lascia i documenti** nel topic, dichiarandoli: disfa
 configurazione, non cancella i file di un cliente.
+
+### Come si dividono i file fra i profili
+
+Non è una questione di ordine: il modo in cui i file sono ripartiti decide che cosa l'agente
+riesce a recuperare. Tre meccanismi, tutti a query time.
+
+**1. Un profilo è una partizione interrogata da sola.** Due profili su un agente sono due query in
+parallelo le cui risposte vengono concatenate. Fra profili **non esiste join**: una domanda che deve
+incrociare due famiglie di documenti le incrocia nel prompt, non nel grafo.
+
+**2. Dentro un profilo i file si selezionano per nome.** Si tengono le sole sorgenti il cui nome
+contiene una parola della domanda (almeno quattro caratteri), e se qualcuna corrisponde **le altre
+sono escluse**. È una regola di correttezza — il giornale di una società non deve rispondere per
+un'altra — e ha due conseguenze da tenere a mente:
+
+- il nome del file è la chiave di selezione, quindi ci va dentro ciò che lo distingue: società,
+  periodo. `giornale.xlsx` non è nominabile, `socialware-giornale-2025.xlsx` sì;
+- un **riferimento comune** che nessuna domanda nomina (uno schema, una tabella di corrispondenza)
+  viene escluso appena un file specifico corrisponde. Va in un profilo suo.
+
+**3. In una catena orchestrata quella selezione si spegne.** Il messaggio di un passo a valle
+contiene l'output del precedente: centinaia di parole, quindi quasi ogni nome file corrisponde e i
+dataset si caricano interi. Per quegli agenti il profilo deve contenere **solo** ciò che devono
+leggere — quello che arriva dal passo precedente è già nel messaggio.
+
+La forma che ne risulta, e che conviene come punto di partenza, è **un profilo per agente**. Il
+comando `xrcopilotlab-bp suggest` la propone e segnala i tre casi qui sopra; il validatore li
+segnala con `BP028` — sempre come avvisi, perché la decisione richiede di sapere che cosa fa ciascun
+agente, e quello il manifest non lo dice.
 
 ## `agents`
 
@@ -122,7 +151,7 @@ agents:
     description: ...
     systemMessage: |
       ...
-    model: ...            # facoltativo: senza, vale il default del tenant
+    model: gpt-5.4-mini   # nome a catalogo. Senza, nasce su gpt-5.4 (BP015 lo avvisa)
     temperature: 0.2
     maxTokens: 4000
     language: it          # lingua dell'endpoint di default
@@ -133,6 +162,18 @@ agents:
 
 Un agente **senza `knowledge`** non ha accesso ai documenti, per quanti file ci siano nel topic:
 vede i profili, non il repository.
+
+**Il modello va dichiarato.** Vive sull'endpoint di default dell'agente e il nome deve essere a
+catalogo: il preflight lo verifica e rifiuta con `BP065` un nome che non c'è, elencando i
+disponibili. Omettere il campo è lecito — l'agente nasce su `gpt-5.4` — ma produce un `BP015`,
+perché rileggendo il manifest non si distingue una scelta consapevole da una dimenticanza.
+
+La fascia giusta dipende dal lavoro, non dal prestigio: un passo che classifica un intento o
+instrada sta bene su un `-nano` e costa una frazione; un passo che deve ricucire contenuto
+recuperato da documenti no, e lì risparmiare significa sbagliare i numeri. `xrcopilotlab-bp suggest`
+propone una fascia per agente **con i segnali su cui si basa**, da confermare. I nomi che non
+dichiarano la fascia — un `codex`, un `fast-non-reasoning`, le famiglie non GPT — non vengono mai
+proposti per esclusione: per quelli il compromesso lo dice la descrizione a catalogo.
 
 Ogni agente riceve un **endpoint di default** come quando lo si crea dall'interfaccia: senza, un
 agente esiste ma non è interrogabile.
@@ -456,12 +497,12 @@ variante a polling: quella il blueprint la crea per intero, questa no.
 | Intervallo | Area |
 |---|---|
 | `BP001`–`BP007` | Intestazione: tag, identificativo, versione, tenant, topic ambiguo |
-| `BP010`–`BP014` | Chiavi e nomi: mancanti, duplicati, già prefissati |
+| `BP010`–`BP015` | Chiavi e nomi: mancanti, duplicati, già prefissati; modello dell'agente non dichiarato (`BP015`) |
 | `BP020`–`BP023` | Riferimenti fra sezioni e alternative esclusive |
 | `BP030`–`BP033` | Processi: specifica non valida, ruolo, agent task o sotto-processo sconosciuto |
 | `BP040`–`BP044` | Connessioni e server MCP |
-| `BP024`–`BP027` | Agent task: trigger, schedulazione, code di uscita; file di knowledge inutilizzabile (`BP027`) |
+| `BP024`–`BP028` | Agent task: trigger, schedulazione, code di uscita; file di knowledge inutilizzabile (`BP027`); partizionamento dei profili (`BP028`) |
 | `BP050`–`BP052` | Risorse esterne, ed equivalenti nativi |
-| `BP060`–`BP064` | Preflight: collisione di nome, skill, utente, segreto o topic mancante |
+| `BP060`–`BP065` | Preflight: collisione di nome, skill, utente, segreto o topic mancante; modello fuori catalogo (`BP065`) |
 | `BP070` | Sezione dichiarata ma non ancora applicata |
 | `BP090`–`BP092` | Orchestratori: tipo di step, campi, grafo |

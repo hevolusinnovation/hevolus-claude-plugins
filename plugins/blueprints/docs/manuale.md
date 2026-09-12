@@ -19,6 +19,7 @@ installare niente a mano.
 3. [Il primo avvio](#3-il-primo-avvio)
 3-bis. [Dove si lavora: ambiente e cliente](#3-bis-dove-si-lavora-ambiente-e-cliente)
 4. [Creare un blueprint](#4-creare-un-blueprint)
+4-bis. [Se il cliente ha dei documenti](#4-bis-se-il-cliente-ha-dei-documenti)
 5. [I comandi, uno per uno](#5-i-comandi-uno-per-uno)
 6. [Quando qualcosa non va](#6-quando-qualcosa-non-va)
 7. [Cambiare un blueprint già applicato](#7-cambiare-un-blueprint-già-applicato)
@@ -187,6 +188,59 @@ avanti finché non dici di sì.
 
 ---
 
+## 4-bis. Se il cliente ha dei documenti
+
+Quasi sempre ce li ha: un file di mapping, uno schema, delle estrazioni, dei registri. Perché un
+agente possa leggerli servono **tre cose distinte**, e confonderle è il modo più comune di ritrovarsi
+con un agente che risponde a vuoto:
+
+| | |
+|---|---|
+| Il **topic** | Il magazzino dei file. Un file caricato qui non è ancora leggibile da nessuno |
+| Il **profilo** | La parte che li indicizza e li rende interrogabili. È questo che si collega all'agente — e ogni profilo attivo consuma una licenza |
+| L'**agente** | Non vede il magazzino: vede i profili che gli hai collegato |
+
+Il passaggio che salta più spesso è quello in mezzo. «Ho caricato i file nel topic dell'agente» sono
+in realtà due operazioni, e se manca la seconda l'agente non sa che quei documenti esistono.
+
+**A quale agente collegare quali documenti** è una decisione, e il plugin ti aiuta a prenderla:
+
+```
+Ho questi documenti in una cartella: a quali agenti li collego?
+```
+
+Dietro le quinte lancia `suggest`, che propone **un profilo per agente** e assegna ogni file dove il
+nome lo giustifica. Quello che ti lascia da decidere lo dice esplicitamente, invece di indovinare.
+
+Due cose che conviene sapere, perché cambiano il risultato e non sono ovvie:
+
+**Il nome del file conta davvero.** Quando l'agente cerca fra i documenti, sceglie quelli il cui
+nome contiene una parola della domanda — e se qualcuno corrisponde, **gli altri li scarta**. È
+giusto così: il registro di una società non deve rispondere per un'altra. Ma vuol dire due cose:
+
+- nel nome ci va ciò che distingue il file: società, anno, periodo. `registro.xlsx` non basta,
+  `rossi-registro-2026.xlsx` sì;
+- un documento «di riferimento» che nessuno nomina mai — uno schema, una tabella di conversione —
+  viene scartato appena un file più specifico corrisponde. Va tenuto **in un profilo suo**.
+
+**Un profilo con tutto dentro, collegato a tutti gli agenti, è la scelta che sembra comoda e non lo
+è.** Ogni agente si carica anche i documenti degli altri, e nelle catene di agenti — dove il secondo
+riceve il lavoro del primo — il file che gli serve finisce scavalcato da quelli che non gli servono.
+Il sintomo non è un errore: è una risposta incompleta, che sembra colpa delle istruzioni dell'agente.
+
+### Il modello di ciascun agente
+
+Ogni agente gira su un modello, e la scelta non dipende da quanto è «importante» ma da **cosa deve
+tenere in testa**. Un passo che classifica una richiesta e la instrada sta bene su un modello snello
+e costa una frazione; un passo che deve leggere documenti e ricucirne i pezzi, no — e lì risparmiare
+significa ottenere numeri sbagliati.
+
+Il plugin propone un modello per agente e ti dice **su cosa si basa**, così puoi non essere
+d'accordo. Se non ne scegli nessuno, l'agente nasce su quello predefinito: funziona, ma è una scelta
+che nessuno ha fatto.
+
+---
+
 ## 5. I comandi, uno per uno
 
 Normalmente non li scrivi tu: li esegue il plugin mentre lavorate insieme. Sono qui perché tu
@@ -194,6 +248,7 @@ possa capire cosa sta succedendo, e perché a volte è comodo lanciarli a mano.
 
 | Comando | Cosa fa |
 |---|---|
+| `suggest <file>` | Propone come dividere i documenti fra i profili e quale modello dare a ciascun agente. `--files <cartella>` indica dove sono i documenti. Non scrive niente |
 | `validate <file>` | Verifica il file. Non tocca la rete: funziona anche senza credenziali |
 | `push <file>` | Registra la versione del file. Da qui in poi esiste come artefatto |
 | `plan --tag <TAG>` | Mostra cosa verrebbe creato, cosa manca e cosa si scontra. Non crea niente |
@@ -363,6 +418,10 @@ deve dare di persona: resta un passo manuale.
 
 **Non eredita fra blueprint.** Un blueprint che ne estende un altro (`extends`) si può scrivere ma
 non viene ancora applicato.
+
+**Non decide da solo quali documenti servono a quale agente.** Propone, e dove il nome del file non
+basta a decidere te lo dice invece di inventare: quella scelta richiede di sapere che lavoro fa
+ciascun agente, e quello lo sai tu.
 
 **Non calcola niente al posto tuo.** Se un processo deve tenere conto di termini, scadenze o
 regole di calcolo, quelle restano una valutazione di chi lavora: il plugin le raccoglie in un

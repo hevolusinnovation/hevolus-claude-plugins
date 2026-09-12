@@ -55,7 +55,8 @@ tutto l'orientamento.
 | Sempre, prima di scrivere lo YAML | [`references/regole-del-grafo.md`](references/regole-del-grafo.md) — cosa il validatore accetta |
 | Quando parti da zero e devi intervistare | [`references/intervista.md`](references/intervista.md) — l'ordine delle domande e come tradurre le risposte |
 | Quando serve una fonte esterna che non è ancora collegata | [`references/mcp-builder.md`](references/mcp-builder.md) — il ciclo connessione → MCP → agente, verificato su VIES |
-| Quando l'ambiente ha dei documenti — sempre, se c'è un topic | [`references/knowledge.md`](references/knowledge.md) — topic, profili, agenti: i tre livelli e la sequenza |
+| Quando l'ambiente ha dei documenti — sempre, se c'è un topic | [`references/knowledge.md`](references/knowledge.md) — topic, profili, agenti: i tre livelli, la sequenza, e **come si dividono i file fra i profili** |
+| Quando si scrive un agente — cioè sempre | [`references/modelli.md`](references/modelli.md) — quale modello, e perché la fascia dipende dal lavoro del passo |
 | Per il significato di un campo | [`references/manifest-reference.md`](references/manifest-reference.md) |
 | Per un comando o un codice di uscita | [`references/cli-reference.md`](references/cli-reference.md) |
 | Manuale d'uso del plugin | [`../../docs/manuale.md`](../../docs/manuale.md) |
@@ -225,8 +226,35 @@ Sei errori che si fanno se non si sta attenti:
    vede niente. I profili si dichiarano in `knowledge:` e sono **knowledge graph per default**; il
    tipo dei file **non si scrive** se non lo chiede l'utente. Prima di scrivere quella sezione:
    [`references/knowledge.md`](references/knowledge.md).
+9. **Un profilo per agente, e i nomi dei file contano.** Dentro un profilo le sorgenti si
+   selezionano confrontando le parole della domanda con il **nome del file**, e se qualcuna
+   corrisponde le altre sono escluse: un riferimento comune che nessuno nomina sparisce, e in una
+   catena orchestrata — dove il messaggio contiene l'output del passo precedente — la selezione non
+   discrimina più e si carica tutto. Un profilo con tutti i documenti collegato a tutti gli agenti è
+   la forma che sbaglia. `xrcopilotlab-bp suggest <file.yml> --files <cartella>` propone la
+   partizione e calcola i vincoli; il validatore li segnala con `BP028`.
+10. **Il modello si dichiara.** Senza `model:` l'agente nasce su `gpt-5.4` (`BP015` lo avvisa), e un
+    nome fuori catalogo ferma il piano (`BP065`). La fascia dipende dal lavoro del passo, non dalla
+    sua importanza: [`references/modelli.md`](references/modelli.md).
 
 L'id dei flussi lasciarlo fuori: lo genera la CLI, e il file resta leggibile.
+
+### Se l'ambiente ha dei documenti, far parlare i file prima di decidere
+
+```bash
+xrcopilotlab-bp suggest blueprints/<file>.yml --files <cartella> --env staging
+```
+
+Da lanciare **dopo** aver scritto gli agenti e **prima** di scrivere `knowledge:`. Propone un
+profilo per agente, assegna i file dove il nome lo giustifica, e calcola i vincoli che i nomi
+impongono: quali file il selettore non distinguerà, e quali dentro il loro profilo non hanno parole
+proprie — cioè verranno esclusi appena una domanda nomina uno degli altri. Stampa anche una fascia
+di modello per agente, con i segnali su cui si basa.
+
+Non scrive niente, e ciò che propone **non si incolla senza leggerlo**: i file che lascia non
+assegnati sono quelli per cui il nome non basta a decidere, e quella decisione richiede di sapere
+che cosa fa ciascun agente. La proposta di modello è un'inferenza su segnali del manifest, non sul
+lavoro del passo.
 
 ### Quando serve una fonte esterna che non è ancora collegata
 

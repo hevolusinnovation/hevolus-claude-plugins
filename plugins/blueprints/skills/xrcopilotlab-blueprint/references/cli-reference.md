@@ -152,6 +152,7 @@ Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 | `--with-entities` | In `delete`, smonta dal tenant le entità ancora vive prima di cancellare l'archivio. |
 | `--confirm <TAG>` | Conferma forte di `delete`: si scrive il tag del blueprint. `--yes` non vale. |
 | `--watch` | In `status`, attende la conclusione del run. |
+| `--files <cartella>` | In `suggest`, i documenti da ripartire. Senza, quelli già dichiarati nel manifest. |
 
 Variabili d'ambiente: `XRCOPILOTLAB_BP_PROFILES` (percorso dei profili), `XRCOPILOTLAB_BP_DEBUG`
 (traccia completa degli errori), `NO_COLOR` (output senza colore).
@@ -185,6 +186,43 @@ xrcopilotlab-bp validate blueprints/test-agenda.yml --graph   # stampa anche il 
 ```
 
 Non richiede `--env` né credenziali: gira ovunque, anche in una pipeline di verifica.
+
+## `suggest <file.yml> [--files <cartella>]`
+
+Propone come ripartire i documenti fra i profili di knowledge e quale **fascia** di modello dare a
+ciascun agente. Non scrive niente: né sul tenant né sul manifest, e stampa la sezione YAML da
+incollare dopo averla decisa.
+
+```bash
+xrcopilotlab-bp suggest blueprints/finlogic-bilancio-aggregato.yml --files test-data
+xrcopilotlab-bp suggest blueprints/finlogic-bilancio-aggregato.yml --env staging
+```
+
+`--files` indica la cartella dei documenti da ripartire. Senza, si usano i file che il manifest già
+dichiara — ed è così che si fa criticare una partizione esistente.
+
+L'unica cosa che tocca la rete è il **catalogo dei modelli**, e non è un requisito: senza `--env`, o
+se la lettura fallisce, la proposta indica la fascia e non i nomi fra cui scegliere.
+
+**Perché propone un profilo per agente e non un raggruppamento dei file.** Dai soli nomi il
+raggruppamento è ambiguo, e l'ambiguità non è innocua. Su due libri giornale e due file di mapping
+per due società, le parole condivise formano due dimensioni incrociate: `{libro, giornale}` tiene
+insieme i due giornali, `{socialware}` tiene insieme giornale e mapping della stessa società.
+«Per tipo» e «per società» sono entrambe letture legittime dei nomi, e sono partizioni diverse.
+Quale sia giusta lo decide il lavoro degli agenti — se un passo a valle riceve già il giornale nel
+messaggio, il giornale non deve stare fra i suoi file — e questo i nomi non lo sanno. Quindi i file
+vengono assegnati dove il nome lo giustifica e dichiarati **non assegnati** dove non lo giustifica:
+una casella vuota costa meno di un'assegnazione inventata.
+
+Quello che invece calcola in modo esatto sono i vincoli: quali file il selettore non riuscirà a
+distinguere, e quali, dentro il profilo in cui finiscono, non hanno parole proprie — e verranno
+quindi esclusi appena una domanda nomina uno degli altri.
+
+La proposta di modello viaggia sempre con i **segnali** da cui è nata (legge documenti? chiama
+strumenti? riceve l'output di un altro passo?), perché sono indizi del carico e non il carico: un
+agente senza documenti né strumenti può essere il passo più difficile della catena. I nomi che non
+dichiarano la fascia — un `codex`, un `fast-non-reasoning`, le famiglie non GPT — non vengono
+proposti per esclusione.
 
 ## `secrets set --tag <TAG> <nome>`
 

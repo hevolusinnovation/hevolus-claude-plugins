@@ -93,7 +93,7 @@ Due cose che fanno risparmiare un giro:
 - **L'ordine 2→3 non si inverte.** Un profilo attivato prima di avere file accoda un'ingestione su
   un insieme vuoto: non è un errore, è un'attivazione che non fa niente, e poi bisogna rifarla.
 
-## Le tre cose che vanno male
+## Le quattro cose che vanno male
 
 **L'attivazione consuma licenza, e senza licenza risponde 403.** Il controllo sta in
 `ActivateIndex`: serve un prodotto di scope `XRCopilotLab.Profile` sul tenant, e il numero di
@@ -102,18 +102,117 @@ profili con `IsActive = 1` non può superare la somma delle quantità licenziate
 condizione da interpretare: si riporta all'utente così com'è, perché la risolve chi amministra le
 licenze, non chi applica il blueprint.
 
+**Senza `CanonicalStore` cablato, un workbook non è interrogabile — e non lo dice.**
+Dalla v3.7.18 gli spreadsheet **saltano l'embedding del testo**: al loro posto risponde il layer
+canonico, che a query time fa lookup per record, per denominazione, totali e analitica. Se
+`Cosmos:CanonicalContainerName` non è configurato (container `document-guides`, partition key
+`/documentId`), quel layer è spento: non c'è dataset canonico e non c'è nemmeno il testo su cui
+fare vector search, quindi ogni domanda su un file tabellare torna «No relevant data found in the
+knowledge graph» — dopo circa 74 secondi spesi in chiamate al modello. Il sintomo è
+indistinguibile da «i documenti non ci sono».
+
+Due conseguenze operative: prima di dire che un profilo di workbook è pronto, verificare che
+l'ambiente abbia quel container; e un profilo **indicizzato prima** che lo store fosse cablato non
+ha dataset canonico, quindi **va re-ingerito** — il dataset si costruisce in ingestione, non a
+query time.
+
 **L'ingestione è asincrona, e l'apply no.** `activateIndex` torna appena il lavoro è accodato. Un
 `apply` che finisce lì dichiara creato ciò che sta ancora costruendosi: l'utente apre la chat, il
 grafo è a metà, l'agente risponde a vuoto — sintomo identico a quello di un prompt sbagliato.
 `GetIndexingStatus` è il modo di saperlo, e va interrogato prima di dire che è finita.
 
-**`.xlsm` e `.xls` passano il selettore e poi non vengono ingeriti.**
-`KnowledgeDialog.razor:1142` li elenca fra le estensioni ammesse; `ReadDocumentContentAsync`
-(`DocumentsPlugin.cs:39`) gestisce `.xlsx` ma non loro, e finisce su
-`NotSupportedException: File format .xlsm is not supported`. Un workbook con macro va convertito in
-`.xlsx` **prima** di caricarlo. La conversione pulita non passa da un round-trip che riscrive le
-celle: si apre il pacchetto OPC, si toglie `vbaProject.bin` e si correggono i content type, così
-formule e valori in cache restano quelli originali.
+**`.xls` passa il selettore e poi non viene ingerito — `.xlsm` invece va bene.**
+La distinzione conta, ed è l'opposto di quella che questa pagina dichiarava: `.xlsm` è un pacchetto
+OpenXML identico a un `.xlsx` con dentro un `vbaProject.bin` che il lettore ignora, e
+`CanonicalFileRouting` lo elenca fra i tabellari (`.xlsx`, `.xlsm`, `.csv`, `.pdf`) — la pipeline
+canonica lo ingerisce come tutti gli altri. `.xls` no: è il formato binario pre-2007, che nessun
+lettore OpenXML apre, e va convertito in `.xlsx` prima di caricarlo.
+
+Il limite di `DocumentsPlugin.cs:52` — che gestisce `.xlsx` e non `.xlsm` — riguarda il **percorso
+classico** (indice di ricerca, file allegati in chat), non un profilo knowledge graph. Chiedere di
+convertire un `.xlsm` a chi lo mantiene con le macro è un costo vero, e non serviva: il validatore
+rifiutava manifest validi, e ora rifiuta solo `.xls` (`BP027`).
+
+## Come si dividono i file fra i profili
+
+È la decisione che questa pagina, per un po', non conteneva — e la più facile da sbagliare, perché
+sbagliarla non rompe niente: l'apply riesce, l'agente risponde, e la risposta è incompleta o riferita
+al documento sbagliato. Tre meccanismi, tutti a query time.
+
+### 1. Un profilo è una partizione interrogata da sola
+
+`QueryByKnowledgeGraph` lancia **una query per profilo**, in parallelo, e **concatena** le risposte
+(`KnowledgeGraphPlugIn.cs:602`). Fra profili non esiste join: una domanda che deve incrociare due
+famiglie di documenti le incrocia nel prompt, non nel grafo. Quindi due documenti che vanno
+correlati **dentro un solo passo di ragionamento** stanno nello stesso profilo; documenti che si
+passano il risultato lungo una catena, no.
+
+### 2. Dentro un profilo i file si selezionano per nome
+
+`CanonicalRetriever.SelectSourcesForQuestion` (`CanonicalRetriever.cs:726`) prende le parole della
+domanda lunghe almeno quattro caratteri e tiene le sole sorgenti il cui nome ne contiene una; se
+qualcuna corrisponde, **le altre sono escluse**. Il commento nel codice la chiama «a correctness
+rule, not a ranking preference»: consultare ogni file offrirebbe alla risposta un decoy perfetto —
+un record completo, quadrato, della società sbagliata.
+
+Due conseguenze:
+
+- **il nome del file è la chiave di selezione.** Ci va dentro ciò che lo distingue: società,
+  periodo. `giornale.xlsx` non è nominabile; `socialware-giornale-2025.xlsx` sì. Due file con le
+  stesse parole utili sono indistinguibili, e una domanda su uno recupera anche l'altro;
+- **un riferimento che nessuna domanda nomina sparisce.** Uno schema, una tabella di corrispondenza,
+  un file di rettifiche: appena un file specifico corrisponde, quello viene escluso. Va in un
+  profilo suo.
+
+La nominabilità si misura **dentro il profilo**, non sull'insieme di tutti i documenti: due file che
+si somigliano ma vivono in profili diversi non si fanno concorrenza.
+
+### 3. In una catena orchestrata la selezione per nome si spegne
+
+Il messaggio di un passo a valle contiene l'output del precedente — un giornale normalizzato, un
+bilancio riclassificato: centinaia di parole, quindi quasi ogni nome file corrisponde, e i dataset
+**si caricano interi** (fino a 8 sorgenti, `MaxCanonicalSourcesPerQuery`). Per quegli agenti il
+profilo deve contenere **solo** ciò che devono leggere: quello che arriva dal passo precedente è già
+nel messaggio, e riaverlo dalla knowledge è puro costo.
+
+### La forma che ne risulta
+
+**Un profilo per agente.** Non è un'estetica: è ciò che rende minima la superficie di query di
+ciascun passo, che è l'unica leva disponibile quando la selezione per nome non discrimina.
+
+| Da evitare | Perché |
+|---|---|
+| Un profilo con tutto dentro, collegato a tutti | Ogni agente carica i documenti degli altri; sul passo a valle il file che gli serve viene superato in classifica da quelli che non gli servono |
+| File specifici e riferimenti comuni nello stesso profilo | I riferimenti vengono esclusi appena una domanda nomina i primi |
+| Lo stesso profilo su due agenti che leggono cose diverse | Nessuno dei due può dire «questo no» |
+| Nomi file generici | Il selettore non ha niente su cui agganciarsi |
+
+`IsDescriptionFiltered` **non** è la soluzione per un agente di catena: il filtro è una chiamata al
+modello sul messaggio, e lì il messaggio è enorme. Su un profilo per agente, poi, non c'è niente da
+filtrare.
+
+**Ogni profilo attivo consuma una licenza** (§ le quattro cose che vanno male): tre profili sono tre
+attivazioni. È il limite che fa da contrappeso allo split, e va verificato prima di proporre una
+partizione fine.
+
+### Il comando che la propone
+
+```bash
+xrcopilotlab-bp suggest blueprints/<file>.yml --files <cartella> --env staging
+```
+
+Propone un profilo per agente, assegna i file dove il nome lo giustifica, lascia **non assegnato**
+il resto, e calcola i vincoli: quali file il selettore non distinguerà, e quali dentro il loro
+profilo non hanno parole proprie. Non scrive niente.
+
+Perché non raggruppa i file da sé: dai soli nomi il raggruppamento è **ambiguo**. Sui file di
+FinLogic — due giornali e due mapping, per due società — le parole condivise formano due dimensioni
+incrociate, `{libro, giornale}` da una parte e `{socialware}` dall'altra. «Per tipo» e «per società»
+sono entrambe letture legittime, e sono partizioni diverse. Quale sia giusta lo decide il lavoro
+degli agenti, e i nomi non lo sanno.
+
+Il validatore segnala gli stessi casi con `BP028`, come **avvisi**: la decisione richiede di sapere
+cosa fa ciascun agente.
 
 ## Come si scrive nel manifest
 

@@ -26,6 +26,7 @@ cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/regole-del-grafo.md" "
 cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/intervista.md"       "$DEST/references/"
 cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/mcp-builder.md"      "$DEST/references/"
 cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/knowledge.md"        "$DEST/references/"
+cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/modelli.md"          "$DEST/references/"
 
 # I riferimenti che nel repository stanno altrove e qui devono viaggiare con la skill.
 cp "$SRC/docs/blueprints/manifest-reference.md" "$DEST/references/"

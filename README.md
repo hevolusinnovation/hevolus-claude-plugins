@@ -18,7 +18,7 @@ due restino allineate.
 
 | Plugin | Dove gira | Cosa fa | Manuale |
 |---|---|---|---|
-| **blueprints** | Claude Code | Configura un ambiente XRCopilotLab da un file: topic, ruoli, agenti, agent task, processi BPM. Mostra il piano e chiede conferma prima di creare | [manuale.md](plugins/blueprints/docs/manuale.md) |
+| **blueprints** | Claude Code | Configura un ambiente XRCopilotLab da un file: topic, profili di knowledge, ruoli, agenti (con modello e documenti), agent task, processi BPM. Propone come dividere i documenti fra i profili, mostra il piano e chiede conferma prima di creare | [manuale.md](plugins/blueprints/docs/manuale.md) |
 | **assessment** | Claude Desktop | Traduce una proposta di progetto nella soluzione XRCopilotLab: scenari, agenti orchestrati o processo BPM, fattibilità delle fonti dati, dossier tecnico in Markdown e Word | [manuale.md](plugins/assessment/docs/manuale.md) |
 
 I due plugin sono i due tempi dello stesso lavoro, su due strumenti diversi: l'assessment si fa in
@@ -30,6 +30,8 @@ Claude Desktop · plugin assessment          Claude Code · plugin blueprints
   proposta del cliente                        dossier dell'assessment
         ↓                                             ↓
   dossier .md/.docx        ──────────▶          manifest .yml
+                                                      ↓
+                                        documenti → profili, modello per agente
                                                       ↓
                                        piano → conferma → tenant configurato
 ```
@@ -232,7 +234,9 @@ perché è lì che stanno le regole che descrivono. Qui ce n'è una copia, che s
 ```
 
 Lo script copia la skill, i riferimenti, lo schema e gli esempi, e riscrive i percorsi dei link
-perché puntino ai file che viaggiano con il plugin. **Non modificare quei file a mano**: la
+perché puntino ai file che viaggiano con il plugin. **Un riferimento nuovo nella skill va aggiunto
+allo script**: se non compare fra i `cp`, la copia nel plugin non esiste e la skill punta a un file
+che chi installa il plugin non ha. **Non modificare quei file a mano**: la
 prossima sincronizzazione li sovrascriverebbe, e la modifica sparirebbe senza che nessuno se ne
 accorga. Si cambia la sorgente, poi si sincronizza.
 
