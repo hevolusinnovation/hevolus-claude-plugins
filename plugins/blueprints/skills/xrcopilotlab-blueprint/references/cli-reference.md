@@ -153,6 +153,9 @@ Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 | `--confirm <TAG>` | Conferma forte di `delete`: si scrive il tag del blueprint. `--yes` non vale. |
 | `--watch` | In `status`, attende la conclusione del run. |
 | `--files <cartella>` | In `suggest`, i documenti da ripartire. Senza, quelli già dichiarati nel manifest. |
+| `--manifest <file>` | In `test validate`, il manifest contro cui verificare i riferimenti. Senza, quello accanto alla suite. |
+| `--only <k1,k2>` | In `test run`, i casi da eseguire: chiavi, tag o entità. |
+| `--out <percorso>` | In `test init` il file da scrivere; in `test run` la cartella del report. |
 
 Variabili d'ambiente: `XRCOPILOTLAB_BP_PROFILES` (percorso dei profili), `XRCOPILOTLAB_BP_DEBUG`
 (traccia completa degli errori), `NO_COLOR` (output senza colore).
@@ -170,6 +173,7 @@ Distinti perché uno script — o la skill di Claude — possa reagire senza int
 | `4` | Una fase è fallita durante l'esecuzione |
 | `5` | La pipeline è ferma su un passo manuale |
 | `6` | Manca una decisione umana: il piano non è stato approvato, o il tenant non è stato scelto |
+| `7` | La suite di collaudo è stata eseguita e almeno un caso non è passato (`test run`) |
 | `70` | Errore imprevisto |
 
 ---
@@ -368,6 +372,28 @@ xrcopilotlab-bp pipeline blueprints/test-agenda.yml --company <guid>
 xrcopilotlab-bp pipeline blueprints/test-agenda.yml --yes --skip-external
 xrcopilotlab-bp pipeline blueprints/test-agenda.yml --resume a1b2c3d4e5f6
 ```
+
+## `test init <file.yml>` · `test validate <suite.yml>` · `test run <suite.yml>`
+
+Il collaudo di un blueprint **applicato**: una suite di domande per gli agenti, input per gli
+orchestratori e dati di avvio per i processi, con le attese; l'esecuzione sul tenant; un report
+con risposte, log e — per ogni fallimento — il componente da cui cominciare a guardare.
+
+```bash
+xrcopilotlab-bp test init     blueprints/test-agenda.yml                       # → blueprints/tests/test-agenda.tests.yml
+xrcopilotlab-bp test validate blueprints/tests/test-agenda.tests.yml           # trova il manifest da solo
+xrcopilotlab-bp test run      blueprints/tests/test-agenda.tests.yml --env staging --company <guid>
+xrcopilotlab-bp test run      blueprints/tests/test-agenda.tests.yml --env staging --only agent,process
+```
+
+`init` non sovrascrive una suite esistente (`--overwrite`, o `--out`); `validate` accetta
+`--manifest`; `run` accetta `--tag`, `--run <runId>`, `--only <chiavi,tag,entità>`, `--out
+<cartella>`. Le entità si risolvono dall'inventario dell'ultimo run completato del tag. Il report
+va in `blueprints/tests/reports/<tag>/<data>/` (ignorata da git).
+
+Esce `0` se tutti i casi passano, **`7`** se almeno uno non passa, `2` se la suite non è valida,
+`3` se il tag non ha un run sul tenant. Formato della suite, esiti, sospetti e codici `BT0xx`:
+[`testing.md`](testing.md).
 
 ## Prerequisiti sul tenant
 

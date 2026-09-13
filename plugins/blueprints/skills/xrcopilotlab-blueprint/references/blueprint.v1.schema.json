@@ -782,6 +782,20 @@
                 "input": {
                   "type": "object",
                   "description": "type: action — ingresso, nella forma dichiarata dal provider."
+                },
+                "inputMapping": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "type: agent — variabili che il passo legge. Il motore la pretende quando c'è userMessageTemplate."
+                },
+                "outputMapping": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "type: agent — dove finisce la risposta: la CHIAVE è la variabile che i passi a valle citano con {{variabile}}. Senza, il risultato non entra nel contesto e la catena si passa il testo della chat."
                 }
               }
             }

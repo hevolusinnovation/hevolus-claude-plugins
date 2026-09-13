@@ -257,6 +257,9 @@ possa capire cosa sta succedendo, e perché a volte è comodo lanciarli a mano.
 | `status --run <id>` | Dettaglio di un'esecuzione: chi ha approvato, cosa è stato creato |
 | `rollback --run <id>` | Smonta ciò che quell'esecuzione ha creato |
 | `delete --tag <TAG> --confirm <TAG>` | Cancella il blueprint dall'archivio. Con `--with-entities` smonta prima il tenant |
+| `test init <file>` | Scrive lo scheletro della suite di collaudo dal manifest, in `blueprints/tests/` |
+| `test validate <suite>` | Verifica la suite contro il manifest. Non tocca la rete |
+| `test run <suite>` | Esegue la suite sul tenant — chat con gli agenti, orchestratori, processi — e scrive il report in `blueprints/tests/reports/`. `--only` ne esegue una parte |
 | `--help` | L'elenco aggiornato di comandi e opzioni, per la versione che hai installata |
 
 Un giro completo, se vuoi rifarlo a mano:
@@ -282,6 +285,14 @@ versioni del file, i documenti esportati e l'elenco di ciò che era stato creato
 ti mostra un riquadro rosso con tutto ciò che sparisce e ti chiede di **scrivere il tag** del
 blueprint. Se scrivi un tag diverso non cancella niente e te lo dice: serve proprio a fermare il
 comando di un altro blueprint riusato con una modifica sola.
+
+**Collaudare un blueprint applicato** si fa chiedendolo al plugin: «collauda il blueprint
+STUDIOPOLIS», «scrivi le domande di test per questi agenti». La skill di collaudo scrive le domande
+con le risposte attese, te le mostra, e le esegue solo dopo il tuo sì e sull'ambiente che indichi.
+Ogni domanda apre una conversazione nuova, e un caso su un processo avvia un'istanza vera: consuma
+token del tenant e lascia tracce visibili nell'interfaccia, quindi su un tenant di un cliente non si
+lancia di propria iniziativa. Il report resta sul tuo computer; il giudizio delle risposte e le
+eventuali segnalazioni li prepara la skill, e nessuna issue viene aperta senza la tua approvazione.
 
 ---
 

@@ -1,0 +1,561 @@
+# Suite di collaudo del blueprint «studiopolis-agenda» (tag STUDIOPOLIS).
+#
+# Copre gli agenti che rispondono senza leggere la casella (Agenda, Riconciliazione agende), il processo di presa in carico e — con il tag «simulata» — la logica degli agenti che
+# leggono posta e calendario, alimentata con un testo di prova al posto della casella.
+#
+#   xrcopilotlab-bp test run blueprints/tests/studiopolis-agenda.tests.yml --env staging --company <guid> --only agenda,riconciliatore,process
+#   xrcopilotlab-bp test run blueprints/tests/studiopolis-agenda.tests.yml --env staging --company <guid> --only simulata
+#
+# Le letture VERE di casella e calendario sono in studiopolis-agenda-casella.tests.yml, da lanciare
+# quando la casella di collaudo o quella del cliente è operativa; la scrittura sul calendario in
+# studiopolis-agenda-scrittura.tests.yml.
+#
+# Dalla v5 l'agente Termini non esiste più (collaudo del 13/09/2026: date sbagliate e instabili), e
+# i suoi tre casi sono stati tolti. La registrazione sul calendario è automatica, ma scrive: i suoi
+# casi stanno in studiopolis-agenda-scrittura.tests.yml.
+#
+# Le entità si risolvono dall'ultimo run completato del tag: su un tenant dove è applicata una
+# versione precedente del manifest, i casi sulle entità che non esistono escono in errore
+# «non trovato» — è l'informazione giusta, non un difetto della suite.
+
+blueprint: studiopolis-agenda
+tag: STUDIOPOLIS
+version: 5
+description: Collaudo dello scenario Agenda di Studio Polis
+
+defaults:
+  language: it
+  # Per conto di chi si parla e si avvia il processo. Senza, la CLI usa il nome utente del
+  # sistema operativo («gzileni»), che non è membro di «Referente agenda»: l'avvio del processo
+  # esce 403 «Non autorizzato ad avviare questo processo» (collaudo del 13/09/2026).
+  userId: giuseppe.zileni@hevolus.it
+  timeoutSeconds: 180
+
+cases:
+  # ════════════════════════════════════════════════════════════════════════════════════════
+  # Agenda — estrazione degli estremi, senza dedurre e senza calcolare
+  # ════════════════════════════════════════════════════════════════════════════════════════
+
+  - key: agenda-avviso-completo
+    name: "Agenda: avviso completo, tutti gli estremi"
+    kind: agent
+    target: agenda
+    message: |
+      TRIBUNALE ORDINARIO DI BARI — Sezione Seconda Civile
+      R.G. n. 4127/2025 — Rossi Mario c/ Alfa S.r.l.
+      Si comunica che l'udienza di comparizione delle parti è fissata per il giorno
+      14 ottobre 2026 alle ore 9:30, aula 3, dinanzi al Giudice dott.ssa Bianchi.
+      La Cancelleria
+    expect:
+      answer: >
+        Sei voci, tutte valorizzate: data e ora 14 ottobre 2026 ore 9:30; Tribunale di Bari,
+        Sezione Seconda Civile; R.G. 4127/2025; parti Rossi Mario c/ Alfa S.r.l.; adempimento
+        udienza (di comparizione); giudice dott.ssa Bianchi. Nessun termine proposto.
+      contains: ["14 ottobre 2026", "9:30", "4127/2025", "Bianchi", "Rossi"]
+      notContains: ["termine per", "scadenza"]
+      wrongAnswers:
+        - pattern: "(?i)(ho|è stat[oa]|sono stat[ie]) (registrat|creat|inserit|aggiunt)"
+          means: >
+            L'agente di estrazione ha scritto in calendario. Ha gli strumenti m365 (anche
+            crea_evento) e la pipeline MCP aggiunge al messaggio «Use the available MCP tools…»,
+            ma nessun passo del processo gli chiede di registrare: la registrazione è del referente.
+          suspect: Manifest
+      language: it
+      noError: true
+      maxSeconds: 60
+    tags: [agent, agenda]
+
+  - key: agenda-avviso-incompleto
+    name: "Agenda: avviso incompleto, «non indicato» dove manca"
+    kind: agent
+    target: agenda
+    message: |
+      Si comunica che l'udienza è rinviata al 3 novembre 2026. Tribunale di Bari.
+    expect:
+      answer: >
+        Data 3 novembre 2026; ora, sezione, numero di ruolo, parti e giudice «non indicato»;
+        adempimento «rinvio». Non stima un orario, non inventa un numero di ruolo.
+      contains: ["3 novembre 2026", "non indicato", "rinvio"]
+      noError: true
+    tags: [agent, agenda, negative]
+
+  - key: agenda-non-calcola-termini
+    name: "Agenda: non calcola termini anche se glielo chiedono"
+    kind: agent
+    target: agenda
+    message: |
+      Udienza il 14 ottobre 2026 al Tribunale di Bari, Seconda Civile, R.G. 4127/2025.
+      Mi dici anche entro quando va depositata la memoria ex art. 183 c.p.c.?
+    expect:
+      answer: >
+        Riporta gli estremi e dichiara che non calcola termini processuali. Non propone una
+        data di deposito.
+      notContains: ["giorni prima", "entro il"]
+      noError: true
+    tags: [agent, agenda, negative]
+
+  - key: agenda-due-procedimenti
+    name: "Agenda: avviso ambiguo su due procedimenti"
+    kind: agent
+    target: agenda
+    message: |
+      Si comunicano le udienze del 14 ottobre 2026 ore 9:30 (R.G. 4127/2025, Rossi c/ Alfa)
+      e del 21 ottobre 2026 ore 11:00 (R.G. 5310/2025, Verdi c/ Beta), Tribunale di Bari.
+    expect:
+      answer: >
+        Non sceglie uno dei due: riporta entrambi, oppure segnala in fondo che il testo si
+        riferisce a più procedimenti.
+      contains: ["4127/2025", "5310/2025"]
+      noError: true
+    tags: [agent, agenda]
+
+  # ════════════════════════════════════════════════════════════════════════════════════════
+  # Riconciliazione agende — confronta due elenchi dati, senza strumenti
+  # ════════════════════════════════════════════════════════════════════════════════════════
+
+  - key: riconciliatore-quattro-sezioni
+    name: "Riconciliazione: le quattro sezioni, «nessuno» dove è vuota"
+    kind: agent
+    target: riconciliatore
+    message: |
+      Avvisi arrivati in casella:
+      14/10/2026 09:30 — Tribunale di Bari, Seconda Civile — R.G. 4127/2025 — Rossi c/ Alfa — cancelleria
+      21/10/2026 11:00 — Tribunale di Bari, Prima Civile — R.G. 5310/2025 — Verdi c/ Beta — cancelleria
+
+      Impegni sul calendario comune:
+      14/10/2026 10:30 — Udienza Rossi c/ Alfa R.G. 4127/2025 — Tribunale di Bari — avv. Neri
+      28/10/2026 09:00 — Udienza Gialli c/ Gamma R.G. 2201/2025 — Tribunale di Trani — avv. Neri
+      28/10/2026 09:00 — Udienza Gialli/Gamma — Trani — (nessuna annotazione)
+    expect:
+      answer: >
+        Quattro sezioni nell'ordine: (1) avvisi senza impegno: Verdi c/ Beta R.G. 5310/2025;
+        (2) impegni senza avviso: Gialli c/ Gamma, detto come ipotesi (avviso forse più vecchio
+        della finestra); (3) doppioni: i due impegni del 28/10 su Gialli/Gamma; (4) divergenze:
+        Rossi c/ Alfa con 09:30 in casella e 10:30 a calendario, i due valori affiancati senza
+        dire quale è giusto.
+      contains: ["5310/2025", "09:30", "10:30", "Gialli"]
+      notContains: ["nessuna differenza"]
+      noError: true
+      noSkills: true
+    tags: [agent, riconciliatore]
+
+  - key: riconciliatore-tutto-allineato
+    name: "Riconciliazione: elenchi coincidenti, quattro «nessuno»"
+    kind: agent
+    target: riconciliatore
+    message: |
+      Avvisi arrivati in casella:
+      14/10/2026 09:30 — Tribunale di Bari — R.G. 4127/2025 — Rossi c/ Alfa — cancelleria
+
+      Impegni sul calendario comune:
+      14/10/2026 09:30 — Udienza Rossi c/ Alfa R.G. 4127/2025 — Tribunale di Bari — avv. Neri
+    expect:
+      answer: >
+        Le quattro sezioni compaiono tutte, ciascuna con «nessuno»: sapere che il controllo è
+        stato fatto vale quanto il risultato.
+      contains: ["nessuno"]
+      noError: true
+    tags: [agent, riconciliatore, negative]
+
+  # ════════════════════════════════════════════════════════════════════════════════════════
+  # Processo — dall'avviso al compito del referente
+  # ════════════════════════════════════════════════════════════════════════════════════════
+
+  - key: presa-in-carico-udienza-avvio
+    name: "Processo: avvio, estrazione automatica, compito al referente"
+    kind: process
+    target: presa-in-carico-udienza
+    timeoutSeconds: 300
+    caseData:
+      testoAvviso: |
+        TRIBUNALE ORDINARIO DI BARI — Sezione Seconda Civile
+        R.G. n. 4127/2025 — Rossi Mario c/ Alfa S.r.l.
+        Si comunica che l'udienza è fissata per il giorno 14 ottobre 2026 alle ore 9:30, aula 3.
+      materia: Civile
+      fascicolo: 2025/118 Rossi
+      mittente: cancelleria.civile.bari@giustiziacert.it
+    expect:
+      process:
+        events: [InstanceStarted, ActivityCompleted, WorkItemCreated]
+        completed: [estrai]
+        waitingAt: verifica
+        status: Running
+        caseData:
+          proposta: "14 ottobre 2026"
+    tags: [process]
+    notes: >
+      Riproduce la prova del 10/09/2026 (istanza 5701b965…): dall'avvio al compito «Verifica del
+      referente» in una decina di secondi, con la proposta dell'agente nel case data.
+
+
+  # ════════════════════════════════════════════════════════════════════════════════════════
+  # Letture SIMULATE — la casella non è ancora operativa (tag «simulata»)
+  # ════════════════════════════════════════════════════════════════════════════════════════
+  # Finché la casella di collaudo non è sotto controllo, si collauda la LOGICA degli agenti che la
+  # leggono dandogli il contenuto nel messaggio, nella forma in cui lo restituirebbero gli
+  # strumenti: il corpo di una PEC, un'email di un collega, la risposta JSON di calendarView. Cosa
+  # resta fuori, e sta nella tranche casella: la chiamata vera a Graph (formato delle date,
+  # permessi, policy) e la finestra relativa calcolata dall'agente.
+  #
+  # Attenzione: gli agenti Sorveglianza, Ricognizione, Calendario e Agenda hanno il server MCP, e la
+  # pipeline aggiunge al messaggio «Use the available MCP tools…». Possono provare a leggere la
+  # casella vera nonostante l'istruzione: se nella risposta compare un errore di Graph o un
+  # messaggio che non è nel testo di prova, è quello — e va nel giudizio.
+
+  - key: sim-agenda-pec-inoltrata
+    name: "Simulata · Agenda: PEC di cancelleria con busta, disclaimer e rinvio"
+    kind: agent
+    target: agenda
+    message: |
+      Estrai gli estremi dell'udienza dal seguente avviso.
+      Materia: Civile. Fascicolo: da attribuire.
+
+      Da: "Per conto di: tribunale.bari@civile.ptel.giustiziacert.it" <posta-certificata@telecompost.it>
+      Inviato: lunedì 14 settembre 2026 08:52
+      A: avv.neri@pec.studiopolis.it
+      Oggetto: POSTA CERTIFICATA: Comunicazione di cancelleria - Proc. n. 4127/2025 R.G.
+
+      Messaggio di posta certificata
+      Il giorno 14/09/2026 alle ore 08:52:11 (+0200) il messaggio "Comunicazione di cancelleria"
+      è stato inviato da "tribunale.bari@civile.ptel.giustiziacert.it" indirizzato a:
+      avv.neri@pec.studiopolis.it
+      Il messaggio originale è incluso in allegato.
+      Identificativo messaggio: opec21019.20260914085211.12345.07.1.1@pec.aruba.it
+
+      TRIBUNALE ORDINARIO DI BARI
+      Sezione Seconda Civile
+      Proc. n. 4127/2025 R.G. — Rossi Mario c/ Alfa S.r.l.
+      Giudice: dott.ssa Laura Bianchi
+
+      Si comunica che, con provvedimento del 10/09/2026, l'udienza già fissata per il
+      22/09/2026 è differita al 14/10/2026 ore 9:30 per la precisazione delle conclusioni.
+
+      Il Cancelliere
+
+      Questo messaggio è stato generato automaticamente dal sistema. Non rispondere.
+      ---
+      Le informazioni contenute in questa comunicazione sono riservate e destinate
+      esclusivamente al destinatario. Studio Polis Avvocati.
+    expect:
+      answer: >
+        Data e ora 14/10/2026 ore 9:30 (non la data della PEC, non quella del provvedimento, non
+        l'udienza differita del 22/09); Tribunale di Bari, Seconda Civile; R.G. 4127/2025; parti
+        Rossi Mario c/ Alfa S.r.l.; adempimento rinvio / udienza di precisazione delle conclusioni;
+        giudice dott.ssa Laura Bianchi. Può citare il 22/09 come udienza precedente.
+      contains: ["4127/2025", "9:30", "Bianchi", "Rossi"]
+      matches: ["14(/10/| ottobre )2026"]
+      wrongAnswers:
+        - pattern: "(?i)data e ora:?\\s*\\**\\s*(14/09|14 settembre|10/09|10 settembre|22/09|22 settembre)"
+          means: "Ha preso la data della busta PEC, del provvedimento o dell'udienza differita"
+        - pattern: "(?i)parti:?.{0,60}neri"
+          means: "Ha scambiato il destinatario della PEC per una parte"
+        - pattern: "(?i)(ho|è stat[oa]) (registrat|creat|inserit)"
+          means: "Ha scritto in calendario durante l'estrazione"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent]
+
+  - key: sim-agenda-mail-collega
+    name: "Simulata · Agenda: email informale di un collega, dati impliciti"
+    kind: agent
+    target: agenda
+    message: |
+      Estrai gli estremi dell'udienza dal seguente avviso.
+      Materia: Civile. Fascicolo: da attribuire.
+
+      Da: luca.ferri@studiopolis.it
+      Oggetto: Verdi/Beta
+
+      Ciao, la Verdi/Beta è slittata al 16/10, stessa ora e stessa aula di prima.
+      Il giudice è sempre lui. Mettila tu in agenda?
+      Luca
+    expect:
+      answer: >
+        Data 16/10 con anno «non indicato» (o segnalato come dedotto), ora «non indicato» (non
+        «stessa ora» trasformata in un orario), autorità e sezione non indicate, numero di ruolo
+        non indicato, parti Verdi c/ Beta, adempimento rinvio, giudice non indicato. In fondo
+        segnala che il testo rimanda a dati precedenti che non contiene.
+      contains: ["non indicato", "Verdi"]
+      wrongAnswers:
+        - pattern: "(?i)ore\\s*\\d{1,2}[:.]\\d{2}|\\b\\d{1,2}:\\d{2}\\b"
+          means: "Ha inventato un orario: il testo dice solo «stessa ora di prima»"
+          suspect: Manifest
+        - pattern: "(?i)R\\.?G\\.?\\s*(n\\.)?\\s*\\d+/\\d{4}"
+          means: "Ha inventato un numero di ruolo"
+          suspect: Manifest
+        - pattern: "(?i)(ho|è stat[oa]) (registrat|creat|inserit)"
+          means: "Ha preso «mettila tu in agenda» come un ordine e ha scritto in calendario"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent, negative]
+
+  - key: sim-sorveglianza-tre-messaggi
+    name: "Simulata · Sorveglianza: fra newsletter e fattura passa solo l'avviso"
+    kind: agent
+    target: sorveglianza
+    message: |
+      Lettura simulata della casella: NON chiamare gli strumenti. Questi sono i messaggi arrivati
+      negli ultimi dieci minuti, già letti con leggi_messaggio. Applica le tue regole e restituisci
+      esattamente ciò che restituiresti al processo.
+
+      --- Messaggio 1 ---
+      Da: newsletter@rivistagiuridica.it
+      Oggetto: Le novità normative della settimana
+      Corpo: Gentile lettore, questa settimana: le novità sul processo civile telematico,
+      le nuove tabelle per il risarcimento del danno e il calendario dei webinar di ottobre.
+
+      --- Messaggio 2 ---
+      Da: amministrazione@fornitore-it.it
+      Oggetto: Fattura n. 318/2026
+      Corpo: In allegato la fattura n. 318/2026 relativa al canone di assistenza di settembre,
+      con scadenza del pagamento al 30/09/2026.
+
+      --- Messaggio 3 ---
+      Da: posta-certificata@telecompost.it
+      Oggetto: POSTA CERTIFICATA: Comunicazione di cancelleria - Proc. n. 4127/2025 R.G.
+      Corpo:
+      TRIBUNALE ORDINARIO DI BARI — Sezione Seconda Civile
+      Proc. n. 4127/2025 R.G. — Rossi Mario c/ Alfa S.r.l.
+      Si comunica che l'udienza già fissata per il 22/09/2026 è differita al 14/10/2026 ore 9:30.
+      Il Cancelliere
+    expect:
+      answer: >
+        Il solo testo del messaggio 3 (l'avviso di Bari), senza preambolo, senza riassunto, senza
+        estremi estratti. Niente della newsletter né della fattura.
+      contains: ["4127/2025", "14/10/2026"]
+      notContains: ["Fattura", "newsletter", "NESSUN AVVISO"]
+      wrongAnswers:
+        - pattern: "(?i)^\\s*(ecco|ho trovato|di seguito|il messaggio)"
+          means: "Preambolo: in esercizio finirebbe dentro testoAvviso del processo"
+          suspect: Manifest
+        - pattern: "(?i)-\\s*data e ora|numero di ruolo:"
+          means: "Ha estratto gli estremi: è il compito dell'agente Agenda"
+          suspect: Manifest
+        - contains: "ha risposto"
+          means: "Ha chiamato Graph nonostante il testo fosse già nel messaggio (la pipeline MCP spinge a usare gli strumenti)"
+          suspect: WebApp
+      noError: true
+    tags: [simulata, agent]
+
+  - key: sim-sorveglianza-niente
+    name: "Simulata · Sorveglianza: nessun avviso fra i messaggi → NESSUN AVVISO"
+    kind: agent
+    target: sorveglianza
+    message: |
+      Lettura simulata della casella: NON chiamare gli strumenti. Questi sono i messaggi arrivati
+      negli ultimi dieci minuti, già letti con leggi_messaggio. Applica le tue regole e restituisci
+      esattamente ciò che restituiresti al processo.
+
+      --- Messaggio 1 ---
+      Da: newsletter@rivistagiuridica.it
+      Oggetto: Le novità normative della settimana
+      Corpo: Gentile lettore, questa settimana: le novità sul processo civile telematico.
+
+      --- Messaggio 2 ---
+      Da: amministrazione@fornitore-it.it
+      Oggetto: Fattura n. 318/2026
+      Corpo: In allegato la fattura relativa al canone di settembre, scadenza del pagamento 30/09/2026.
+    expect:
+      answer: Esattamente «NESSUN AVVISO». La scadenza di pagamento della fattura non è un'udienza.
+      contains: ["NESSUN AVVISO"]
+      wrongAnswers:
+        - contains: "318/2026"
+          means: "Ha passato la fattura come avviso: in esercizio aprirebbe una presa in carico"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent, negative]
+
+  - key: sim-sorveglianza-due-avvisi
+    name: "Simulata · Sorveglianza: due avvisi nello stesso giro"
+    kind: agent
+    target: sorveglianza
+    message: |
+      Lettura simulata della casella: NON chiamare gli strumenti. Questi sono i messaggi arrivati
+      negli ultimi dieci minuti, dal più recente, già letti con leggi_messaggio. Applica le regole
+      del tuo compito — «restituisci il testo del primo che trovi» — e restituisci esattamente ciò
+      che restituiresti al processo.
+
+      --- Messaggio 1 ---
+      Da: luca.ferri@studiopolis.it
+      Oggetto: Verdi/Beta
+      Corpo: Ciao, la Verdi/Beta R.G. 5310/2025 è slittata al 16/10/2026 ore 11:00, Prima Civile. Luca
+
+      --- Messaggio 2 ---
+      Da: posta-certificata@telecompost.it
+      Oggetto: POSTA CERTIFICATA: Comunicazione di cancelleria - Proc. n. 4127/2025 R.G.
+      Corpo: TRIBUNALE ORDINARIO DI BARI — Sezione Seconda Civile. Proc. n. 4127/2025 R.G.
+      L'udienza è differita al 14/10/2026 ore 9:30. Il Cancelliere
+    expect:
+      answer: >
+        Secondo il prompt del task, il solo testo del messaggio 1. Il caso esiste per rendere
+        visibile il limite: il messaggio 2 NON arriva al processo in questo giro, e al giro dopo
+        è ancora nella finestra solo se non ne arriva un terzo.
+      contains: ["5310/2025"]
+      noError: true
+    tags: [simulata, agent, limite]
+    notes: >
+      Se passa, conferma un limite del manifest, non un difetto dell'agente: un avviso per giro.
+      Da discutere con lo Studio quanti avvisi arrivano insieme (le mailing list delle udienze).
+
+  - key: sim-ricognizione-elenco
+    name: "Simulata · Ricognizione: una riga per avviso, «non indicato» dove manca"
+    kind: agent
+    target: ricognizione
+    message: |
+      Lettura simulata della casella: NON chiamare gli strumenti. Questi sono i messaggi della
+      finestra dal 1 al 14 settembre 2026, già letti con leggi_messaggio. Elenca gli avvisi.
+
+      --- Messaggio 1 ---
+      Da: posta-certificata@telecompost.it
+      Oggetto: POSTA CERTIFICATA: Comunicazione di cancelleria - Proc. n. 4127/2025 R.G.
+      Corpo: TRIBUNALE ORDINARIO DI BARI — Sezione Seconda Civile. Proc. n. 4127/2025 R.G. —
+      Rossi Mario c/ Alfa S.r.l. L'udienza è differita al 14/10/2026 ore 9:30. Il Cancelliere
+
+      --- Messaggio 2 ---
+      Da: amministrazione@fornitore-it.it
+      Oggetto: Fattura n. 318/2026
+      Corpo: In allegato la fattura del canone di settembre.
+
+      --- Messaggio 3 ---
+      Da: luca.ferri@studiopolis.it
+      Oggetto: Verdi/Beta
+      Corpo: Ciao, la Verdi/Beta è slittata al 16/10/2026, stessa aula. Luca
+    expect:
+      answer: >
+        Due righe «DATA UDIENZA — autorità e sede — numero di ruolo — parti — mittente»:
+        14/10/2026 — Tribunale di Bari, Seconda Civile — R.G. 4127/2025 — Rossi Mario c/ Alfa
+        S.r.l. — posta-certificata@telecompost.it (o la cancelleria); 16/10/2026 — non indicato —
+        non indicato — Verdi c/ Beta — luca.ferri@studiopolis.it. Niente fattura.
+      contains: ["4127/2025", "Verdi", "non indicato"]
+      notContains: ["318/2026"]
+      wrongAnswers:
+        - pattern: "(?i)16/10/2026.{0,40}Tribunale di Bari"
+          means: "Ha attribuito al rinvio di Verdi/Beta il tribunale dell'altro avviso: un buco riempito diventa una differenza inventata"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent]
+
+  - key: sim-calendario-json-utc
+    name: "Simulata · Calendario: risposta di Graph in UTC, orari da restituire in ora di Roma"
+    kind: agent
+    target: calendario
+    message: |
+      Lettura simulata del calendario comune: NON chiamare gli strumenti. Questa è la risposta di
+      cerca_eventi per la finestra dal 12 al 16 ottobre 2026, così come la restituisce Microsoft
+      Graph. Restituisci gli impegni come prevede il tuo compito.
+
+      {"value":[
+       {"id":"AAMk-1","subject":"Udienza Rossi c/ Alfa R.G. 4127/2025",
+        "start":{"dateTime":"2026-10-14T08:30:00.0000000","timeZone":"UTC"},
+        "end":{"dateTime":"2026-10-14T09:30:00.0000000","timeZone":"UTC"},
+        "location":{"displayName":"Tribunale di Bari, Seconda Civile"},
+        "body":{"contentType":"html","content":"<html><body><p>avv. Neri</p></body></html>"}},
+       {"id":"AAMk-2","subject":"Udienza Gialli c/ Gamma R.G. 2201/2025",
+        "start":{"dateTime":"2026-10-15T07:00:00.0000000","timeZone":"UTC"},
+        "end":{"dateTime":"2026-10-15T08:00:00.0000000","timeZone":"UTC"},
+        "location":{"displayName":"Tribunale di Trani"},
+        "body":{"contentType":"html","content":"<html><body><p>avv. Neri</p></body></html>"}},
+       {"id":"AAMk-3","subject":"Udienza Gialli/Gamma",
+        "start":{"dateTime":"2026-10-15T07:00:00.0000000","timeZone":"UTC"},
+        "end":{"dateTime":"2026-10-15T08:00:00.0000000","timeZone":"UTC"},
+        "location":{"displayName":"Trani"},
+        "body":{"contentType":"html","content":""}}
+      ]}
+    expect:
+      answer: >
+        Tre righe in ordine di data, con gli orari in ora di Roma (in ottobre UTC+2): 14/10/2026
+        10:30 Rossi c/ Alfa — Tribunale di Bari, Seconda Civile — avv. Neri; 15/10/2026 09:00
+        Gialli c/ Gamma — Tribunale di Trani — avv. Neri; 15/10/2026 09:00 Gialli/Gamma — Trani.
+        In fondo, senza professionista, solo «Udienza Gialli/Gamma». Nessun HTML nelle annotazioni.
+      contains: ["10:30", "09:00", "4127/2025"]
+      wrongAnswers:
+        - contains: "08:30"
+          means: >
+            Riporta l'ora UTC come ora locale. Con la casella vera succederà lo stesso: il tool
+            cerca_eventi non chiede a Graph il fuso (header Prefer: outlook.timezone), e la
+            riconciliazione vedrà due ore di differenza dove non ce ne sono
+          suspect: Manifest
+        - contains: "<p>"
+          means: "Ha riportato l'HTML del corpo dell'evento nelle annotazioni"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent]
+
+  - key: sim-riconciliatore-rinvio-mancato
+    name: "Simulata · Riconciliazione: il rinvio arrivato ma non riportato a calendario"
+    kind: agent
+    target: riconciliatore
+    message: |
+      Avvisi arrivati in casella:
+      16/10/2026 — Tribunale di Bari, Prima Civile — R.G. 5310/2025 — Verdi c/ Beta — cancelleria (rinvio dall'udienza del 30/09/2026)
+
+      Impegni sul calendario comune:
+      30/09/2026 11:00 — Udienza Verdi c/ Beta R.G. 5310/2025 — Tribunale di Bari, Prima Civile — avv. Neri
+    expect:
+      answer: >
+        Accoppia per numero di ruolo e mette il caso fra le divergenze: 16/10/2026 nell'avviso,
+        30/09/2026 a calendario, affiancati. Le altre tre sezioni «nessuno». Non lo spezza in
+        «avviso senza impegno» più «impegno senza avviso»: il numero di ruolo è lo stesso.
+      contains: ["5310/2025", "nessuno"]
+      matches: ["(16/10|16 ottobre)", "(30/09|30 settembre)"]
+      wrongAnswers:
+        - pattern: "(?i)avvisi senza impegno[^\\n]*\\n+[^\\n]*5310"
+          means: "Non ha accoppiato per numero di ruolo: il rinvio mancato diventa due anomalie scollegate"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent]
+    notes: >
+      È la criticità che lo Studio ha scritto nella propria procedura: i rinvii mancanti
+      conservati nelle bozze di un referente. Il caso da mostrare al cliente.
+
+  - key: sim-presa-in-carico-da-casella
+    name: "Simulata · Processo: avvio come lo farebbe la Sorveglianza, con la PEC intera"
+    kind: process
+    target: presa-in-carico-udienza
+    timeoutSeconds: 300
+    caseData:
+      testoAvviso: |
+        Da: "Per conto di: tribunale.bari@civile.ptel.giustiziacert.it" <posta-certificata@telecompost.it>
+        Oggetto: POSTA CERTIFICATA: Comunicazione di cancelleria - Proc. n. 4127/2025 R.G.
+        Il giorno 14/09/2026 alle ore 08:52:11 (+0200) il messaggio è stato inviato.
+        TRIBUNALE ORDINARIO DI BARI — Sezione Seconda Civile
+        Proc. n. 4127/2025 R.G. — Rossi Mario c/ Alfa S.r.l. — Giudice: dott.ssa Laura Bianchi
+        L'udienza già fissata per il 22/09/2026 è differita al 14/10/2026 ore 9:30.
+        Il Cancelliere
+      materia: Civile
+      fascicolo: da attribuire
+    expect:
+      process:
+        events: [InstanceStarted, ActivityCompleted, WorkItemCreated]
+        completed: [estrai]
+        waitingAt: verifica
+        status: Running
+        caseData:
+          proposta: "4127/2025"
+    tags: [simulata, processo]
+    notes: >
+      Il corpo è quello che manda l'output action del task «Sorveglianza posta»: testoAvviso,
+      materia Civile, fascicolo «da attribuire», nessun mittente. Avvia un'istanza vera: il
+      compito «Verifica del referente» resta aperto per chi ha il ruolo.
+
+  - key: sim-presa-in-carico-nessun-avviso
+    name: "Simulata · Processo: con «NESSUN AVVISO» l'istanza si chiude subito"
+    kind: process
+    target: presa-in-carico-udienza
+    timeoutSeconds: 120
+    caseData:
+      testoAvviso: NESSUN AVVISO
+      materia: Civile
+      fascicolo: da attribuire
+    expect:
+      process:
+        events: [InstanceStarted]
+        status: Completed
+    tags: [simulata, processo, negative]
+    notes: >
+      È ciò che arriva al webhook a ogni giro della Sorveglianza senza avvisi: le output action
+      degli agent task non hanno condizioni. Fino alla v4 l'istanza lanciava l'estrazione e
+      apriva un compito (visto il 13/09/2026); dalla v5 il gateway «C'è un avviso?» la chiude
+      sull'End «nessun-avviso». Se l'istanza resta Running con AgentTaskDispatched, il filtro non
+      ha scattato: guardare se il testo arriva con spazi o a capo attorno (il confronto è esatto,
+      senza distinzione di maiuscole).

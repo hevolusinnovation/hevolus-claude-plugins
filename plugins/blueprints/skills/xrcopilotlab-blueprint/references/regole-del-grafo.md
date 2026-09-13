@@ -106,3 +106,48 @@ Il validatore della CLI aggiunge però un controllo in più, che il server non f
 `roleName`, `agentTaskName` e `calledProcessName` citino qualcosa che **il manifest stesso crea**
 (codici `BP031`, `BP032`, `BP033`). È lì che si accorge di un refuso prima che diventi
 un'attività senza corsia.
+
+
+## Il cablaggio fra i passi — il grafo giusto non basta
+
+Un orchestratore può avere il grafo perfetto e **non trasportare comunque nessun dato**. È successo
+il 2026-09-12 sullo scenario FinLogic: tre agenti in catena, l'orchestrazione arrivava in fondo con
+stato `Completed`, e l'ultimo agente rispondeva «Confermo quanto riportato» — perché i passi si
+erano passati **il testo della chat**, non i numeri. Niente lo segnalava.
+
+Tre campi, e vanno insieme:
+
+| Campo | A che serve | Se manca |
+|---|---|---|
+| `outputMapping` | La **chiave** dà il nome alla variabile che i passi a valle citano con `{{variabile}}`. Il valore è solo una descrizione | Il risultato del passo **non entra nel contesto**: nessuno a valle può consumarlo |
+| `inputMapping` | Dichiara le variabili che il passo legge. La **chiave** è il nome della variabile prodotta a monte | Il motore rifiuta un `userMessageTemplate` senza di esso (`TEMPLATE_WITHOUT_INPUT`) |
+| `userMessageTemplate` | Il messaggio per l'agente, con i segnaposto | Senza template il passo riceve **il messaggio dell'utente** |
+
+**Il primo passo non ha template, ed è deliberato.** Non esiste un segnaposto per la domanda
+dell'utente: `context.Data` nasce **vuoto**, `context.UserMessage` è una proprietà a parte, e
+`OrchestrationTemplating.Render` sostituisce una variabile mancante con **stringa vuota**, senza
+avvisare. Un `{{input}}` sul primo passo gli consegna quindi un messaggio vuoto. Si lascia il passo
+senza template — il motore gli passa la domanda dell'utente — e gli si mette solo l'`outputMapping`.
+
+**Conseguenza da tenere a mente**: dal secondo passo in poi la domanda originale **non è più
+visibile**. Se al terzo agente serve il perimetro che l'utente ha chiesto, deve viaggiare **dentro**
+il testo che il passo precedente produce: lo si chiede nel system message del primo agente.
+
+### `allowAgentInteraction: false` sulle catene lineari
+
+Il default è `true`, e significa che **se l'agente chiude con «se vuoi, posso…» l'orchestrazione si
+ferma** in `PausedForUserInteraction`. In una pipeline è quasi sempre sbagliato: è bastata una
+cortesia dell'agente di normalizzazione per non far partire i due passi successivi, due volte di
+fila. Su una catena lineare va messo `false` su ogni passo agent.
+
+### Il validatore ora lo controlla
+
+`validate` delega al validatore della piattaforma (`OrchestrationValidator`), come già faceva per il
+grafo e per la specifica di processo — le regole stanno in un posto solo. I rilievi arrivano come
+**BP093** con il codice del motore:
+
+- `TEMPLATE_WITHOUT_INPUT` — template senza `inputMapping`
+- `MISSING_OUTPUT_VAR` — passo cablato che non pubblica il proprio risultato
+- `UNPRODUCIBLE_VAR` — un `{{segnaposto}}` che nessun passo a monte produce
+- `LEGACY_MODE` — nessun input dichiarato: **corretto** sul primo passo, sospetto sugli altri
+

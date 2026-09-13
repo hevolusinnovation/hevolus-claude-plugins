@@ -58,5 +58,26 @@ open(p, "w").write(s)
 print("percorsi della skill riscritti")
 PY
 
+# La skill di collaudo: collauda un blueprint applicato con `xrcopilotlab-bp test`.
+TEST_DEST="plugins/blueprints/skills/xrcopilotlab-blueprint-test"
+mkdir -p "$TEST_DEST/references"
+cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/SKILL.md"                  "$TEST_DEST/SKILL.md"
+cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/domande.md"     "$TEST_DEST/references/"
+cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/giudizio.md"    "$TEST_DEST/references/"
+cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/triage.md"      "$TEST_DEST/references/"
+cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/segnalazione.md" "$TEST_DEST/references/"
+cp "$SRC/docs/blueprints/testing.md"                                           "$TEST_DEST/references/"
+cp "$SRC/blueprints/tests/studiopolis-agenda.tests.yml"                        "$TEST_DEST/references/esempio-suite-agenda.tests.yml"
+
+python3 - "$TEST_DEST/SKILL.md" <<'PY2'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+s = s.replace("[`docs/blueprints/testing.md`](../../../docs/blueprints/testing.md)",
+              "[`references/testing.md`](references/testing.md)")
+open(p, "w").write(s)
+print("percorsi della skill di collaudo riscritti")
+PY2
+
 echo "Allineato da: $SRC"
-ls -1 "$DEST/references"
+ls -1 "$DEST/references" "$TEST_DEST/references"

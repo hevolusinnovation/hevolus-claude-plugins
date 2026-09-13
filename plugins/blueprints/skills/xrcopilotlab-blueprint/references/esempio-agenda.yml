@@ -35,12 +35,59 @@
 #       casella che resta sua e modificabile a mano. Se il flusso salta la proposta, il
 #       processo funziona esattamente come prima.
 #
+# ── Cosa cambia nella versione 5 ──────────────────────────────────────────────────────────────
+# Viene dal collaudo del 13/09/2026 (suite blueprints/tests/studiopolis-agenda*.tests.yml, giudizio
+# nel report locale). Ogni punto corrisponde a un caso fallito, non a un'idea:
+#
+#   · L'agente Termini non c'è più. Il computo dei termini non è parte di posta e calendario: è
+#       una capacità a sé dello scenario Agenda, che l'assessment dà «da costruire» come skill con
+#       le regole codificate. Affidato a un modello da solo ha dato, alla stessa domanda, cinque
+#       risposte diverse — sospensione feriale al contrario, giorni del 171-ter inventati — sempre
+#       ben motivate, cioè proprio le date che nessuno ricontrolla. I termini li scrive il
+#       professionista, come in v3.  (termini-tre-pezzi, termini-sabato)
+#
+#   · La registrazione sul calendario è AUTOMATICA. Un agente dedicato, «Registrazione calendario»,
+#       crea l'evento (udienza nuova) o sposta quello esistente (rinvio) appena il referente ha
+#       verificato gli estremi e indicato il professionista — cioè su dati che una persona ha già
+#       controllato. Prima di scrivere cerca l'impegno, per non creare un doppione. Il suo esito
+#       arriva nel compito del professionista, che lo vede e prende visione: se la scrittura non è
+#       riuscita, è lì che se ne accorge. Non collaudabile finché la casella di prova non è
+#       operativa: vedi blueprints/tests/studiopolis-agenda-scrittura.tests.yml.
+#
+#   · cerca_eventi chiede a Graph l'ora di Roma. Senza l'header Prefer, calendarView risponde in UTC
+#       e l'agente riportava 08:30 per un'udienza delle 10:30: la riconciliazione avrebbe visto due
+#       ore di differenza dove non ce n'erano.  (sim-calendario-json-utc)
+#
+#   · La Ricognizione conta anche le email dei colleghi. Scartava il rinvio comunicato da un
+#       collega, cioè il caso più frequente.  (sim-ricognizione-elenco)
+#
+#   · Il Riconciliatore non conta due volte un rinvio. Un avviso e un impegno con lo stesso numero
+#       di ruolo stanno SOLO fra le divergenze.  (sim-riconciliatore-rinvio-mancato)
+#
+#   · «NESSUN AVVISO» non apre più una presa in carico. Le output action degli agent task non hanno
+#       condizioni: il webhook parte a ogni giro. Il processo ora chiude subito l'istanza con quel
+#       testo, prima di lanciare l'estrazione e prima di creare qualunque compito.
+#       (sim-presa-in-carico-nessun-avviso)
+#
+#   · I task schedulati sanno che ora è. «Ultimi dieci minuti» e «da oggi» sono finestre relative, e
+#       il prompt ora porta {{now}} / {{date}} (UTC), risolti dall'esecuzione del task.
+#
+#   · L'orchestratore cabla davvero i passi. Il Confronto citava {{avvisiInCasella}} e
+#       {{eventiACalendario}} senza inputMapping/outputMapping, e un segnaposto non risolto diventa
+#       stringa vuota: il confronto lavorava su due elenchi vuoti.  (validatore BP093)
+#
+#   · L'agente Agenda non ha più gli strumenti di posta e calendario: estrae e basta. Scrivere è
+#       compito della Registrazione, dopo la verifica umana, e un'estrazione con crea_evento a
+#       portata di mano poteva registrare un impegno da sola. È anche l'unica differenza fra la v2,
+#       la cui estrazione chiudeva in dieci secondi, e la v4, la cui estrazione non è mai tornata al
+#       processo.  (presa-in-carico-udienza-avvio)
+#
 # Resta fuori il calendario Google del penale in sola lettura: vedi la nota in fondo al file.
 #
 #   xrcopilotlab-bp validate blueprints/studiopolis-agenda.yml --graph
 
 blueprint: studiopolis-agenda
-version: 4
+version: 5
 tag: STUDIOPOLIS
 description: Presa in carico di un avviso di udienza e registrazione sul calendario comune
 
@@ -168,6 +215,9 @@ mcpServers:
           endDateTime: "{{fine}}"
           $orderby: start/dateTime
           $select: id,subject,start,end,location,body
+        # Senza, Graph risponde con gli orari in UTC e il modello li riporta come ora locale.
+        headers:
+          Prefer: outlook.timezone="Europe/Rome"
 
       - name: crea_evento
         method: POST
@@ -264,9 +314,9 @@ agents:
         fondo invece di sceglierne uno.
     skills: []
 
-    # Posta e calendario dello Studio. L'agente estrae dall'avviso e, quando il processo glielo
-    # chiede, registra o sposta l'impegno sul calendario comune senza uscire dal flusso.
-    mcp: [m365]
+    # Nessun server MCP dalla v5: l'agente estrae, non registra. La registrazione sul calendario
+    # comune la fa l'agente Registrazione calendario, dopo la verifica del referente: un'estrazione
+    # con crea_evento a portata di mano può scrivere in agenda prima che qualcuno abbia controllato.
 
   - key: sorveglianza
     name: Sorveglianza posta
@@ -298,58 +348,58 @@ agents:
       Se non c'è nessun avviso nuovo, restituisci esattamente: NESSUN AVVISO
 
   # ------------------------------------------------------------------------------------------
-  # I termini: l'unico agente del file che parla di diritto, ed è quello che decide di meno
+  # Chi scrive sul calendario comune
   # ------------------------------------------------------------------------------------------
-  # L'assessment lo dice in una riga che vale come specifica: «propone e motiva, non decide».
-  # Qui quella riga è vincolata da due cose, non da una raccomandazione nel prompt:
-  #   · il suo esito entra nel modulo come campo `context`, cioè in SOLA LETTURA;
-  #   · accanto resta `terminiDaPresidiare`, che il professionista scrive e che è l'unico
-  #     campo che il processo porta avanti.
-  # Un termine proposto e non confermato, quindi, non diventa niente.
+  # È l'unico agente del file che scrive, e scrive solo su dati che il referente ha già
+  # verificato. Due regole valgono più del resto: si cerca prima di scrivere, e un rinvio sposta
+  # l'impegno che c'è invece di crearne un altro. Un doppione in agenda è il disallineamento che
+  # tutto lo scenario esiste per togliere.
 
-  - key: termini
-    name: Termini
-    description: Propone i termini da presidiare motivando ogni conteggio, senza mai confermarli
+  - key: registrazione
+    name: Registrazione calendario
+    description: Registra o sposta un'udienza verificata sul calendario comune, senza creare doppioni
     language: it
-    temperature: 0        # un conteggio non ha varianti stilistiche
+    temperature: 0
     skills: []
+    mcp: [m365]
     systemMessage: |
-      Proponi i termini processuali da presidiare a partire dagli estremi di
-      un'udienza. Non li confermi e non li decidi: li propone tu, li conferma
-      il professionista.
+      Tieni aggiornato il calendario comune di uno studio legale. Ricevi gli
+      estremi di un'udienza che un referente ha già verificato, e li porti in
+      calendario.
 
-      # La regola dei tre pezzi
-      Per ogni termine devi poter dire TRE cose, e le scrivi tutte e tre:
-        1. la data;
-        2. la regola che la produce, citata (articolo, legge);
-        3. il conteggio che hai fatto per arrivarci.
-      Se anche uno solo dei tre ti manca, quel termine NON lo proponi: scrivi
-      che non sei in grado di calcolarlo e di' quale dei tre pezzi manca.
+      # Udienza nuova
+      1. Chiami cerca_eventi sul giorno dell'udienza (dalle 00:00 alle 23:59).
+      2. Se c'è già un impegno con lo stesso numero di ruolo — o, senza numero
+         di ruolo, con le stesse parti alla stessa ora — NON ne crei un altro.
+      3. Altrimenti chiami crea_evento:
+           titolo   «Udienza <parti> R.G. <numero di ruolo>»
+           inizio   data e ora dell'udienza; fine un'ora dopo
+           luogo    autorità, sede e sezione
+           note     tipo di adempimento, giudice se indicato, professionista incaricato
+         Senza ora non registri: un impegno a un'ora inventata è peggio di
+         nessun impegno.
 
-      # Cosa devi tenere in conto, e dichiarare
-      - Sospensione feriale dal 1° al 31 agosto (L. 742/1969), dove si applica:
-        se si applica dillo, se non si applica dillo lo stesso.
-      - Termine che scade di sabato o in giorno festivo: proroga al primo
-        giorno seguente non festivo (art. 155 c.p.c.).
-      - Termine libero o non libero: dillo per ciascuno, esplicitamente.
-      - Termine a ritroso: dillo, e indica da quale data conti all'indietro.
-      - Il rito cambia i termini. Se non sai quale rito è, NON ne scegli uno:
-        lo chiedi, e nel frattempo non proponi il termine che ne dipende.
+      # Rinvio
+      1. Chiami cerca_eventi sul giorno dell'udienza precedente che ti viene
+         indicata, e trovi l'impegno con lo stesso numero di ruolo o le stesse parti.
+      2. Se lo trovi, chiami sposta_evento sulla nuova data e ora.
+      3. Se non lo trovi, NON crei un impegno nuovo: lo dici.
 
-      # Formato
-      Una riga per termine, in ordine di data:
-        DATA — adempimento — regola applicata — conteggio
-      E in fondo, sempre, esattamente questa riga:
-        Proposta da verificare: nessuno di questi termini è confermato finché non lo conferma il professionista.
+      # Cosa restituisci
+      La prima riga è sempre una di queste, esattamente:
+        REGISTRATO
+        SPOSTATO
+        GIÀ PRESENTE
+        NON REGISTRATO
+      Sotto, in una o due righe: l'impegno com'è ora in calendario (data, ora,
+      titolo), oppure il motivo per cui non hai scritto (dato mancante, impegno
+      da spostare non trovato, errore del calendario). Il professionista legge
+      questa risposta nel suo compito: deve capire in un colpo d'occhio se
+      l'udienza è in agenda.
 
       # Cosa NON fai
-      Non presenti mai un termine come certo, accertato o «da calendario».
-      Non arrotondi e non sposti una data perché ti sembra più sensata.
-      Non inventi una regola, e non ne citi una di cui non sei sicuro: meglio
-      un termine in meno che una regola sbagliata, perché la regola sbagliata
-      è quella che il professionista non ricontrolla.
-      Se gli estremi dell'udienza sono incompleti o ambigui, non proponi nulla
-      e dici quale dato ti serve.
+      Non deduci un dato mancante. Non calcoli termini. Non scrivi in nessun
+      calendario che non sia quello dei tuoi strumenti, e non mandi email.
 
   # ------------------------------------------------------------------------------------------
   # Le due viste che vanno confrontate
@@ -385,7 +435,7 @@ agents:
       # Cosa NON fai
       Non scrivi in calendario e non sposti niente: qui sei in sola lettura.
       Non deduci il professionista dal nome delle parti o dalla materia.
-      Non calcoli termini: c'è un altro agente che lo fa, e con dei vincoli.
+      Non calcoli termini processuali: li scrive il professionista.
       Se nella finestra non c'è nessun impegno, lo dici in una riga senza
       aggiungere commenti.
 
@@ -403,7 +453,11 @@ agents:
       1. Ti viene indicata una finestra. Se non è indicata, usa gli ultimi 14
          giorni.
       2. Chiami posta_in_arrivo su quella finestra, e per ogni messaggio che
-         sembra un avviso chiami leggi_messaggio.
+         sembra un avviso chiami leggi_messaggio. È un avviso qualunque messaggio
+         che comunica una data di udienza, un rinvio o un differimento: una
+         comunicazione di cancelleria, una PEC, ma anche l'email informale di un
+         collega («la Verdi/Beta è slittata al 16/10»). Proprio quelle, che non
+         hanno né numero di ruolo né tribunale, sono le più facili da perdere.
       3. Per ciascuno restituisci una riga:
            DATA UDIENZA — autorità e sede — numero di ruolo — parti — mittente dell'avviso
          Un dato che nell'avviso non c'è si scrive «non indicato».
@@ -414,6 +468,8 @@ agents:
       riempito a caso diventa una differenza inventata.
       Non scarti un avviso perché ti pare già a calendario: non lo sai, e
       stabilirlo è il compito di chi confronta.
+      Non scarti un avviso perché gli mancano dei dati: una riga con quattro
+      «non indicato» vale più di una riga che manca.
       Non rispondi ai messaggi e non segni niente come letto.
       Se nella finestra non c'è nessun avviso, lo dici in una riga.
 
@@ -448,6 +504,13 @@ agents:
       Il numero di ruolo è il criterio forte. In mancanza, data più autorità
       più parti. Se un accoppiamento è incerto, mettilo fra le divergenze e
       di' perché è incerto.
+
+      Accoppi PRIMA di riempire le sezioni. Un avviso e un impegno che hai
+      accoppiato stanno in una sola sezione: fra le divergenze se qualcosa non
+      coincide, da nessuna parte se coincide tutto. Non li riporti anche fra
+      gli «avvisi senza impegno» o gli «impegni senza avviso»: un rinvio non
+      riportato a calendario è UNA divergenza (nuova data nell'avviso, vecchia
+      a calendario), non due anomalie scollegate.
 
       # Cosa NON fai
       Non hai strumenti e non leggi nulla per conto tuo: lavori solo sui due
@@ -499,6 +562,15 @@ orchestrators:
 
           Impegni sul calendario comune:
           {{eventiACalendario}}
+        # Senza queste due mappe i segnaposto qui sopra non si risolvono, e il confronto riceve due
+        # elenchi VUOTI: risponde «nessuno» quattro volte, cioè il risultato che sembra un successo.
+        # La v4 ne era priva (il validatore non le chiedeva ancora): la sua riconciliazione non ha
+        # mai confrontato niente.
+        inputMapping:
+          avvisiInCasella: "Gli avvisi elencati dalla Ricognizione posta."
+          eventiACalendario: "Gli impegni elencati dal Calendario di studio."
+        outputMapping:
+          riconciliazione_output: "I disallineamenti fra casella e calendario, nelle quattro sezioni."
 
       - key: fine
         name: Fine
@@ -538,6 +610,8 @@ agentTasks:
     description: Ogni cinque minuti cerca avvisi nuovi e avvia la presa in carico
     agent: sorveglianza
     prompt: |
+      Adesso è {{now}} (UTC).
+
       Cerca gli avvisi arrivati negli ultimi dieci minuti e restituisci il testo
       del primo che trovi. La finestra è più larga dell'intervallo di proposito:
       meglio riconsiderare un messaggio che perderlo fra due giri.
@@ -556,27 +630,44 @@ agentTasks:
           fascicolo: "da attribuire"
 
   # ------------------------------------------------------------------------------------------
-  # La proposta dei termini, dentro il processo
+  # La scrittura sul calendario, dentro il processo
   # ------------------------------------------------------------------------------------------
-  # Gira dopo la verifica del referente, cioè su estremi che una persona ha già controllato sul
-  # testo dell'avviso: proporre termini su una lettura non verificata sarebbe costruire un
-  # conteggio su un dato sbagliato.
+  # Girano dopo la verifica del referente e dopo che un professionista è stato indicato: i dati
+  # sono quelli del modulo, non quelli letti dall'agente. `proposta` (la lettura dell'avviso) va
+  # nel prompt per il numero di ruolo e le parti, che il modulo di verifica non ha come campi.
+  # ⚠️ `{{professionista}}` è il valore di un campo di tipo utente: se arriva come id e non come
+  # nome, nelle note dell'evento comparirà l'id — da guardare alla prima esecuzione vera.
 
-  - key: proposta-termini
-    name: Proposta termini
-    description: Propone i termini da presidiare sull'udienza appena verificata, motivando ciascuno
-    agent: termini
+  - key: registrazione-udienza
+    name: Registrazione udienza
+    description: Registra sul calendario comune un'udienza nuova appena assegnata
+    agent: registrazione
     prompt: |
-      Materia: {{materia}}
-      Tipo di adempimento: {{tipoAdempimento}}
-      Data dell'udienza: {{dataUdienza}}
+      Udienza nuova da registrare.
+      Data: {{dataUdienza}}
       Ora: {{oraUdienza}}
-      Sede e sezione: {{sede}}
+      Autorità, sede e sezione: {{sede}}
+      Tipo di adempimento: {{tipoAdempimento}}
+      Professionista incaricato: {{professionista}}
       Fascicolo: {{fascicolo}}
 
-      Proponi i termini da presidiare, uno per riga, con la regola applicata e
-      il conteggio. Se un dato che ti serve non è qui sopra, non proporre il
-      termine che ne dipende e di' quale dato manca.
+      Estremi letti dall'avviso e verificati dal referente (numero di ruolo, parti, giudice):
+      {{proposta}}
+
+  - key: spostamento-udienza
+    name: Spostamento udienza
+    description: Sposta sul calendario comune un'udienza rinviata, senza crearne una nuova
+    agent: registrazione
+    prompt: |
+      Rinvio: sposta l'impegno già in calendario.
+      Udienza precedente (da cercare): {{udienzaPrecedente}}
+      Nuova data: {{dataUdienza}}
+      Nuova ora: {{oraUdienza}}
+      Autorità, sede e sezione: {{sede}}
+
+      Estremi letti dall'avviso e verificati dal referente (numero di ruolo, parti):
+      {{proposta}}
+
 
   # ------------------------------------------------------------------------------------------
   # Il briefing, al lunedì mattina
@@ -590,7 +681,7 @@ agentTasks:
     description: Ogni lunedì mattina manda ai referenti il quadro delle udienze della settimana
     agent: calendario
     prompt: |
-      Finestra: da oggi ai prossimi sette giorni.
+      Oggi è {{date}} (UTC). Finestra: da oggi ai prossimi sette giorni.
 
       Restituisci il quadro delle udienze della settimana in ordine di data, e
       in fondo l'elenco di quelle le cui annotazioni non nominano nessun
@@ -620,7 +711,7 @@ agentTasks:
     description: Ogni venerdì confronta casella e calendario e manda ai referenti i disallineamenti
     orchestrator: riconciliazione
     prompt: |
-      Finestra: dai sette giorni passati ai trenta giorni futuri.
+      Oggi è {{date}} (UTC). Finestra: dai sette giorni passati ai trenta giorni futuri.
     trigger: scheduled
     schedule:
       cron: "0 17 * * 5"
@@ -675,6 +766,13 @@ processes:
             - key: mittente
               label: Mittente
               type: text
+
+        # Il task «Sorveglianza posta» chiama il webhook anche quando non trova niente, perché le
+        # output action non hanno condizioni. L'istanza con «NESSUN AVVISO» si chiude qui: niente
+        # estrazione, niente compito al referente.
+        - id: nessun-avviso
+          type: End
+          name: Nessun avviso da prendere in carico
 
         - id: estrai
           type: Task
@@ -740,24 +838,6 @@ processes:
               label: A chi e cosa è stato chiesto
               type: textarea
 
-        # --- La proposta dei termini ---
-        # Sta qui, fra il gateway della completezza e quello della natura, per una ragione sola:
-        # è l'unico punto attraversato da ENTRAMBE le strade. L'udienza nuova e il rinvio hanno
-        # tutti e due bisogno dei termini, e un rinvio ne sposta di collegati — metterla su un
-        # ramo solo vorrebbe dire duplicarla, o dimenticarla sull'altro.
-        #
-        # È `Automated`, quindi non genera un work item e non ferma nessuno: se l'agente non
-        # sa proporre niente, il flusso prosegue e il professionista scrive i termini a mano
-        # come faceva nella v3.
-
-        - id: proponi-termini
-          type: Task
-          name: Proponi i termini
-          performer: Automated
-          agentTaskName: Proposta termini
-          outputVariable: terminiProposti
-          expectedDurationMinutes: 2
-
         - id: assegna
           type: Task
           name: Assegna l'udienza
@@ -803,44 +883,31 @@ processes:
               label: Adempimento
               type: text
               context: true
+            - key: esitoRegistrazione
+              label: Calendario comune
+              type: textarea
+              context: true
+              description: >
+                Cosa ha fatto l'assistente sul calendario. La prima riga dice tutto: REGISTRATO,
+                GIÀ PRESENTE o NON REGISTRATO — in quest'ultimo caso l'udienza NON è in agenda.
             - key: presaVisione
               label: Presa visione
               type: bool
               required: true
-            - key: terminiProposti
-              label: Termini proposti dall'assistente
-              type: textarea
-              context: true
-              description: >
-                Proposta, non calendario: ogni riga porta la regola applicata e il conteggio,
-                perché siano ricontrollabili. Nessuno di questi termini vale finché non lo
-                riporta qui sotto il professionista.
             - key: terminiDaPresidiare
               label: Termini da presidiare
               type: textarea
-              description: >
-                È questo il campo che conta, ed è del professionista: l'assistente propone
-                qui sopra, ma il termine che il processo porta avanti è quello che scrive lei.
+              description: I termini collegati a questa udienza, scritti dal professionista.
 
         - id: registra
           type: Task
           name: Registra sul calendario comune
-          performer: HumanOnly
-          roleName: Referente agenda
-          expectedDurationMinutes: 5
-          maxLeadTimeMinutes: 480
-          form:
-            - key: dataUdienza
-              label: Data dell'udienza
-              type: date
-              context: true
-            - key: registrato
-              label: Registrato sul calendario comune
-              type: bool
-              required: true
-            - key: linkEvento
-              label: Link all'evento
-              type: text
+          # Automatico dalla v5: prima era il referente a trascrivere. Sta PRIMA della conferma del
+          # professionista perché la conferma serva anche a questo — vede se l'udienza è in agenda.
+          performer: Automated
+          agentTaskName: Registrazione udienza
+          outputVariable: esitoRegistrazione
+          expectedDurationMinutes: 2
 
         # --- Ramo del rinvio: l'udienza è già a calendario ---
         # Non si riassegna e non si crea un evento nuovo: si sposta quello che c'è, e chi segue
@@ -849,10 +916,12 @@ processes:
 
         - id: aggiorna
           type: Task
-          name: Sposta l'udienza a calendario
+          name: Indica l'udienza da spostare
+          # Dalla v5 il referente non sposta più l'evento a mano: dice QUALE udienza si sposta e chi
+          # segue il fascicolo. Lo spostamento lo fa il passo automatico successivo.
           performer: HumanOnly
           roleName: Referente agenda
-          expectedDurationMinutes: 10
+          expectedDurationMinutes: 5
           maxLeadTimeMinutes: 480
           form:
             - key: dataUdienza
@@ -873,10 +942,14 @@ processes:
               type: user
               required: true
               description: Riceverà l'avviso del rinvio nella sua lista
-            - key: eventoAggiornato
-              label: Evento spostato sul calendario comune
-              type: bool
-              required: true
+
+        - id: sposta
+          type: Task
+          name: Sposta l'udienza sul calendario comune
+          performer: Automated
+          agentTaskName: Spostamento udienza
+          outputVariable: esitoSpostamento
+          expectedDurationMinutes: 2
 
         - id: avvisa-rinvio
           type: Task
@@ -898,29 +971,33 @@ processes:
               label: Udienza spostata
               type: text
               context: true
+            - key: esitoSpostamento
+              label: Calendario comune
+              type: textarea
+              context: true
+              description: >
+                Cosa ha fatto l'assistente sul calendario. SPOSTATO: l'impegno è sulla nuova data.
+                NON REGISTRATO: l'impegno precedente non è stato trovato, e il calendario va
+                sistemato a mano.
             - key: presaVisioneRinvio
               label: Presa visione del rinvio
               type: bool
               required: true
-            - key: terminiProposti
-              label: Termini proposti dall'assistente
-              type: textarea
-              context: true
-              description: >
-                Proposta calcolata sulla NUOVA data. Un rinvio sposta anche i termini
-                collegati, ed è il caso in cui è più facile dimenticarne uno.
             - key: terminiDaPresidiare
               label: Termini da presidiare
               type: textarea
               description: >
-                È questo il campo che conta, ed è del professionista: la valutazione resta
-                sua, anche quando la proposta qui sopra sembra completa.
+                Sulla NUOVA data: un rinvio sposta anche i termini collegati, ed è il caso in cui
+                è più facile dimenticarne uno.
 
         - id: fine
           type: End
           name: Udienza a calendario
 
       gateways:
+        - id: filtro
+          type: Exclusive
+          name: C'è un avviso?
         - id: completezza
           type: Exclusive
           name: Estremi completi?
@@ -930,7 +1007,14 @@ processes:
 
       flows:
         - from: start
+          to: filtro
+        - from: filtro
+          to: nessun-avviso
+          condition: { var: testoAvviso, op: eq, value: NESSUN AVVISO }
+          label: nessun avviso
+        - from: filtro
           to: estrai
+          label: avviso
         - from: estrai
           to: verifica
         - from: verifica
@@ -942,10 +1026,8 @@ processes:
         - from: chiarimenti
           to: verifica
         - from: completezza
-          to: proponi-termini
-          label: completi
-        - from: proponi-termini
           to: natura
+          label: completi
         - from: natura
           to: aggiorna
           condition: { var: giaACalendario, op: eq, value: true }
@@ -954,12 +1036,14 @@ processes:
           to: assegna
           label: udienza nuova
         - from: assegna
-          to: conferma
-        - from: conferma
           to: registra
         - from: registra
+          to: conferma
+        - from: conferma
           to: fine
         - from: aggiorna
+          to: sposta
+        - from: sposta
           to: avvisa-rinvio
         - from: avvisa-rinvio
           to: fine

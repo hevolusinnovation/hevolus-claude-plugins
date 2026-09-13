@@ -21,6 +21,7 @@ agenti li collego?».
 | | |
 |---|---|
 | `skills/xrcopilotlab-blueprint/` | La skill, con le regole del grafo BPM, la traccia dell'intervista, i tre livelli della knowledge e come si ripartiscono i documenti, la scelta del modello, il ciclo per una fonte HTTP via MCP Builder, il riferimento del manifest e dei comandi, lo schema e due esempi |
+| `skills/xrcopilotlab-blueprint-test/` | La skill di collaudo: scrive le domande per agenti, orchestratori e processi, le esegue con `xrcopilotlab-bp test run`, giudica le risposte e attribuisce ogni fallimento a un componente; porta con sé il formato delle suite e un esempio |
 | `bin/` | Gli avviatori della CLI, che la scaricano al primo uso |
 | `docs/manuale.md` | Il manuale per chi lo usa |
 
