@@ -66,6 +66,8 @@ dall'**ultimo giudizio**: è la prima cosa che l'utente guarda prima di entrare 
 Per gli scenari con un processo BPM o un'orchestrazione. Tre letture nello stesso documento,
 perché lo stesso file va in mano a tre persone diverse:
 
+Il documento nasce in Markdown e si consegna anche come **pagina web** (sotto).
+
 | Sezioni | Per chi | Cosa contiene |
 |---|---|---|
 | Concetti | chi deve spiegarlo senza essere esperto | Cos'è BPM/BPMN in parole semplici; i **sei simboli** che bastano (start, task umano/automatico, gateway, flusso, corsia, end); definizione/istanza/token/compito |
@@ -77,9 +79,47 @@ perché lo stesso file va in mano a tre persone diverse:
 | Le domande dell'esperto | l'esperto | Le domande probabili con risposte oneste: cosa il motore non fa, come si gestiscono i timeout senza timer, i cicli, versioning, chi garantisce che l'agente non scriva a caso |
 | Glossario | tutti | Blueprint, topic, ruolo, agent task, orchestratore, server MCP, istanza, compito, soglia, webhook |
 
-Se l'utente lo chiede, la guida diventa anche una **pagina web** (artifact): stesso contenuto, indice
-fisso, diagramma disegnato, tabelle scorrevoli. Il Markdown resta la sorgente; la pagina si
-ripubblica dal Markdown, non si modifica a mano.
+## La pagina web (artifact): fa parte della consegna
+
+Ogni guida allo scenario — e, se l'utente lo vuole, anche le domande di prova — si pubblica come
+**artifact**: una pagina privata su claude.ai, con un link da proiettare o condividere, che il
+cliente apre senza clonare niente. Non è un extra: il Markdown è la sorgente, la pagina è ciò che
+si mostra.
+
+Come si costruisce, nell'ordine:
+
+1. **Prima il Markdown**, completo e mostrato all'utente. La pagina non aggiunge contenuto: lo
+   impagina.
+2. **Caricare la skill `artifact-design`** prima di scrivere l'HTML — è obbligatorio, e decide
+   trattamento, palette, tipografia. Per queste guide il trattamento è quello di un documento di
+   riferimento curato, non una landing page: indice fisso a sinistra su schermi larghi, testo a
+   ~68 caratteri, tabelle in contenitori scorrevoli, entrambi i temi (chiaro e scuro). Nessun
+   dato del tenant nel titolo o nella descrizione.
+3. **Il diagramma del processo** va in un blocco `<pre class="mermaid">`: gli artifact lo rendono
+   da soli, senza libreria. Colorare i nodi per ruolo con `classDef` — compiti umani, passi
+   automatici, decisioni, eventi — e mettere una legenda sotto.
+4. **Titolo** = il nome dello scenario (es. «Agenda di Studio Polis»), non un'etichetta generica;
+   la spiegazione va nella `description` del publish. Favicon coerente con il dominio (⚖️ per uno
+   studio legale) e **stabile** fra le ripubblicazioni.
+5. **Pubblicare con `Artifact`** dalla cartella di lavoro della sessione, poi dare il link
+   all'utente. Ripubblicare lo **stesso percorso** aggiorna la stessa pagina: non cambiare nome al
+   file fra una versione e l'altra, altrimenti nasce un artifact nuovo.
+6. **Copia locale** accanto al Markdown (`guida-<scenario>.html`): lo stesso HTML avvolto in un
+   documento completo, con Mermaid caricato da cdnjs per il diagramma. Si apre con un doppio clic,
+   senza account: è la rete di sicurezza per la sala, dove il login può non esserci.
+
+**L'organizzazione conta.** Un artifact appartiene all'account **e all'organizzazione** con cui la
+CLI è autenticata in quel momento; chi lo apre da un'altra organizzazione vede «Page not found»
+con il pulsante «Switch organization». Prima di pubblicare per un cliente Hevolus, verificare con
+`/status` che la sessione sia nell'organizzazione Hevolus; se non lo è, dire all'utente di fare
+`/login` scegliendo quella, e pubblicare dopo. Un artifact pubblicato nell'organizzazione sbagliata
+non si sposta: si ripubblica.
+
+**Cosa non pubblicare.** La pagina contiene solo ciò che il cliente può vedere: nessun id di
+istanze, run, webhook o chiavi, nessun triage per componente, nessun nome di file interno oltre a
+quelli dei documenti consegnati. La sezione «per chi conduce» delle domande di prova resta nel
+Markdown e **non entra nella pagina** destinata al cliente — se serve una pagina anche per chi
+conduce, è un secondo artifact.
 
 ## Le regole, che valgono per entrambi
 

@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-test
-description: Collauda un blueprint XRCopilotLab applicato su un tenant. Scrive le domande di test per ogni agente, orchestratore e processo del manifest (o parte da una suite già scritta in `blueprints/tests/<nome>.tests.yml`), le esegue con `xrcopilotlab-bp test run` raccogliendo risposte e log (passi della pipeline, file di knowledge consultati, skill selezionate, eventi dell'istanza), giudica le risposte, fa il triage di ogni fallimento per componente — knowledge graph, skill dell'agent-framework, motore BPM, orchestratori, webapp, manifest — propone le issue da aprire su `xrcopilotlab-webapp-dotnet` con la label del componente (`kgraph`, `skills`, `blueprints`), aprendole solo dopo un sì esplicito, e scrive le guide per il cliente — le domande di prova da usare in sala e la guida allo scenario (processo BPM, agenti, cosa risolve) — dalla suite e dal giudizio. Usa quando l'utente chiede di "testare un blueprint", "collaudare gli agenti", "scrivere le domande di test", "verificare le risposte e i log", "vedere se il blueprint funziona", "trovare i bug del knowledge graph / delle skill / della webapp a partire da un blueprint", "aprire le issue per i fallimenti del collaudo", "prepara le domande per il cliente", "scrivi la guida del processo per il cliente", oppure nomina `test run`, `test init` o una suite `.tests.yml`. NON usare per scrivere o applicare un manifest (quello è xrcopilotlab-blueprint) né per test unitari del codice.
+description: Collauda un blueprint XRCopilotLab applicato su un tenant. Scrive le domande di test per ogni agente, orchestratore e processo del manifest (o parte da una suite già scritta in `blueprints/tests/<nome>.tests.yml`), le esegue con `xrcopilotlab-bp test run` raccogliendo risposte e log (passi della pipeline, file di knowledge consultati, skill selezionate, eventi dell'istanza), giudica le risposte, fa il triage di ogni fallimento per componente — knowledge graph, skill dell'agent-framework, motore BPM, orchestratori, webapp, manifest — propone le issue da aprire su `xrcopilotlab-webapp-dotnet` con la label del componente (`kgraph`, `skills`, `blueprints`), aprendole solo dopo un sì esplicito, e scrive le guide per il cliente — le domande di prova da usare in sala e la guida allo scenario (processo BPM, agenti, cosa risolve), pubblicata anche come pagina web (artifact) — dalla suite e dal giudizio. Usa quando l'utente chiede di "testare un blueprint", "collaudare gli agenti", "scrivere le domande di test", "verificare le risposte e i log", "vedere se il blueprint funziona", "trovare i bug del knowledge graph / delle skill / della webapp a partire da un blueprint", "aprire le issue per i fallimenti del collaudo", "prepara le domande per il cliente", "scrivi la guida del processo per il cliente", oppure nomina `test run`, `test init` o una suite `.tests.yml`. NON usare per scrivere o applicare un manifest (quello è xrcopilotlab-blueprint) né per test unitari del codice.
 ---
 
 # xrcopilotlab-blueprint-test
@@ -273,8 +273,12 @@ aggiornano o si scrivono i due documenti di [`references/guida-cliente.md`](refe
   scheda di valutazione, e la sezione interna per chi conduce con i difetti aperti e i numeri di issue;
 - **la guida allo scenario** (`guida-<scenario>.md`), se c'è un processo o un'orchestrazione: i
   concetti, il diagramma dal grafo, i passi, le criticità del cliente → i meccanismi, gli agenti e
-  cosa non fanno, collaudato e mancante, il vocabolario BPMN e le domande dell'esperto. Su richiesta
-  anche come pagina web.
+  cosa non fanno, collaudato e mancante, il vocabolario BPMN e le domande dell'esperto — **e la sua
+  pagina web** (artifact), che è ciò che si proietta e si condivide: si costruisce dal Markdown dopo
+  aver caricato la skill `artifact-design`, con il diagramma in Mermaid, e si affianca una copia
+  HTML locale che si apre senza account. Prima di pubblicare, verificare che la CLI sia
+  nell'organizzazione del cliente (`/status`): un artifact nell'organizzazione sbagliata non si
+  apre da quella giusta e non si sposta.
 
 Vanno nella cartella del cliente del repository dell'assessment, senza id del tenant, con lo stato
 reale e non quello sperato, e si **mostrano all'utente** prima di darli per finiti. Il triage resta
@@ -301,7 +305,9 @@ della libreria si collauda rilanciandola.
 - Non scrivere `TODO` in una domanda per «vedere cosa succede»: il validatore lo blocca, e a
   ragione — manderebbe al tenant la parola «TODO».
 - Non scrivere nelle guide per il cliente id di istanze, run, webhook o chiavi, né il triage per
-  componente: quello sta nel giudizio.
+  componente: quello sta nel giudizio. Nella pagina web nemmeno la sezione «per chi conduce».
+- Non pubblicare un artifact senza aver caricato `artifact-design` e senza aver verificato
+  l'organizzazione della CLI: la pagina nasce nell'organizzazione sbagliata e va rifatta.
 - Non dichiarare «collaudato» nelle guide ciò che ha passato solo una simulazione o una prova a
   secco: si scrive come è stato provato.
 - Non copiare nella issue della webapp il dettaglio tecnico: la regola problem-only vale anche

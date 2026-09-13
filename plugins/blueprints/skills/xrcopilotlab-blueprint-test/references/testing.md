@@ -86,7 +86,7 @@ cases:
         notFiles: [Listino]
       skills: [archviz]              # skill che devono risultare selezionate
       noSkills: false
-      steps: [letture, confronto]    # orchestratore: passi che devono completare
+      steps: [letture, confronto]    # orchestratore: passi con successo E stato Completed (Running/in pausa non contano)
       process:                       # processo
         events: [InstanceStarted, ActivityCompleted, WorkItemCreated]   # sottosequenza ordinata
         completed: [estrai]          # attività con ActivityCompleted
