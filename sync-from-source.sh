@@ -67,6 +67,7 @@ cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/giudizio.md"    "
 cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/triage.md"      "$TEST_DEST/references/"
 cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/segnalazione.md" "$TEST_DEST/references/"
 cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/bpm.md"          "$TEST_DEST/references/"
+cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/guida-cliente.md" "$TEST_DEST/references/"
 cp "$SRC/docs/blueprints/testing.md"                                           "$TEST_DEST/references/"
 cp "$SRC/blueprints/tests/studiopolis-agenda.tests.yml"                        "$TEST_DEST/references/esempio-suite-agenda.tests.yml"
 

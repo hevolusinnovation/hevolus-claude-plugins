@@ -1,12 +1,13 @@
 ---
 name: xrcopilotlab-blueprint-test
-description: Collauda un blueprint XRCopilotLab applicato su un tenant. Scrive le domande di test per ogni agente, orchestratore e processo del manifest (o parte da una suite già scritta in `blueprints/tests/<nome>.tests.yml`), le esegue con `xrcopilotlab-bp test run` raccogliendo risposte e log (passi della pipeline, file di knowledge consultati, skill selezionate, eventi dell'istanza), giudica le risposte, fa il triage di ogni fallimento per componente — knowledge graph, skill dell'agent-framework, motore BPM, orchestratori, webapp, manifest — e propone le issue da aprire su `xrcopilotlab-webapp-dotnet` con la label del componente (`kgraph`, `skills`, `blueprints`), aprendole solo dopo un sì esplicito. Usa quando l'utente chiede di "testare un blueprint", "collaudare gli agenti", "scrivere le domande di test", "verificare le risposte e i log", "vedere se il blueprint funziona", "trovare i bug del knowledge graph / delle skill / della webapp a partire da un blueprint", "aprire le issue per i fallimenti del collaudo", oppure nomina `test run`, `test init` o una suite `.tests.yml`. NON usare per scrivere o applicare un manifest (quello è xrcopilotlab-blueprint) né per test unitari del codice.
+description: Collauda un blueprint XRCopilotLab applicato su un tenant. Scrive le domande di test per ogni agente, orchestratore e processo del manifest (o parte da una suite già scritta in `blueprints/tests/<nome>.tests.yml`), le esegue con `xrcopilotlab-bp test run` raccogliendo risposte e log (passi della pipeline, file di knowledge consultati, skill selezionate, eventi dell'istanza), giudica le risposte, fa il triage di ogni fallimento per componente — knowledge graph, skill dell'agent-framework, motore BPM, orchestratori, webapp, manifest — propone le issue da aprire su `xrcopilotlab-webapp-dotnet` con la label del componente (`kgraph`, `skills`, `blueprints`), aprendole solo dopo un sì esplicito, e scrive le guide per il cliente — le domande di prova da usare in sala e la guida allo scenario (processo BPM, agenti, cosa risolve) — dalla suite e dal giudizio. Usa quando l'utente chiede di "testare un blueprint", "collaudare gli agenti", "scrivere le domande di test", "verificare le risposte e i log", "vedere se il blueprint funziona", "trovare i bug del knowledge graph / delle skill / della webapp a partire da un blueprint", "aprire le issue per i fallimenti del collaudo", "prepara le domande per il cliente", "scrivi la guida del processo per il cliente", oppure nomina `test run`, `test init` o una suite `.tests.yml`. NON usare per scrivere o applicare un manifest (quello è xrcopilotlab-blueprint) né per test unitari del codice.
 ---
 
 # xrcopilotlab-blueprint-test
 
 Porta un blueprint applicato da «esiste sul tenant» a «sappiamo come risponde, e sappiamo di chi è
-ogni difetto». Quattro mosse: scrivere le domande, eseguirle, giudicare, segnalare.
+ogni difetto», e da lì a «il cliente sa cosa provare e cosa aspettarsi». Cinque mosse: scrivere le
+domande, eseguirle, giudicare, segnalare, e scrivere le guide per il cliente.
 
 La divisione del lavoro è netta e va rispettata, perché è ciò che rende il collaudo ripetibile:
 
@@ -27,6 +28,7 @@ Riferimenti, da leggere quando si arriva al passo:
 | Giudicare le risposte | [`references/giudizio.md`](references/giudizio.md) — i quattro criteri (esattezza, nessuna invenzione, completezza, forma), i verdetti pass/parziale/fail, il file `giudizio.md` |
 | Attribuire un fallimento | [`references/triage.md`](references/triage.md) — evidenza → componente → repository, e come confermare leggendo il codice |
 | Scrivere la segnalazione | [`references/segnalazione.md`](references/segnalazione.md) — il modello per i tre repository e cosa non va scritto |
+| Le guide per il cliente | [`references/guida-cliente.md`](references/guida-cliente.md) — le domande di prova (la traduzione inversa della suite) e la guida allo scenario; dove vanno, la struttura che ha retto, le regole |
 | Collaudare un processo | [`references/bpm.md`](references/bpm.md) — il modello di esecuzione (token, gateway, work item, soglie) tradotto nel motore, le otto domande da farsi su ogni processo del manifest, come leggere gli eventi di un'istanza, cosa il motore non fa |
 | Formato della suite e del report | [`references/testing.md`](references/testing.md) |
 
@@ -111,7 +113,10 @@ punti a un'entità che esiste, che le skill e i file attesi siano dichiarati, ch
 non girarli all'utente.
 
 Poi **mostrare la suite all'utente** — le domande, non il file — e chiedere se sono quelle
-giuste. Una domanda scritta bene ma sul problema sbagliato produce un report inutile, e l'unico
+giuste. Il modo giusto di mostrarle è già il documento per il cliente: **le domande di prova**
+(`demo-domande-<scenario>.md`, nella cartella del cliente nell'assessment), scritte dalla suite con
+la traduzione di [`references/guida-cliente.md`](references/guida-cliente.md). Nasce qui, con una
+tabella di stato vuota, e si aggiorna a ogni collaudo. Una domanda scritta bene ma sul problema sbagliato produce un report inutile, e l'unico
 che sa quale sia il problema giusto è chi conosce il cliente.
 
 ## 2. Eseguire
@@ -257,12 +262,30 @@ corpo si propone il caso anche per la suite di regressione della libreria
 Dopo l'apertura, riportare i numeri delle issue nel `giudizio.md` accanto ai casi, e — se il
 repository lo prevede — la label `semver:patch` con la skill `xrcopilotlab-label-semver`.
 
-## 6. Chiudere
+## 6. Le guide per il cliente
+
+Al termine di un collaudo — e sempre al collaudo finale, quando il manifest è stabile — si
+aggiornano o si scrivono i due documenti di [`references/guida-cliente.md`](references/guida-cliente.md):
+
+- **le domande di prova** (`demo-domande-<scenario>.md`): la tabella di stato in testa presa
+  dall'ultimo giudizio (✅ pronta · 🟡 da correggere · ⛔ da non mostrare come funzionante · ⏳ attende
+  una fonte), le domande della suite con atteso e risposte sbagliate nella lingua del cliente, la
+  scheda di valutazione, e la sezione interna per chi conduce con i difetti aperti e i numeri di issue;
+- **la guida allo scenario** (`guida-<scenario>.md`), se c'è un processo o un'orchestrazione: i
+  concetti, il diagramma dal grafo, i passi, le criticità del cliente → i meccanismi, gli agenti e
+  cosa non fanno, collaudato e mancante, il vocabolario BPMN e le domande dell'esperto. Su richiesta
+  anche come pagina web.
+
+Vanno nella cartella del cliente del repository dell'assessment, senza id del tenant, con lo stato
+reale e non quello sperato, e si **mostrano all'utente** prima di darli per finiti. Il triage resta
+nel giudizio: al cliente si dice cosa non funziona e quando sarà corretto, non dove nel codice.
+
+## 7. Chiudere
 
 Riportare all'utente, in quest'ordine: quanti casi, quanti passati per la CLI, quanti per il
 tuo giudizio; i fallimenti attribuiti, per componente; le segnalazioni aperte con i numeri; ciò
-che è rimasto non attribuito e perché; dove stanno report e giudizio. E ricordare che la suite
-in `blueprints/tests/` va **committata**: è la regressione del blueprint, e la prossima versione
+che è rimasto non attribuito e perché; dove stanno report, giudizio e le guide per il cliente. E
+ricordare che la suite in `blueprints/tests/` va **committata**: è la regressione del blueprint, e la prossima versione
 della libreria si collauda rilanciandola.
 
 ## Cosa non fare
@@ -277,6 +300,10 @@ della libreria si collauda rilanciandola.
   componente, è «non attribuito».
 - Non scrivere `TODO` in una domanda per «vedere cosa succede»: il validatore lo blocca, e a
   ragione — manderebbe al tenant la parola «TODO».
+- Non scrivere nelle guide per il cliente id di istanze, run, webhook o chiavi, né il triage per
+  componente: quello sta nel giudizio.
+- Non dichiarare «collaudato» nelle guide ciò che ha passato solo una simulazione o una prova a
+  secco: si scrive come è stato provato.
 - Non copiare nella issue della webapp il dettaglio tecnico: la regola problem-only vale anche
   per le issue che nascono da un collaudo.
 - Non correggere il manifest e la libreria nello stesso giro: prima si sistema ciò che è del
