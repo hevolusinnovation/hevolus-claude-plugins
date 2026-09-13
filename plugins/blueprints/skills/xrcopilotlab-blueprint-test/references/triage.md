@@ -52,6 +52,11 @@ deployate sull'ambiente. La versione deployata si legge dal workflow di deploy d
 | Solo `maxSeconds` fallito | Environment (Low) | Le durate dei passi nel log: se `GetCompletion` domina, è il modello; se `GetHistory`/`SaveHistory`, è Cosmos |
 | Log puliti, `contains`/`notContains` falliti | Manifest (Low) | Il system message: la regola violata c'è? è ambigua? Il modello (`references/modelli.md` della skill blueprint): un compito di estrazione su un modello di fascia sbagliata. L'attesa: un frammento che il modello riformula legittimamente |
 
+Per i casi di processo la lettura degli eventi — cosa vuol dire fermarsi a `InstanceStarted`, a
+`AgentTaskDispatched`, o su un'attività diversa da `waitingAt` — è in
+[`bpm.md`](bpm.md) § «Leggere gli eventi di un'istanza», insieme all'elenco di ciò che il motore
+**non** fa e che quindi non è un bug.
+
 ## Tre distinzioni che decidono il repository
 
 **Libreria o webapp?** La libreria fa il lavoro; la webapp la chiama. Un errore dentro un

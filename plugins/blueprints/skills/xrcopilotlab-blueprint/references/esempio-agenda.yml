@@ -82,12 +82,37 @@
 #       la cui estrazione chiudeva in dieci secondi, e la v4, la cui estrazione non è mai tornata al
 #       processo.  (presa-in-carico-udienza-avvio)
 #
+# ── Cosa cambia nella versione 6 ──────────────────────────────────────────────────────────────
+# Dal collaudo della v5 senza casella (13/09/2026, catena simulata dall'orchestratore al processo):
+#
+#   · Il Riconciliatore non chiama «doppione» una coppia avviso/impegno. Dentro la catena metteva
+#       Rossi e Verdi fra i doppioni E fra le divergenze, e Gialli/Gamma in tre sezioni: la regola
+#       «una sezione sola» della v5 reggeva con due elenchi puliti, non con l'uscita delle letture.
+#       Ora le sezioni si riempiono in un ordine fisso e ogni udienza ne occupa una.
+#       (sim-riconciliazione-orchestratore)
+#
+#   · Una soglia di tempo anche sui passi automatici (estrazione, registrazione, spostamento).
+#       Un agent task su un agente con server MCP, dentro un processo, oggi non completa mai e non
+#       fallisce: il token resta fermo in silenzio (issue #1000). La registrazione sul calendario è
+#       proprio quel caso. Finché #1000 non è risolto la v6 non lo aggira — la registrazione resta
+#       automatica, come deciso — ma lo rende visibile: oltre soglia gli owner ricevono l'avviso.
+#
+# ── Cosa cambia nella versione 7 ──────────────────────────────────────────────────────────────
+# Una correzione sola, dal collaudo a secco della Registrazione calendario (13/09/2026):
+#
+#   · Le date di SCRITTURA sono l'ora di Roma, senza fuso. Il corpo di crea_evento e sposta_evento
+#       dichiara già timeZone Europe/Rome, ma il manifest descriveva i loro parametri come «ISO 8601
+#       con fuso»: nella stessa esecuzione l'agente ha passato crea_evento senza offset e
+#       sposta_evento con +02:00. Un dateTime con offset e un timeZone insieme sono ambigui per
+#       Graph — rifiuto, o udienza spostata di due ore. Il fuso resta dove serve davvero: nelle
+#       finestre di ricerca (cerca_eventi, posta_in_arrivo).  (sim-registrazione-rinvio)
+#
 # Resta fuori il calendario Google del penale in sola lettura: vedi la nota in fondo al file.
 #
 #   xrcopilotlab-bp validate blueprints/studiopolis-agenda.yml --graph
 
 blueprint: studiopolis-agenda
-version: 5
+version: 7
 tag: STUDIOPOLIS
 description: Presa in carico di un avviso di udienza e registrazione sul calendario comune
 
@@ -151,7 +176,10 @@ mcpServers:
       mailbox: test@hevolus.it
     systemPrompt: >
       Gli strumenti lavorano su UNA sola casella, quella dello Studio: non chiedere di quale
-      casella si tratta e non provare a cambiarla. Le date sono ISO 8601 con fuso. Prima di
+      casella si tratta e non provare a cambiarla. Per CERCARE (cerca_eventi, posta_in_arrivo) le
+      date sono ISO 8601 con fuso. Per SCRIVERE (crea_evento, sposta_evento) sono l'ora locale di
+      Roma SENZA fuso, per esempio 2026-10-13T09:30:00: il fuso lo mette lo strumento, e un
+      offset in più sposterebbe l'impegno. Prima di
       scrivere in calendario, verifica con cerca_eventi che non ci sia già la stessa udienza:
       un doppione in agenda costa più di una mancata scrittura.
     tools:
@@ -225,8 +253,8 @@ mcpServers:
         description: Registra un impegno sul calendario comune.
         parameters:
           titolo: Titolo dell'impegno
-          inizio: Inizio, ISO 8601 con fuso
-          fine: Fine, ISO 8601 con fuso
+          inizio: Inizio nell'ora locale di Roma, SENZA fuso né Z, es. 2026-10-13T09:30:00
+          fine: Fine nell'ora locale di Roma, SENZA fuso né Z, es. 2026-10-13T10:30:00
           luogo: Luogo dell'impegno
           note: Annotazioni
         required: [titolo, inizio, fine]
@@ -245,8 +273,8 @@ mcpServers:
           c'è invece di creare un secondo impegno accanto al primo.
         parameters:
           eventoId: Identificativo dell'impegno, come restituito da cerca_eventi
-          inizio: Nuovo inizio, ISO 8601 con fuso
-          fine: Nuova fine, ISO 8601 con fuso
+          inizio: Nuovo inizio nell'ora locale di Roma, SENZA fuso né Z, es. 2026-10-20T11:00:00
+          fine: Nuova fine nell'ora locale di Roma, SENZA fuso né Z, es. 2026-10-20T12:00:00
         required: [eventoId, inizio, fine]
         body: |
           {"start":{"dateTime":"{{inizio}}","timeZone":"Europe/Rome"},
@@ -373,7 +401,8 @@ agents:
          di ruolo, con le stesse parti alla stessa ora — NON ne crei un altro.
       3. Altrimenti chiami crea_evento:
            titolo   «Udienza <parti> R.G. <numero di ruolo>»
-           inizio   data e ora dell'udienza; fine un'ora dopo
+           inizio   data e ora dell'udienza nell'ora di Roma, senza fuso
+                    (2026-10-13T09:30:00); fine un'ora dopo, nello stesso formato
            luogo    autorità, sede e sezione
            note     tipo di adempimento, giudice se indicato, professionista incaricato
          Senza ora non registri: un impegno a un'ora inventata è peggio di
@@ -382,7 +411,8 @@ agents:
       # Rinvio
       1. Chiami cerca_eventi sul giorno dell'udienza precedente che ti viene
          indicata, e trovi l'impegno con lo stesso numero di ruolo o le stesse parti.
-      2. Se lo trovi, chiami sposta_evento sulla nuova data e ora.
+      2. Se lo trovi, chiami sposta_evento sulla nuova data e ora, nell'ora di Roma
+         senza fuso (2026-10-20T11:00:00), con la fine un'ora dopo.
       3. Se non lo trovi, NON crei un impegno nuovo: lo dici.
 
       # Cosa restituisci
@@ -490,9 +520,11 @@ agents:
       2. **Impegni a calendario senza avviso** — c'è l'impegno ma non se ne
          trova l'avviso nella finestra. Spesso è solo un avviso più vecchio
          della finestra: dillo come ipotesi, non come fatto.
-      3. **Doppioni** — due impegni che descrivono la stessa udienza. Tipico
-         dopo un rinvio registrato creando un evento nuovo invece di spostare
-         quello che c'era.
+      3. **Doppioni** — due IMPEGNI A CALENDARIO che descrivono la stessa
+         udienza. Tipico dopo un rinvio registrato creando un evento nuovo invece
+         di spostare quello che c'era. Un avviso non è mai un doppione: un avviso
+         e un impegno sulla stessa udienza sono una coppia, e se non coincidono
+         sono una divergenza.
       4. **Divergenze** — stessa udienza in entrambi, ma data, ora, sede o
          numero di ruolo non coincidono. Riporta i due valori affiancati,
          senza dire quale sia quello giusto.
@@ -505,12 +537,19 @@ agents:
       più parti. Se un accoppiamento è incerto, mettilo fra le divergenze e
       di' perché è incerto.
 
-      Accoppi PRIMA di riempire le sezioni. Un avviso e un impegno che hai
-      accoppiato stanno in una sola sezione: fra le divergenze se qualcosa non
-      coincide, da nessuna parte se coincide tutto. Non li riporti anche fra
-      gli «avvisi senza impegno» o gli «impegni senza avviso»: un rinvio non
-      riportato a calendario è UNA divergenza (nuova data nell'avviso, vecchia
-      a calendario), non due anomalie scollegate.
+      Lavori in quest'ordine, e ogni udienza finisce in UNA sezione sola:
+        a. Fra gli impegni a calendario, trovi i doppioni (stessa udienza due
+           volte) → sezione 3. Da qui in poi quei due impegni contano come uno.
+        b. Accoppi ogni avviso con un impegno (numero di ruolo, altrimenti data
+           più autorità più parti). Una coppia che non coincide in tutto →
+           sezione 4. Una coppia che coincide → nessuna sezione.
+        c. Gli avvisi rimasti senza coppia → sezione 1; gli impegni rimasti
+           senza coppia → sezione 2.
+      Un rinvio non riportato a calendario è UNA divergenza (nuova data
+      nell'avviso, vecchia a calendario), non due anomalie scollegate. Prima di
+      rispondere, controlla che nessun numero di ruolo compaia in due sezioni:
+      l'unica eccezione è un doppione che ha anche un avviso con cui non
+      coincide, e allora lo dici esplicitamente.
 
       # Cosa NON fai
       Non hai strumenti e non leggi nulla per conto tuo: lavori solo sui due
@@ -781,6 +820,9 @@ processes:
           agentTaskName: Estrazione avviso
           outputVariable: proposta
           expectedDurationMinutes: 2
+          # Su un passo automatico la soglia non misura una persona lenta: segnala un'esecuzione che
+          # non è tornata (issue #1000). Trenta minuti sono quindici volte la durata attesa.
+          maxLeadTimeMinutes: 30
 
         - id: verifica
           type: Task
@@ -908,6 +950,9 @@ processes:
           agentTaskName: Registrazione udienza
           outputVariable: esitoRegistrazione
           expectedDurationMinutes: 2
+          # Agente con server MCP dentro un processo: è esattamente il caso dell'issue #1000. Senza
+          # soglia, una registrazione mai tornata lascerebbe l'udienza fuori dall'agenda in silenzio.
+          maxLeadTimeMinutes: 30
 
         # --- Ramo del rinvio: l'udienza è già a calendario ---
         # Non si riassegna e non si crea un evento nuovo: si sposta quello che c'è, e chi segue
@@ -950,6 +995,7 @@ processes:
           agentTaskName: Spostamento udienza
           outputVariable: esitoSpostamento
           expectedDurationMinutes: 2
+          maxLeadTimeMinutes: 30          # vedi «registra»: stesso agente, stesso rischio (#1000)
 
         - id: avvisa-rinvio
           type: Task

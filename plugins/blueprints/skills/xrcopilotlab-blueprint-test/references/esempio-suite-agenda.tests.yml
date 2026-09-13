@@ -20,7 +20,7 @@
 
 blueprint: studiopolis-agenda
 tag: STUDIOPOLIS
-version: 5
+version: 7
 description: Collaudo dello scenario Agenda di Studio Polis
 
 defaults:
@@ -435,8 +435,8 @@ cases:
       noError: true
     tags: [simulata, agent]
 
-  - key: sim-calendario-json-utc
-    name: "Simulata · Calendario: risposta di Graph in UTC, orari da restituire in ora di Roma"
+  - key: sim-calendario-json-roma
+    name: "Simulata · Calendario: risposta di Graph nell'ora di Roma, come la chiede la v5"
     kind: agent
     target: calendario
     message: |
@@ -446,40 +446,40 @@ cases:
 
       {"value":[
        {"id":"AAMk-1","subject":"Udienza Rossi c/ Alfa R.G. 4127/2025",
-        "start":{"dateTime":"2026-10-14T08:30:00.0000000","timeZone":"UTC"},
-        "end":{"dateTime":"2026-10-14T09:30:00.0000000","timeZone":"UTC"},
+        "start":{"dateTime":"2026-10-14T10:30:00.0000000","timeZone":"Europe/Rome"},
+        "end":{"dateTime":"2026-10-14T11:30:00.0000000","timeZone":"Europe/Rome"},
         "location":{"displayName":"Tribunale di Bari, Seconda Civile"},
         "body":{"contentType":"html","content":"<html><body><p>avv. Neri</p></body></html>"}},
        {"id":"AAMk-2","subject":"Udienza Gialli c/ Gamma R.G. 2201/2025",
-        "start":{"dateTime":"2026-10-15T07:00:00.0000000","timeZone":"UTC"},
-        "end":{"dateTime":"2026-10-15T08:00:00.0000000","timeZone":"UTC"},
+        "start":{"dateTime":"2026-10-15T09:00:00.0000000","timeZone":"Europe/Rome"},
+        "end":{"dateTime":"2026-10-15T10:00:00.0000000","timeZone":"Europe/Rome"},
         "location":{"displayName":"Tribunale di Trani"},
         "body":{"contentType":"html","content":"<html><body><p>avv. Neri</p></body></html>"}},
        {"id":"AAMk-3","subject":"Udienza Gialli/Gamma",
-        "start":{"dateTime":"2026-10-15T07:00:00.0000000","timeZone":"UTC"},
-        "end":{"dateTime":"2026-10-15T08:00:00.0000000","timeZone":"UTC"},
+        "start":{"dateTime":"2026-10-15T09:00:00.0000000","timeZone":"Europe/Rome"},
+        "end":{"dateTime":"2026-10-15T10:00:00.0000000","timeZone":"Europe/Rome"},
         "location":{"displayName":"Trani"},
         "body":{"contentType":"html","content":""}}
       ]}
     expect:
       answer: >
-        Tre righe in ordine di data, con gli orari in ora di Roma (in ottobre UTC+2): 14/10/2026
-        10:30 Rossi c/ Alfa — Tribunale di Bari, Seconda Civile — avv. Neri; 15/10/2026 09:00
-        Gialli c/ Gamma — Tribunale di Trani — avv. Neri; 15/10/2026 09:00 Gialli/Gamma — Trani.
-        In fondo, senza professionista, solo «Udienza Gialli/Gamma». Nessun HTML nelle annotazioni.
+        Tre righe in ordine di data: 14/10/2026 10:30 Rossi c/ Alfa — Tribunale di Bari, Seconda
+        Civile — avv. Neri; 15/10/2026 09:00 Gialli c/ Gamma — Tribunale di Trani — avv. Neri;
+        15/10/2026 09:00 Gialli/Gamma — Trani. In fondo, senza professionista, solo «Udienza
+        Gialli/Gamma». Nessun HTML nelle annotazioni.
       contains: ["10:30", "09:00", "4127/2025"]
       wrongAnswers:
-        - contains: "08:30"
-          means: >
-            Riporta l'ora UTC come ora locale. Con la casella vera succederà lo stesso: il tool
-            cerca_eventi non chiede a Graph il fuso (header Prefer: outlook.timezone), e la
-            riconciliazione vedrà due ore di differenza dove non ce ne sono
-          suspect: Manifest
         - contains: "<p>"
           means: "Ha riportato l'HTML del corpo dell'evento nelle annotazioni"
           suspect: Manifest
       noError: true
     tags: [simulata, agent]
+    notes: >
+      Fino al 13/09/2026 il caso incollava la risposta in UTC (08:30, 07:00), com'era con la v4:
+      l'agente riportava l'ora UTC come ora locale, e da lì è nato l'header Prefer della v5. Con la
+      v5 Graph risponde già nell'ora di Roma, quindi il caso simula quella risposta. Che l'header
+      arrivi davvero a Graph lo verifica calendario-orari-fuso nella suite casella: se tornasse
+      l'UTC, l'agente non lo convertirebbe.
 
   - key: sim-riconciliatore-rinvio-mancato
     name: "Simulata · Riconciliazione: il rinvio arrivato ma non riportato a calendario"
@@ -507,6 +507,276 @@ cases:
     notes: >
       È la criticità che lo Studio ha scritto nella propria procedura: i rinvii mancanti
       conservati nelle bozze di un referente. Il caso da mostrare al cliente.
+
+  # ── Registrazione calendario, a secco ─────────────────────────────────────────────────────
+  # L'agente scrive sul calendario vero, e oggi Graph non risponde. Si collauda la DECISIONE: gli si
+  # dà la risposta di cerca_eventi già letta e gli si chiede di dire quale chiamata farebbe, con quali
+  # parametri, senza farla. È il modo di vedere, prima che la casella esista, il formato delle date che
+  # passerebbe a crea_evento — il punto in cui Graph risponde 400 — e se sa distinguere nuovo, già
+  # presente, rinvio e dato mancante.
+
+  - key: sim-registrazione-nuova
+    name: "Simulata · Registrazione: udienza nuova, la chiamata che farebbe a crea_evento"
+    kind: agent
+    target: registrazione
+    message: |
+      Prova a secco: NON chiamare gli strumenti. cerca_eventi sul 13/10/2026 ha già restituito:
+      {"value":[]}
+
+      Scrivi, in un blocco, la chiamata che faresti adesso (nome dello strumento e parametri esatti),
+      poi la risposta che restituiresti al processo.
+
+      Udienza nuova da registrare.
+      Data: 2026-10-13
+      Ora: 9:30
+      Autorità, sede e sezione: Tribunale di Bari, Seconda Civile
+      Tipo di adempimento: Udienza
+      Professionista incaricato: avv. Neri
+      Fascicolo: 2026/077 Test
+
+      Estremi letti dall'avviso e verificati dal referente (numero di ruolo, parti, giudice):
+      - Numero di ruolo: R.G. 7777/2026
+      - Parti: Test c/ Collaudo
+      - Giudice: non indicato
+    expect:
+      answer: >
+        Chiamata crea_evento con titolo «Udienza Test c/ Collaudo R.G. 7777/2026», inizio
+        2026-10-13T09:30:00 e fine 2026-10-13T10:30:00 (ora locale, senza offset: il corpo del tool
+        dichiara già timeZone Europe/Rome), luogo Tribunale di Bari, Seconda Civile, note con
+        adempimento e professionista. Risposta al processo con prima riga REGISTRATO.
+      contains: ["crea_evento", "7777/2026", "REGISTRATO"]
+      matches: ["2026-10-13T09:30", "2026-10-13T10:30"]
+      wrongAnswers:
+        - pattern: "2026-10-13T09:30(:00)?(\\.0+)?(\\+02:00|Z)"
+          means: >
+            Passa l'inizio con il fuso (+02:00 o Z) mentre il corpo di crea_evento dichiara già
+            timeZone Europe/Rome: Graph lo rifiuta o sposta l'udienza di due ore
+          suspect: Manifest
+        - pattern: "(?i)inizio[^\\n]{0,20}(lunedì|martedì|mercoledì|giovedì|venerdì|ottobre)"
+          means: "Passa la data in formato naturale, come chiede il prompt MCP della piattaforma: Graph risponde 400"
+          suspect: WebApp
+        - pattern: "(?i)sposta_evento"
+          means: "Ha scelto lo spostamento per un'udienza nuova"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent, registrazione]
+
+  - key: sim-registrazione-gia-presente
+    name: "Simulata · Registrazione: l'udienza c'è già → GIÀ PRESENTE, nessuna scrittura"
+    kind: agent
+    target: registrazione
+    message: |
+      Prova a secco: NON chiamare gli strumenti. cerca_eventi sul 13/10/2026 ha già restituito:
+      {"value":[{"id":"AAMk-7","subject":"Udienza Test c/ Collaudo R.G. 7777/2026",
+        "start":{"dateTime":"2026-10-13T09:30:00.0000000","timeZone":"Europe/Rome"},
+        "end":{"dateTime":"2026-10-13T10:30:00.0000000","timeZone":"Europe/Rome"},
+        "location":{"displayName":"Tribunale di Bari, Seconda Civile"}}]}
+
+      Scrivi la chiamata che faresti adesso, se ne faresti una, poi la risposta per il processo.
+
+      Udienza nuova da registrare.
+      Data: 2026-10-13
+      Ora: 9:30
+      Autorità, sede e sezione: Tribunale di Bari, Seconda Civile
+      Tipo di adempimento: Udienza
+      Professionista incaricato: avv. Neri
+
+      Estremi letti dall'avviso e verificati dal referente (numero di ruolo, parti, giudice):
+      - Numero di ruolo: R.G. 7777/2026
+      - Parti: Test c/ Collaudo
+    expect:
+      answer: Nessuna chiamata di scrittura; risposta con prima riga GIÀ PRESENTE e l'impegno esistente sotto.
+      matches: ["(?i)GI(À|A') PRESENTE"]
+      notContains: ["crea_evento("]
+      wrongAnswers:
+        - pattern: "(?i)^\\s*REGISTRATO"
+          means: "Avrebbe creato un doppione: non riconosce l'impegno con lo stesso numero di ruolo"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent, registrazione]
+
+  - key: sim-registrazione-rinvio
+    name: "Simulata · Registrazione: rinvio, sposta l'evento trovato invece di crearne uno"
+    kind: agent
+    target: registrazione
+    message: |
+      Prova a secco: NON chiamare gli strumenti. cerca_eventi sul 13/10/2026 ha già restituito:
+      {"value":[{"id":"AAMk-7","subject":"Udienza Test c/ Collaudo R.G. 7777/2026",
+        "start":{"dateTime":"2026-10-13T09:30:00.0000000","timeZone":"Europe/Rome"},
+        "end":{"dateTime":"2026-10-13T10:30:00.0000000","timeZone":"Europe/Rome"}}]}
+
+      Scrivi la chiamata che faresti adesso (strumento e parametri esatti), poi la risposta per il processo.
+
+      Rinvio: sposta l'impegno già in calendario.
+      Udienza precedente (da cercare): R.G. 7777/2026 del 13/10/2026
+      Nuova data: 2026-10-20
+      Nuova ora: 11:00
+      Autorità, sede e sezione: Tribunale di Bari, Seconda Civile
+
+      Estremi letti dall'avviso e verificati dal referente (numero di ruolo, parti):
+      - Numero di ruolo: R.G. 7777/2026
+      - Parti: Test c/ Collaudo
+    expect:
+      answer: >
+        Chiamata sposta_evento con eventoId AAMk-7, inizio 2026-10-20T11:00:00, fine
+        2026-10-20T12:00:00; risposta con prima riga SPOSTATO. Nessun crea_evento.
+      contains: ["sposta_evento", "AAMk-7", "SPOSTATO"]
+      matches: ["2026-10-20T11:00"]
+      wrongAnswers:
+        - pattern: "2026-10-20T11:00(:00)?(\\.0+)?(\\+02:00|Z)"
+          means: >
+            Passa la nuova data con il fuso mentre il corpo di sposta_evento dichiara già timeZone
+            Europe/Rome. Visto il 13/09/2026 sulla v6: la stessa risposta dava crea_evento senza fuso
+            e sposta_evento con +02:00. La causa è la descrizione dei parametri nel manifest
+            («ISO 8601 con fuso») che contraddice il corpo del tool
+          suspect: Manifest
+        - pattern: "(?i)crea_evento\\s*[({:]"
+          means: "Crea un evento nuovo per un rinvio: il doppione che il ramo del rinvio esiste per evitare"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent, registrazione]
+
+  - key: sim-registrazione-rinvio-non-trovato
+    name: "Simulata · Registrazione: rinvio di un'udienza che non c'è → NON REGISTRATO"
+    kind: agent
+    target: registrazione
+    message: |
+      Prova a secco: NON chiamare gli strumenti. cerca_eventi sul 02/11/2026 ha già restituito:
+      {"value":[]}
+
+      Scrivi la chiamata che faresti adesso, se ne faresti una, poi la risposta per il processo.
+
+      Rinvio: sposta l'impegno già in calendario.
+      Udienza precedente (da cercare): R.G. 9999/2026 del 02/11/2026
+      Nuova data: 2026-11-09
+      Nuova ora: 10:00
+      Autorità, sede e sezione: Tribunale di Trani
+    expect:
+      answer: Nessuna scrittura; prima riga NON REGISTRATO, motivo l'impegno da spostare non trovato.
+      contains: ["NON REGISTRATO"]
+      wrongAnswers:
+        - pattern: "(?i)(crea|sposta)_evento\\s*[({:]"
+          means: "Scrive senza aver trovato l'impegno di partenza"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent, registrazione, negative]
+
+  - key: sim-registrazione-senza-ora
+    name: "Simulata · Registrazione: senza ora non registra"
+    kind: agent
+    target: registrazione
+    message: |
+      Prova a secco: NON chiamare gli strumenti. cerca_eventi sul 16/11/2026 ha già restituito:
+      {"value":[]}
+
+      Scrivi la chiamata che faresti adesso, se ne faresti una, poi la risposta per il processo.
+
+      Udienza nuova da registrare.
+      Data: 2026-11-16
+      Ora:
+      Autorità, sede e sezione: Tribunale di Bari, Prima Civile
+      Tipo di adempimento: Udienza
+      Professionista incaricato: avv. Neri
+
+      Estremi letti dall'avviso e verificati dal referente (numero di ruolo, parti, giudice):
+      - Numero di ruolo: R.G. 8888/2026
+      - Parti: Senza c/ Ora
+    expect:
+      answer: Nessuna chiamata; prima riga NON REGISTRATO, motivo l'ora mancante.
+      contains: ["NON REGISTRATO"]
+      wrongAnswers:
+        - pattern: "(?i)crea_evento\\s*[({:]"
+          means: "Registrerebbe a un'ora inventata o di default"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent, registrazione, negative]
+
+  - key: sim-riconciliazione-orchestratore
+    name: "Simulata · Orchestratore: le due letture in parallelo arrivano al Confronto"
+    kind: orchestrator
+    target: riconciliazione
+    timeoutSeconds: 600
+    message: |
+      Lettura simulata: NON chiamare gli strumenti. La casella e il calendario comune sono già
+      letti qui sotto; ciascuno usi solo la parte che gli compete. Finestra: dal 1 settembre 2026
+      al 31 ottobre 2026.
+
+      === CASELLA DI ASCOLTO (messaggi già letti con leggi_messaggio) ===
+      --- Messaggio 1 ---
+      Da: posta-certificata@telecompost.it
+      Oggetto: POSTA CERTIFICATA: Comunicazione di cancelleria - Proc. n. 4127/2025 R.G.
+      Corpo: TRIBUNALE ORDINARIO DI BARI — Sezione Seconda Civile. Proc. n. 4127/2025 R.G. —
+      Rossi Mario c/ Alfa S.r.l. L'udienza è fissata per il 14/10/2026 ore 9:30. Il Cancelliere
+      --- Messaggio 2 ---
+      Da: luca.ferri@studiopolis.it
+      Oggetto: Verdi/Beta
+      Corpo: Ciao, la Verdi/Beta R.G. 5310/2025 è slittata al 16/10/2026 ore 11:00, Tribunale di
+      Bari, Prima Civile. Luca
+      --- Messaggio 3 ---
+      Da: amministrazione@fornitore-it.it
+      Oggetto: Fattura n. 318/2026
+      Corpo: In allegato la fattura del canone di settembre.
+
+      === CALENDARIO COMUNE (risposta di cerca_eventi, ora di Roma) ===
+      {"value":[
+       {"subject":"Udienza Rossi c/ Alfa R.G. 4127/2025",
+        "start":{"dateTime":"2026-10-14T10:30:00","timeZone":"Europe/Rome"},
+        "location":{"displayName":"Tribunale di Bari, Seconda Civile"},
+        "body":{"content":"avv. Neri"}},
+       {"subject":"Udienza Verdi c/ Beta R.G. 5310/2025",
+        "start":{"dateTime":"2026-09-30T11:00:00","timeZone":"Europe/Rome"},
+        "location":{"displayName":"Tribunale di Bari, Prima Civile"},
+        "body":{"content":"avv. Neri"}},
+       {"subject":"Udienza Gialli c/ Gamma R.G. 2201/2025",
+        "start":{"dateTime":"2026-10-15T09:00:00","timeZone":"Europe/Rome"},
+        "location":{"displayName":"Tribunale di Trani"},
+        "body":{"content":"avv. Neri"}},
+       {"subject":"Udienza Gialli/Gamma",
+        "start":{"dateTime":"2026-10-15T09:00:00","timeZone":"Europe/Rome"},
+        "location":{"displayName":"Trani"},
+        "body":{"content":""}}
+      ]}
+    expect:
+      answer: >
+        Il Confronto produce le quattro sezioni a partire da ciò che hanno restituito Ricognizione e
+        Calendario: (1) avvisi senza impegno — nessuno; (2) impegni senza avviso — Gialli c/ Gamma
+        R.G. 2201/2025, come ipotesi; (3) doppioni — i due impegni del 15/10 alle 09:00 su
+        Gialli/Gamma; (4) divergenze — Rossi c/ Alfa 09:30 nell'avviso e 10:30 a calendario,
+        Verdi c/ Beta 16/10/2026 nell'avviso e 30/09/2026 a calendario. Niente fattura.
+      steps: [letture, confronto]
+      contains: ["4127/2025", "5310/2025", "Gialli"]
+      matches: ["0?9[:.]30", "10[:.]30"]      # «ore 9:30» è legittimo quanto «09:30»
+      notContains: ["318/2026"]
+      wrongAnswers:
+        - pattern: "(?i)avvisi senza impegno[^\\n]*\\n+[^\\n]*nessuno.{0,300}impegni a calendario senza avviso[^\\n]*\\n+[^\\n]*nessuno.{0,300}doppioni[^\\n]*\\n+[^\\n]*nessuno.{0,300}divergenze[^\\n]*\\n+[^\\n]*nessuno"
+          means: >
+            Quattro «nessuno»: il Confronto non ha ricevuto gli elenchi. È il difetto della v4 (passo
+            senza inputMapping) o il messaggio di avvio che non arriva agli agenti del parallelGroup
+          suspect: Orchestration
+        - pattern: "(?i)16/10/2026[^\\n]{0,40}11:00[^\\n]{0,80}luca|impegno (a calendario )?(anche )?del \\*{0,2}16/10/2026"
+          means: >
+            Ha trattato l'email del collega come un impegno a calendario, inventando un evento del
+            16/10 che il calendario non ha. Nella simulazione il messaggio di avvio porta entrambe le
+            fonti e le letture le mescolano: difetto del caso più che dell'agente, ma un evento
+            inventato in un confronto va segnalato
+          suspect: Manifest
+        - contains: "ha risposto"
+          means: "Un agente di lettura ha chiamato Graph nonostante il testo fosse nel messaggio: con le credenziali rotte l'errore finisce nel confronto"
+          suspect: WebApp
+        - pattern: "(?i)doppioni.{0,1500}(cancelliere|telecompost|luca\\.ferri|luca\\b).{0,1500}divergenze"
+          means: >
+            Ha messo fra i doppioni la coppia avviso/impegno, e poi di nuovo fra le divergenze. I
+            doppioni sono due impegni A CALENDARIO sulla stessa udienza, mai un avviso con un
+            impegno (visto il 13/09/2026 sulla v5: Rossi e Verdi contati due volte)
+          suspect: Manifest
+      noError: true
+    tags: [simulata, orchestrator]
+    notes: >
+      È l'unico modo di collaudare la catena senza la casella: il messaggio di avvio porta il
+      contenuto simulato di entrambe le fonti, e ognuno dei due agenti in parallelo usa la sua parte.
+      Se i due agenti non ricevono il messaggio di avvio, rispondono sulla loro finestra di default
+      (e provano Graph): allora la simulazione dell'orchestratore non è possibile così, e resta
+      sim-riconciliatore-rinvio-mancato per il solo Confronto.
 
   - key: sim-presa-in-carico-da-casella
     name: "Simulata · Processo: avvio come lo farebbe la Sorveglianza, con la PEC intera"

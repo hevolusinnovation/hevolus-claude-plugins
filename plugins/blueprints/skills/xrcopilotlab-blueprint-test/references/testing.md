@@ -129,6 +129,10 @@ usa il nome utente del sistema operativo e l'avvio esce 403 «Non autorizzato ad
 processo». Subito dopo l'avvio l'istanza può non esistere ancora (passa da una coda): la CLI
 riprova sul 404 finché non compare o scade il timeout.
 
+Per scrivere i casi di un processo serve il modello di esecuzione del motore (token, gateway,
+work item, soglie) e le domande da farsi sul grafo: sono in
+`.claude/skills/xrcopilotlab-blueprint-test/references/bpm.md`.
+
 La CLI **non completa mai un compito umano**: sarebbe firmare un modulo al posto di una
 persona. I rami di un processo si collaudano dal loro ingresso (un'istanza per combinazione del
 modulo di avvio), non attraversandoli.

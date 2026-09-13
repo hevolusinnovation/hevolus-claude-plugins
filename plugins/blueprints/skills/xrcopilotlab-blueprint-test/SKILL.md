@@ -27,6 +27,7 @@ Riferimenti, da leggere quando si arriva al passo:
 | Giudicare le risposte | [`references/giudizio.md`](references/giudizio.md) — i quattro criteri (esattezza, nessuna invenzione, completezza, forma), i verdetti pass/parziale/fail, il file `giudizio.md` |
 | Attribuire un fallimento | [`references/triage.md`](references/triage.md) — evidenza → componente → repository, e come confermare leggendo il codice |
 | Scrivere la segnalazione | [`references/segnalazione.md`](references/segnalazione.md) — il modello per i tre repository e cosa non va scritto |
+| Collaudare un processo | [`references/bpm.md`](references/bpm.md) — il modello di esecuzione (token, gateway, work item, soglie) tradotto nel motore, le otto domande da farsi su ogni processo del manifest, come leggere gli eventi di un'istanza, cosa il motore non fa |
 | Formato della suite e del report | [`references/testing.md`](references/testing.md) |
 
 ## 0. Se `$ARGS` è vuoto, o chiede aiuto
@@ -78,6 +79,11 @@ Tre situazioni, e la prima cosa da fare è capire in quale si è:
    ```bash
    xrcopilotlab-bp test init blueprints/<nome>.yml
    ```
+
+   Per ogni **processo**, prima di scrivere i casi, rispondere alle otto domande di
+   [`references/bpm.md`](references/bpm.md): da dove entra, qual è il primo compito umano, quali
+   passi automatici stanno prima, su cosa decidono i gateway, i cicli, le soglie, cosa scrive fuori
+   dal tenant. Ogni «sì» è un caso.
 
    Lo scheletro ha un caso positivo e uno negativo per agente, uno per orchestratore, uno per
    processo, con le attese deducibili dal manifest già compilate (file dei profili, skill
@@ -136,10 +142,18 @@ Cose da sapere sull'esecuzione:
   compiti. Dirlo all'utente prima, perché è la cosa che sorprende.
 - Un caso su **orchestratore** che si ferma in HITL (`paused`) esce in errore: non può
   completare da solo. Non è un fallimento dell'orchestratore.
-- Se un'istanza locale dell'Api è il bersaglio (`--env locale`) e dopo un caso di processo tutte le
-  chiamate rispondono 500 in pochi millisecondi, non sono i casi: è l'host che ha smesso di invocare il
-  worker. Si riavvia l'Api e si rilancia **senza** i casi di processo, poi quelli da soli guardando
-  la console.
+- Prima di leggere un giro come «locale», verificare che lo sia davvero: durante l'esecuzione il
+  processo `xrcopilotlab-bp` deve avere una connessione verso `127.0.0.1:<porta dell'Api>`
+  (`lsof -nP -a -p <pid> -iTCP`) e nel console dell'Api devono comparire righe `[KGraph]`. Un
+  giro che va sull'ambiente di default risponde «dal frammento» a ogni domanda numerica e somiglia
+  a una regressione della libreria: il 13/09/2026 sono state perse due ore così. La CLI ora rifiuta
+  le opzioni sconosciute proprio per questo.
+- Se un'istanza locale dell'Api è il bersaglio (`--env locale`) e a un certo punto tutte le chiamate
+  rispondono 500 in pochi millisecondi, non sono i casi: è l'host che ha smesso di invocare il worker
+  (host `Running`, rotte inesistenti 404). Non dipende dal tipo di caso — il 13/09/2026 è successo sia
+  durante un caso di processo sia a metà dei casi di chat, dopo 10-15 minuti dall'avvio. I casi
+  successivi escono tutti in errore in 0 ms: si ferma il giro, si riavvia l'Api, si rilancia con
+  `--only` la parte non eseguita, e si chiede la console del func host per capire perché.
 - Un caso di processo fermo a `InstanceStarted → AgentTaskDispatched` vuol dire che l'esecuzione
   dell'agent task non è mai finita (anche un fallimento farebbe avanzare il token): si guarda il
   worker di AsyncOperations, e un'AsyncOperations locale che legge le code dell'ambiente condiviso è
