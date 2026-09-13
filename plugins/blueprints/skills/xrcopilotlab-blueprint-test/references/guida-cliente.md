@@ -102,8 +102,11 @@ Come si costruisce, nell'ordine:
    la spiegazione va nella `description` del publish. Favicon coerente con il dominio (⚖️ per uno
    studio legale) e **stabile** fra le ripubblicazioni.
 5. **Pubblicare con `Artifact`** dalla cartella di lavoro della sessione, poi **aprire subito la
-   pagina nel browser dell'utente** — `open <url>` su macOS, `xdg-open` su Linux, `start` su
-   Windows — invece di lasciargli solo il link da copiare: così la vede mentre è ancora nella
+   pagina nel browser dell'utente** — è un passo obbligatorio, non una cortesia. Prima strada: gli
+   strumenti **Claude in Chrome** (`tabs_context_mcp`, poi `navigate` sull'URL), che aprono la pagina
+   nella sessione Chrome dove l'utente è già loggato, con l'organizzazione giusta. Se l'estensione
+   non è connessa: `open <url>` su macOS, `xdg-open` su Linux, `start` su Windows. Non lasciare
+   all'utente solo il link da copiare: così la vede mentre è ancora nella
    sessione, e se compare «Page not found» il problema dell'organizzazione emerge adesso, non in
    sala. Dire anche come si riapre dopo: `ctrl+]` riapre l'ultimo artifact della sessione,
    `/artifacts` li elenca (`o` apre, `c` copia il link). Ripubblicare lo **stesso percorso**
