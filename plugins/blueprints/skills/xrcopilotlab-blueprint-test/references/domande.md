@@ -110,6 +110,13 @@ gennaio 2030» deve dare la riga «nessun impegno» che il prompt prescrive, sen
 casi che dipendono da una connessione esterna: metterli sotto un tag (`m365`, `vies`) e dirlo
 in testa alla suite, così si lanciano con `--only` solo dove la connessione c'è.
 
+Se la fonte **non è pronta**, si collauda la logica con le letture simulate: il contenuto che
+darebbe lo strumento incollato nel messaggio, nella forma vera (la busta di una PEC, il JSON di
+Graph con gli orari in UTC), con l'istruzione di non chiamare gli strumenti e il tag `simulata`.
+Le domande che rendono: il messaggio da riconoscere fra rumore (newsletter, fattura), il messaggio
+informale senza dati («la Verdi/Beta è slittata al 16/10, stessa ora»), due elementi nello stesso
+giro, la risposta dell'API in una forma che il modello deve convertire.
+
 Un caso che chiede all'agente di **scrivere** (creare un evento, mandare una mail) non si mette
 in una suite che gira da sola: lascia tracce fuori dal tenant.
 

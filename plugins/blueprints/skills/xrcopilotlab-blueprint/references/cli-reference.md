@@ -395,6 +395,34 @@ Esce `0` se tutti i casi passano, **`7`** se almeno uno non passa, `2` se la sui
 `3` se il tag non ha un run sul tenant. Formato della suite, esiti, sospetti e codici `BT0xx`:
 [`testing.md`](testing.md).
 
+## `schedule list` · `schedule pause <task>` · `schedule resume <task>`
+
+Le schedulazioni degli agent task creati da un blueprint. Servono quando il blueprint è applicato
+ma una sua fonte non è pronta — una casella che nessuno controlla, credenziali da correggere: un
+task ogni cinque minuti su una fonte rotta produce un esito d'errore a ogni giro, e se l'esito va a
+un webhook apre un caso a ogni giro.
+
+```bash
+xrcopilotlab-bp schedule list                        --tag STUDIOPOLIS --env staging --company <guid>
+xrcopilotlab-bp schedule pause  sorveglianza-posta   --tag STUDIOPOLIS --env staging --company <guid>
+xrcopilotlab-bp schedule resume sorveglianza-posta   --tag STUDIOPOLIS --env staging --company <guid>
+```
+
+Il task si indica con la **chiave del manifest** (`agentTasks[].key`), con il nome o con il nome
+qualificato `BP-<TAG>-…`, e si risolve dall'inventario dell'ultimo run completato del tag (`--run`
+per sceglierne un altro). La pausa non tocca il manifest né l'inventario: l'espressione cron resta,
+e `resume` riprende da lì ricalcolando la prossima esecuzione.
+
+Il comando è **idempotente**: l'API espone solo un'inversione dello stato, quindi la CLI legge prima
+lo stato e inverte solo se serve. `pause` su un task già in pausa non lo riaccende. Nessuna
+approvazione: non crea né rimuove niente, e l'inverso è un comando.
+
+**Quando usarlo:** se `apply` riporta un avviso nella sezione «Prove dei tool MCP», i task schedulati
+sugli agenti di quel server lavorano su una fonte che non risponde. Si mettono in pausa subito, si
+corregge la fonte (`secrets set`, permessi, policy), e si riprendono.
+
+- Implementa: `Commands/ScheduleCommand.cs`.
+
 ## Prerequisiti sul tenant
 
 - Licenza **`XRCopilotLab.Process`** attiva, altrimenti i processi non sono utilizzabili.

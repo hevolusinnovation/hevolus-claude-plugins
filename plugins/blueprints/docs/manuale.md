@@ -260,6 +260,8 @@ possa capire cosa sta succedendo, e perché a volte è comodo lanciarli a mano.
 | `test init <file>` | Scrive lo scheletro della suite di collaudo dal manifest, in `blueprints/tests/` |
 | `test validate <suite>` | Verifica la suite contro il manifest. Non tocca la rete |
 | `test run <suite>` | Esegue la suite sul tenant — chat con gli agenti, orchestratori, processi — e scrive il report in `blueprints/tests/reports/`. `--only` ne esegue una parte |
+| `schedule list --tag <TAG>` | Le attività programmate del blueprint, con stato e prossima esecuzione |
+| `schedule pause <attività> --tag <TAG>` | Mette in pausa un'attività programmata. `schedule resume` la riprende |
 | `--help` | L'elenco aggiornato di comandi e opzioni, per la versione che hai installata |
 
 Un giro completo, se vuoi rifarlo a mano:
@@ -333,6 +335,21 @@ qualcosa che puoi sistemare tu.
 Non è un guasto: il blueprint **non sovrascrive mai** quello che trova. Se un agente o un processo
 con quel nome c'è già, si ferma prima di toccare qualsiasi cosa. Tre strade, e la scelta è tua:
 cambiare il nome nel file, cambiare il tag del blueprint, oppure rimuovere l'entità che c'è già.
+
+### Un'attività programmata sbaglia a ogni giro
+
+Succede quando il blueprint è applicato ma una fonte non è ancora pronta: una casella di posta che
+nessuno controlla, credenziali da correggere. L'apply lo segnala nella sezione «Prove dei tool MCP».
+L'attività parte comunque, all'orario previsto, e a ogni giro produce un errore — che, se l'esito va a
+un processo, apre un caso nuovo ogni volta. Chiedi al plugin di metterla in pausa, oppure:
+
+```bash
+xrcopilotlab-bp schedule list                      --tag STUDIOPOLIS
+xrcopilotlab-bp schedule pause sorveglianza-posta  --tag STUDIOPOLIS
+```
+
+Quando la fonte è sistemata, `schedule resume` la riprende dall'orario successivo. La pausa non
+cambia il blueprint: il file, le versioni e l'elenco di ciò che è stato creato restano come sono.
 
 ### L'esecuzione si è fermata a metà
 

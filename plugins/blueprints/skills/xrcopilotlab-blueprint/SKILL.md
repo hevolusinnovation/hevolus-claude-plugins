@@ -381,6 +381,20 @@ va conservata adesso.
 Se l'applicazione fallisce a metà, dire com'è messo: cosa è stato creato, che il run riparte con
 `--resume <runId>`, e che `rollback --run <runId>` smonta ciò che l'inventario elenca.
 
+**Se la sezione «Prove dei tool MCP» riporta un avviso**, l'apply è riuscito ma quel server non
+raggiunge la sua fonte (credenziale sbagliata, permesso mancante, casella non pronta). I task
+schedulati sugli agenti di quel server partono comunque, e girano a vuoto — o peggio, mandano un
+esito d'errore a un webhook che apre un caso a ogni giro. Dirlo subito all'utente, con il messaggio
+dell'errore **senza ripetere valori che sembrano credenziali**, e proporre la pausa:
+
+```bash
+xrcopilotlab-bp schedule list                --tag <TAG> --company <guid>
+xrcopilotlab-bp schedule pause <chiave-task> --tag <TAG> --company <guid>
+```
+
+Si riprende con `schedule resume` quando la fonte risponde. Un blueprint applicato si collauda con
+la skill `xrcopilotlab-blueprint-test`.
+
 ## 7. Cancellare un blueprint
 
 `delete --tag <TAG>` toglie dall'archivio le versioni del manifest, gli artefatti nello storage e i

@@ -25,7 +25,8 @@ xrcopilotlab-bp test run      blueprints/tests/<nome>.tests.yml --env staging --
 | `test run <suite>` | Esegue i casi sul tenant, scrive `report.json` e `report.md` | sì | `0` tutti passati · `7` almeno un caso non passato · `2` suite non valida · `3` nessun run del tag |
 
 Opzioni di `test run`: `--tag` (default: quello della suite), `--run <runId>` (default: l'ultimo
-run completato del tag), `--only <k1,k2>` (chiavi, tag o entità dei casi da eseguire), `--out
+run completato del tag), `--only <k1,k2>` (chiavi, tag o entità dei casi da eseguire — un valore combacia con la chiave,
+con un tag **o con il target**: `--only agenda` esegue anche i casi `sim-…` sull'agente `agenda`), `--out
 <cartella>` (default `blueprints/tests/reports/<tag>/<data>/`), più le comuni `--env`,
 `--company`, `--version`.
 
@@ -122,9 +123,36 @@ così; l'esempio completo è `blueprints/tests/finlogic-bilancio-aggregato.tests
 | `orchestrator` | `execute` sull'orchestratore, poi interroga lo stato ogni 3 secondi | a `completed`, `failed`, `cancelled`, `paused` (HITL: esce in errore) o al timeout |
 | `process` | Avvia un'istanza con `caseData`, poi legge istanza, eventi e compiti ogni 3 secondi | quando c'è un compito aperto su `waitingAt` (o, senza, un compito aperto qualsiasi), quando lo stato non è più `Running`, o al timeout |
 
+Per conto di chi si parla e si avvia lo decide `defaults.userId`: un'**email** si traduce nell'id
+dell'utente sul tenant. Serve ai processi con ruoli di avvio, che confrontano l'id: senza, la CLI
+usa il nome utente del sistema operativo e l'avvio esce 403 «Non autorizzato ad avviare questo
+processo». Subito dopo l'avvio l'istanza può non esistere ancora (passa da una coda): la CLI
+riprova sul 404 finché non compare o scade il timeout.
+
 La CLI **non completa mai un compito umano**: sarebbe firmare un modulo al posto di una
 persona. I rami di un processo si collaudano dal loro ingresso (un'istanza per combinazione del
 modulo di avvio), non attraversandoli.
+
+### Collaudare un agente su MCP senza la fonte: le letture simulate
+
+Quando la fonte esterna non è ancora pronta — una casella di posta che nessuno controlla — la
+**logica** dell'agente si collauda lo stesso: il contenuto che restituirebbe lo strumento va nel
+messaggio, nella forma in cui lo restituirebbe (il corpo di una PEC, la risposta JSON di Graph), con
+l'istruzione di non chiamare gli strumenti. Si tengono sotto un tag (`simulata`) e si spostano i casi
+sulla fonte vera in una suite a parte, da lanciare quando c'è.
+
+Due cose da sapere. La pipeline MCP aggiunge al messaggio «Use the available MCP tools…», quindi
+l'agente **può** chiamare lo strumento vero nonostante l'istruzione: un errore di sistema o un dato
+che non è nel testo incollato vuol dire questo, e va nel giudizio. E una lettura simulata non prova
+la chiamata: formato delle date, permessi, fuso orario restano della suite sulla fonte vera.
+
+La forma della risposta dello strumento conta: incollare la risposta **vera** di un'API (per esempio
+`calendarView` con gli orari in UTC) ha trovato un difetto che una versione «ripulita» avrebbe
+nascosto.
+
+Un caso che fa **scrivere** un agente su una fonte esterna (creare un evento, mandare una mail) non
+sta nella suite di regressione: lascia tracce fuori dal tenant. Va in una suite a parte, lanciata
+solo con un sì esplicito.
 
 ## Il report
 

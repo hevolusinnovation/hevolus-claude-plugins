@@ -86,6 +86,13 @@ Tre situazioni, e la prima cosa da fare è capire in quale si è:
    l'agente deve e non deve fare, ed è da lì che nascono i casi. Come, in
    [`references/domande.md`](references/domande.md).
 
+**Se un agente legge una fonte esterna che non è ancora pronta** (una casella di posta, un calendario),
+non si aspetta: si collauda la sua logica con le **letture simulate** — il contenuto che darebbe lo
+strumento incollato nel messaggio, tag `simulata` — e i casi sulla fonte vera vanno in una suite a
+parte, da lanciare quando c'è. I casi che fanno **scrivere** fuori dal tenant stanno in una terza
+suite, solo con un sì. Come, in [`references/testing.md`](references/testing.md)
+§ «Collaudare un agente su MCP senza la fonte». Esempio completo: le tre suite `studiopolis-agenda*`.
+
 In tutti e tre i casi, prima di eseguire:
 
 ```bash
@@ -119,13 +126,24 @@ Cose da sapere sull'esecuzione:
   il blueprint ha creato, non una ricerca per nome. Con `--run <runId>` se ne sceglie uno. Se un
   caso esce «non trovato», il tenant ha una versione del manifest che non ha quell'entità: è
   l'informazione giusta, non un difetto — si riporta così.
+- `defaults.userId` con l'**email** di un membro del ruolo di avvio: senza, i casi su un processo
+  con ruoli di avvio escono 403.
 - `--only chiave,tag,entità` esegue una parte. Utile per i casi con il tag `m365` o simili, che
-  dipendono da una connessione esterna, e per rilanciare un solo caso dopo una correzione.
+  dipendono da una connessione esterna, e per rilanciare un solo caso dopo una correzione. Un valore
+  combacia **anche con il target**: `--only agenda` prende pure i casi simulati sull'agente `agenda`.
 - Un caso su **processo** avvia un'istanza vera e la segue finché arriva al compito umano atteso
   (o allo stato atteso, o al timeout). L'istanza resta lì: chi ha il ruolo la vedrà fra i suoi
   compiti. Dirlo all'utente prima, perché è la cosa che sorprende.
 - Un caso su **orchestratore** che si ferma in HITL (`paused`) esce in errore: non può
   completare da solo. Non è un fallimento dell'orchestratore.
+- Se un'istanza locale dell'Api è il bersaglio (`--env locale`) e dopo un caso di processo tutte le
+  chiamate rispondono 500 in pochi millisecondi, non sono i casi: è l'host che ha smesso di invocare il
+  worker. Si riavvia l'Api e si rilancia **senza** i casi di processo, poi quelli da soli guardando
+  la console.
+- Un caso di processo fermo a `InstanceStarted → AgentTaskDispatched` vuol dire che l'esecuzione
+  dell'agent task non è mai finita (anche un fallimento farebbe avanzare il token): si guarda il
+  worker di AsyncOperations, e un'AsyncOperations locale che legge le code dell'ambiente condiviso è
+  il primo sospetto.
 - Exit code: `0` tutto passato, `7` almeno un caso non passato, `2` suite non valida, `3`
   nessun run del tag sul tenant. Il `7` **non** è un errore della CLI: è l'esito.
 
@@ -153,6 +171,11 @@ CLI · verdetto · perché, poi i casi da rivedere con atteso, risposta e diagno
 da correggere nella suite. È la parte che il report non può contenere, ed è quella che l'utente
 legge per prima. Una risposta sbagliata che riconosci e che la suite non elenca **va aggiunta ai
 `wrongAnswers`** con la sua diagnosi: è così che il set si arricchisce.
+
+Se il blueprint ha agent task **schedulati** su una fonte che il collaudo ha trovato rotta (un avviso
+«Prove dei tool MCP», errori di credenziale nelle risposte), proporre all'utente di sospenderli con
+`xrcopilotlab-bp schedule pause <chiave> --tag <TAG>` finché la fonte non è corretta: girano lo
+stesso, e un esito d'errore mandato a un webhook apre un caso a ogni giro.
 
 ## 4. Il triage: di chi è ogni fallimento
 
