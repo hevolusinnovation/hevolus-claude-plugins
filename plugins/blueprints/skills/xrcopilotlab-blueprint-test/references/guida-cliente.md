@@ -101,9 +101,14 @@ Come si costruisce, nell'ordine:
 4. **Titolo** = il nome dello scenario (es. «Agenda di Studio Polis»), non un'etichetta generica;
    la spiegazione va nella `description` del publish. Favicon coerente con il dominio (⚖️ per uno
    studio legale) e **stabile** fra le ripubblicazioni.
-5. **Pubblicare con `Artifact`** dalla cartella di lavoro della sessione, poi dare il link
-   all'utente. Ripubblicare lo **stesso percorso** aggiorna la stessa pagina: non cambiare nome al
-   file fra una versione e l'altra, altrimenti nasce un artifact nuovo.
+5. **Pubblicare con `Artifact`** dalla cartella di lavoro della sessione, poi **aprire subito la
+   pagina nel browser dell'utente** — `open <url>` su macOS, `xdg-open` su Linux, `start` su
+   Windows — invece di lasciargli solo il link da copiare: così la vede mentre è ancora nella
+   sessione, e se compare «Page not found» il problema dell'organizzazione emerge adesso, non in
+   sala. Dire anche come si riapre dopo: `ctrl+]` riapre l'ultimo artifact della sessione,
+   `/artifacts` li elenca (`o` apre, `c` copia il link). Ripubblicare lo **stesso percorso**
+   aggiorna la stessa pagina: non cambiare nome al file fra una versione e l'altra, altrimenti
+   nasce un artifact nuovo.
 6. **Copia locale** accanto al Markdown (`guida-<scenario>.html`): lo stesso HTML avvolto in un
    documento completo, con Mermaid caricato da cdnjs per il diagramma. Si apre con un doppio clic,
    senza account: è la rete di sicurezza per la sala, dove il login può non esserci.

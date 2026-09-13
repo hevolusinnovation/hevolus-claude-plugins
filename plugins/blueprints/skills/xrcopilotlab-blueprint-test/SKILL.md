@@ -275,8 +275,9 @@ aggiornano o si scrivono i due documenti di [`references/guida-cliente.md`](refe
   concetti, il diagramma dal grafo, i passi, le criticità del cliente → i meccanismi, gli agenti e
   cosa non fanno, collaudato e mancante, il vocabolario BPMN e le domande dell'esperto — **e la sua
   pagina web** (artifact), che è ciò che si proietta e si condivide: si costruisce dal Markdown dopo
-  aver caricato la skill `artifact-design`, con il diagramma in Mermaid, e si affianca una copia
-  HTML locale che si apre senza account. Prima di pubblicare, verificare che la CLI sia
+  aver caricato la skill `artifact-design`, con il diagramma in Mermaid, **si apre nel browser
+  dell'utente appena pubblicata** (`open <url>`), e si affianca una copia HTML locale che si apre
+  senza account. Prima di pubblicare, verificare che la CLI sia
   nell'organizzazione del cliente (`/status`): un artifact nell'organizzazione sbagliata non si
   apre da quella giusta e non si sposta.
 
