@@ -944,6 +944,49 @@ corrispondente di `.claude-plugin/marketplace.json`.
 > I tre numeri devono coincidere: il tag della release, `version.txt` e la versione del plugin. Se
 > divergono, l'avviatore cerca un allegato che non esiste e lo dice solo a chi prova a usarlo.
 
+### Caricare una skill singola su claude.ai — non è lo stesso pacchetto del plugin
+
+Una skill si può caricare **da sola** nella libreria skill di claude.ai, senza passare da un plugin:
+è la strada per darla a chi lavora in chat e non usa Claude Code. Ma il pacchetto è **un altro**, e
+scambiarli è l'errore che si fa per primo:
+
+| | Pacchetto **plugin** (`build-desktop-plugin.sh`) | Pacchetto **skill** (`build-skill-zip.sh`) |
+|---|---|---|
+| Dove si carica | claude.ai/customize/plugins | claude.ai → Impostazioni → Capacità → Skill |
+| Radice dell'archivio | `.claude-plugin/`, `skills/`, `README.md` | **una sola cartella**, che è la skill |
+| Dove sta `SKILL.md` | `skills/<nome>/SKILL.md` | `<nome>/SKILL.md` |
+
+Caricare il pacchetto del plugin nell'uploader delle skill dà **«All files must be inside the
+top-level folder»**: l'uploader vuole una sola cartella di primo livello e trova tre voci alla
+radice. Lo zip nella forma giusta lo costruisce:
+
+```bash
+./build-skill-zip.sh plugins/blueprints/skills/xrcopilotlab-blueprint-test   # una skill
+./build-skill-zip.sh --all                                                   # tutte → dist/skills/
+```
+
+Lo script copia la cartella della skill dentro uno stage, toglie i `.DS_Store` e **verifica
+l'archivio prima di consegnarlo**: ogni voce dentro `<nome>/`, e `SKILL.md` alla sua radice.
+
+**Gli errori successivi arrivano dal frontmatter**, e l'uploader li segnala dopo il caricamento con
+un messaggio che non dice quale regola è saltata. Sono tre, e due si violano senza accorgersene:
+
+| Regola | Cosa la viola |
+|---|---|
+| `description` al massimo **1.024 caratteri** | Una descrizione ricca di frasi di attivazione: in questo repository due erano oltre, la skill di collaudo stava a 1.488 |
+| `name` e `description` **senza tag XML** | Un segnaposto come `<nome>` dentro un percorso d'esempio — `blueprints/tests/<nome>.tests.yml` — viene letto come un tag e fa rifiutare la skill |
+| `name` al massimo 64 caratteri, solo minuscole, numeri e trattini, e senza le parole riservate «anthropic» e «claude» | Un nome con maiuscole, con uno spazio, o che nomina l'azienda o il modello |
+
+`build-skill-zip.sh` le controlla **prima** di produrre l'archivio e si ferma dicendo quale non
+torna, così l'errore si vede qui invece che sul browser dopo il caricamento.
+
+La descrizione si corregge **nella sorgente** — nel repository di prodotto per le due skill dei
+blueprint, qui per l'assessment — tenendo tutte le frasi che la fanno attivare: è il testo con cui
+Claude sceglie la skill fra tutte quelle installate, quindi si tolgono i dettagli del funzionamento,
+non i casi d'uso. Un percorso d'esempio con un segnaposto si riscrive nominando la cartella
+(`blueprints/tests/`) invece del file: nel **corpo** della skill i segnaposto restano, il divieto
+vale solo per i due campi del frontmatter.
+
 ### Il plugin assessment: sorgente qui, distribuzione su Claude Desktop
 
 Non è elencato in `.claude-plugin/marketplace.json` di proposito: il catalogo serve a Claude Code, e

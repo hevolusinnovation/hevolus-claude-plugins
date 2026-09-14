@@ -1,18 +1,6 @@
 ---
 name: xrcopilotlab-assessment
-description: >
-  Assessment tecnico di proposte di progetto (tipicamente proposte Hevolus) per tradurle in
-  una soluzione di agenti orchestrati sulla piattaforma XRCopilotLab, con analisi di fattibilità
-  e dossier finale. Usa SEMPRE questa skill quando l'utente carica o cita una
-  proposta/offerta/documento di progetto AI e chiede di "valutarla", "capire come implementarla",
-  "tradurla in architettura/soluzione", "fare l'assessment", "stimare la fattibilità", o mapparla
-  su agenti/MCP/XRCopilotLab — anche se non nomina esplicitamente XRCopilotLab. Copre: estrazione
-  di scenari e obiettivi dalla proposta, progettazione dell'orchestrazione di agenti XRCopilotLab
-  (ogni agente con bozza di system prompt e, per convenzione, un solo MCP collegato), progettazione
-  dei processi BPM quando lo scenario è un procedimento con passaggi umani, discovery di fattibilità
-  delle fonti dati con criteri GO/CONDIZIONALE/NO-GO, e generazione del dossier tecnico in Markdown
-  e Word, scritto in modo da poter essere tradotto in un blueprint di provisioning. NON usare per redigere la proposta commerciale o l'offerta economica: questa skill
-  produce la valutazione tecnica, non il pricing.
+description: Assessment tecnico di proposte di progetto (tipicamente proposte Hevolus) per tradurle in una soluzione di agenti orchestrati sulla piattaforma XRCopilotLab, con analisi di fattibilità e dossier finale. Usa SEMPRE questa skill quando l'utente carica o cita una proposta, offerta o documento di progetto AI e chiede di "valutarla", "capire come implementarla", "tradurla in architettura", "fare l'assessment", "stimare la fattibilità", o di mapparla su agenti, MCP o XRCopilotLab, anche senza nominare XRCopilotLab. Copre: scenari e obiettivi, progettazione degli agenti (bozza di system prompt, al più un MCP ciascuno), processi BPM quando lo scenario è un procedimento con passaggi umani, discovery di fattibilità delle fonti dati con criteri GO/CONDIZIONALE/NO-GO, e il dossier tecnico in Markdown e Word, scritto per poter essere tradotto in un blueprint di provisioning. NON usare per la proposta commerciale o l'offerta economica: produce la valutazione tecnica, non il pricing.
 ---
 
 # XRCopilotLab Assessment
