@@ -245,7 +245,8 @@ Il comando aggiorna anche la chiave **`Sentinel`** di App Configuration: le API 
 configurazione — riferimenti a Key Vault compresi — solo quando quella chiave cambia, ogni cinque
 minuti. Senza, un segreto corretto resterebbe quello vecchio in ogni Function App fino al riavvio,
 e l'unico sintomo sarebbe un agente che dice «errore di autorizzazione». Un'istanza **locale**
-dell'API va comunque riavviata: legge App Configuration all'avvio.
+dell'API va comunque riavviata: legge App Configuration all'avvio. E le **connessioni** già create
+non cambiano da sole: `connections refresh --tag <TAG>` (sotto).
 
 Servono i ruoli *Key Vault Secrets Officer* e *App Configuration Data Owner* sull'utenza corrente.
 
@@ -428,6 +429,31 @@ sugli agenti di quel server lavorano su una fonte che non risponde. Si mettono i
 corregge la fonte (`secrets set`, permessi, policy), e si riprendono.
 
 - Implementa: `Commands/ScheduleCommand.cs`.
+
+## `connections list` · `connections refresh [<connessione>]`
+
+Una connessione porta i segreti **risolti** al momento dell'apply: il manifest li cita per nome, la
+CLI li legge da App Configuration e ne scrive il valore nella connessione. Correggere un segreto con
+`secrets set` corregge App Configuration, **non** la connessione, che continua a presentarsi al
+sistema esterno con il valore vecchio — e l'agente dice «errore di autorizzazione» anche dopo la
+correzione.
+
+```bash
+xrcopilotlab-bp connections list            --tag STUDIOPOLIS --env staging --company <guid>
+xrcopilotlab-bp connections refresh         --tag STUDIOPOLIS --env staging --company <guid>   # tutte
+xrcopilotlab-bp connections refresh graph   --tag STUDIOPOLIS --env staging --company <guid>   # una sola
+```
+
+`refresh` ricostruisce configurazione e busta di autenticazione dal manifest pubblicato e dai
+segreti **come sono ora**, con la stessa costruzione dell'apply, e aggiorna la connessione sul
+tenant senza cambiarne l'id: server MCP e agenti che la usano non se ne accorgono. L'effetto è
+immediato, perché le API leggono la connessione a ogni chiamata. Verifica: `mcp test`.
+
+Emerso il **2026-09-14**: i due segreti Graph di Studio Polis erano scambiati fin dall'11/09
+(`graph-client-id` conteneva il secret, `graph-client-secret` l'id). Correggerli in App
+Configuration non è bastato — la connessione aveva i valori dell'apply — e `mcp test` continuava a
+mostrare `AADSTS700016`. Il valore giusto è stato recuperato dalla **versione precedente** del
+segreto in Key Vault, senza ruotare nulla.
 
 ## `mcp check` · `mcp publish <server>` · `mcp test <server> [--tool] [--args]`
 

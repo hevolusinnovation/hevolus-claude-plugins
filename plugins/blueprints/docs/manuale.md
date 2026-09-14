@@ -265,6 +265,7 @@ possa capire cosa sta succedendo, e perché a volte è comodo lanciarli a mano.
 | `mcp check --tag <TAG>` | Verifica che i server MCP del blueprint siano davvero utilizzabili dagli agenti |
 | `mcp publish <server> --tag <TAG>` | Ripubblica un server MCP quando `mcp check` dice che gli agenti non lo caricano |
 | `mcp test <server> --tag <TAG>` | Prova uno strumento del server e mostra la risposta vera del sistema esterno |
+| `connections refresh --tag <TAG>` | Dopo aver corretto un segreto con `secrets set`, riallinea la connessione: da sola non cambia |
 | `--help` | L'elenco aggiornato di comandi e opzioni, per la versione che hai installata |
 
 Un giro completo, se vuoi rifarlo a mano:
@@ -361,8 +362,10 @@ l'agente non carica il server MCP: `mcp check --tag <TAG>` dice se manca la defi
 catalogo o il collegamento, e `mcp publish <server>` ricrea la riga del catalogo. «Errore di
 autorizzazione» vuol dire che il server c'è ma il sistema esterno rifiuta: `mcp test <server>` mostra
 la risposta vera (per esempio l'errore di Microsoft Entra), senza passare dall'agente. Dopo un
-`secrets set` le API rileggono il segreto entro cinque minuti: se la prova fallisce ancora con lo
-stesso errore, aspetta e riprova prima di cercare altro.
+`secrets set` la connessione **non cambia da sola**: porta il valore che il segreto aveva quando il
+blueprint è stato applicato. Lancia `connections refresh --tag <TAG>` e riprova con `mcp test`. Se hai
+scambiato due segreti, il valore giusto è ancora in Key Vault fra le versioni precedenti: chiedi al
+plugin di recuperarlo, non serve generarne uno nuovo.
 
 ### L'esecuzione si è fermata a metà
 

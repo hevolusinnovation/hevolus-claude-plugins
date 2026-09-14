@@ -395,7 +395,10 @@ xrcopilotlab-bp schedule pause <chiave-task> --tag <TAG> --company <guid>
 Si riprende con `schedule resume` quando la fonte risponde. Per capire **perché** la fonte non
 risponde, `xrcopilotlab-bp mcp test <server> --tag <TAG>` mostra la risposta grezza del sistema di
 terze parti (l'errore di Entra, il 403 di Graph) senza passare dal modello; `mcp check` dice se
-l'agente carica davvero il server. Un blueprint applicato si collauda con
+l'agente carica davvero il server. Dopo aver corretto un segreto con `secrets set`, la connessione
+va riallineata con `connections refresh --tag <TAG>`: porta i valori risolti all'apply, e non cambia
+da sola. Un segreto scambiato con un altro si recupera dalle **versioni precedenti** in Key Vault,
+senza ruotarlo. Un blueprint applicato si collauda con
 la skill `xrcopilotlab-blueprint-test`.
 
 ## 7. Cancellare un blueprint
