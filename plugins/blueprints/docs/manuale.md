@@ -262,6 +262,9 @@ possa capire cosa sta succedendo, e perché a volte è comodo lanciarli a mano.
 | `test run <suite>` | Esegue la suite sul tenant — chat con gli agenti, orchestratori, processi — e scrive il report in `blueprints/tests/reports/`. `--only` ne esegue una parte |
 | `schedule list --tag <TAG>` | Le attività programmate del blueprint, con stato e prossima esecuzione |
 | `schedule pause <attività> --tag <TAG>` | Mette in pausa un'attività programmata. `schedule resume` la riprende |
+| `mcp check --tag <TAG>` | Verifica che i server MCP del blueprint siano davvero utilizzabili dagli agenti |
+| `mcp publish <server> --tag <TAG>` | Ripubblica un server MCP quando `mcp check` dice che gli agenti non lo caricano |
+| `mcp test <server> --tag <TAG>` | Prova uno strumento del server e mostra la risposta vera del sistema esterno |
 | `--help` | L'elenco aggiornato di comandi e opzioni, per la versione che hai installata |
 
 Un giro completo, se vuoi rifarlo a mano:
@@ -350,6 +353,16 @@ xrcopilotlab-bp schedule pause sorveglianza-posta  --tag STUDIOPOLIS
 
 Quando la fonte è sistemata, `schedule resume` la riprende dall'orario successivo. La pausa non
 cambia il blueprint: il file, le versioni e l'elenco di ciò che è stato creato restano come sono.
+
+### Un agente dice «non ho accesso allo strumento» o «errore di autorizzazione»
+
+Sono due cose diverse, e due comandi le distinguono. «Non ho accesso allo strumento» vuol dire che
+l'agente non carica il server MCP: `mcp check --tag <TAG>` dice se manca la definizione, la riga del
+catalogo o il collegamento, e `mcp publish <server>` ricrea la riga del catalogo. «Errore di
+autorizzazione» vuol dire che il server c'è ma il sistema esterno rifiuta: `mcp test <server>` mostra
+la risposta vera (per esempio l'errore di Microsoft Entra), senza passare dall'agente. Dopo un
+`secrets set` le API rileggono il segreto entro cinque minuti: se la prova fallisce ancora con lo
+stesso errore, aspetta e riprova prima di cercare altro.
 
 ### L'esecuzione si è fermata a metà
 

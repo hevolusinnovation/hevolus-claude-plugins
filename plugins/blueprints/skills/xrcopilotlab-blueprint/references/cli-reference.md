@@ -241,6 +241,12 @@ xrcopilotlab-bp secrets set --tag STUDIOPOLIS graph-client-secret
 Il valore si digita **senza eco**, non compare a video, non entra nel manifest e non finisce nei
 log. Per gli usi non interattivi: `--from-env NOME_VARIABILE`.
 
+Il comando aggiorna anche la chiave **`Sentinel`** di App Configuration: le API ricaricano la
+configurazione — riferimenti a Key Vault compresi — solo quando quella chiave cambia, ogni cinque
+minuti. Senza, un segreto corretto resterebbe quello vecchio in ogni Function App fino al riavvio,
+e l'unico sintomo sarebbe un agente che dice «errore di autorizzazione». Un'istanza **locale**
+dell'API va comunque riavviata: legge App Configuration all'avvio.
+
 Servono i ruoli *Key Vault Secrets Officer* e *App Configuration Data Owner* sull'utenza corrente.
 
 ## `secrets check <file.yml>`
@@ -422,6 +428,33 @@ sugli agenti di quel server lavorano su una fonte che non risponde. Si mettono i
 corregge la fonte (`secrets set`, permessi, policy), e si riprendono.
 
 - Implementa: `Commands/ScheduleCommand.cs`.
+
+## `mcp check` · `mcp publish <server>` · `mcp test <server> [--tool] [--args]`
+
+Un server MCP applicato da blueprint vive in tre posti: la **definizione** nel Builder, la
+**pubblicazione** nel catalogo del tenant (la riga che l'agente carica in chat, con lo stesso id del
+server) e i **collegamenti** agente → catalogo. Se il catalogo perde la riga, i collegamenti restano e
+l'agente risponde «non ho accesso allo strumento» senza nessun errore: nel log della chat manca
+soltanto il passo `McpLoadTools`.
+
+```bash
+xrcopilotlab-bp mcp check           --tag STUDIOPOLIS --env staging --company <guid>   # definizione, catalogo, collegamenti
+xrcopilotlab-bp mcp publish m365    --tag STUDIOPOLIS --env staging --company <guid>   # ricrea la riga del catalogo
+xrcopilotlab-bp mcp test    m365    --tag STUDIOPOLIS --env staging --company <guid>   # esercita il testTool e mostra la risposta grezza
+xrcopilotlab-bp mcp test    m365    --tool cerca_eventi --args '{"inizio":"2020-01-01T00:00:00Z","fine":"2020-01-02T00:00:00Z"}' --tag STUDIOPOLIS
+```
+
+`check` legge il catalogo come lo legge la chat (elenco dei tool via gateway) e, per ogni agente
+collegato in inventario, chiede all'API cosa carica davvero per quell'agente. Esce **4** se qualcosa
+non coincide. `publish` ripubblica il server con lo stesso id, così i collegamenti tornano a
+risolversi; **ruota la chiave del gateway**, per costruzione dell'API. `test` è l'evidenza che manca
+quando l'agente dice «errore di autorizzazione» e il log dice solo `ok: true`: stampa la risposta
+del sistema di terze parti — per esempio l'`AADSTS…` di Entra — senza passare dal modello. Senza
+`--tool` usa il `testTool` del manifest, in sola lettura.
+
+Emerso il **2026-09-14**: sul tenant di Studio Polis la riga del catalogo del server Microsoft 365
+era sparita fra due collaudi, con i quattro collegamenti ancora in piedi; la causa non è stata
+trovata (telemetria di staging non interrogabile), la riparazione è stata `mcp publish`.
 
 ## Prerequisiti sul tenant
 
