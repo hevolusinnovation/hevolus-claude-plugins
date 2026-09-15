@@ -383,7 +383,7 @@ agentTasks:
     prompt: Elenca le novità dall'ultimo giro, una per riga.
     trigger: scheduled
     schedule: { cron: "*/5 * * * *", timeZone: Europe/Rome }
-    executionPolicy: { maxDailyExecutions: 400 }   # 288 giri al giorno; il default è 100 e ferma il task a metà giornata (BP027)
+    executionPolicy: { maxDailyExecutions: 400 }   # 288 giri al giorno; il default è 100 e ferma il task a metà giornata (BP029)
     outputActions:
       - type: webhook
         url: processes.presa-in-carico.webhook    # il planner mette indirizzo e chiave
@@ -393,6 +393,59 @@ Cinque pezzi, tutti entità del tenant: nessuna Logic App, nessun resource group
 rollback non sappia smontare. E il `processes.<chiave>.webhook` non è una comodità di scrittura —
 la chiave di un webhook si vede **una volta sola** e non è più recuperabile, quindi è il planner a
 metterla, e non passa da nessuna parte dove qualcuno debba copiarla.
+
+### Quando è la chat a far partire il processo
+
+L'altro verso dello stesso ponte: l'utente **dice** all'agente cosa è successo — un avvocato che
+detta al telefono uscendo dal tribunale — e l'agente apre la pratica. In chat non c'è un agent task
+né una output action: c'è un **tool** che fa la POST al webhook del processo. La chiave del webhook
+nasce all'apply e si vede una sola volta, quindi la connessione non la dichiara: dichiara il
+processo, e l'apply la riempie dopo aver creato il webhook.
+
+```yaml
+connections:
+  - key: pratiche
+    name: pratiche-webhook
+    provider: webhook
+    process: presa-in-carico          # niente baseUrl, niente auth: li mette l'apply (BP045 se ci sono)
+
+mcpServers:
+  - key: pratiche
+    kind: builder
+    name: Pratiche
+    connection: pratiche
+    tools:
+      - name: apri_pratica
+        method: POST
+        path: /
+        description: Apre una pratica dal testo dettato o incollato. Chiamalo UNA volta per avviso, dopo aver riletto all'utente cosa hai capito.
+        parameters:
+          testo: Il testo integrale, come è arrivato, senza riassumerlo
+          fonte: chat
+        required: [testo, fonte]
+        body: |
+          {"testoAvviso": "{{testo}}", "fonte": "{{fonte}}"}
+    # nessun testTool: prima del webhook la connessione non ha ancora un indirizzo
+
+agents:
+  - key: assistente
+    name: Assistente agenda
+    mcp: [pratiche]
+    systemMessage: |
+      ...rileggi all'utente ciò che hai capito, e SOLO al suo sì chiami apri_pratica...
+```
+
+Tre cose da rispettare, e il validatore le controlla dove può:
+
+- **l'agente della chat non è l'agente dei passi automatici del processo**. La connessione si
+  completa dopo il webhook, il webhook dopo il processo, il processo dopo i suoi agent task: se
+  l'agente con `apri_pratica` fosse anche quello di un passo `Automated`, il grafo delle dipendenze
+  sarebbe circolare. Due agenti, stesso schema di estrazione nel system message;
+- **il corpo della POST è il `caseData` iniziale**: le chiavi devono essere quelle del modulo di
+  avvio del processo (`testoAvviso`, `fonte`…), le stesse che manda l'agent task;
+- **il tool va chiamato una volta per avviso e dopo una conferma**: un modello che «per sicurezza»
+  chiama due volte apre due pratiche. Si scrive nel system message e si collauda con un caso che lo
+  provoca.
 
 **Il limite, detto prima**: è polling. Fra l'evento e l'avvio del processo passa al più l'intervallo
 del cron. Per una casella di protocollo «entro cinque minuti» di norma va bene; se il caso pretende

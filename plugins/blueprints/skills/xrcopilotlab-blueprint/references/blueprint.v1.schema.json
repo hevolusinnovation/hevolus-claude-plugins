@@ -127,6 +127,10 @@
             "type": "string",
             "format": "uri"
           },
+          "process": {
+            "type": "string",
+            "description": "Chiave di un processo di questo blueprint: la connessione punta al suo webhook di avvio. Indirizzo e chiave li mette l'apply (la chiave finisce in Key Vault come Blueprints:Secrets:<TAG>:webhook-<chiave>). Esclude baseUrl e auth."
+          },
           "headers": {
             "type": "object",
             "additionalProperties": {

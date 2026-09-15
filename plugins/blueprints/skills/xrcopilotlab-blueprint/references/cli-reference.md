@@ -468,6 +468,12 @@ segreti **come sono ora**, con la stessa costruzione dell'apply, e aggiorna la c
 tenant senza cambiarne l'id: server MCP e agenti che la usano non se ne accorgono. L'effetto è
 immediato, perché le API leggono la connessione a ogni chiamata. Verifica: `mcp test`.
 
+Una connessione con `process:` (verso il webhook di un processo del blueprint) si ricostruisce da
+altre due fonti: l'indirizzo dal webhook com'è sul tenant, la chiave dal segreto
+`Blueprints:Secrets:<TAG>:webhook-<chiave>` che l'apply ha lasciato in Key Vault. Se il webhook è
+stato rigenerato dall'interfaccia, prima `secrets set <TAG> webhook-<chiave>` con la nuova chiave,
+poi `refresh`.
+
 Emerso il **2026-09-14**: i due segreti Graph di Studio Polis erano scambiati fin dall'11/09
 (`graph-client-id` conteneva il secret, `graph-client-secret` l'id). Correggerli in App
 Configuration non è bastato — la connessione aveva i valori dell'apply — e `mcp test` continuava a

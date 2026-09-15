@@ -234,7 +234,7 @@ La piattaforma conta le esecuzioni di ogni agent task **per giorno UTC** e, ragg
 salta le successive: un avviso nel log del worker e nient'altro — niente errore sul task, niente
 email. La quota di default è **100**, che per un task schedulato ogni minuto (1440 giri al giorno)
 significa fermarsi poco prima delle due di notte e riprendere a mezzanotte. Il validatore stima i
-giri al giorno dal cron (minuti × ore, per le forme che si sanno contare) e avvisa con **`BP027`**
+giri al giorno dal cron (minuti × ore, per le forme che si sanno contare) e avvisa con **`BP029`**
 quando superano la quota, dichiarata o di default. Ciò che non è dichiarato resta al default della
 piattaforma.
 
@@ -418,6 +418,51 @@ mcpServers:
     auth: { kind: CustomHeaders, header: X-API-Key, secret: Blueprints:Secrets:LEGAL:mcp-apikey }
 ```
 
+### Una connessione verso il webhook di un processo: `process`
+
+Serve quando è un **agente in chat** a dover aprire una pratica — l'avvocato detta due righe al
+telefono e l'agente avvia lo stesso processo che avvierebbe una mail. Il tool che lo fa è una POST al
+webhook del processo, e il webhook ha una chiave che nasce all'apply e si vede una volta sola:
+nessuno può scriverla nel manifest. La connessione la dichiara così:
+
+```yaml
+connections:
+  - key: pratiche
+    name: pratiche-webhook
+    provider: webhook
+    process: presa-in-carico        # chiave del processo; niente baseUrl, niente auth
+
+mcpServers:
+  - key: pratiche
+    kind: builder
+    name: Pratiche
+    connection: pratiche
+    tools:
+      - name: apri_pratica
+        method: POST
+        path: /                     # il webhook è la baseUrl stessa
+        description: Apre una pratica con il testo dell'avviso e la fonte.
+        parameters:
+          testo: Il testo integrale dell'avviso, come è arrivato
+          fonte: chat | mail | cancelleria
+        required: [testo, fonte]
+        body: |
+          {"testoAvviso": "{{testo}}", "fonte": "{{fonte}}"}
+```
+
+All'apply la connessione nasce con un indirizzo di attesa (`https://webhook-in-attesa.invalid/`,
+che non risolve); dopo la creazione del webhook l'operazione **«Scrive nella connessione indirizzo e
+chiave»** mette l'URL vero, la chiave nell'header `X-Api-Key`, e conserva la chiave in Key Vault come
+`Blueprints:Secrets:<TAG>:webhook-<chiave-processo>`. Il server MCP non si ritocca: i tool leggono la
+connessione a ogni chiamata. Il corpo della POST diventa il `caseData` iniziale dell'istanza, come
+per il webhook alimentato da un agent task. `baseUrl` o `auth` insieme a `process` sono un errore
+(`BP045`), come un processo senza `webhook: { enabled: true }`.
+
+Il processo **non** deve dipendere dall'agente che ha questo tool: la connessione si completa dopo
+il webhook, e il webhook dopo il processo, quindi l'agente della chat e l'agente dei passi automatici
+del processo sono due agenti distinti. `connections refresh` sa ricostruire anche questa
+connessione: indirizzo dal webhook sul tenant, chiave dal segreto.
+
 ## `orchestrators`
 
 Un orchestratore sono **step** e **flows**: i nodi e gli archi che li collegano. Si chiamano `flows`
@@ -521,8 +566,8 @@ variante a polling: quella il blueprint la crea per intero, questa no.
 | `BP010`–`BP015` | Chiavi e nomi: mancanti, duplicati, già prefissati; modello dell'agente non dichiarato (`BP015`) |
 | `BP020`–`BP023` | Riferimenti fra sezioni e alternative esclusive |
 | `BP030`–`BP033` | Processi: specifica non valida, ruolo, agent task o sotto-processo sconosciuto |
-| `BP040`–`BP044` | Connessioni e server MCP |
-| `BP024`–`BP028` | Agent task: trigger, schedulazione, code di uscita; file di knowledge inutilizzabile (`BP027`); partizionamento dei profili (`BP028`) |
+| `BP040`–`BP045` | Connessioni e server MCP; connessione verso il webhook di un processo (`BP045`) |
+| `BP024`–`BP029` | Agent task: trigger, schedulazione, code di uscita; file di knowledge inutilizzabile (`BP027`); partizionamento dei profili (`BP028`); cron più fitto della quota giornaliera (`BP029`) |
 | `BP050`–`BP052` | Risorse esterne, ed equivalenti nativi |
 | `BP060`–`BP065` | Preflight: collisione di nome, skill, utente, segreto o topic mancante; modello fuori catalogo (`BP065`) |
 | `BP070` | Sezione dichiarata ma non ancora applicata |

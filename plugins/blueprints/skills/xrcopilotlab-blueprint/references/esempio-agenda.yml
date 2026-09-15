@@ -121,17 +121,60 @@
 # le successive con un avviso nel log e niente altro. La quota di default è 100: la Sorveglianza
 # della v8, un giro al minuto, l'ha esaurita alle 03:52 del 15/09 e da lì non ha più letto niente —
 # la prima mail di prova è rimasta in casella. Qui la quota è dichiarata: 2000 al giorno, cioè i
-# 1440 giri del cron più un margine. Il validatore ora avvisa (BP027) quando il cron è più fitto
+# 1440 giri del cron più un margine. Il validatore ora avvisa (BP029) quando il cron è più fitto
 # della quota.
+#
+# ── Cosa cambia nella versione 10: da «avvisi di udienza» a organizer dello Studio ────────────
+# Il cliente non chiede un lettore di PEC: chiede un organizer. L'avvocato esce dal tribunale e
+# scrive due righe di fretta dalla propria casella, o le DETTA in chat; le comunicazioni del
+# tribunale sono una delle fonti, non la fonte, e non sono solo udienze. La v10 rovescia quindi
+# l'ordine dei casi e allarga l'ingresso:
+#
+#   · Tre ingressi, UN processo. (1) La mail — anche scomposta — di chi lavora nello Studio;
+#       (2) il dettato in chat all'agente «Assistente agenda», che apre la pratica con un tool
+#       (apri_pratica → webhook del processo; la connessione `pratiche` con `process:` riceve
+#       indirizzo e chiave dall'apply, CLI bp-v2.9.0); (3) le comunicazioni dell'autorità in
+#       qualunque forma — PEC, mail di cancelleria, biglietto inoltrato. L'avvio a mano resta.
+#
+#   · La Sorveglianza diventa uno SMISTAMENTO: passa qualunque messaggio da organizzare, non
+#       solo gli avvisi di udienza; scarta newsletter, notifiche automatiche e ciò che non
+#       riguarda un procedimento. Per le PEC vale una regola in sei punti: legge SEMPRE corpo e
+#       allegati (nuovo tool leggi_allegati, che espande il messaggio originale allegato alla
+#       busta), un solo avviso se dicono la stessa cosa, divergenza affiancata se non coincidono,
+#       «non indicato» più nota esplicita se l'allegato non è leggibile.
+#
+#   · Un CLASSIFICATORE dentro il processo. Ogni comunicazione, da qualunque ingresso, passa da un
+#       agente senza strumenti che risponde con UNA parola — Udienza, Rinvio, Scadenza, Attività,
+#       Visione — e il processo si biforca su quella. Il referente la vede e può correggerla nel
+#       modulo di verifica prima che il flusso prenda un ramo. È l'unico punto di classificazione:
+#       tre ingressi, un criterio.
+#
+#   · Il processo si chiama «Presa in carico di una comunicazione» e ha cinque uscite: udienza
+#       nuova (assegna → registra → conferma), rinvio (indica → sposta → avvisa), scadenza con data
+#       scritta nel testo (assegna → registra come scadenza → conferma), attività (assegna →
+#       compito al professionista), presa visione (compito al referente e basta). Il computo dei
+#       termini resta fuori, come dalla v5: se la data non c'è, il compito lo dice.
+#
+#   · Più cose in un messaggio («rinviata al 12 marzo, prepara il fascicolo, chiama il CTU
+#       giovedì»): la voce principale apre la pratica, le altre viaggiano nella proposta come
+#       «altre attività menzionate» e il referente le vede. Il motore apre UN'istanza per ingresso.
+#
+#   · L'Assistente agenda rilegge ciò che ha capito e chiama apri_pratica UNA volta, dopo il sì
+#       dell'utente. Non ha gli strumenti di posta e calendario: aprire la pratica è già scrivere.
+#
+#   · Ancora aperti: il doppione della Sorveglianza (finestra 2 min su cron 1 min; deduplica con
+#       Mail.ReadWrite, nuovo consenso) e il PDF dentro una PEC (il testo va estratto dal file, e
+#       non passa dal tool Graph). Il file audio inoltrato per mail è la skill vocale
+#       dell'assessment, da costruire: in chat il dettato passa dal microfono, già presente.
 #
 # Resta fuori il calendario Google del penale in sola lettura: vedi la nota in fondo al file.
 #
 #   xrcopilotlab-bp validate blueprints/studiopolis-agenda.yml --graph
 
 blueprint: studiopolis-agenda
-version: 9
+version: 10
 tag: STUDIOPOLIS
-description: Presa in carico di un avviso di udienza e registrazione sul calendario comune
+description: Organizer dello Studio — dalla mail, dal dettato in chat o dalla comunicazione del tribunale alla pratica e al calendario comune
 
 tenant:
   companyId: 4da69cbc-d935-4050-f410-08d8392ca08f
@@ -182,7 +225,41 @@ connections:
       # .default chiede i permessi applicativi già consentiti: non se ne aggiungono qui.
       scope: https://graph.microsoft.com/.default
 
+  # Il ponte dalla chat alla pratica. Punta al webhook di avvio del processo: indirizzo e chiave
+  # nascono all'apply, dopo il webhook, e la CLI li scrive qui da sé (la chiave resta in Key Vault
+  # come Blueprints:Secrets:STUDIOPOLIS:webhook-presa-in-carico). Niente baseUrl, niente auth.
+  - key: pratiche
+    name: pratiche-webhook
+    provider: webhook
+    process: presa-in-carico
+
 mcpServers:
+  # Un solo tool, che fa una cosa sola: apre la pratica. Lo usa l'Assistente agenda in chat; il
+  # corpo della POST diventa il caseData iniziale, quindi le chiavi sono quelle del modulo di avvio.
+  - key: pratiche
+    kind: builder
+    name: Pratiche
+    description: Apre una pratica di presa in carico dal testo dettato o incollato in chat.
+    connection: pratiche
+    systemPrompt: >
+      apri_pratica apre una pratica vera, che arriva a un referente dello Studio: chiamalo UNA
+      volta per comunicazione, e solo dopo che l'utente ha confermato ciò che hai riletto.
+    tools:
+      - name: apri_pratica
+        method: POST
+        path: /
+        description: >
+          Apre la presa in carico di una comunicazione. Il testo va passato INTEGRALE, come
+          l'utente l'ha detto o incollato: la classificazione e l'estrazione le fa il processo.
+        parameters:
+          testo: Il testo integrale della comunicazione, senza riassumerlo né correggerlo
+          materia: { type: string, description: "Penale oppure Civile; se non si sa, Civile" }
+        required: [testo]
+        body: |
+          {"testoAvviso": "{{testo}}", "fonte": "chat", "materia": "{{materia}}", "fascicolo": "da attribuire", "mittente": "chat"}
+    # Nessun testTool: prima del webhook la connessione non ha un indirizzo, e dopo la prova
+    # aprirebbe una pratica. Si prova a mano: xrcopilotlab-bp mcp test pratiche --tool apri_pratica
+
   - key: m365
     kind: builder
     name: Microsoft365-MCP
@@ -223,6 +300,25 @@ mcpServers:
         parameters:
           messaggioId: Identificativo del messaggio, come restituito da posta_in_arrivo
         required: [messaggioId]
+
+      # Una busta PEC porta il messaggio originale come allegato (postacert.eml): Exchange lo
+      # espone come itemAttachment, e con $expand Graph restituisce il messaggio interno già
+      # scomposto — oggetto, mittente, corpo — senza interpretare il MIME. Basta Mail.Read. Se
+      # il gestore lo marca come file generico, qui arriva solo un contentBytes in base64: in
+      # quel caso l'allegato NON è leggibile, e va detto (regola 6 dello Smistamento).
+      - name: leggi_allegati
+        method: GET
+        path: /users/{{mailbox}}/messages/{{messaggioId}}/attachments
+        description: >
+          Gli allegati di un messaggio. Un messaggio allegato (una PEC porta così l'originale)
+          arriva con oggetto, mittente e corpo già leggibili in «item»; un file arriva con nome,
+          tipo e contenuto in base64, che NON va interpretato.
+        parameters:
+          messaggioId: Identificativo del messaggio, come restituito da posta_in_arrivo
+        required: [messaggioId]
+        query:
+          $expand: microsoft.graph.itemAttachment/item
+          $select: id,name,contentType,size
 
       - name: invia_messaggio
         method: POST
@@ -332,31 +428,76 @@ businessRoles:
 # --------------------------------------------------------------------------------------------
 
 agents:
+  # ------------------------------------------------------------------------------------------
+  # Il classificatore: una parola, e il processo si biforca su quella
+  # ------------------------------------------------------------------------------------------
+  # Senza strumenti e a temperatura zero, perché la sua risposta è la variabile di un gateway:
+  # un aggettivo in più e il flusso prende il ramo di default. Il referente la vede nel modulo di
+  # verifica e può correggerla, quindi un errore qui costa un clic, non una pratica.
+
+  - key: classificatore
+    name: Classificatore comunicazioni
+    description: Dice di che tipo è una comunicazione, con una parola sola
+    language: it
+    temperature: 0
+    skills: []
+    systemMessage: |
+      Ricevi il testo di una comunicazione arrivata a uno studio legale — una mail di un
+      avvocato dello Studio scritta di fretta, un dettato trascritto, una comunicazione di
+      cancelleria, una PEC, il messaggio di un collega — e rispondi con UNA sola parola, senza
+      punto, senza spiegazioni, scelta fra queste cinque:
+
+      Udienza    una data di udienza nuova, fissata per la prima volta
+      Rinvio     un'udienza già fissata che viene spostata, differita, rinviata
+      Scadenza   un termine o una scadenza con una data scritta nel testo (deposito entro il…,
+                 notifica entro il…), che non è un'udienza
+      Attività   una cosa da fare senza una data di udienza o di scadenza scritta nel testo
+                 (prepara il fascicolo, chiama il CTU, chiedi copia del verbale)
+      Visione    tutto il resto: una comunicazione da leggere e archiviare, senza niente da
+                 registrare né da fare
+
+      Se il testo contiene più cose, vince la prima che compare in questo ordine: Rinvio,
+      Udienza, Scadenza, Attività. «Rinviata al 12 marzo, prepara il fascicolo» è Rinvio.
+
+      Non dedurre una data che non c'è: «entro trenta giorni» senza una data scritta è
+      Attività, non Scadenza. Non è compito tuo calcolarla.
+
   - key: agenda
     name: Agenda
-    description: Estrae gli estremi di un'udienza dal testo di un avviso
+    description: Estrae gli estremi di una comunicazione — udienza, rinvio, scadenza, attività
     language: it
     temperature: 0.1        # è un compito di estrazione: la fantasia qui è un difetto
     systemMessage: |
       Sei l'assistente di agenda di uno studio legale.
 
-      Ricevi il testo di un avviso di udienza — una comunicazione di cancelleria, una PEC, il
-      corpo di una email inoltrata — e restituisci gli estremi, in italiano, in questa forma:
+      Ricevi il testo di una comunicazione — la mail scritta di fretta da un avvocato dello
+      Studio, un dettato trascritto dal telefono, una comunicazione di cancelleria, una PEC, il
+      messaggio di un collega — e ti viene detto di che TIPO è: Udienza, Rinvio, Scadenza,
+      Attività o Visione. Restituisci gli estremi, in italiano, in questa forma:
 
-      - Data e ora
+      - Data e ora (per un rinvio: la NUOVA data e ora)
       - Autorità giudiziaria, sede e sezione
       - Numero di ruolo (R.G. o R.G.N.R.)
       - Parti
-      - Tipo di adempimento (udienza, rinvio, deposito, notifica)
+      - Cosa va fatto (udienza di …, rinvio da … a …, deposito di …, attività …)
       - Giudice, se indicato
+      - Data precedente (solo per un rinvio, se indicata)
+      - Altre attività menzionate: ciò che il testo chiede in più oltre alla voce principale,
+        una per riga («preparare il fascicolo», «chiamare il CTU giovedì»), oppure «nessuna»
+
+      Il testo può essere scomposto, con abbreviazioni («la Rossi/Alfa», «2a civ.», «RG
+      4127/25», «giov»), senza maiuscole e senza punteggiatura: leggilo come lo leggerebbe la
+      segretaria dello Studio, che sa che «la Rossi/Alfa» sono le parti e «2a civ.» è la
+      Seconda sezione civile. Normalizza ciò che è scritto, non aggiungere ciò che non c'è.
 
       Regole che non ammettono eccezioni:
       - Se un dato non è presente nel testo, scrivi «non indicato». Non dedurlo, non stimarlo,
-        non completarlo con quello che sembra plausibile.
+        non completarlo con quello che sembra plausibile. «Giovedì» senza data resta «giovedì».
       - Non calcolare termini processuali e non proporre scadenze derivate: non è compito tuo,
         e un termine sbagliato ha conseguenze irreparabili.
       - Se il testo è ambiguo o sembra riferirsi a più procedimenti, dillo esplicitamente in
         fondo invece di sceglierne uno.
+      - In una busta PEC la data del messaggio di trasporto non è mai la data dell'udienza.
     skills: []
 
     # Nessun server MCP dalla v5: l'agente estrae, non registra. La registrazione sul calendario
@@ -365,32 +506,62 @@ agents:
 
   - key: sorveglianza
     name: Sorveglianza posta
-    description: Guarda la casella dello Studio e riconosce gli avvisi di udienza
+    description: Guarda la casella dello Studio e passa al processo ogni comunicazione da organizzare
     language: it
     temperature: 0
     mcp: [m365]
     systemMessage: |
-      Guardi la casella di ascolto di uno studio legale e riconosci quali messaggi
-      sono avvisi di udienza.
+      Guardi la casella di ascolto di uno studio legale e smisti ciò che arriva:
+      passi al processo di presa in carico ogni messaggio che contiene qualcosa da
+      organizzare, e scarti il resto.
 
-      # Cosa fai
+      # Cosa passa
+      Da chi lavora nello Studio (avvocati, praticanti, segreteria): qualunque
+      messaggio che riguardi un procedimento — «la Rossi/Alfa è rinviata al 14/10»,
+      «ricordami di chiamare il CTU giovedì», «deposita la memoria entro il 20» —
+      anche scritto di fretta, senza saluti, con abbreviazioni. È il caso PIÙ
+      frequente e quello che conta di più.
+      Dall'autorità (cancelleria, tribunale, PEC di giustizia, ufficiali giudiziari,
+      controparti): udienze, rinvii, differimenti, termini, depositi, notifiche,
+      comunicazioni da prendere in visione. Di QUALUNQUE tipo, in qualunque forma.
+      Da un collega esterno: se parla di un procedimento dello Studio.
+
+      # Cosa scarti
+      Newsletter, notifiche automatiche di servizi, pubblicità, fatture, messaggi
+      che non riguardano un procedimento. Nel dubbio PASSA: un falso positivo lo
+      chiude un referente in dieci secondi, una comunicazione persa è un termine
+      perso.
+
+      # Come leggi
       1. Chiami posta_in_arrivo con il momento che ti viene indicato.
-      2. Per ogni messaggio che sembra un avviso — cancelleria, PEC, comunicazione
-         di un collega che inoltra un rinvio — chiami leggi_messaggio per averne il
-         testo intero.
-      3. Restituisci il testo dell'avviso, e nient'altro: né preamboli, né
+      2. Per ogni messaggio da passare chiami leggi_messaggio per il testo intero.
+      3. Se è una busta di posta certificata — l'oggetto comincia con «POSTA
+         CERTIFICATA:», oppure ha allegati daticert.xml o postacert.eml — chiami
+         anche leggi_allegati, sempre, e applichi queste regole:
+         a. Leggi il corpo. Il testo standard del gestore («Il giorno … il
+            messaggio … è stato inviato da …») non è la comunicazione, e la sua
+            data è quella della busta. Se però il corpo contiene anche la
+            comunicazione, quella vale.
+         b. Leggi il messaggio originale allegato, se c'è: il suo corpo è il testo
+            firmato dal mittente.
+         c. Se corpo e allegato dicono la stessa cosa, è UNA comunicazione: passi il
+            testo dell'allegato, che è l'originale.
+         d. Se dicono cose diverse (una data nel corpo, un'altra nell'allegato),
+            passi entrambi i testi, uno dopo l'altro, preceduti dalla riga
+            «ATTENZIONE: corpo e allegato non coincidono».
+         e. Se il corpo è solo il testo del gestore e l'allegato non è leggibile (un
+            file, un PDF, contenuto in base64), passi il corpo preceduto dalla riga
+            «ATTENZIONE: comunicazione in allegato non leggibile (<nome del file>),
+            aprire la PEC». Così il referente sa che deve andare a vedere.
+      4. Restituisci il testo della comunicazione, e nient'altro: né preamboli, né
          riassunti, né commenti. Quel testo viene consegnato a un processo che lo
-         farà leggere a chi di dovere.
+         classifica e lo fa leggere a chi di dovere.
 
       # Cosa NON fai
-      Non estrai gli estremi dell'udienza: non è il tuo compito, c'è un altro
-      agente che lo fa dentro il processo, e farlo due volte con criteri diversi
-      produce due verità.
-      Non scarti un messaggio perché ti sembra poco importante: se è un avviso,
-      passa. Nel dubbio passa: un falso positivo lo chiude un referente in dieci
-      secondi, un avviso perso è un termine perso.
+      Non classifichi e non estrai gli estremi: lo fa il processo, con un criterio
+      solo per tutti gli ingressi, e farlo due volte produce due verità.
       Non rispondi ai messaggi e non segni niente come letto.
-      Se non c'è nessun avviso nuovo, restituisci esattamente: NESSUN AVVISO
+      Se non c'è nessun messaggio da passare, restituisci esattamente: NESSUN AVVISO
 
   # ------------------------------------------------------------------------------------------
   # Chi scrive sul calendario comune
@@ -424,6 +595,12 @@ agents:
            note     tipo di adempimento, giudice se indicato, professionista incaricato
          Senza ora non registri: un impegno a un'ora inventata è peggio di
          nessun impegno.
+
+      # Scadenza
+      Come un'udienza nuova, ma il titolo è «Scadenza <cosa va fatto> <parti> R.G.
+      <numero di ruolo>» e, se il testo non dà un'ora, l'impegno va dalle 09:00
+      alle 09:30 del giorno della scadenza: qui l'ora non è un dato inventato, è
+      un promemoria di inizio giornata, e lo scrivi nelle note.
 
       # Rinvio
       1. Chiami cerca_eventi sul giorno dell'udienza precedente che ti viene
@@ -577,6 +754,56 @@ agents:
       un'udienza è esattamente il genere di dettaglio per cui esiste questo
       confronto.
 
+  # ------------------------------------------------------------------------------------------
+  # L'ingresso dalla chat: l'avvocato detta, l'assistente apre la pratica
+  # ------------------------------------------------------------------------------------------
+  # Ha un solo strumento, apri_pratica, e non ha posta né calendario: aprire la pratica è già
+  # una scrittura, e un agente che potesse anche registrare in agenda salterebbe la verifica
+  # del referente, che è il motivo per cui il processo esiste. Non è l'agente di nessun passo
+  # del processo — la connessione si completa dopo il webhook, che nasce dopo il processo.
+
+  - key: assistente
+    name: Assistente agenda
+    description: Riceve in chat ciò che l'avvocato detta o incolla e apre la pratica di presa in carico
+    language: it
+    temperature: 0.1
+    skills: []
+    mcp: [pratiche]
+    systemMessage: |
+      Sei l'assistente di agenda di uno studio legale, in chat. Chi ti scrive è di
+      norma un avvocato dello Studio che esce dal tribunale e ha fretta: detta al
+      telefono, scrive senza punteggiatura, usa abbreviazioni («la Rossi/Alfa»,
+      «2a civ.», «RG 4127/25», «giov»). Il tuo compito è aprire la pratica giusta,
+      una volta sola, senza far perdere tempo.
+
+      # Come lavori
+      1. Leggi ciò che ti arriva e rileggilo all'utente in tre o quattro righe: di
+         che si tratta (udienza nuova, rinvio, scadenza, attività da fare, o solo
+         una comunicazione da prendere in visione), le parti o il numero di ruolo,
+         la data e l'ora se ci sono, e le altre cose menzionate. Dove un dato manca
+         scrivi «non indicato», non lo inventi.
+      2. Chiedi conferma con una domanda sola: «Apro la pratica così?». Se l'utente
+         corregge, rileggi e richiedi.
+      3. Al sì, chiami apri_pratica UNA volta, passando il testo INTEGRALE come
+         l'utente l'ha scritto (non la tua rilettura: la classificazione e
+         l'estrazione le fa il processo, sul testo originale). Materia: Penale se
+         il testo parla di R.G.N.R., procura, imputato, GIP, GUP o dibattimento;
+         altrimenti Civile.
+      4. Rispondi che la pratica è aperta e che un referente dell'agenda la
+         verificherà; se ci sono altre attività menzionate, di' che le vedrà nella
+         stessa pratica.
+
+      # Cosa NON fai
+      Non calcoli termini né scadenze derivate: se l'utente te lo chiede, dici che
+      i termini li scrive il professionista nel compito di conferma.
+      Non apri due pratiche per un messaggio solo, anche se contiene più cose: la
+      voce principale apre la pratica, le altre viaggiano con lei.
+      Non chiami apri_pratica senza il sì dell'utente, e non lo chiami «per
+      sicurezza» una seconda volta.
+      Non leggi la posta e non scrivi in calendario: non hai quegli strumenti, e
+      dirlo è meglio che fingere.
+      Se il messaggio non riguarda un procedimento, lo dici e non apri niente.
+
 # ----------------------------------------------------------------------------------------------
 # L'orchestrazione della riconciliazione
 # ----------------------------------------------------------------------------------------------
@@ -638,13 +865,21 @@ orchestrators:
       - { from: confronto, to: fine }
 
 agentTasks:
+  # Il primo passo automatico del processo, uguale per i tre ingressi: una parola.
+  - key: classificazione
+    name: Classificazione comunicazione
+    description: Dice se la comunicazione è un'udienza, un rinvio, una scadenza, un'attività o una presa visione
+    agent: classificatore
+    prompt: |
+      {{testoAvviso}}
+
   - key: estrazione-avviso
     name: Estrazione avviso
-    description: Legge l'avviso ricevuto e ne propone gli estremi
+    description: Legge la comunicazione ricevuta e ne propone gli estremi
     agent: agenda
     prompt: |
-      Estrai gli estremi dell'udienza dal seguente avviso.
-      Materia: {{materia}}. Fascicolo: {{fascicolo}}.
+      Estrai gli estremi dalla seguente comunicazione.
+      Tipo: {{tipo}}. Fonte: {{fonte}}. Materia: {{materia}}. Fascicolo: {{fascicolo}}.
 
       {{testoAvviso}}
 
@@ -668,9 +903,9 @@ agentTasks:
     prompt: |
       Adesso è {{now}} (UTC).
 
-      Cerca gli avvisi arrivati negli ultimi due minuti e restituisci il testo
-      del primo che trovi. La finestra è più larga dell'intervallo di proposito:
-      meglio riconsiderare un messaggio che perderlo fra due giri.
+      Cerca i messaggi arrivati negli ultimi due minuti e restituisci il testo
+      del primo da passare al processo. La finestra è più larga dell'intervallo di
+      proposito: meglio riconsiderare un messaggio che perderlo fra due giri.
     trigger: scheduled
     schedule:
       cron: "* * * * *"
@@ -682,9 +917,10 @@ agentTasks:
       maxDailyExecutions: 2000
     outputActions:
       - type: webhook
-        url: processes.presa-in-carico-udienza.webhook
+        url: processes.presa-in-carico.webhook
         body:
           testoAvviso: "{{agentResponse}}"
+          fonte: mail
           # La materia non si deduce dal testo senza sbagliarla: il referente la sceglie nel
           # modulo. Qui si lascia il default, e il processo la fa confermare.
           materia: Civile
@@ -701,10 +937,10 @@ agentTasks:
 
   - key: registrazione-udienza
     name: Registrazione udienza
-    description: Registra sul calendario comune un'udienza nuova appena assegnata
+    description: Registra sul calendario comune un'udienza nuova o una scadenza appena assegnata
     agent: registrazione
     prompt: |
-      Udienza nuova da registrare.
+      Da registrare: {{tipo}} (udienza nuova, oppure scadenza).
       Data: {{dataUdienza}}
       Ora: {{oraUdienza}}
       Autorità, sede e sezione: {{sede}}
@@ -788,33 +1024,40 @@ agentTasks:
 # --------------------------------------------------------------------------------------------
 
 processes:
-  - key: presa-in-carico-udienza
+  - key: presa-in-carico
     publish: true
     owners:
       - giuseppe.zileni@hevolus.it     # destinatario di prova degli alert di soglia
     starterRoles:
       - referente-agenda
     webhook:
-      enabled: true               # per l'ingresso automatico dalla casella di ascolto
+      enabled: true               # per l'ingresso dalla casella E dalla chat
     spec:
       version: 1
-      name: Presa in carico avviso di udienza
+      name: Presa in carico di una comunicazione
       description: >
-        Dall'avviso ricevuto alla registrazione sul calendario comune, con verifica del
-        referente, assegnazione al professionista e conferma di presa visione.
+        Dalla comunicazione ricevuta — mail di un avvocato, dettato in chat, avviso del
+        tribunale — alla pratica giusta: udienza o scadenza sul calendario comune, rinvio
+        spostato, attività al professionista, presa visione. Con verifica del referente,
+        assegnazione tracciata e conferma.
       criticality: High
       dataSensitivity: Confidential
 
       activities:
         - id: start
           type: Start
-          name: Avviso ricevuto
+          name: Comunicazione ricevuta
           form:
             - key: testoAvviso
-              label: Testo dell'avviso
+              label: Testo della comunicazione
               type: textarea
               required: true
-              description: Il corpo della comunicazione, come è arrivato
+              description: Il testo come è arrivato — mail, dettato, avviso — senza riscriverlo
+            - key: fonte
+              label: Da dove arriva
+              type: select
+              required: true
+              options: [mail, chat, cancelleria, altro]
             - key: materia
               label: Materia
               type: select
@@ -828,12 +1071,23 @@ processes:
               label: Mittente
               type: text
 
-        # Il task «Sorveglianza posta» chiama il webhook anche quando non trova niente, perché le
-        # output action non hanno condizioni. L'istanza con «NESSUN AVVISO» si chiude qui: niente
-        # estrazione, niente compito al referente.
+        # La Sorveglianza chiama il webhook anche quando non trova niente, perché le output action
+        # non hanno condizioni. L'istanza con «NESSUN AVVISO» si chiude qui.
         - id: nessun-avviso
           type: End
-          name: Nessun avviso da prendere in carico
+          name: Nessuna comunicazione da prendere in carico
+
+        # Una parola — Udienza, Rinvio, Scadenza, Attività, Visione — che diventa la variabile del
+        # gateway «Di che si tratta?». Agente senza strumenti: torna in pochi secondi (#1000 non
+        # lo riguarda), e il referente la può correggere nel passo dopo.
+        - id: classifica
+          type: Task
+          name: Classifica la comunicazione
+          performer: Automated
+          agentTaskName: Classificazione comunicazione
+          outputVariable: tipo
+          expectedDurationMinutes: 1
+          maxLeadTimeMinutes: 30
 
         - id: estrai
           type: Task
@@ -858,12 +1112,26 @@ processes:
               label: Estremi proposti
               type: textarea
               context: true
-              description: Quello che l'assistente ha letto nell'avviso, da verificare sul testo
+              description: Quello che l'assistente ha letto, da verificare sul testo
+            - key: fonte
+              label: Da dove arriva
+              type: text
+              context: true
+            # Stessa chiave della variabile scritta dal classificatore: il referente vede la
+            # classificazione e la può cambiare. È su questo valore che il flusso si biforca.
+            - key: tipo
+              label: Di che si tratta
+              type: select
+              required: true
+              options: [Udienza, Rinvio, Scadenza, Attività, Visione]
+              description: >
+                Udienza nuova, rinvio di una già fissata, scadenza con data scritta, attività da
+                fare, o solo da prendere visione. Correggere se l'assistente ha sbagliato.
             - key: datiCompleti
               label: Estremi completi e corretti
               type: bool
             - key: dataUdienza
-              label: Data dell'udienza
+              label: Data (udienza, nuova udienza, o scadenza)
               type: date
             - key: oraUdienza
               label: Ora
@@ -872,15 +1140,9 @@ processes:
               label: Sede e sezione
               type: text
             - key: tipoAdempimento
-              label: Tipo di adempimento
-              type: select
-              options: [Udienza, Rinvio, Deposito, Notifica, Altro]
-            - key: giaACalendario
-              label: L'udienza è già sul calendario comune
-              type: bool
-              description: >
-                Spuntare se questo avviso sposta un'udienza già registrata. Il flusso aggiornerà
-                l'evento esistente invece di crearne uno nuovo, e non rifarà l'assegnazione.
+              label: Cosa va fatto
+              type: text
+              description: Udienza di comparizione, deposito memoria, notifica, chiamare il CTU…
 
         - id: chiarimenti
           type: Task
@@ -902,16 +1164,42 @@ processes:
               label: A chi e cosa è stato chiesto
               type: textarea
 
-        - id: assegna
+        # --- Presa visione: c'è da leggere, non da registrare ---
+        - id: visione
           type: Task
-          name: Assegna l'udienza
+          name: Presa visione del referente
           performer: HumanOnly
           roleName: Referente agenda
           expectedDurationMinutes: 5
           maxLeadTimeMinutes: 1440
           form:
+            - key: proposta
+              label: Comunicazione
+              type: textarea
+              context: true
+            - key: presaVisione
+              label: Presa visione
+              type: bool
+              required: true
+            - key: noteVisione
+              label: Annotazioni
+              type: textarea
+
+        # --- Udienza nuova, scadenza, attività: si assegna a una persona ---
+        - id: assegna
+          type: Task
+          name: Assegna al professionista
+          performer: HumanOnly
+          roleName: Referente agenda
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 1440
+          form:
+            - key: tipo
+              label: Di che si tratta
+              type: text
+              context: true
             - key: dataUdienza
-              label: Data dell'udienza
+              label: Data
               type: date
               context: true
             - key: sede
@@ -922,52 +1210,38 @@ processes:
               label: Professionista incaricato
               type: user
               required: true
-              description: Riceverà il compito di conferma direttamente nella sua lista
+              description: Riceverà il compito direttamente nella sua lista
 
-        - id: conferma
+        # Attività senza data: un compito alla persona, niente calendario.
+        - id: compito-attivita
           type: Task
-          name: Conferma del professionista
-          # L'assegnazione decisa al passo precedente guida questo: il compito arriva alla
-          # persona scelta, non a una coda di ruolo. È la traccia che la procedura dello Studio
-          # oggi affida a un'annotazione a margine di una fotocopia.
+          name: Attività da fare
           performer: HumanOnly
           assignmentExpression: professionista
           expectedDurationMinutes: 5
           maxLeadTimeMinutes: 2880
           form:
-            - key: dataUdienza
-              label: Data dell'udienza
-              type: date
-              context: true
-            - key: sede
-              label: Sede e sezione
-              type: text
+            - key: proposta
+              label: Cosa va fatto
+              type: textarea
               context: true
             - key: tipoAdempimento
-              label: Adempimento
+              label: Attività
               type: text
               context: true
-            - key: esitoRegistrazione
-              label: Calendario comune
-              type: textarea
-              context: true
-              description: >
-                Cosa ha fatto l'assistente sul calendario. La prima riga dice tutto: REGISTRATO,
-                GIÀ PRESENTE o NON REGISTRATO — in quest'ultimo caso l'udienza NON è in agenda.
-            - key: presaVisione
-              label: Presa visione
+            - key: fatto
+              label: Fatto
               type: bool
               required: true
-            - key: terminiDaPresidiare
-              label: Termini da presidiare
+            - key: noteAttivita
+              label: Esito o annotazioni
               type: textarea
-              description: I termini collegati a questa udienza, scritti dal professionista.
 
         - id: registra
           type: Task
           name: Registra sul calendario comune
-          # Automatico dalla v5: prima era il referente a trascrivere. Sta PRIMA della conferma del
-          # professionista perché la conferma serva anche a questo — vede se l'udienza è in agenda.
+          # Udienza nuova e scadenza: lo stesso agente, il tipo nel prompt. Sta PRIMA della
+          # conferma del professionista perché la conferma serva anche a questo.
           performer: Automated
           agentTaskName: Registrazione udienza
           outputVariable: esitoRegistrazione
@@ -976,16 +1250,54 @@ processes:
           # soglia, una registrazione mai tornata lascerebbe l'udienza fuori dall'agenda in silenzio.
           maxLeadTimeMinutes: 30
 
-        # --- Ramo del rinvio: l'udienza è già a calendario ---
-        # Non si riassegna e non si crea un evento nuovo: si sposta quello che c'è, e chi segue
-        # il fascicolo deve accorgersene. Senza questo ramo un rinvio produrrebbe un doppione a
-        # calendario, che è precisamente il disallineamento che il processo dovrebbe togliere.
+        - id: conferma
+          type: Task
+          name: Conferma del professionista
+          performer: HumanOnly
+          assignmentExpression: professionista
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 2880
+          form:
+            - key: tipo
+              label: Di che si tratta
+              type: text
+              context: true
+            - key: dataUdienza
+              label: Data
+              type: date
+              context: true
+            - key: sede
+              label: Sede e sezione
+              type: text
+              context: true
+            - key: tipoAdempimento
+              label: Cosa va fatto
+              type: text
+              context: true
+            - key: proposta
+              label: Estremi e altre attività menzionate
+              type: textarea
+              context: true
+            - key: esitoRegistrazione
+              label: Calendario comune
+              type: textarea
+              context: true
+              description: >
+                Cosa ha fatto l'assistente sul calendario. La prima riga dice tutto: REGISTRATO,
+                GIÀ PRESENTE o NON REGISTRATO — in quest'ultimo caso NON è in agenda.
+            - key: presaVisione
+              label: Presa visione
+              type: bool
+              required: true
+            - key: terminiDaPresidiare
+              label: Termini da presidiare
+              type: textarea
+              description: I termini collegati, scritti dal professionista.
 
+        # --- Rinvio: si sposta l'impegno che c'è, non se ne crea un altro ---
         - id: aggiorna
           type: Task
           name: Indica l'udienza da spostare
-          # Dalla v5 il referente non sposta più l'evento a mano: dice QUALE udienza si sposta e chi
-          # segue il fascicolo. Lo spostamento lo fa il passo automatico successivo.
           performer: HumanOnly
           roleName: Referente agenda
           expectedDurationMinutes: 5
@@ -1039,14 +1351,17 @@ processes:
               label: Udienza spostata
               type: text
               context: true
+            - key: proposta
+              label: Estremi e altre attività menzionate
+              type: textarea
+              context: true
             - key: esitoSpostamento
               label: Calendario comune
               type: textarea
               context: true
               description: >
-                Cosa ha fatto l'assistente sul calendario. SPOSTATO: l'impegno è sulla nuova data.
-                NON REGISTRATO: l'impegno precedente non è stato trovato, e il calendario va
-                sistemato a mano.
+                SPOSTATO: l'impegno è sulla nuova data. NON REGISTRATO: l'impegno precedente non è
+                stato trovato, e il calendario va sistemato a mano.
             - key: presaVisioneRinvio
               label: Presa visione del rinvio
               type: bool
@@ -1060,29 +1375,38 @@ processes:
 
         - id: fine
           type: End
-          name: Udienza a calendario
+          name: Pratica chiusa
 
       gateways:
         - id: filtro
           type: Exclusive
-          name: C'è un avviso?
+          name: C'è una comunicazione?
         - id: completezza
           type: Exclusive
           name: Estremi completi?
-        - id: natura
+        - id: smista
           type: Exclusive
-          name: Udienza già a calendario?
+          name: Di che si tratta?
+        - id: dopo-assegnazione
+          type: Exclusive
+          name: Va in calendario?
 
+      # Le condizioni su `tipo` confrontano per stringa senza distinguere le maiuscole. Il flusso
+      # senza condizione è il default, e in entrambi i gateway porta a un compito UMANO: da
+      # «smista» all'assegnazione, da «dopo-assegnazione» all'attività. Un valore imprevisto del
+      # classificatore finisce davanti a una persona, mai davanti all'agente che scrive in agenda.
       flows:
         - from: start
           to: filtro
         - from: filtro
           to: nessun-avviso
           condition: { var: testoAvviso, op: eq, value: NESSUN AVVISO }
-          label: nessun avviso
+          label: nessuna comunicazione
         - from: filtro
+          to: classifica
+          label: comunicazione
+        - from: classifica
           to: estrai
-          label: avviso
         - from: estrai
           to: verifica
         - from: verifica
@@ -1094,17 +1418,39 @@ processes:
         - from: chiarimenti
           to: verifica
         - from: completezza
-          to: natura
+          to: smista
           label: completi
-        - from: natura
+        - from: smista
           to: aggiorna
-          condition: { var: giaACalendario, op: eq, value: true }
+          condition: { var: tipo, op: eq, value: Rinvio }
           label: rinvio
-        - from: natura
+        - from: smista
+          to: visione
+          condition: { var: tipo, op: eq, value: Visione }
+          label: presa visione
+        - from: smista
           to: assegna
-          label: udienza nuova
+          label: udienza, scadenza, attività
+        - from: visione
+          to: fine
         - from: assegna
+          to: dopo-assegnazione
+        # Le condizioni portano al calendario; il default è il compito a una persona. Così un
+        # valore imprevisto del classificatore (un accento perso, una parola in più) finisce
+        # davanti a qualcuno, non davanti all'agente che scrive in agenda.
+        - from: dopo-assegnazione
           to: registra
+          condition: { var: tipo, op: eq, value: Udienza }
+          label: udienza
+        - from: dopo-assegnazione
+          to: registra
+          condition: { var: tipo, op: eq, value: Scadenza }
+          label: scadenza
+        - from: dopo-assegnazione
+          to: compito-attivita
+          label: attività
+        - from: compito-attivita
+          to: fine
         - from: registra
           to: conferma
         - from: conferma
