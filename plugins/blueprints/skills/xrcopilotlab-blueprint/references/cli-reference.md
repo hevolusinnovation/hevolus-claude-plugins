@@ -402,7 +402,7 @@ Esce `0` se tutti i casi passano, **`7`** se almeno uno non passa, `2` se la sui
 `3` se il tag non ha un run sul tenant. Formato della suite, esiti, sospetti e codici `BT0xx`:
 [`testing.md`](testing.md).
 
-## `schedule list` · `schedule pause <task>` · `schedule resume <task>`
+## `schedule list` · `schedule pause <task>` · `schedule resume <task>` · `schedule logs <task>`
 
 Le schedulazioni degli agent task creati da un blueprint. Servono quando il blueprint è applicato
 ma una sua fonte non è pronta — una casella che nessuno controlla, credenziali da correggere: un
@@ -423,6 +423,25 @@ e `resume` riprende da lì ricalcolando la prossima esecuzione.
 Il comando è **idempotente**: l'API espone solo un'inversione dello stato, quindi la CLI legge prima
 lo stato e inverte solo se serve. `pause` su un task già in pausa non lo riaccende. Nessuna
 approvazione: non crea né rimuove niente, e l'inverso è un comando.
+
+`schedule logs <task> [--last <n>]` mostra ciò che lo scheduler da solo non dice: la **quota
+giornaliera** del task (dichiarata con `executionPolicy`, o il default 100), la stima dei giri al
+giorno del cron, e le ultime `n` esecuzioni (10 di default) con esito, durata e un estratto
+dell'output o dell'errore.
+
+```
+Esecuzioni · BP-STUDIOPOLIS-Sorveglianza posta
+  quota      2000 esecuzioni al giorno (UTC)
+  cron       attivo   * * * * * (Europe/Rome) · prossima 2026-09-15 13:58 UTC · circa 1440 giri al giorno
+  ultime 6 esecuzioni (6 oggi, fra quelle mostrate):
+  2026-09-15 13:57:00 UTC  Completed     8.0s  NESSUN AVVISO
+  …
+```
+
+Le esecuzioni **saltate per quota non lasciano traccia** qui: si riconoscono perché la `prossima`
+dello scheduler avanza mentre l'ultima esecuzione registrata resta ferma, e il comando lo segnala
+quando la distanza supera l'ora e mezza su un task che gira più di 24 volte al giorno. Il 15/09/2026
+questo era l'unico segnale, e stava in un log di Application Insights.
 
 **Quando usarlo:** se `apply` riporta un avviso nella sezione «Prove dei tool MCP», i task schedulati
 sugli agenti di quel server lavorano su una fonte che non risponde. Si mettono in pausa subito, si

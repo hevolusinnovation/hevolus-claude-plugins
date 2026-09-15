@@ -196,6 +196,12 @@ Se il blueprint ha agent task **schedulati** su una fonte che il collaudo ha tro
 `xrcopilotlab-bp schedule pause <chiave> --tag <TAG>` finché la fonte non è corretta: girano lo
 stesso, e un esito d'errore mandato a un webhook apre un caso a ogni giro.
 
+Per ogni agent task schedulato che alimenta un processo, prima di giudicare i casi di processo
+guardare `xrcopilotlab-bp schedule logs <chiave> --tag <TAG>`: quota giornaliera, ultime
+esecuzioni, e l'avviso se lo scheduler avanza mentre le esecuzioni no. Un ingresso che ha esaurito
+la quota (100/giorno di default) non produce istanze e non produce errori: senza questo controllo
+il collaudo lo attribuirebbe alla posta, al webhook o al motore.
+
 ## 4. Il triage: di chi è ogni fallimento
 
 Per ogni caso non passato (per la CLI o per te) il report porta un **sospetto**: componente,
