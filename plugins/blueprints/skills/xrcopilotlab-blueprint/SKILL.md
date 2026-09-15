@@ -392,7 +392,10 @@ xrcopilotlab-bp schedule list                --tag <TAG> --company <guid>
 xrcopilotlab-bp schedule pause <chiave-task> --tag <TAG> --company <guid>
 ```
 
-Si riprende con `schedule resume` quando la fonte risponde. Per capire **perché** la fonte non
+Un task schedulato ha una **quota giornaliera** (100 esecuzioni al giorno UTC di default): oltre,
+la piattaforma salta i giri senza errore. Se il cron è più fitto — ogni minuto sono 1440 giri — il
+validatore lo dice (`BP027`) e la risposta è `executionPolicy.maxDailyExecutions` sul task, non un
+cron più largo se la latenza conta. Si riprende con `schedule resume` quando la fonte risponde. Per capire **perché** la fonte non
 risponde, `xrcopilotlab-bp mcp test <server> --tag <TAG>` mostra la risposta grezza del sistema di
 terze parti (l'errore di Entra, il 403 di Graph) senza passare dal modello; `mcp check` dice se
 l'agente carica davvero il server. Dopo aver corretto un segreto con `secrets set`, la connessione

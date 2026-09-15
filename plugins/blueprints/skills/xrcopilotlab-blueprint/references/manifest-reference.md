@@ -217,6 +217,27 @@ agentTasks:
 La casella in-app riceve **sempre** l'esito e non va dichiarata: in `outputActions` si elencano le
 destinazioni aggiuntive.
 
+### Quanto può girare: `executionPolicy`
+
+```yaml
+agentTasks:
+  - key: sorveglia-posta
+    trigger: scheduled
+    schedule: { cron: "* * * * *", timeZone: Europe/Rome }
+    executionPolicy:
+      maxDailyExecutions: 2000     # default della piattaforma: 100
+      timeoutSeconds: 300          # default: 300
+      maxRetries: 0                # default: 0
+```
+
+La piattaforma conta le esecuzioni di ogni agent task **per giorno UTC** e, raggiunta la quota,
+salta le successive: un avviso nel log del worker e nient'altro — niente errore sul task, niente
+email. La quota di default è **100**, che per un task schedulato ogni minuto (1440 giri al giorno)
+significa fermarsi poco prima delle due di notte e riprendere a mezzanotte. Il validatore stima i
+giri al giorno dal cron (minuti × ore, per le forme che si sanno contare) e avvisa con **`BP027`**
+quando superano la quota, dichiarata o di default. Ciò che non è dichiarato resta al default della
+piattaforma.
+
 `url` accetta un indirizzo assoluto oppure la forma `processes.<chiave>.webhook`. La seconda è
 quella che conta: il planner ci mette l'indirizzo e la chiave del webhook che **questo stesso
 blueprint** sta creando, e la chiave — che si vede una volta sola e non è più recuperabile — non

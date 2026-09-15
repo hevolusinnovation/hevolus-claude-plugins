@@ -107,12 +107,29 @@
 #       Graph — rifiuto, o udienza spostata di due ore. Il fuso resta dove serve davvero: nelle
 #       finestre di ricerca (cerca_eventi, posta_in_arrivo).  (sim-registrazione-rinvio)
 #
+# ── Cosa cambia nella versione 8 ──────────────────────────────────────────────────────────────
+# Per la demo con lo Studio (14/09/2026): la Sorveglianza guarda la casella OGNI MINUTO invece che
+# ogni cinque, e la finestra scende da dieci a due minuti — finestra e intervallo vanno insieme,
+# perché una finestra più larga dell'intervallo ripassa al processo lo stesso avviso a ogni giro.
+# Con due minuti su uno, una mail può ancora aprire due istanze: è il prezzo di non perdere un
+# avviso arrivato a cavallo di due giri. La deduplica vera — segnare il messaggio come letto e
+# chiedere solo i non letti — richiede Mail.ReadWrite al posto di Mail.Read, cioè un nuovo
+# consenso dell'amministratore: è la v9, non questa.
+#
+# ── Cosa cambia nella versione 9 ──────────────────────────────────────────────────────────────
+# La piattaforma conta le esecuzioni di ogni agent task per giorno UTC e, raggiunta la quota, salta
+# le successive con un avviso nel log e niente altro. La quota di default è 100: la Sorveglianza
+# della v8, un giro al minuto, l'ha esaurita alle 03:52 del 15/09 e da lì non ha più letto niente —
+# la prima mail di prova è rimasta in casella. Qui la quota è dichiarata: 2000 al giorno, cioè i
+# 1440 giri del cron più un margine. Il validatore ora avvisa (BP027) quando il cron è più fitto
+# della quota.
+#
 # Resta fuori il calendario Google del penale in sola lettura: vedi la nota in fondo al file.
 #
 #   xrcopilotlab-bp validate blueprints/studiopolis-agenda.yml --graph
 
 blueprint: studiopolis-agenda
-version: 7
+version: 9
 tag: STUDIOPOLIS
 description: Presa in carico di un avviso di udienza e registrazione sul calendario comune
 
@@ -634,7 +651,7 @@ agentTasks:
   # ------------------------------------------------------------------------------------------
   # L'ingresso: nessuno incolla più il testo di un avviso
   # ------------------------------------------------------------------------------------------
-  # Ogni cinque minuti il sorvegliante guarda la casella e, se trova un avviso, il suo esito
+  # Ogni minuto il sorvegliante guarda la casella e, se trova un avviso, il suo esito
   # viene consegnato al webhook del processo — indirizzo e chiave li mette il planner, e quella
   # chiave, che si vede una volta sola, non passa da nessuna parte.
   #
@@ -646,18 +663,23 @@ agentTasks:
 
   - key: sorveglianza-posta
     name: Sorveglianza posta
-    description: Ogni cinque minuti cerca avvisi nuovi e avvia la presa in carico
+    description: Ogni minuto cerca avvisi nuovi e avvia la presa in carico
     agent: sorveglianza
     prompt: |
       Adesso è {{now}} (UTC).
 
-      Cerca gli avvisi arrivati negli ultimi dieci minuti e restituisci il testo
+      Cerca gli avvisi arrivati negli ultimi due minuti e restituisci il testo
       del primo che trovi. La finestra è più larga dell'intervallo di proposito:
       meglio riconsiderare un messaggio che perderlo fra due giri.
     trigger: scheduled
     schedule:
-      cron: "*/5 * * * *"
+      cron: "* * * * *"
       timeZone: Europe/Rome
+    # Un giro al minuto sono 1440 esecuzioni al giorno: senza questa riga la piattaforma si ferma
+    # alla centesima, poco prima delle due di notte, e la casella resta senza sorveglianza fino a
+    # mezzanotte UTC.
+    executionPolicy:
+      maxDailyExecutions: 2000
     outputActions:
       - type: webhook
         url: processes.presa-in-carico-udienza.webhook

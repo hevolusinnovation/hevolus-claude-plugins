@@ -20,7 +20,7 @@
 
 blueprint: studiopolis-agenda
 tag: STUDIOPOLIS
-version: 7
+version: 9
 description: Collaudo dello scenario Agenda di Studio Polis
 
 defaults:

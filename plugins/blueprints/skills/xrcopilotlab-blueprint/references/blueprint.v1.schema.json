@@ -518,6 +518,28 @@
               }
             }
           },
+          "executionPolicy": {
+            "type": "object",
+            "description": "Limiti di esecuzione del task. Senza, i default della piattaforma: 100 esecuzioni al giorno, 300 secondi, nessun tentativo in più.",
+            "additionalProperties": false,
+            "properties": {
+              "maxDailyExecutions": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Esecuzioni ammesse in un giorno (UTC). Un task schedulato ogni minuto ne fa 1440."
+              },
+              "timeoutSeconds": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Tempo massimo di una singola esecuzione."
+              },
+              "maxRetries": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Tentativi in più dopo un fallimento."
+              }
+            }
+          },
           "outputActions": {
             "type": "array",
             "description": "Destinazioni aggiuntive del risultato. La casella in-app riceve sempre l'esito e non va dichiarata.",

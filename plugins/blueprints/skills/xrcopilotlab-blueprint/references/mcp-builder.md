@@ -383,6 +383,7 @@ agentTasks:
     prompt: Elenca le novità dall'ultimo giro, una per riga.
     trigger: scheduled
     schedule: { cron: "*/5 * * * *", timeZone: Europe/Rome }
+    executionPolicy: { maxDailyExecutions: 400 }   # 288 giri al giorno; il default è 100 e ferma il task a metà giornata (BP027)
     outputActions:
       - type: webhook
         url: processes.presa-in-carico.webhook    # il planner mette indirizzo e chiave

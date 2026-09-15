@@ -45,7 +45,11 @@ e lì si ferma, lasciando l'istanza aperta. Conseguenze:
 Prima di scrivere i casi, leggere il grafo (`xrcopilotlab-bp validate <manifest> --graph`) e
 rispondere a queste. Ogni «sì» è un caso; ogni «non so» è una nota per l'utente.
 
-1. **Da dove entra?** Modulo di avvio a mano, webhook, o entrambi. Se c'è un webhook alimentato da
+1. **Da dove entra?** Modulo di avvio a mano, webhook, o entrambi. Se entra da un agent task
+   schedulato: **quanti giri al giorno fa, e qual è la sua quota** (`executionPolicy.maxDailyExecutions`,
+   default 100)? Oltre la quota la piattaforma salta i giri in silenzio, e l'ingresso smette di
+   funzionare a metà giornata senza che nessun caso lo veda — il 15/09/2026 la mail di prova è
+   rimasta in casella per questo. Il validatore lo segnala con `BP027`. Se c'è un webhook alimentato da
    un agent task schedulato, **cosa manda quando non ha trovato niente?** Le output action non hanno
    condizioni: il webhook parte a ogni esecuzione riuscita. Serve un gateway subito dopo lo Start
    che chiuda l'istanza vuota — e un caso che lo verifichi (`status: Completed`, nessun work item).
