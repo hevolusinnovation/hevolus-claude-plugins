@@ -78,6 +78,11 @@ rispondere a queste. Ogni «sì» è un caso; ogni «non so» è una nota per l'
 
 ## Leggere gli eventi di un'istanza
 
+Dalla CLI: `xrcopilotlab-bp instances list --tag <TAG> --running` (stato e nodo del token per ogni
+istanza) e `instances show <id> --tag <TAG>` (eventi, compiti, dati del caso). Prima di attribuire un
+blocco al motore o a un agente, guardare il token: se sta su un compito umano (`verifica:waiting`,
+`assegna:waiting`) manca il passo di una persona, non c'è nessun difetto.
+
 La sequenza attesa per «avvio → passo automatico → primo compito» è:
 
 ```

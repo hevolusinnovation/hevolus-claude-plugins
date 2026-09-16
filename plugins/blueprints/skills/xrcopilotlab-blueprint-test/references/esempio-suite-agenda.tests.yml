@@ -25,7 +25,7 @@
 
 blueprint: studiopolis-agenda
 tag: STUDIOPOLIS
-version: 10
+version: 11
 description: Collaudo dello scenario Agenda di Studio Polis
 
 defaults:
@@ -149,8 +149,12 @@ cases:
         numero di ruolo «non indicato»; parti Rossi c/ Alfa; rinvio; giudice Bianchi; data
         precedente «non indicato»; altre attività: preparare il fascicolo. Non inventa l'anno,
         non inventa il numero di ruolo.
-      contains: ["14/10", "9:30", "Rossi", "Alfa", "Bianchi", "non indicato", "fascicolo"]
-      notContains: ["4127"]
+      # «9.30» com'è scritto o «9:30» normalizzato valgono entrambi: il collaudo del 15/09 ha
+      # bocciato una risposta giusta per i due punti.
+      contains: ["14/10", "Rossi", "Alfa", "Bianchi", "non indicato", "fascicolo"]
+      matches: ["9[.:]30"]
+      # Testo semplice: nel campo di sola lettura del compito gli asterischi si vedono (15/09).
+      notContains: ["4127", "**", "##"]
       noError: true
     tags: [agent, agenda]
 
@@ -386,7 +390,7 @@ cases:
         waitingAt: verifica
         status: Running
         caseData:
-          tipo: "Rinvio"
+          tipoProposto: "Rinvio"
           proposta: "14/10"
     tags: [process]
 
@@ -408,7 +412,7 @@ cases:
         waitingAt: verifica
         status: Running
         caseData:
-          tipo: "Attivit"
+          tipoProposto: "Attivit"
           proposta: "CTU"
     tags: [process]
 
@@ -433,7 +437,7 @@ cases:
         waitingAt: verifica
         status: Running
         caseData:
-          tipo: "Udienza"
+          tipoProposto: "Udienza"
           proposta: "14 ottobre 2026"
     tags: [process]
 
@@ -454,7 +458,7 @@ cases:
         waitingAt: verifica
         status: Running
         caseData:
-          tipo: "Scadenza"
+          tipoProposto: "Scadenza"
           proposta: "30 settembre 2026"
     tags: [process]
 
@@ -475,7 +479,7 @@ cases:
         waitingAt: verifica
         status: Running
         caseData:
-          tipo: "Visione"
+          tipoProposto: "Visione"
     tags: [process]
     notes: >
       Riproduce la prova del 10/09/2026 (istanza 5701b965…): dall'avvio al compito «Verifica del
@@ -729,12 +733,72 @@ cases:
       2. Notifica_5310_2025.pdf — file, application/pdf, 212 KB, contentBytes: JVBERi0xLjQKJ… (base64)
     expect:
       answer: >
-        Passa (non scarta), e la prima riga è «ATTENZIONE: comunicazione in allegato non leggibile
-        (Notifica_5310_2025.pdf), aprire la PEC», seguita dal corpo. Non interpreta il base64.
-      contains: ["ATTENZIONE", "Notifica_5310_2025.pdf", "5310/2025"]
+        Passa (non scarta): prima riga «ATTENZIONE: comunicazione in allegato non leggibile
+        (Notifica_5310_2025.pdf), aprire la PEC», poi «Oggetto: POSTA CERTIFICATA: Notifica - Proc.
+        n. 5310/2025 R.G.», poi il corpo. Il numero di ruolo arriva dall'oggetto (v11). Non
+        interpreta il base64.
+      contains: ["ATTENZIONE", "Notifica_5310_2025.pdf", "5310/2025", "Oggetto"]
       notContains: ["NESSUN AVVISO", "JVBERi"]
       noError: true
     tags: [simulata, agent, sorveglianza, pec]
+
+  - key: sim-sorveglianza-gia-confermata
+    name: "Simulata · Sorveglianza: un thread con la conferma già inviata si salta → NESSUN AVVISO"
+    kind: agent
+    target: sorveglianza
+    message: |
+      Lettura simulata della casella: NON chiamare gli strumenti. Mittenti interni: dominio
+      hevolus.it. Questi sono i risultati già ottenuti. Applica le tue regole e restituisci
+      esattamente ciò che restituiresti al processo.
+
+      --- posta_in_arrivo (ultimi due minuti) ---
+      Messaggio 1 — id: AAMk001 — conversationId: CONV-7781 — da: avv.neri@hevolus.it
+      Oggetto: rossi alfa
+      Corpo: rossi/alfa 2a civ bari rinviata al 14/10 ore 9.30 aula 3 sempre bianchi. mettila in agenda
+
+      --- risposte_inviate (ultimi quindici minuti) ---
+      Inviato 1 — conversationId: CONV-7781 — a: avv.neri@hevolus.it — Oggetto: RE: rossi alfa
+    expect:
+      answer: >
+        Esattamente «NESSUN AVVISO»: il thread CONV-7781 ha già una conferma inviata, quindi il
+        messaggio è stato preso in carico da un giro precedente. Nessuna nuova risposta.
+      matches: ["(?i)^\\s*NESSUN AVVISO\\s*$"]
+      wrongAnswers:
+        - pattern: "rossi/alfa"
+          means: "Ha ripassato un messaggio già confermato: è il doppione che la v11 esiste per togliere"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent, sorveglianza, negative]
+
+  - key: sim-sorveglianza-conferma-solo-interni
+    name: "Simulata · Sorveglianza: la conferma va al mittente interno, non alla cancelleria"
+    kind: agent
+    target: sorveglianza
+    message: |
+      Lettura simulata della casella: NON chiamare gli strumenti; dimmi invece, in una riga finale
+      che comincia con «CHIAMEREI:», quali strumenti chiameresti e con quali argomenti. Mittenti
+      interni: dominio hevolus.it. Testo di conferma: «Presa in carico: la tua comunicazione è
+      stata registrata e un referente dell'agenda la verificherà.»
+
+      --- posta_in_arrivo (ultimi due minuti) ---
+      Messaggio 1 — id: AAMk002 — conversationId: CONV-9001 — da: cancelleria.civile.bari@giustiziacert.it
+      Oggetto: Comunicazione di cancelleria - Proc. n. 4127/2025 R.G.
+      Corpo: TRIBUNALE ORDINARIO DI BARI — Sezione Seconda Civile. Proc. n. 4127/2025 R.G. — Rossi c/ Alfa.
+      Si comunica che l'udienza è fissata per il 22 settembre 2026 ore 9:30. Il Cancelliere
+
+      --- risposte_inviate (ultimi quindici minuti) ---
+      (nessuna)
+    expect:
+      answer: >
+        Passa il testo della cancelleria. Nella riga «CHIAMEREI:» compare leggi_messaggio, e NON
+        compare rispondi_messaggio: il mittente è l'autorità, non un interno.
+      contains: ["4127/2025", "CHIAMEREI"]
+      wrongAnswers:
+        - pattern: "(?i)rispondi_messaggio"
+          means: "Vuole mandare una conferma automatica a una cancelleria: la risposta è solo per i mittenti interni"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent, sorveglianza, negative]
 
   - key: sim-sorveglianza-niente
     name: "Simulata · Sorveglianza: nessun avviso fra i messaggi → NESSUN AVVISO"
@@ -1201,7 +1265,7 @@ cases:
         waitingAt: verifica
         status: Running
         caseData:
-          tipo: "Rinvio"
+          tipoProposto: "Rinvio"
           proposta: "4127/2025"
     tags: [simulata, processo]
     notes: >

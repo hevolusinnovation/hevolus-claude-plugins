@@ -563,7 +563,7 @@ variante a polling: quella il blueprint la crea per intero, questa no.
 | Intervallo | Area |
 |---|---|
 | `BP001`–`BP007` | Intestazione: tag, identificativo, versione, tenant, topic ambiguo |
-| `BP010`–`BP015` | Chiavi e nomi: mancanti, duplicati, già prefissati; modello dell'agente non dichiarato (`BP015`) |
+| `BP010`–`BP016` | Chiavi e nomi: mancanti, duplicati, già prefissati; modello dell'agente non dichiarato (`BP015`); descrizione più larga della colonna SQL che la riceve — 500 caratteri per topic, profilo e agente, 1000 per orchestratore, ruolo e agent task (`BP016`, errore: l'apply si fermerebbe sul tenant a entità già create) |
 | `BP020`–`BP023` | Riferimenti fra sezioni e alternative esclusive |
 | `BP030`–`BP033` | Processi: specifica non valida, ruolo, agent task o sotto-processo sconosciuto |
 | `BP040`–`BP045` | Connessioni e server MCP; connessione verso il webhook di un processo (`BP045`) |

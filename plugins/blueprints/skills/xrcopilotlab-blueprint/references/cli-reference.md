@@ -480,6 +480,27 @@ Configuration non è bastato — la connessione aveva i valori dell'apply — e 
 mostrare `AADSTS700016`. Il valore giusto è stato recuperato dalla **versione precedente** del
 segreto in Key Vault, senza ruotare nulla.
 
+## `instances list` · `instances show <id>`
+
+Le istanze dei processi creati dal blueprint, viste dal motore. Durante un collaudo con ingressi
+veri — una mail passa, la Sorveglianza la consegna al webhook — è il modo per sapere dove sta il
+token senza aprire l'interfaccia, e per distinguere «manca il passo di una persona» da «l'agent
+task è partito e non è tornato» (issue #1000).
+
+```bash
+xrcopilotlab-bp instances list --tag STUDIOPOLIS --env staging --company <guid> --running   # solo in corso
+xrcopilotlab-bp instances show 5fcbbcc6 --tag STUDIOPOLIS --env staging --company <guid>     # anche un prefisso dell'id
+```
+
+`list` stampa per ogni istanza: avvio, id, stato, **nodo e stato del token** (`assegna:waiting` è
+un compito umano aperto su «assegna»), fonte e tipo dal caseData, un estratto del testo.
+`show` stampa gli eventi in ordine, i compiti con chi li ha presi, e i dati del caso; se l'ultimo
+evento è `AgentTaskDispatched` da più di due minuti lo dice, con il rimando a `schedule logs`.
+
+Emerso il **2026-09-16**: «non vedo l'evento sul calendario» — l'istanza stava su `assegna:waiting`,
+cioè il referente aveva verificato ma non assegnato, e la Registrazione (che scrive) parte dopo
+l'assegnazione. Senza il comando, l'unica risposta era «apri l'istanza e dimmi l'ultimo evento».
+
 ## `mcp check` · `mcp publish <server>` · `mcp test <server> [--tool] [--args]`
 
 Un server MCP applicato da blueprint vive in tre posti: la **definizione** nel Builder, la

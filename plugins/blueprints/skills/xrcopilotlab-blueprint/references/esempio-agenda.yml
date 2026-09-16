@@ -167,12 +167,40 @@
 #       non passa dal tool Graph). Il file audio inoltrato per mail è la skill vocale
 #       dell'assessment, da costruire: in chat il dettato passa dal microfono, già presente.
 #
+# ── Cosa cambia nella versione 11: la presa in carico si conferma, e il doppione sparisce ─────
+# Dal primo giorno con la mail vera (15/09/2026): la Sorveglianza guarda gli ultimi due minuti ogni
+# minuto, e una mail arrivata a cavallo di due giri apriva DUE pratiche. Segnare il messaggio come
+# letto vorrebbe Mail.ReadWrite, cioè un consenso nuovo. Con i permessi che ci sono (Mail.Send,
+# Mail.Read) si fa così, ed è anche una funzione che serve allo Studio:
+#
+#   · La Sorveglianza RISPONDE al mittente interno sullo stesso thread («Presa in carico…») quando
+#       passa un messaggio al processo. È la conferma di ricezione per chi ha scritto di fretta, ed
+#       è il segnaposto: al giro dopo, un messaggio il cui thread ha già una risposta inviata negli
+#       ultimi quindici minuti è già preso in carico, e si salta (nuovo tool risposte_inviate).
+#       Non si risponde all'autorità né ai mittenti esterni: una risposta automatica a una
+#       cancelleria o a una PEC non è gradita; per quelli il segnaposto è la sola lettura della
+#       posta inviata su thread interni, quindi il loro doppione resta possibile finché non c'è
+#       Mail.ReadWrite (v12). Il testo della risposta porta l'avviso «fase di test» finché
+#       `variables.faseDiTest` è «sì».
+#   · Un messaggio REINVIATO come nuovo (altro thread) è nuovo davvero: lo vede due volte anche una
+#       persona. La difesa resta a valle (Registrazione → GIÀ PRESENTE; il referente ne annulla una).
+#   · Ritocchi dal collaudo della v10 con la mail vera: la regola (e) sulle PEC illeggibili passa
+#       anche l'OGGETTO della busta (il numero di ruolo spesso sta solo lì); l'Assistente dice il tipo
+#       con una parola sola, come il classificatore; l'Agenda non ripete la voce principale fra le
+#       «altre attività menzionate» e scrive in testo semplice (il campo di sola lettura mostrava
+#       «**Data e ora:**» con gli asterischi).
+#   · Il classificatore scrive `tipoProposto`, non `tipo`. Un campo modificabile del modulo NON viene
+#       precompilato dal caseData (la Web carica solo i dati del compito e i campi di contesto): il
+#       select «Di che si tratta» arrivava vuoto e la proposta non si vedeva da nessuna parte. Ora la
+#       verifica mostra «Tipo proposto» in sola lettura e il referente sceglie `tipo` — un clic, con
+#       la proposta sotto gli occhi — ed è su `tipo` che il flusso si biforca.
+#
 # Resta fuori il calendario Google del penale in sola lettura: vedi la nota in fondo al file.
 #
 #   xrcopilotlab-bp validate blueprints/studiopolis-agenda.yml --graph
 
 blueprint: studiopolis-agenda
-version: 10
+version: 11
 tag: STUDIOPOLIS
 description: Organizer dello Studio — dalla mail, dal dettato in chat o dalla comunicazione del tribunale alla pratica e al calendario comune
 
@@ -268,6 +296,12 @@ mcpServers:
     connection: graph
     variables:
       mailbox: test@hevolus.it
+      # Il dominio di chi lavora nello Studio: la Sorveglianza risponde solo a loro. In demo è il
+      # dominio di chi manda le mail di prova; in esercizio quello dello Studio (domanda da fare).
+      dominioInterno: hevolus.it
+      # «sì» finché si collauda: la risposta di presa in carico avvisa che si è in fase di test e che
+      # una mail reinviata è vista come nuova. In esercizio: «no».
+      faseDiTest: "sì"
     systemPrompt: >
       Gli strumenti lavorano su UNA sola casella, quella dello Studio: non chiedere di quale
       casella si tratta e non provare a cambiarla. Per CERCARE (cerca_eventi, posta_in_arrivo) le
@@ -291,7 +325,7 @@ mcpServers:
           $filter: "receivedDateTime ge {{da}}"
           $orderby: receivedDateTime desc
           $top: "25"
-          $select: id,receivedDateTime,from,subject,bodyPreview,hasAttachments,isRead
+          $select: id,conversationId,receivedDateTime,from,subject,bodyPreview,hasAttachments,isRead
 
       - name: leggi_messaggio
         method: GET
@@ -319,6 +353,37 @@ mcpServers:
         query:
           $expand: microsoft.graph.itemAttachment/item
           $select: id,name,contentType,size
+
+      # La conferma di presa in carico, sullo stesso thread: Graph la manda con l'oggetto «RE:» e
+      # conserva il conversationId, che è ciò che il giro successivo cerca fra le risposte inviate.
+      - name: rispondi_messaggio
+        method: POST
+        path: /users/{{mailbox}}/messages/{{messaggioId}}/reply
+        description: >
+          Risponde al mittente di un messaggio, sullo stesso thread, con un testo breve. Da usare
+          SOLO per la conferma di presa in carico a un mittente interno dello Studio.
+        parameters:
+          messaggioId: Identificativo del messaggio a cui rispondere, come restituito da posta_in_arrivo
+          testo: Il testo della risposta, in italiano, senza HTML
+        required: [messaggioId, testo]
+        body: |
+          {"comment": "{{testo}}"}
+
+      # Le conferme già mandate: se un thread ne ha una, il messaggio è già stato preso in carico.
+      - name: risposte_inviate
+        method: GET
+        path: /users/{{mailbox}}/mailFolders/sentitems/messages
+        description: >
+          I messaggi inviati dalla casella dello Studio da un certo momento in poi, con il thread
+          (conversationId) a cui appartengono. Serve a riconoscere ciò che è già stato preso in carico.
+        parameters:
+          da: Momento da cui guardare, ISO 8601 con fuso, es. 2026-09-15T15:00:00Z
+        required: [da]
+        query:
+          $filter: "sentDateTime ge {{da}}"
+          $orderby: sentDateTime desc
+          $top: "50"
+          $select: id,conversationId,sentDateTime,subject,toRecipients
 
       - name: invia_messaggio
         method: POST
@@ -482,8 +547,14 @@ agents:
       - Cosa va fatto (udienza di …, rinvio da … a …, deposito di …, attività …)
       - Giudice, se indicato
       - Data precedente (solo per un rinvio, se indicata)
-      - Altre attività menzionate: ciò che il testo chiede in più oltre alla voce principale,
-        una per riga («preparare il fascicolo», «chiamare il CTU giovedì»), oppure «nessuna»
+      - Altre attività menzionate: ciò che il testo chiede in più OLTRE alla voce principale,
+        una per riga («preparare il fascicolo», «chiamare il CTU giovedì»), oppure «nessuna».
+        Se il tipo è Attività, la voce principale sta in «Cosa va fatto» e qui NON si ripete:
+        restano solo le altre, se ce ne sono
+
+      Scrivi in testo semplice: niente asterischi, niente grassetto, niente cancelletti,
+      niente markdown. Il referente legge la proposta in un campo di sola lettura che mostra i
+      caratteri così come sono, e «**Data e ora:**» diventa rumore.
 
       Il testo può essere scomposto, con abbreviazioni («la Rossi/Alfa», «2a civ.», «RG
       4127/25», «giov»), senza maiuscole e senza punteggiatura: leggilo come lo leggerebbe la
@@ -533,9 +604,15 @@ agents:
       perso.
 
       # Come leggi
-      1. Chiami posta_in_arrivo con il momento che ti viene indicato.
-      2. Per ogni messaggio da passare chiami leggi_messaggio per il testo intero.
-      3. Se è una busta di posta certificata — l'oggetto comincia con «POSTA
+      1. Chiami posta_in_arrivo con il momento che ti viene indicato, e risposte_inviate
+         con il momento indicato per le conferme (quindici minuti prima).
+      2. Scarti ogni messaggio il cui conversationId compare fra le risposte inviate:
+         è già stato preso in carico da un giro precedente. La finestra della posta
+         è più larga dell'intervallo di proposito, e senza questo controllo lo
+         stesso messaggio aprirebbe due pratiche.
+      3. Per il primo messaggio rimasto da passare chiami leggi_messaggio per il
+         testo intero.
+      4. Se è una busta di posta certificata — l'oggetto comincia con «POSTA
          CERTIFICATA:», oppure ha allegati daticert.xml o postacert.eml — chiami
          anche leggi_allegati, sempre, e applichi queste regole:
          a. Leggi il corpo. Il testo standard del gestore («Il giorno … il
@@ -550,17 +627,23 @@ agents:
             passi entrambi i testi, uno dopo l'altro, preceduti dalla riga
             «ATTENZIONE: corpo e allegato non coincidono».
          e. Se il corpo è solo il testo del gestore e l'allegato non è leggibile (un
-            file, un PDF, contenuto in base64), passi il corpo preceduto dalla riga
-            «ATTENZIONE: comunicazione in allegato non leggibile (<nome del file>),
-            aprire la PEC». Così il referente sa che deve andare a vedere.
-      4. Restituisci il testo della comunicazione, e nient'altro: né preamboli, né
-         riassunti, né commenti. Quel testo viene consegnato a un processo che lo
-         classifica e lo fa leggere a chi di dovere.
+            file, un PDF, contenuto in base64), passi la riga «ATTENZIONE:
+            comunicazione in allegato non leggibile (<nome del file>), aprire la
+            PEC», poi la riga «Oggetto: <oggetto della busta>», poi il corpo. Il
+            numero di ruolo spesso sta solo nell'oggetto: senza, il referente lo
+            perde.
+      5. Se il mittente è interno allo Studio — l'indirizzo è del dominio che ti
+         viene indicato — chiami rispondi_messaggio con il testo di conferma che ti
+         viene indicato. Non rispondi all'autorità, alle PEC, né a mittenti esterni:
+         una risposta automatica a una cancelleria non è gradita.
+      6. Restituisci il testo della comunicazione, e nient'altro: né preamboli, né
+         riassunti, né commenti, né la conferma che hai mandato. Quel testo viene
+         consegnato a un processo che lo classifica e lo fa leggere a chi di dovere.
 
       # Cosa NON fai
       Non classifichi e non estrai gli estremi: lo fa il processo, con un criterio
       solo per tutti gli ingressi, e farlo due volte produce due verità.
-      Non rispondi ai messaggi e non segni niente come letto.
+      Non segni niente come letto e non rispondi a nessuno che non sia interno.
       Se non c'è nessun messaggio da passare, restituisci esattamente: NESSUN AVVISO
 
   # ------------------------------------------------------------------------------------------
@@ -777,11 +860,12 @@ agents:
       una volta sola, senza far perdere tempo.
 
       # Come lavori
-      1. Leggi ciò che ti arriva e rileggilo all'utente in tre o quattro righe: di
-         che si tratta (udienza nuova, rinvio, scadenza, attività da fare, o solo
-         una comunicazione da prendere in visione), le parti o il numero di ruolo,
-         la data e l'ora se ci sono, e le altre cose menzionate. Dove un dato manca
-         scrivi «non indicato», non lo inventi.
+      1. Leggi ciò che ti arriva e rileggilo all'utente in tre o quattro righe. La
+         prima riga dice il tipo con UNA parola, esattamente una di queste: Udienza,
+         Rinvio, Scadenza, Attività, Visione (un'udienza nuova è «Udienza»; una
+         cosa da fare senza data scritta è «Attività»). Poi le parti o il numero di
+         ruolo, la data e l'ora se ci sono, e le altre cose menzionate. Dove un dato
+         manca scrivi «non indicato», non lo inventi.
       2. Chiedi conferma con una domanda sola: «Apro la pratica così?». Se l'utente
          corregge, rileggi e richiedi.
       3. Al sì, chiami apri_pratica UNA volta, passando il testo INTEGRALE come
@@ -879,7 +963,7 @@ agentTasks:
     agent: agenda
     prompt: |
       Estrai gli estremi dalla seguente comunicazione.
-      Tipo: {{tipo}}. Fonte: {{fonte}}. Materia: {{materia}}. Fascicolo: {{fascicolo}}.
+      Tipo: {{tipoProposto}}. Fonte: {{fonte}}. Materia: {{materia}}. Fascicolo: {{fascicolo}}.
 
       {{testoAvviso}}
 
@@ -903,9 +987,21 @@ agentTasks:
     prompt: |
       Adesso è {{now}} (UTC).
 
-      Cerca i messaggi arrivati negli ultimi due minuti e restituisci il testo
-      del primo da passare al processo. La finestra è più larga dell'intervallo di
-      proposito: meglio riconsiderare un messaggio che perderlo fra due giri.
+      Cerca i messaggi arrivati negli ultimi due minuti; le conferme già inviate
+      vanno cercate dai quindici minuti precedenti. Restituisci il testo del primo
+      messaggio da passare al processo che non sia già stato preso in carico. La
+      finestra è più larga dell'intervallo di proposito: meglio riconsiderare un
+      messaggio che perderlo fra due giri, e le conferme inviate dicono quali sono
+      già passati.
+
+      Mittenti interni: gli indirizzi del dominio hevolus.it. A loro, e solo a loro,
+      rispondi con questo testo:
+      «Presa in carico: la tua comunicazione è stata registrata e un referente
+      dell'agenda la verificherà. [FASE DI TEST: se hai reinviato la stessa mail
+      come messaggio nuovo, è stata vista come nuova e ha aperto una seconda
+      pratica.]»
+      La parte fra parentesi quadre va inclusa solo se la fase di test è «sì»;
+      oggi è: sì.
     trigger: scheduled
     schedule:
       cron: "* * * * *"
@@ -1077,15 +1173,15 @@ processes:
           type: End
           name: Nessuna comunicazione da prendere in carico
 
-        # Una parola — Udienza, Rinvio, Scadenza, Attività, Visione — che diventa la variabile del
-        # gateway «Di che si tratta?». Agente senza strumenti: torna in pochi secondi (#1000 non
-        # lo riguarda), e il referente la può correggere nel passo dopo.
+        # Una parola — Udienza, Rinvio, Scadenza, Attività, Visione — proposta al referente, che la
+        # conferma o la cambia nel passo dopo scegliendo `tipo`: è quella la variabile dei gateway.
+        # Agente senza strumenti: torna in pochi secondi (#1000 non lo riguarda).
         - id: classifica
           type: Task
           name: Classifica la comunicazione
           performer: Automated
           agentTaskName: Classificazione comunicazione
-          outputVariable: tipo
+          outputVariable: tipoProposto
           expectedDurationMinutes: 1
           maxLeadTimeMinutes: 30
 
@@ -1117,8 +1213,13 @@ processes:
               label: Da dove arriva
               type: text
               context: true
-            # Stessa chiave della variabile scritta dal classificatore: il referente vede la
-            # classificazione e la può cambiare. È su questo valore che il flusso si biforca.
+            # La proposta del classificatore, in sola lettura; sotto, la scelta del referente. Due
+            # chiavi diverse perché un campo modificabile non viene precompilato dal caseData: con
+            # una chiave sola il select arrivava vuoto. È su `tipo` che il flusso si biforca.
+            - key: tipoProposto
+              label: Tipo proposto dall'assistente
+              type: text
+              context: true
             - key: tipo
               label: Di che si tratta
               type: select
@@ -1126,7 +1227,7 @@ processes:
               options: [Udienza, Rinvio, Scadenza, Attività, Visione]
               description: >
                 Udienza nuova, rinvio di una già fissata, scadenza con data scritta, attività da
-                fare, o solo da prendere visione. Correggere se l'assistente ha sbagliato.
+                fare, o solo da prendere visione. Di norma è il tipo proposto qui sopra.
             - key: datiCompleti
               label: Estremi completi e corretti
               type: bool
