@@ -407,7 +407,15 @@ mcpServers:
           end: { type: string, description: Fine della finestra, ISO 8601 }
         required: [start, end]
         query: { startDateTime: "{{start}}", endDateTime: "{{end}}" }
-        transform: return data.value.map(e => ({ subject: e.subject }));
+        # Il transform è il corpo di una funzione che riceve la risposta come `input` (non `data`):
+        # gira nel sandbox QuickJS del builder, senza atob, fetch o librerie. Vale anche per
+        # scomporre un allegato .eml in base64: vedi leggi_eml in blueprints/studiopolis-agenda.yml.
+        transform: return input.value.map(e => ({ subject: e.subject }));
+      - name: invia
+        method: POST
+        path: /users/{{mailbox}}/sendMail
+        responseFormat: text      # json (default) | xml | text — Graph risponde 202 senza corpo: non è un JSON
+        body: '{"message":{"subject":"{{oggetto}}"}}'
     testTool: cerca_eventi
     testArguments: { start: "2026-01-01T00:00:00Z", end: "2026-01-02T00:00:00Z" }
     publish: true
@@ -470,14 +478,18 @@ Un orchestratore sono **step** e **flows**: i nodi e gli archi che li collegano.
 e non `connections` perché nel manifest `connections` sono già le connessioni verso i sistemi di
 terze parti, e la stessa parola con due sensi costa un'ora a chi legge.
 
+**Si parte dal primo step.** Non c'è uno step di avvio da dichiarare: l'orchestrazione parte dallo
+step a cui nessun flusso arriva — la stessa regola del motore e del designer, dove uno step «Start»
+non si può nemmeno aggiungere: si trascina il primo agente e si parte da lì. Nel manifest quello
+step si elenca per primo, e i flussi collegano il resto. Uno step `type: start` scritto per
+abitudine è accettato, segnalato (`BP094`) e ignorato dal piano insieme ai suoi flussi.
+
 ```yaml
 orchestrators:
   - key: arricchimento
     name: Arricchimento scheda
     steps:
-      - { key: avvio, name: Avvio, type: start }
-
-      - key: profilo
+      - key: profilo                     # il primo step: da qui si parte
         name: Profilo
         type: agent
         agent: profilo                   # chiave di agents[]
@@ -496,7 +508,6 @@ orchestrators:
       - { key: fine, name: Fine, type: terminate }
 
     flows:
-      - { from: avvio, to: profilo }
       - { from: profilo, to: fonti }
       - { from: fonti, to: fine }
 ```
@@ -505,7 +516,7 @@ orchestrators:
 
 | `type` | Cosa fa | Campi propri |
 |---|---|---|
-| `start` | Ingresso dell'orchestrazione | — |
+| `start` | **Non serve**: l'ingresso è il primo step a cui nessun flusso arriva. Accettato per i manifest già scritti, segnalato con `BP094` e ignorato dal piano | — |
 | `agent` | Esegue un agente | `agent`, `userMessageTemplate`, `requireStructuredOutput`, `outputSchema`, `skillMetadata`, `allowAgentInteraction`, `allowFileUploadOnPause`, `useTempFiles`, `maxLoopIterations`, `loopInstruction` |
 | `parallelGroup` | Più agenti insieme | `agents`, `agentOutputs`, `maxParallel` |
 | `handoffGroup` | Più agenti che si passano il turno | `agents`, `agentOutputs` |
@@ -517,9 +528,10 @@ orchestrators:
 | `action` | Esegue un'azione | `provider` (`email`/`webhook`/`javascript`), `action`, `connection`, `input` |
 | `terminate` | Uscita | — |
 
-Ogni step che non sia `terminate` vuole almeno un flusso uscente. Le regole del grafo non sono
-riscritte dalla CLI: si delega al validatore della piattaforma, lo stesso che gira sul server, ed è
-da lì che arrivano i messaggi dei rilievi `BP092`.
+Ogni step che non sia `terminate` vuole almeno un flusso uscente, e **uno solo** step — l'ingresso —
+non ne vuole di entranti: nessuno (un ciclo chiuso) o più d'uno è `BP095`. Le altre regole del
+grafo non sono riscritte dalla CLI: si delega al validatore della piattaforma, lo stesso che gira
+sul server, ed è da lì che arrivano i messaggi dei rilievi `BP092`.
 
 `recipients` di `humanApproval` devono essere utenti del tenant: il preflight lo verifica.
 

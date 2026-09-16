@@ -192,6 +192,24 @@ dichiarabile in questa forma: `kind: external` pretende l'URL di un server già 
 caso si annota nella `description` dell'agente che lo userà e si mette fra i passi manuali del piano
 di attivazione.
 
+## Le chiamate che rispondono senza corpo: `responseFormat: text`
+
+`sendMail`, `reply` e molte POST rispondono **202 senza corpo**. Con il formato di default (`json`)
+il parse fallisce e il tool risulta in errore anche se l'azione è riuscita — la mail parte lo
+stesso, e l'agente crede di no. Su quei tool si dichiara `responseFormat: text`. Emerso il
+16/09/2026 dalla suite di flusso di Studio Polis.
+
+## Il `transform`: JavaScript sulla risposta, con tre regole
+
+Un tool può portare un `transform`: il **corpo di una funzione** che riceve la risposta del sistema
+esterno come `input` — non `data` — e restituisce ciò che l'agente deve vedere. Gira nel sandbox
+QuickJS del builder (64 KB di sorgente, 5 secondi): niente `atob`, `fetch`, `Buffer`, librerie.
+Tre regole: (1) `return` esplicito; (2) solo JavaScript puro — una decodifica base64 o
+quoted-printable si scrive a mano, e ci sta (il tool `leggi_eml` di Studio Polis scompone un
+`.eml` di una busta PEC in ~200 righe); (3) prima di applicare, provare il corpo in `node` con un
+`new Function("input", corpo)` su una risposta vera: il sandbox non dà stack trace utili, e un
+`ReferenceError` costa un rollback e un apply.
+
 ## Posta, calendario, file: Microsoft 365 si collega così
 
 Quando la richiesta nomina una **casella**, un **calendario**, dei **contatti** o dei **file** su

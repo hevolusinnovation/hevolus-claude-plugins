@@ -275,6 +275,10 @@
                     "type": "string"
                   }
                 },
+                "responseFormat": {
+                  "enum": ["json", "xml", "text"],
+                  "description": "Come leggere la risposta. 'text' per le chiamate che rispondono senza corpo (sendMail, reply): un 202 vuoto non è un JSON."
+                },
                 "contentType": {
                   "type": "string",
                   "description": "Content-type del corpo. Default application/json; per SOAP text/xml."

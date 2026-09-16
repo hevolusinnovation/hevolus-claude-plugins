@@ -237,6 +237,11 @@ Sei errori che si fanno se non si sta attenti:
     nome fuori catalogo ferma il piano (`BP065`). La fascia dipende dal lavoro del passo, non dalla
     sua importanza: [`references/modelli.md`](references/modelli.md).
 
+11. **Negli orchestratori non c'è uno step di avvio.** Si parte dal primo step elencato, quello a
+    cui nessun flusso arriva — come nel designer, dove uno «Start» non si può aggiungere. Un
+    `type: start` scritto per abitudine è segnalato (`BP094`) e ignorato dal piano; due step senza
+    flussi entranti, o nessuno, fermano il piano (`BP095`).
+
 L'id dei flussi lasciarlo fuori: lo genera la CLI, e il file resta leggibile.
 
 ### Se l'ambiente ha dei documenti, far parlare i file prima di decidere

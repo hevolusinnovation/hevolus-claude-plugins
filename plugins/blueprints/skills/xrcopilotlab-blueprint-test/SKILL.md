@@ -214,6 +214,13 @@ minuti è la issue #1000, e `show` lo segnala. Se il controllo rivela un dato sb
 data spostata di un giorno, un tipo diverso dall'atteso), dirlo prima che il passo successivo lo
 usi.
 
+Quando la casella di collaudo è nostra, il giro intero si scrive come caso **`kind: flow`**
+(formato in [`testing.md`](../../../docs/blueprints/testing.md)): la suite manda la mail con il
+tool del blueprint, aspetta l'istanza, completa i compiti per conto di `defaults.userId`, controlla
+il calendario. Va in una suite **a parte** (`<nome>-flusso.tests.yml`), lanciata con un sì
+esplicito e nell'ordine del file, perché completa compiti e scrive sul calendario: prima di
+proporla dire cosa lascia (istanze chiuse, eventi) e che gli eventi non vengono cancellati.
+
 ## 4. Il triage: di chi è ogni fallimento
 
 Per ogni caso non passato (per la CLI o per te) il report porta un **sospetto**: componente,

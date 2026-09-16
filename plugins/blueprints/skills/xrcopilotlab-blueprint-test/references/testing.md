@@ -36,6 +36,9 @@ La suite esercita agenti, orchestratori e processi con domande e `caseData` scri
 l'ingresso è vero — una mail nella casella sorvegliata, un dettato in chat all'agente che apre la
 pratica — non c'è un caso da eseguire, ma ci sono tre domande, e tre comandi:
 
+Se la casella è nostra, il giro si automatizza con un caso `kind: flow` (sotto, nel formato della
+suite): la mail la manda la suite, i compiti li completa lei, il calendario lo controlla lei.
+
 | Domanda | Comando | Cosa guardare |
 |---|---|---|
 | È passata? | `schedule logs <task-di-ingresso> --tag <TAG>` | L'esecuzione con il testo del messaggio; «NESSUN AVVISO» ai giri senza posta; la quota giornaliera |
@@ -130,6 +133,45 @@ legge — ed è per questo che il report conta i casi «da giudicare».
 (`means`) e, se lo si sa, il componente a cui rimanda (`suspect`), che il triage riprende. I set
 di domande delle demo — atteso, tolleranza, «risposte sbagliate da riconoscere» — si traducono
 così; l'esempio completo è `blueprints/tests/finlogic-bilancio-aggregato.tests.yml`.
+
+### `kind: flow` — il giro intero, con ingressi veri
+
+Quando la casella di collaudo è nostra, un caso può percorrere tutto il processo da solo: manda la
+mail con un tool del blueprint, aspetta che il task schedulato la passi e che nasca l'istanza,
+compila i compiti umani per conto di `defaults.userId`, controlla il calendario. È l'**unico** caso
+in cui la CLI completa un compito al posto di una persona, e lo fa solo perché un passo `complete`
+lo dichiara, con il modulo scritto nella suite.
+
+```yaml
+  - key: flusso-udienza
+    kind: flow
+    target: presa-in-carico              # il processo che deve aprire l'istanza
+    steps:                               # in ordine; il primo che fallisce ferma il caso
+      - name: mail alla casella
+        tool: { server: m365, name: invia_messaggio,
+                args: { a: test@hevolus.it, oggetto: "…", corpo: "…" } }
+      - waitInstance: { caseData: { testoAvviso: "4127/2025" } }   # un'istanza nata dopo l'inizio del caso
+        withinSeconds: 200                                          # (default 180)
+      - expect: { waitingAt: verifica, caseData: { tipoProposto: Udienza } }   # come expect.process, con attesa
+      - complete: { activity: verifica, form: { tipo: Udienza, datiCompleti: true, dataUdienza: "2026-09-22" } }
+      - complete: { activity: assegna,  form: { professionista: "{{userId}}" } }
+      - expect: { waitingAt: conferma, caseData: { esitoRegistrazione: REGISTRATO } }
+      - tool: { server: m365, name: cerca_eventi, args: { inizio: "…", fine: "…" }, contains: ["4127/2025"] }
+      - waitInstance: { absent: true, caseData: { testoAvviso: "Fattura" } }   # il messaggio va SCARTATO
+```
+
+| Passo | Cosa fa | Riesce se |
+|---|---|---|
+| `tool` | Chiama un tool di un server MCP del blueprint (`server`, `name`, `args`) | il tool non risponde con un errore, e la risposta contiene `contains` e non `notContains` |
+| `waitInstance` | Aspetta un'istanza del processo target avviata dopo l'inizio del caso, il cui caseData contiene i frammenti in `caseData` | compare entro `withinSeconds`; con `absent: true`, se **non** compare |
+| `complete` | Prende e completa il compito aperto sull'attività, con `form` | il compito c'è entro `withinSeconds` e il completamento riesce |
+| `expect` | Le stesse attese di `expect.process`, verificate finché si assestano | tutte vere entro `withinSeconds` |
+
+Segnaposto nelle stringhe di `args` e `form`: `{{userId}}` (l'utente di collaudo, come id — è
+ciò che vuole un campo di tipo utente), `{{instanceId}}`, `{{caseData.<chiave>}}`. Nel report ogni
+passo è un controllo con durata e dettaglio; un passo mai raggiunto non compare. Ciò che i passi
+scrivono fuori dal tenant (gli eventi sul calendario) **resta**: la suite non lo cancella, e va
+detto a chi legge. Esempio completo: `blueprints/tests/studiopolis-agenda-flusso.tests.yml`.
 
 ### Che cosa fa un caso, per tipo
 
@@ -239,6 +281,8 @@ verdetto: la tabella evidenza → verifica è nella skill
 | `BT017` | Attese incompatibili (`skills` + `noSkills`, `used: false` + `files`) | errore |
 | `BT018` | Un numero atteso non è leggibile (né `value` né un `text` interpretabile) | errore |
 | `BT019` | Una risposta sbagliata da riconoscere non dice come riconoscerla (`contains`, `pattern` o `number`) | errore |
+| `BT020` | Un caso `flow` senza passi, o un passo che non è esattamente uno fra `tool`, `waitInstance`, `complete`, `expect` | errore |
+| `BT021` | Un passo `tool` cita un server MCP o un tool che il manifest non dichiara | errore |
 
 ## Dove vive il codice
 

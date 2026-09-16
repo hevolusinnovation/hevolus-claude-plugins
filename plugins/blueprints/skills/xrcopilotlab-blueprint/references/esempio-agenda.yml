@@ -195,12 +195,30 @@
 #       verifica mostra «Tipo proposto» in sola lettura e il referente sceglie `tipo` — un clic, con
 #       la proposta sotto gli occhi — ed è su `tipo` che il flusso si biforca.
 #
+# ── Cosa cambia nella versione 12: la PEC si legge davvero ───────────────────────────────────
+# Con la prima PEC vera (16/09/2026) Exchange ha esposto il messaggio allegato come FILE
+# (fileAttachment, message/rfc822, «pec-1.eml»), non come messaggio scomposto: `$expand` dell'item
+# non serve a niente, e la v11 passava «ATTENZIONE: allegato non leggibile». Il nuovo tool
+# leggi_eml prende il file (contentBytes in base64) e lo scompone nel `transform`, in JavaScript
+# dentro il sandbox del builder: oggetto, mittente, data, testo (text/plain o HTML spogliato,
+# quoted-printable e base64 decodificati) e, per una busta PEC, il messaggio `originale` che
+# contiene. Restano illeggibili i PDF e le immagini: per quelli vale ancora la regola (e).
+#
+#   · La Registrazione non sceglie più fra due date: se la data del modulo e quella degli estremi
+#       verificati non coincidono (il 16/09 il modulo diceva 23/09, la proposta 22/09, e l'agente ha
+#       scritto il 22 senza dirlo), risponde NON REGISTRATO con i due valori e lascia decidere.
+#
 # Resta fuori il calendario Google del penale in sola lettura: vedi la nota in fondo al file.
 #
 #   xrcopilotlab-bp validate blueprints/studiopolis-agenda.yml --graph
 
 blueprint: studiopolis-agenda
-version: 11
+# v13 (16/09): senza lo step di avvio — l'orchestrazione parte dal primo step, come nel designer (BP094). Nessun cambio funzionale rispetto alla v12.
+# v14 (16/09): leggi_eml senza $select — Graph rifiutava contentBytes sul tipo base dell'allegato.
+# v15 (16/09): il transform legge `input`, non `data`: è così che il sandbox del builder passa la risposta.
+# v16 (16/09): invia_messaggio senza allegato + invia_messaggio_con_allegato (Graph rifiutava l'allegato vuoto).
+# v17 (16/09): responseFormat: text sui tool che rispondono 202 senza corpo (invio, risposta): il parse JSON falliva.
+version: 17
 tag: STUDIOPOLIS
 description: Organizer dello Studio — dalla mail, dal dettato in chat o dalla comunicazione del tribunale alla pratica e al calendario comune
 
@@ -354,10 +372,145 @@ mcpServers:
           $expand: microsoft.graph.itemAttachment/item
           $select: id,name,contentType,size
 
+      # Il messaggio allegato a una busta PEC, scomposto. Exchange lo espone come file (base64 del
+      # MIME): il transform lo decodifica nel sandbox QuickJS del builder — niente atob, niente
+      # librerie — e restituisce oggetto, mittente, data, testo e allegati, con il messaggio
+      # `originale` annidato se il file è a sua volta una busta. Oltre 2 MB non si decodifica.
+      - name: leggi_eml
+        method: GET
+        path: /users/{{mailbox}}/messages/{{messaggioId}}/attachments/{{allegatoId}}
+        description: >
+          Scompone un messaggio allegato (.eml, message/rfc822): oggetto, mittente, data, testo e
+          allegati; per una busta PEC anche il messaggio originale in «originale». Da chiamare per
+          ogni allegato .eml che leggi_allegati ha elencato.
+        parameters:
+          messaggioId: Identificativo del messaggio, come restituito da posta_in_arrivo
+          allegatoId: Identificativo dell'allegato, come restituito da leggi_allegati
+        required: [messaggioId, allegatoId]
+        # Niente $select: contentBytes è una proprietà di fileAttachment, non del tipo base, e Graph
+        # rifiuta la selezione con un 400 (visto il 16/09); senza selezione lo restituisce da sé.
+        transform: |
+          // Transform per il tool `leggi_eml`: riceve l'allegato di Graph (fileAttachment con contentBytes in
+          // base64, contentType message/rfc822) e restituisce il messaggio contenuto scomposto: oggetto,
+          // mittente, data, testo. Gira nel sandbox QuickJS del builder: niente atob, niente Buffer, niente
+          // TextDecoder — tutto in JavaScript semplice. Una PEC (postacert.eml) contiene il messaggio
+          // originale; il testo è nella prima parte text/plain (o text/html spogliato), spesso in
+          // quoted-printable o base64. Se dentro c'è a sua volta un message/rfc822, si scende di un livello.
+
+          function b64ToBytes(s) {
+            const t = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+            const map = {}; for (let i = 0; i < t.length; i++) map[t[i]] = i;
+            const out = []; let buf = 0, bits = 0;
+            for (let i = 0; i < s.length; i++) {
+              const c = s[i]; if (c === "=" ) break; const v = map[c]; if (v === undefined) continue;
+              buf = (buf << 6) | v; bits += 6;
+              if (bits >= 8) { bits -= 8; out.push((buf >> bits) & 0xff); }
+            }
+            return out;
+          }
+          function utf8(bytes) {
+            let s = "", i = 0;
+            while (i < bytes.length) {
+              const b = bytes[i++];
+              if (b < 0x80) s += String.fromCharCode(b);
+              else if (b >= 0xc0 && b < 0xe0) s += String.fromCharCode(((b & 0x1f) << 6) | (bytes[i++] & 0x3f));
+              else if (b >= 0xe0 && b < 0xf0) { s += String.fromCharCode(((b & 0x0f) << 12) | ((bytes[i++] & 0x3f) << 6) | (bytes[i++] & 0x3f)); }
+              else { const cp = ((b & 0x07) << 18) | ((bytes[i++] & 0x3f) << 12) | ((bytes[i++] & 0x3f) << 6) | (bytes[i++] & 0x3f); s += String.fromCodePoint(cp); }
+            }
+            return s;
+          }
+          function latin1(bytes) { let s = ""; for (const b of bytes) s += String.fromCharCode(b); return s; }
+          function qpDecode(s) {
+            const bytes = []; s = s.replace(/=\r?\n/g, "");
+            for (let i = 0; i < s.length; i++) {
+              if (s[i] === "=" && /^[0-9A-Fa-f]{2}$/.test(s.substr(i + 1, 2))) { bytes.push(parseInt(s.substr(i + 1, 2), 16)); i += 2; }
+              else bytes.push(s.charCodeAt(i) & 0xff);
+            }
+            return bytes;
+          }
+          function decodeHeaderWord(s) {
+            // =?utf-8?Q?...?= / =?utf-8?B?...?=
+            return s.replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g, (m, cs, enc, txt) => {
+              const bytes = enc.toUpperCase() === "B" ? b64ToBytes(txt) : qpDecode(txt.replace(/_/g, " "));
+              return /utf-?8/i.test(cs) ? utf8(bytes) : latin1(bytes);
+            });
+          }
+          function parseHeaders(raw) {
+            const h = {}; const lines = raw.split(/\r?\n/); let last = null;
+            for (const l of lines) {
+              if (/^[ \t]/.test(l) && last) { h[last] += " " + l.trim(); continue; }
+              const m = l.match(/^([\w-]+):\s*(.*)$/); if (m) { last = m[1].toLowerCase(); h[last] = m[2]; }
+            }
+            return h;
+          }
+          function param(ct, name) { const m = new RegExp(name + '="?([^";]+)"?', "i").exec(ct || ""); return m ? m[1] : null; }
+          function decodeBody(body, headers) {
+            const cte = (headers["content-transfer-encoding"] || "").toLowerCase();
+            const cs = param(headers["content-type"], "charset") || "utf-8";
+            let bytes;
+            if (cte === "base64") bytes = b64ToBytes(body);
+            else if (cte === "quoted-printable") bytes = qpDecode(body);
+            else { bytes = []; for (let i = 0; i < body.length; i++) bytes.push(body.charCodeAt(i) & 0xff); }
+            return /utf-?8/i.test(cs) ? utf8(bytes) : latin1(bytes);
+          }
+          function stripHtml(s) {
+            return s.replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<script[\s\S]*?<\/script>/gi, "")
+              .replace(/<br\s*\/?>/gi, "\n").replace(/<\/(p|div|tr|li|h\d)>/gi, "\n").replace(/<[^>]+>/g, "")
+              .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')
+              .replace(/\n{3,}/g, "\n\n").trim();
+          }
+          // Restituisce {headers, parts:[{headers, body}]} — le parti sono foglie (ricorsivo sui multipart).
+          function parseMime(raw, depth) {
+            const idx = raw.search(/\r?\n\r?\n/); if (idx < 0) return { headers: parseHeaders(raw), leaves: [] };
+            const headers = parseHeaders(raw.slice(0, idx));
+            const body = raw.slice(idx).replace(/^\r?\n\r?\n/, "");
+            const ct = headers["content-type"] || "text/plain";
+            const boundary = param(ct, "boundary");
+            if (/^multipart\//i.test(ct) && boundary && depth < 6) {
+              const pieces = body.split("--" + boundary); const leaves = [];
+              for (let i = 1; i < pieces.length; i++) {
+                if (pieces[i].startsWith("--")) break;
+                leaves.push(...parseMime(pieces[i].replace(/^\r?\n/, ""), depth + 1).leaves);
+              }
+              return { headers, leaves };
+            }
+            if (/^message\/rfc822/i.test(ct) && depth < 6) {
+              const inner = parseMime(body, depth + 1);
+              return { headers, leaves: [{ headers: { ...inner.headers, "content-type": "message/rfc822" }, inner }] };
+            }
+            return { headers, leaves: [{ headers, body }] };
+          }
+          function summarize(msg, depth) {
+            const h = msg.headers;
+            const out = { oggetto: decodeHeaderWord(h["subject"] || ""), da: decodeHeaderWord(h["from"] || ""), a: decodeHeaderWord(h["to"] || ""), data: h["date"] || "", testo: "", allegati: [], originale: null };
+            for (const leaf of msg.leaves) {
+              const ct = (leaf.headers["content-type"] || "").toLowerCase();
+              const disp = (leaf.headers["content-disposition"] || "").toLowerCase();
+              const name = param(leaf.headers["content-disposition"], "filename") || param(leaf.headers["content-type"], "name");
+              if (leaf.inner) { if (!out.originale) out.originale = summarize(leaf.inner, depth + 1); continue; }
+              if (ct.startsWith("text/plain") && !disp.startsWith("attachment") && !out.testo) out.testo = decodeBody(leaf.body, leaf.headers).trim();
+              else if (ct.startsWith("text/html") && !disp.startsWith("attachment") && !out.testo) out.testo = stripHtml(decodeBody(leaf.body, leaf.headers));
+              else if (name) out.allegati.push({ nome: name, tipo: ct.split(";")[0], leggibile: ct.startsWith("text/") });
+            }
+            return out;
+          }
+          function leggiEml(data) {
+            if (data && data.size && data.size > 2 * 1024 * 1024) return { errore: "allegato oltre 2 MB: non si decodifica nel tool, aprire la PEC", file: data.name };
+            if (!data || !data.contentBytes) return { errore: "l'allegato non ha contenuto: non è un file, o il tool non ha chiesto contentBytes" };
+            const raw = utf8(b64ToBytes(data.contentBytes));
+            const msg = parseMime(raw, 0);
+            const s = summarize(msg, 0);
+            // Una busta PEC: il messaggio firmato dal mittente è l'`originale`; il resto è il gestore.
+            return { file: data.name, bustaPec: /postacert|posta certificata/i.test((data.name || "") + " " + s.oggetto) || !!s.originale, ...s };
+          }
+          // Il sandbox del builder passa la risposta come `input` (non `data`).
+          return leggiEml(input);
+
       # La conferma di presa in carico, sullo stesso thread: Graph la manda con l'oggetto «RE:» e
       # conserva il conversationId, che è ciò che il giro successivo cerca fra le risposte inviate.
       - name: rispondi_messaggio
         method: POST
+        responseFormat: text     # Graph risponde 202 senza corpo: non è un JSON
         path: /users/{{mailbox}}/messages/{{messaggioId}}/reply
         description: >
           Risponde al mittente di un messaggio, sullo stesso thread, con un testo breve. Da usare
@@ -385,19 +538,39 @@ mcpServers:
           $top: "50"
           $select: id,conversationId,sentDateTime,subject,toRecipients
 
+      # Due tool, non uno con l'allegato facoltativo: un segnaposto vuoto nel corpo della POST
+      # produce un allegato senza nome e Graph risponde 400 «Required property is missing»
+      # (visto il 16/09 dalla suite di flusso). Senza allegato non deve esserci la chiave.
       - name: invia_messaggio
         method: POST
+        responseFormat: text     # Graph risponde 202 senza corpo: non è un JSON
         path: /users/{{mailbox}}/sendMail
-        description: >
-          Manda un messaggio dalla casella dello Studio, con un allegato facoltativo. Il
-          contenuto dell'allegato è il file codificato in base64, non un percorso né un URL.
+        description: Manda un messaggio dalla casella dello Studio, senza allegati.
         parameters:
           a: Destinatario
           oggetto: Oggetto del messaggio
           corpo: Corpo del messaggio, in HTML
-          allegatoNome: Nome del file allegato, con l'estensione. Omettere se non c'è allegato
-          allegatoContenuto: Contenuto dell'allegato codificato in base64. Omettere se non c'è
         required: [a, oggetto, corpo]
+        body: |
+          {"message":{"subject":"{{oggetto}}",
+           "body":{"contentType":"HTML","content":"{{corpo}}"},
+           "toRecipients":[{"emailAddress":{"address":"{{a}}"}}]},
+           "saveToSentItems":true}
+
+      - name: invia_messaggio_con_allegato
+        method: POST
+        responseFormat: text     # Graph risponde 202 senza corpo: non è un JSON
+        path: /users/{{mailbox}}/sendMail
+        description: >
+          Manda un messaggio dalla casella dello Studio con un allegato. Il contenuto
+          dell'allegato è il file codificato in base64, non un percorso né un URL.
+        parameters:
+          a: Destinatario
+          oggetto: Oggetto del messaggio
+          corpo: Corpo del messaggio, in HTML
+          allegatoNome: Nome del file allegato, con l'estensione
+          allegatoContenuto: Contenuto dell'allegato codificato in base64
+        required: [a, oggetto, corpo, allegatoNome, allegatoContenuto]
         body: |
           {"message":{"subject":"{{oggetto}}",
            "body":{"contentType":"HTML","content":"{{corpo}}"},
@@ -619,15 +792,17 @@ agents:
             messaggio … è stato inviato da …») non è la comunicazione, e la sua
             data è quella della busta. Se però il corpo contiene anche la
             comunicazione, quella vale.
-         b. Leggi il messaggio originale allegato, se c'è: il suo corpo è il testo
-            firmato dal mittente.
+         b. Per ogni allegato .eml (message/rfc822) elencato da leggi_allegati chiami
+            leggi_eml: il messaggio originale firmato dal mittente è in «originale»
+            (o, se il file non è una busta, direttamente in «testo»). Quello è il
+            testo della comunicazione.
          c. Se corpo e allegato dicono la stessa cosa, è UNA comunicazione: passi il
             testo dell'allegato, che è l'originale.
          d. Se dicono cose diverse (una data nel corpo, un'altra nell'allegato),
             passi entrambi i testi, uno dopo l'altro, preceduti dalla riga
             «ATTENZIONE: corpo e allegato non coincidono».
          e. Se il corpo è solo il testo del gestore e l'allegato non è leggibile (un
-            file, un PDF, contenuto in base64), passi la riga «ATTENZIONE:
+            PDF, un'immagine, un .eml che leggi_eml non riesce a scomporre), passi la riga «ATTENZIONE:
             comunicazione in allegato non leggibile (<nome del file>), aprire la
             PEC», poi la riga «Oggetto: <oggetto della busta>», poi il corpo. Il
             numero di ruolo spesso sta solo nell'oggetto: senza, il referente lo
@@ -691,6 +866,14 @@ agents:
       2. Se lo trovi, chiami sposta_evento sulla nuova data e ora, nell'ora di Roma
          senza fuso (2026-10-20T11:00:00), con la fine un'ora dopo.
       3. Se non lo trovi, NON crei un impegno nuovo: lo dici.
+
+      # Se i dati non coincidono
+      Ti arrivano una data e un'ora dal modulo del referente e gli estremi che il
+      referente ha verificato. Se la data del modulo e quella degli estremi non
+      coincidono, NON scegli: rispondi NON REGISTRATO e riporti i due valori
+      affiancati («modulo: 23/09/2026 — estremi: 22 settembre 2026»). Chi ha
+      verificato decide; un impegno al giorno sbagliato costa più di un impegno
+      in ritardo.
 
       # Cosa restituisci
       La prima riga è sempre una di queste, esattamente:
@@ -901,10 +1084,6 @@ orchestrators:
       Confronta gli avvisi arrivati in casella con gli impegni del calendario comune e riporta
       doppioni, divergenze e udienze che stanno in una sola delle due viste.
     steps:
-      - key: avvio
-        name: Avvio
-        type: start
-
       - key: letture
         name: Le due viste
         type: parallelGroup
@@ -944,7 +1123,6 @@ orchestrators:
         type: terminate
 
     flows:
-      - { from: avvio, to: letture }
       - { from: letture, to: confronto }
       - { from: confronto, to: fine }
 

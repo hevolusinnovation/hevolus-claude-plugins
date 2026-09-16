@@ -25,7 +25,7 @@
 
 blueprint: studiopolis-agenda
 tag: STUDIOPOLIS
-version: 11
+version: 12
 description: Collaudo dello scenario Agenda di Studio Polis
 
 defaults:
@@ -706,6 +706,51 @@ cases:
       wrongAnswers:
         - pattern: "15/09/2026"
           means: "Ha passato la data della busta: nel processo diventerebbe la data dell'udienza"
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent, sorveglianza, pec]
+
+  - key: sim-sorveglianza-pec-eml-scomposto
+    name: "Simulata · Sorveglianza: busta PEC come file .eml, scomposta da leggi_eml → passa l'originale"
+    kind: agent
+    target: sorveglianza
+    message: |
+      Lettura simulata della casella: NON chiamare gli strumenti. Un messaggio, già letto con
+      leggi_messaggio, leggi_allegati e leggi_eml. Applica le tue regole e restituisci esattamente
+      ciò che restituiresti al processo.
+
+      --- Messaggio 1 ---
+      Da: posta-certificata@telecompost.it
+      Oggetto: POSTA CERTIFICATA: Comunicazione di cancelleria - Proc. n. 4127/2025 R.G. - differimento
+      Corpo:
+      Messaggio di posta certificata
+      Il giorno 16/09/2026 alle ore 09:57:11 (+0200) il messaggio "Comunicazione di cancelleria"
+      è stato inviato da "tribunale.bari@civile.ptel.giustiziacert.it"
+      Il messaggio originale è incluso in allegato.
+
+      --- Allegati (leggi_allegati) ---
+      1. daticert.xml — file, application/xml, 1.2 KB
+      2. postacert.eml — file, message/rfc822, 3.1 KB
+
+      --- leggi_eml su postacert.eml ---
+      {"file":"postacert.eml","bustaPec":true,
+       "oggetto":"POSTA CERTIFICATA: Comunicazione di cancelleria - Proc. n. 4127/2025 R.G. - differimento",
+       "da":"posta-certificata@telecompost.it","testo":"Messaggio di posta certificata ... Il messaggio originale è incluso in allegato.",
+       "allegati":[{"nome":"daticert.xml","tipo":"application/xml","leggibile":false}],
+       "originale":{"oggetto":"Comunicazione di cancelleria - Proc. n. 4127/2025 R.G. - differimento",
+         "da":"tribunale.bari@civile.ptel.giustiziacert.it","data":"Tue, 16 Sep 2026 09:57:00 +0200",
+         "testo":"TRIBUNALE ORDINARIO DI BARI — Sezione Seconda Civile\nProc. n. 4127/2025 R.G. — Rossi Mario c/ Alfa S.r.l.\nL'udienza già fissata per il 22/09/2026 è differita al 14/10/2026 ore 9:30.\nIl Cancelliere",
+         "allegati":[{"nome":"biglietto.pdf","tipo":"application/pdf","leggibile":false}]}}
+    expect:
+      answer: >
+        Il testo di «originale.testo» (Tribunale di Bari, differimento al 14/10/2026 ore 9:30), UNA
+        volta, senza il testo del gestore, senza «ATTENZIONE», senza la data della busta. Il PDF
+        dentro l'originale non conta: il testo c'è.
+      contains: ["4127/2025", "14/10/2026"]
+      notContains: ["ATTENZIONE", "è stato inviato da", "NESSUN AVVISO", "biglietto.pdf"]
+      wrongAnswers:
+        - pattern: "09:57"
+          means: "Ha passato la data della busta o l'header dell'originale: nel processo diventerebbe la data dell'udienza"
           suspect: Manifest
       noError: true
     tags: [simulata, agent, sorveglianza, pec]
