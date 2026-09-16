@@ -236,7 +236,8 @@ email. La quota di default è **100**, che per un task schedulato ogni minuto (1
 significa fermarsi poco prima delle due di notte e riprendere a mezzanotte. Il validatore stima i
 giri al giorno dal cron (minuti × ore, per le forme che si sanno contare) e avvisa con **`BP029`**
 quando superano la quota, dichiarata o di default. Ciò che non è dichiarato resta al default della
-piattaforma.
+piattaforma. Dopo l'apply, `xrcopilotlab-bp schedule logs <chiave> --tag <TAG>` mostra la quota
+del task com'è sul tenant e le ultime esecuzioni.
 
 `url` accetta un indirizzo assoluto oppure la forma `processes.<chiave>.webhook`. La seconda è
 quella che conta: il planner ci mette l'indirizzo e la chiave del webhook che **questo stesso

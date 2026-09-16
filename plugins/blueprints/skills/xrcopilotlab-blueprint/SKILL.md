@@ -282,8 +282,16 @@ il tenant. I quattro passi che il blueprint non può fare — registrazione appl
 amministratore, **Application Access Policy** che limita l'app a quella casella, segreti con
 `secrets set` — si riportano all'utente prima di applicare, perché li confermi nell'interfaccia.
 
+**Se è la chat a dover far partire un processo** — l'utente detta o incolla qualcosa all'agente e
+da lì deve nascere una pratica — la forma è una `connections` con `process: <chiave del processo>`
+(niente `baseUrl`, niente `auth`: indirizzo e chiave del webhook li mette l'apply, dopo aver creato
+il webhook) e un `mcpServers` `builder` su quella connessione con un tool `POST /` il cui corpo ha le
+chiavi del modulo di avvio. L'agente della chat non deve essere quello di un passo automatico del
+processo, e va istruito a rileggere, chiedere conferma e chiamare il tool **una** volta.
+
 Procedura completa, la scelta di un tool di prova in sola lettura, l'errore del path duplicato che
-costa un 404 e le regole di prompt sui gap: [`references/mcp-builder.md`](references/mcp-builder.md).
+costa un 404, il ponte dalla chat al processo e le regole di prompt sui gap:
+[`references/mcp-builder.md`](references/mcp-builder.md).
 
 ## 3. Validare
 
@@ -401,8 +409,15 @@ terze parti (l'errore di Entra, il 403 di Graph) senza passare dal modello; `mcp
 l'agente carica davvero il server. Dopo aver corretto un segreto con `secrets set`, la connessione
 va riallineata con `connections refresh --tag <TAG>`: porta i valori risolti all'apply, e non cambia
 da sola. Un segreto scambiato con un altro si recupera dalle **versioni precedenti** in Key Vault,
-senza ruotarlo. Un blueprint applicato si collauda con
-la skill `xrcopilotlab-blueprint-test`.
+senza ruotarlo.
+
+Due comandi dicono cosa sta succedendo davvero dopo l'apply, senza aprire l'interfaccia:
+`xrcopilotlab-bp schedule logs <chiave-task> --tag <TAG>` (quota giornaliera del task, ultime
+esecuzioni con esito, avviso se lo scheduler avanza mentre le esecuzioni no) e
+`xrcopilotlab-bp instances list --tag <TAG> --running` / `instances show <id>` (le istanze dei
+processi del blueprint: dove sta il token, eventi, compiti, dati del caso). Un token su un compito
+umano — `verifica:waiting`, `assegna:waiting` — vuol dire che manca il passo di una persona, non che
+qualcosa è rotto. Un blueprint applicato si collauda con la skill `xrcopilotlab-blueprint-test`.
 
 ## 7. Cancellare un blueprint
 

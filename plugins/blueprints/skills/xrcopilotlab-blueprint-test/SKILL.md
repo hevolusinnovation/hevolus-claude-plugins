@@ -202,6 +202,18 @@ esecuzioni, e l'avviso se lo scheduler avanza mentre le esecuzioni no. Un ingres
 la quota (100/giorno di default) non produce istanze e non produce errori: senza questo controllo
 il collaudo lo attribuirebbe alla posta, al webhook o al motore.
 
+**Quando l'utente prova con ingressi veri** — una mail alla casella, un dettato in chat — la suite
+non c'entra e le domande diventano «è passata?», «dove sta la pratica?», «perché il calendario non
+si aggiorna?». Si risponde con la CLI, non chiedendo all'utente cosa vede sullo schermo:
+`schedule logs <task-di-ingresso>` dice se e quando il messaggio è passato;
+`xrcopilotlab-bp instances list --tag <TAG> --running` mostra ogni istanza con il nodo del token;
+`instances show <id>` gli eventi, i compiti e i dati del caso. Un token su `verifica:waiting` o
+`assegna:waiting` è un compito che aspetta una persona — i passi automatici che scrivono fuori
+(calendario) stanno **dopo** l'assegnazione — mentre un `AgentTaskDispatched` fermo da più di due
+minuti è la issue #1000, e `show` lo segnala. Se il controllo rivela un dato sbagliato nel caso (una
+data spostata di un giorno, un tipo diverso dall'atteso), dirlo prima che il passo successivo lo
+usi.
+
 ## 4. Il triage: di chi è ogni fallimento
 
 Per ogni caso non passato (per la CLI o per te) il report porta un **sospetto**: componente,

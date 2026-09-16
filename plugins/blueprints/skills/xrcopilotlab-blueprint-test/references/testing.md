@@ -30,6 +30,22 @@ con un tag **o con il target**: `--only agenda` esegue anche i casi `sim-…` su
 <cartella>` (default `blueprints/tests/reports/<tag>/<data>/`), più le comuni `--env`,
 `--company`, `--version`.
 
+## Collaudare con ingressi veri
+
+La suite esercita agenti, orchestratori e processi con domande e `caseData` scritti nel file. Quando
+l'ingresso è vero — una mail nella casella sorvegliata, un dettato in chat all'agente che apre la
+pratica — non c'è un caso da eseguire, ma ci sono tre domande, e tre comandi:
+
+| Domanda | Comando | Cosa guardare |
+|---|---|---|
+| È passata? | `schedule logs <task-di-ingresso> --tag <TAG>` | L'esecuzione con il testo del messaggio; «NESSUN AVVISO» ai giri senza posta; la quota giornaliera |
+| Dove sta la pratica? | `instances list --tag <TAG> --running` | Il nodo del token: `verifica:waiting` e `assegna:waiting` aspettano una persona |
+| Perché non va avanti? | `instances show <id> --tag <TAG>` | Gli eventi in ordine, i compiti aperti, i dati del caso; un `AgentTaskDispatched` fermo da più di due minuti è la issue #1000 |
+
+I passi automatici che scrivono fuori dal tenant (il calendario) stanno **dopo** i compiti umani:
+finché un compito aspetta, non c'è niente da cercare nel calendario. Guida al triage:
+[`.claude/skills/xrcopilotlab-blueprint-test/references/triage.md`](../../.claude/skills/xrcopilotlab-blueprint-test/references/triage.md).
+
 ## Come si risolvono le entità
 
 Le entità del blueprint si trovano **dall'inventario del run**: sono gli id che il blueprint ha

@@ -262,6 +262,9 @@ possa capire cosa sta succedendo, e perché a volte è comodo lanciarli a mano.
 | `test run <suite>` | Esegue la suite sul tenant — chat con gli agenti, orchestratori, processi — e scrive il report in `blueprints/tests/reports/`. `--only` ne esegue una parte |
 | `schedule list --tag <TAG>` | Le attività programmate del blueprint, con stato e prossima esecuzione |
 | `schedule pause <attività> --tag <TAG>` | Mette in pausa un'attività programmata. `schedule resume` la riprende |
+| `schedule logs <attività> --tag <TAG>` | La quota giornaliera dell'attività e le sue ultime esecuzioni, con l'esito: dice se sta girando davvero |
+| `instances list --tag <TAG>` | Le pratiche aperte dai processi del blueprint, con il passo su cui ciascuna è ferma. `--running` solo quelle in corso |
+| `instances show <id> --tag <TAG>` | Una pratica nel dettaglio: cosa è successo, chi ha un compito aperto, i dati raccolti |
 | `mcp check --tag <TAG>` | Verifica che i server MCP del blueprint siano davvero utilizzabili dagli agenti |
 | `mcp publish <server> --tag <TAG>` | Ripubblica un server MCP quando `mcp check` dice che gli agenti non lo caricano |
 | `mcp test <server> --tag <TAG>` | Prova uno strumento del server e mostra la risposta vera del sistema esterno |
@@ -354,6 +357,27 @@ xrcopilotlab-bp schedule pause sorveglianza-posta  --tag STUDIOPOLIS
 
 Quando la fonte è sistemata, `schedule resume` la riprende dall'orario successivo. La pausa non
 cambia il blueprint: il file, le versioni e l'elenco di ciò che è stato creato restano come sono.
+
+Se invece un'attività programmata **sembra non girare** — la posta arriva e non succede niente —
+`schedule logs <attività> --tag <TAG>` mostra le ultime esecuzioni e la quota giornaliera: la
+piattaforma ammette 100 esecuzioni al giorno per attività, salvo che il blueprint ne dichiari di
+più, e oltre la quota salta i giri senza dire niente. Un'attività ogni minuto le esaurisce in
+un'ora e quaranta.
+
+### Una pratica non va avanti, o il calendario non si aggiorna
+
+Prima di cercare un guasto, guarda dove sta la pratica:
+
+```bash
+xrcopilotlab-bp instances list --tag STUDIOPOLIS --running
+xrcopilotlab-bp instances show 5fcbbcc6 --tag STUDIOPOLIS
+```
+
+La prima riga dice, per ogni pratica, il passo su cui è ferma: `verifica:waiting` o
+`assegna:waiting` vuol dire che aspetta una persona, e i passi che scrivono sul calendario vengono
+**dopo** l'assegnazione. `show` elenca cosa è successo, chi ha un compito aperto e i dati raccolti;
+se un passo automatico è partito da più di due minuti senza tornare, lo dice: è un difetto noto
+della piattaforma, e la soglia del passo avvisa i responsabili.
 
 ### Un agente dice «non ho accesso allo strumento» o «errore di autorizzazione»
 
