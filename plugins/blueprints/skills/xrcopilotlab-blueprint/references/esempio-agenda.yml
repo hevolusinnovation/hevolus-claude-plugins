@@ -218,7 +218,9 @@ blueprint: studiopolis-agenda
 # v15 (16/09): il transform legge `input`, non `data`: è così che il sandbox del builder passa la risposta.
 # v16 (16/09): invia_messaggio senza allegato + invia_messaggio_con_allegato (Graph rifiutava l'allegato vuoto).
 # v17 (16/09): responseFormat: text sui tool che rispondono 202 senza corpo (invio, risposta): il parse JSON falliva.
-version: 17
+# v18 (16/09): risposte_inviate conta solo le risposte «RE:» — un messaggio spedito dalla casella stessa non è una conferma.
+# v19 (16/09): cancella_evento, per la pulizia del calendario di collaudo nella suite di flusso.
+version: 19
 tag: STUDIOPOLIS
 description: Organizer dello Studio — dalla mail, dal dettato in chat o dalla comunicazione del tribunale alla pratica e al calendario comune
 
@@ -532,8 +534,11 @@ mcpServers:
         parameters:
           da: Momento da cui guardare, ISO 8601 con fuso, es. 2026-09-15T15:00:00Z
         required: [da]
+        # Solo le RISPOSTE (oggetto «RE:»): un messaggio che la casella stessa ha inviato sta negli
+        # inviati con lo stesso conversationId, e senza questo filtro veniva preso per una conferma —
+        # la suite di flusso, che manda le mail dalla casella di collaudo, non apriva mai niente (16/09).
         query:
-          $filter: "sentDateTime ge {{da}}"
+          $filter: "sentDateTime ge {{da}} and startswith(subject,'RE')"
           $orderby: sentDateTime desc
           $top: "50"
           $select: id,conversationId,sentDateTime,subject,toRecipients
@@ -615,6 +620,17 @@ mcpServers:
            "end":{"dateTime":"{{fine}}","timeZone":"Europe/Rome"},
            "location":{"displayName":"{{luogo}}"},
            "body":{"contentType":"HTML","content":"{{note}}"}}
+
+      # Serve alla suite di flusso, per ripulire il calendario di collaudo prima di scrivere e dopo:
+      # nessun agente lo usa (la Registrazione sposta, non cancella).
+      - name: cancella_evento
+        method: DELETE
+        path: /users/{{mailbox}}/events/{{eventoId}}
+        responseFormat: text
+        description: Cancella un impegno dal calendario comune. Solo per la pulizia del collaudo.
+        parameters:
+          eventoId: Identificativo dell'impegno, come restituito da cerca_eventi
+        required: [eventoId]
 
       - name: sposta_evento
         method: PATCH
@@ -779,8 +795,10 @@ agents:
       # Come leggi
       1. Chiami posta_in_arrivo con il momento che ti viene indicato, e risposte_inviate
          con il momento indicato per le conferme (quindici minuti prima).
-      2. Scarti ogni messaggio il cui conversationId compare fra le risposte inviate:
-         è già stato preso in carico da un giro precedente. La finestra della posta
+      2. Scarti ogni messaggio il cui conversationId compare fra le risposte inviate
+         (oggetto che comincia con «RE:»): è già stato preso in carico da un giro
+         precedente. Un messaggio che la casella ha spedito lei stessa NON è una
+         conferma: se non c'è una risposta «RE:» sul suo thread, passa. La finestra della posta
          è più larga dell'intervallo di proposito, e senza questo controllo lo
          stesso messaggio aprirebbe due pratiche.
       3. Per il primo messaggio rimasto da passare chiami leggi_messaggio per il

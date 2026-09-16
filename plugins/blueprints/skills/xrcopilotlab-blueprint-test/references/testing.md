@@ -162,16 +162,19 @@ lo dichiara, con il modulo scritto nella suite.
 
 | Passo | Cosa fa | Riesce se |
 |---|---|---|
-| `tool` | Chiama un tool di un server MCP del blueprint (`server`, `name`, `args`) | il tool non risponde con un errore, e la risposta contiene `contains` e non `notContains` |
+| `tool` | Chiama un tool di un server MCP del blueprint (`server`, `name`, `args`). Con `capture: { nome: value[0].id }` prende un valore dalla risposta JSON, usabile poi come `{{vars.nome}}`; con `optional: true` un errore non ferma il giro (una pulizia su qualcosa che può non esserci) | il tool non risponde con un errore (o è `optional`), e la risposta contiene `contains` e non `notContains` |
 | `waitInstance` | Aspetta un'istanza del processo target avviata dopo l'inizio del caso, il cui caseData contiene i frammenti in `caseData` | compare entro `withinSeconds`; con `absent: true`, se **non** compare |
 | `complete` | Prende e completa il compito aperto sull'attività, con `form` | il compito c'è entro `withinSeconds` e il completamento riesce |
 | `expect` | Le stesse attese di `expect.process`, verificate finché si assestano | tutte vere entro `withinSeconds` |
 
 Segnaposto nelle stringhe di `args` e `form`: `{{userId}}` (l'utente di collaudo, come id — è
-ciò che vuole un campo di tipo utente), `{{instanceId}}`, `{{caseData.<chiave>}}`. Nel report ogni
-passo è un controllo con durata e dettaglio; un passo mai raggiunto non compare. Ciò che i passi
-scrivono fuori dal tenant (gli eventi sul calendario) **resta**: la suite non lo cancella, e va
-detto a chi legge. Esempio completo: `blueprints/tests/studiopolis-agenda-flusso.tests.yml`.
+ciò che vuole un campo di tipo utente), `{{instanceId}}`, `{{caseData.<chiave>}}`,
+`{{vars.<nome>}}`. Nel report ogni passo è un controllo con durata e dettaglio; un passo mai
+raggiunto non compare. Ciò che i passi scrivono fuori dal tenant (gli eventi sul calendario) resta
+se il flusso non lo pulisce: la forma è un `tool` di ricerca con `capture` dell'id e un `tool` di
+cancellazione `optional`, prima di scrivere e alla fine. Un giro che trova un residuo del giro
+precedente non fallisce «GIÀ PRESENTE» per caso (16/09/2026). Esempio completo:
+`blueprints/tests/studiopolis-agenda-flusso.tests.yml`.
 
 ### Che cosa fa un caso, per tipo
 
