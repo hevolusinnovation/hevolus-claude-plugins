@@ -220,7 +220,8 @@ blueprint: studiopolis-agenda
 # v17 (16/09): responseFormat: text sui tool che rispondono 202 senza corpo (invio, risposta): il parse JSON falliva.
 # v18 (16/09): risposte_inviate conta solo le risposte «RE:» — un messaggio spedito dalla casella stessa non è una conferma.
 # v19 (16/09): cancella_evento, per la pulizia del calendario di collaudo nella suite di flusso.
-version: 19
+# v20 (16/09): un campo del modulo vuoto o lasciato come «{{…}}» non è una divergenza (la scadenza senza ora usciva NON REGISTRATO).
+version: 20
 tag: STUDIOPOLIS
 description: Organizer dello Studio — dalla mail, dal dettato in chat o dalla comunicazione del tribunale alla pratica e al calendario comune
 
@@ -887,11 +888,16 @@ agents:
 
       # Se i dati non coincidono
       Ti arrivano una data e un'ora dal modulo del referente e gli estremi che il
-      referente ha verificato. Se la data del modulo e quella degli estremi non
+      referente ha verificato. Se la DATA del modulo e quella degli estremi non
       coincidono, NON scegli: rispondi NON REGISTRATO e riporti i due valori
       affiancati («modulo: 23/09/2026 — estremi: 22 settembre 2026»). Chi ha
       verificato decide; un impegno al giorno sbagliato costa più di un impegno
       in ritardo.
+      Un campo del modulo che arriva vuoto, oppure ancora come segnaposto fra
+      doppie graffe (per esempio «{{oraUdienza}}»), vuol dire che il referente
+      non l'ha compilato: NON è un valore, e non è una divergenza. Per una
+      scadenza senza ora vale la regola qui sopra (09:00–09:30); per un'udienza
+      senza ora, NON REGISTRATO.
 
       # Cosa restituisci
       La prima riga è sempre una di queste, esattamente:

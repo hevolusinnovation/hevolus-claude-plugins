@@ -111,8 +111,9 @@ cases:
         completed: [estrai]          # attività con ActivityCompleted
         waitingAt: verifica          # id dell'attività con un compito aperto
         status: Running              # stato dell'istanza quando il caso si ferma
-        caseData:                    # chiave → frammento contenuto nel valore
+        caseData:                    # chiave → frammento contenuto nel valore; con «^» in testa: deve INIZIARE così
           proposta: "14 ottobre 2026"
+          esitoRegistrazione: "^REGISTRATO"    # «REGISTRATO» combacerebbe anche con «NON REGISTRATO"
     caseData:                        # processo: i campi del modulo di avvio (tipi YAML 1.2)
       testoAvviso: "…"
       materia: Civile
@@ -166,6 +167,7 @@ lo dichiara, con il modulo scritto nella suite.
 | `waitInstance` | Aspetta un'istanza del processo target avviata dopo l'inizio del caso, il cui caseData contiene i frammenti in `caseData` | compare entro `withinSeconds`; con `absent: true`, se **non** compare |
 | `complete` | Prende e completa il compito aperto sull'attività, con `form` | il compito c'è entro `withinSeconds` e il completamento riesce |
 | `expect` | Le stesse attese di `expect.process`, verificate finché si assestano | tutte vere entro `withinSeconds` |
+| `chat` | Una conversazione a più turni con un agente del blueprint (`agent`, `turns`), nella stessa chat: il dettato dell'avvocato, la rilettura, il «sì» che fa aprire la pratica. I turni compaiono nel report | nessun turno in errore, e l'ultima risposta contiene `contains` e non `notContains` |
 
 Segnaposto nelle stringhe di `args` e `form`: `{{userId}}` (l'utente di collaudo, come id — è
 ciò che vuole un campo di tipo utente), `{{instanceId}}`, `{{caseData.<chiave>}}`,
