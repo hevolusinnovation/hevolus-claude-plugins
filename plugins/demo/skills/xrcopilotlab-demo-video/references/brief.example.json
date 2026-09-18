@@ -1,0 +1,61 @@
+{
+  "briefVersion": 1,
+  "tag": "STUDIOPOLIS",
+  "blueprint": "studiopolis-agenda",
+  "manifestVersion": 20,
+  "env": "staging",
+  "title": "Studio Polis — la vostra agenda di studio",
+  "intro": "Ecco come è stato configurato il vostro spazio su XRCopilotLab.",
+  "outro": "È tutto già attivo: potete usarlo così com'è o modificarlo quando volete.",
+  "topic": {
+    "name": "Agenda di Studio",
+    "description": "Il topic raccoglie i documenti dello studio, i profili di conoscenza e gli agenti che li interrogano."
+  },
+  "knowledge": [
+    {
+      "name": "Contabilita di gruppo",
+      "description": "Indicizza il mapping contabile e il giornale: è la fonte che gli agenti consultano sui numeri."
+    },
+    {
+      "name": "Scadenzario",
+      "description": "Raccoglie le scadenze processuali, così le risposte citano sempre la data giusta."
+    }
+  ],
+  "agents": [
+    {
+      "name": "Agenda",
+      "description": "Risponde sulle udienze in calendario e prepara il riepilogo della settimana.",
+      "model": "gpt-5.4-mini",
+      "spotlight": true
+    },
+    {
+      "name": "Sorveglianza",
+      "description": "Legge la posta del protocollo e riconosce gli avvisi di udienza in arrivo."
+    },
+    {
+      "name": "Riconciliazione",
+      "description": "Confronta quanto risulta a fascicolo con quanto risulta in contabilità."
+    }
+  ],
+  "orchestrators": [
+    {
+      "name": "Riconciliazione",
+      "description": "Mette in fila l'estrazione dei dati e i due controlli, poi produce la scheda.",
+      "steps": ["Profilo", "Fonti pubbliche", "Scheda finale"],
+      "spotlight": true
+    }
+  ],
+  "agentTasks": [
+    {
+      "name": "Sorveglianza posta",
+      "description": "Ogni cinque minuti controlla il protocollo e apre una pratica per ogni avviso nuovo.",
+      "trigger": "scheduled"
+    }
+  ],
+  "processes": [
+    {
+      "name": "Presa in carico avviso di udienza",
+      "description": "Dall'avviso ricevuto alla conferma del referente, fino alla registrazione in agenda."
+    }
+  ]
+}

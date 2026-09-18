@@ -21,6 +21,7 @@ due restino allineate.
 | **blueprints** | Claude Code | `xrcopilotlab-blueprint` | Configura un ambiente XRCopilotLab da un file: topic, profili di knowledge, ruoli, agenti (con modello e documenti), agent task, processi BPM. Propone come dividere i documenti fra i profili, mostra il piano e chiede conferma prima di creare | [manuale.md](plugins/blueprints/docs/manuale.md) |
 | **blueprints** | Claude Code | `xrcopilotlab-blueprint-test` | Collauda un blueprint **applicato**: scrive le domande per agenti, orchestratori e processi, le esegue sul tenant raccogliendo risposte e log, giudica, attribuisce ogni fallimento a un componente, e ne ricava le guide per il cliente | [manuale.md](plugins/blueprints/docs/manuale.md) |
 | **assessment** | Claude Desktop | `xrcopilotlab-assessment` | Traduce una proposta di progetto nella soluzione XRCopilotLab: scenari, agenti orchestrati o processo BPM, fattibilità delle fonti dati, dossier tecnico in Markdown e Word | [manuale.md](plugins/assessment/docs/manuale.md) |
+| **demo** | Claude Code | `xrcopilotlab-demo-video` | Trasforma un blueprint **già applicato e verificato** nel video tutorial da consegnare al cliente: legge il manifest, ne ricava un brief con nomi e descrizioni degli elementi creati, e lo passa al demo-recorder che registra la panoramica e carica l'mp4 | [manuale.md](plugins/demo/docs/manuale.md) |
 
 I due plugin sono i tempi dello stesso lavoro, su due strumenti diversi: l'assessment si fa in
 chat su Claude Desktop, dove la proposta del cliente si carica e si legge; il provisioning e il
@@ -232,6 +233,7 @@ repository di prodotto: [§ Per chi sviluppa](#per-chi-sviluppa-le-skill-che-res
 | [`xrcopilotlab-blueprint`](#xrcopilotlab-blueprint--scrivere-e-applicare-un-blueprint) | blueprints | «crea un blueprint», «configura il cliente da zero», «applica il manifest», o si nomina `xrcopilotlab-bp` | il manifest `.yml`, il piano, il tenant configurato |
 | [`xrcopilotlab-blueprint-test`](#xrcopilotlab-blueprint-test--collaudare-un-blueprint-applicato) | blueprints | «collauda il blueprint», «scrivi le domande di test», «vedi se funziona», «prepara le domande per il cliente», o si nomina `test run` | la suite `.tests.yml`, il report, il giudizio, le bozze di issue, le guide per il cliente |
 | [`xrcopilotlab-assessment`](#xrcopilotlab-assessment--dalla-proposta-al-dossier) | assessment (Claude Desktop) | si carica una proposta e si chiede di «valutarla», «fare l'assessment», «tradurla in soluzione» | il dossier tecnico `.md` e `.docx`, con il capitolo per il provisioning |
+| `xrcopilotlab-demo-video` | demo | «fai il video del blueprint», «prepara il tutorial per il cliente», «registra la demo di quello che abbiamo creato» | il brief `.json` nel demo-recorder, il run del workflow, il video `.mp4` su Azure |
 
 Le tre skill sono i tre tempi dello stesso lavoro: l'assessment dice **cosa** costruire, il
 blueprint lo **costruisce**, il collaudo dice **se funziona** e a chi tocca ciò che non va.
