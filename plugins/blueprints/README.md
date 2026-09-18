@@ -31,8 +31,9 @@ STUDIOPOLIS», «scrivi le domande di test per questi agenti», «cosa è andato
 Si invocano anche per nome (`/xrcopilotlab-blueprint`, `/xrcopilotlab-blueprint-test`): senza
 argomenti si orientano e si fermano, senza partire a fare domande.
 
-Il dettaglio di ciascuna, con esempi di manifest e di suite: [§ Le skill del README del
-catalogo](../../README.md#le-skill).
+Il dettaglio di ciascuna, con esempi di manifest e di suite: [§ Le
+skill](../../docs/le-skill.md). Prima di usarlo serve l'accesso ad Azure:
+[§ L'accesso](../../docs/accesso-azure.md).
 
 ## Cosa contiene
 
@@ -44,4 +45,4 @@ catalogo](../../README.md#le-skill).
 | `docs/manuale.md` | Il manuale per chi lo usa |
 
 I file sotto `skills/` sono una copia sincronizzata dal repository di prodotto: si modificano là,
-non qui. Vedi il [README del catalogo](../../README.md).
+non qui. Vedi [§ Manutenzione](../../docs/manutenzione.md).

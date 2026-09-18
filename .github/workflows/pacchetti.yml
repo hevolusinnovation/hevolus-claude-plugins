@@ -1,0 +1,103 @@
+name: Pacchetti
+
+# Costruisce i pacchetti e li allega a una Release, che è da dove si scaricano: nessuno deve
+# clonare il repository né eseguire uno script per installare una skill o il plugin Desktop.
+#
+#   - a mano: scheda Actions → Pacchetti → Run workflow (il tag si ricava da marketplace.json)
+#   - da tag: git tag v1.11.2 && git push origin v1.11.2
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag della release (vuoto = v<versione di marketplace.json>)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  pacchetti:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Superfici — la separazione tiene
+        run: ./verifica-superfici.sh
+
+      - name: Costruisci i pacchetti
+        run: |
+          ./build-desktop-plugin.sh dist
+          ./build-skill-zip.sh --all dist/skills
+
+      - name: Decidi il tag
+        id: tag
+        # L'input arriva per variabile d'ambiente, non interpolato nello script: un valore scritto
+        # a mano non deve poter diventare un comando.
+        env:
+          TAG_RICHIESTO: ${{ inputs.tag }}
+        run: |
+          tag="${TAG_RICHIESTO:-}"
+          if [ -z "$tag" ] && [ "${GITHUB_REF_TYPE}" = "tag" ]; then
+            tag="${GITHUB_REF_NAME}"
+          fi
+          if [ -z "$tag" ]; then
+            tag="v$(python3 -c 'import json;print(json.load(open(".claude-plugin/marketplace.json"))["version"])')"
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Scrivi le note della release
+        run: |
+          python3 - <<'PY' > note.md
+          import glob, json, os
+
+          catalogo = json.load(open(".claude-plugin/marketplace.json"))
+          superfici = json.load(open("superfici.json"))
+          desktop = [n for n, d in superfici.items() if d.get("superficie") == "desktop"]
+
+          zip_desktop = os.path.basename(glob.glob("dist/*.zip")[0])
+
+          print("## Da scaricare\n")
+          print("| File | A cosa serve | Dove si carica |")
+          print("|---|---|---|")
+          print(f"| **`{zip_desktop}`** | Il plugin per **Claude Desktop**: assessment di una proposta e dossier tecnico | [claude.ai/customize/plugins](https://claude.ai/customize/plugins) → **Carica plugin** |")
+          for z in sorted(glob.glob("dist/skills/*.zip")):
+              nome = os.path.basename(z)
+              print(f"| `{nome}` | La singola skill, per chi lavora in chat senza plugin | claude.ai → Impostazioni → Capacità → **Skill** |")
+          print()
+          print("Non serve scaricare niente per i plugin di **Claude Code**: si installano dal catalogo.\n")
+          print("```")
+          print("/plugin marketplace add hevolusinnovation/hevolus-claude-plugins")
+          for p in catalogo["plugins"]:
+              print(f"/plugin install {p['name']}@{catalogo['name']}")
+          print("```")
+          print()
+          print("## Versioni\n")
+          print("| Plugin | Dove gira | Versione |")
+          print("|---|---|---|")
+          for nome in sorted(superfici):
+              v = json.load(open(f"plugins/{nome}/.claude-plugin/plugin.json"))["version"]
+              dove = "Claude Desktop" if nome in desktop else "Claude Code"
+              print(f"| {nome} | {dove} | {v} |")
+          print(f"\nCatalogo: {catalogo['version']}")
+          print("\nIstruzioni passo passo: [`docs/installare.md`](https://github.com/hevolusinnovation/hevolus-claude-plugins/blob/main/docs/installare.md)")
+          PY
+
+      - name: Pubblica la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          tag="$TAG"
+          file=(dist/*.zip dist/skills/*.zip)
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --notes-file note.md
+            gh release upload "$tag" "${file[@]}" --clobber
+          else
+            gh release create "$tag" "${file[@]}" \
+              --title "Plugin Claude di Hevolus $tag" \
+              --notes-file note.md
+          fi
+          gh release view "$tag" --json url --jq .url

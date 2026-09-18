@@ -1,6 +1,6 @@
 # `xrcopilotlab-bp` — riferimento dei comandi
 
-Panoramica e concetti: [`README.md`](README.md). Formato del file: [`manifest-reference.md`](manifest-reference.md).
+Panoramica e concetti: [`manuale.md`](../../../docs/manuale.md). Formato del file: [`manifest-reference.md`](manifest-reference.md).
 
 ```
 xrcopilotlab-bp <comando> [argomenti] [opzioni]
@@ -400,7 +400,7 @@ va in `blueprints/tests/reports/<tag>/<data>/` (ignorata da git).
 
 Esce `0` se tutti i casi passano, **`7`** se almeno uno non passa, `2` se la suite non è valida,
 `3` se il tag non ha un run sul tenant. Formato della suite, esiti, sospetti e codici `BT0xx`:
-[`testing.md`](testing.md).
+[`testing.md`](../../xrcopilotlab-blueprint-test/references/testing.md).
 
 ## `schedule list` · `schedule pause <task>` · `schedule resume <task>` · `schedule logs <task>`
 

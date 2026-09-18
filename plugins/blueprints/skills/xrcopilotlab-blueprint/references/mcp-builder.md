@@ -269,7 +269,7 @@ indirizzo e una restrizione — nessun segreto che viaggia fra due aziende.
 ### I quattro passi che il blueprint NON può fare
 
 Procedura completa, con i comandi, chi serve per ciascun passo e il testo da inoltrare al cliente:
-[`docs/blueprints/microsoft365-setup.md`](../../../../docs/blueprints/microsoft365-setup.md).
+[`references/microsoft365-setup.md`](microsoft365-setup.md).
 
 
 Il blueprint crea connessione, server, tool e collegamento agli agenti. I permessi no — vivono in

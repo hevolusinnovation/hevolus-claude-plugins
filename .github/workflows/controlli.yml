@@ -1,0 +1,25 @@
+name: Controlli
+
+# Gira su ogni push e su ogni pull request: se la separazione fra Claude Code e Claude Desktop
+# non torna, o se una skill non passerebbe il caricamento su claude.ai, si vede qui invece che
+# addosso a chi prova a installarla.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  controlli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Superfici — ogni plugin dichiara dove gira, e il catalogo è d'accordo
+        run: ./verifica-superfici.sh
+
+      - name: Skill — frontmatter e forma dell'archivio
+        run: ./build-skill-zip.sh --all
+
+      - name: Pacchetto Desktop — si costruisce davvero
+        run: ./build-desktop-plugin.sh

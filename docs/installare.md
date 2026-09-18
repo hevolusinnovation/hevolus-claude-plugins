@@ -1,0 +1,113 @@
+# Installare
+
+Questa pagina è per chi deve **usare** gli strumenti, non per chi li sviluppa. Non serve saper
+programmare, non serve clonare niente e non serve aprire un terminale.
+
+## Qual è il tuo caso
+
+| Quello che devi fare | Lo strumento | Vai a |
+|---|---|---|
+| Ho la proposta di un cliente e devo capire come si realizza su XRCopilotLab | **Claude Desktop**, plugin *assessment* | [§ Claude Desktop](#claude-desktop--il-plugin-assessment) |
+| Devo configurare l'ambiente di un cliente, o collaudarne uno già configurato | **Claude Code**, plugin *blueprints* | [§ Claude Code](#claude-code--il-plugin-blueprints) |
+| Voglio una sola skill dentro le mie chat, senza plugin | una **skill** singola | [§ Una skill da sola](#una-skill-da-sola) |
+
+Sono due strumenti diversi e non si sostituiscono: l'assessment si fa in chat con il documento del
+cliente sotto mano, il provisioning si fa da Claude Code perché lì lo strumento può parlare con il
+tenant. Perché la divisione è questa: [§ Claude Code o Claude Desktop](code-o-desktop.md).
+
+## Claude Desktop — il plugin *assessment*
+
+### 1. Scarica il pacchetto
+
+Apri la pagina dei pacchetti pronti:
+
+**https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest**
+
+Sotto **Assets**, scarica il file che comincia per `Xrcopilotlab-` e finisce per `.zip` — per
+esempio `Xrcopilotlab-0.2.0.zip`.
+
+> **Non aprire lo zip e non estrarlo.** Va caricato così com'è: se lo estrai e ricomprimi, il
+> pacchetto cambia forma e il caricamento fallisce.
+
+### 2. Caricalo
+
+1. vai su **[claude.ai/customize/plugins](https://claude.ai/customize/plugins)**;
+2. scegli **Carica plugin** e seleziona lo zip appena scaricato;
+3. controlla l'anteprima — deve dire **XRCopilotLab Assessment** — e conferma.
+
+### 3. Usalo
+
+Apri una chat su Claude Desktop, **carica la proposta** (PDF o Word) e scrivi una frase qualsiasi
+fra queste:
+
+- «fammi l'assessment di questa proposta»
+- «come la implementiamo su XRCopilotLab?»
+- «è fattibile la parte sui documenti del cliente?»
+
+Non serve nominare la skill: si attiva da sola. Cosa portare in chat, cosa produce e in che ordine
+lavora: **[il manuale](../plugins/assessment/docs/manuale.md)**.
+
+### Quando esce una versione nuova
+
+Torna alla pagina delle release, scarica lo zip nuovo e ricaricalo allo stesso modo: sostituisce il
+precedente. Non ci sono aggiornamenti automatici, quindi se qualcuno ti dice «è cambiato», il modo
+di prenderlo è questo.
+
+### Se qualcosa non va
+
+| Cosa vedi | Cosa è successo |
+|---|---|
+| La pagina delle release dà **404** | Il repository è privato: ti serve l'accesso. Chiedi a chi mantiene il catalogo di aggiungerti all'organizzazione `hevolusinnovation` su GitHub — oppure di mandarti direttamente lo zip |
+| **«All files must be inside the top-level folder»** | Hai caricato il pacchetto sbagliato nel posto sbagliato: quello che comincia per `Xrcopilotlab-` va su *Carica plugin*, i file `xrcopilotlab-*.zip` vanno nella libreria delle **skill**. Vedi [§ Una skill da sola](#una-skill-da-sola) |
+| Il plugin c'è ma la skill non si attiva | Carica il documento **prima** di chiedere, e dì cosa vuoi («fai l'assessment»). Se serve, nominala: «usa la skill xrcopilotlab-assessment su questo documento» |
+| Hai estratto lo zip e ora non si carica | Riscarica il file originale dalla pagina delle release e caricalo senza aprirlo |
+
+## Claude Code — il plugin *blueprints*
+
+Qui serve Claude Code installato. Dentro Claude Code, si registra il catalogo una volta sola e poi
+si installa il plugin:
+
+```
+/plugin marketplace add hevolusinnovation/hevolus-claude-plugins
+/plugin install blueprints@hevolus
+```
+
+Nessuno zip da scaricare: il catalogo è il repository, e lo strumento a riga di comando che il
+plugin usa se lo scarica da solo al primo utilizzo.
+
+Poi basta chiedere, in una cartella di lavoro qualsiasi:
+
+- «crea un blueprint per lo studio legale Polis»
+- «applica `blueprints/studiopolis-agenda.yml` su staging»
+- «collauda il blueprint STUDIOPOLIS»
+
+> **Prima di provare, leggi [§ L'accesso ad Azure](accesso-azure.md).** Il plugin parla con le
+> risorse Azure di Hevolus, e senza i permessi giusti si ferma al primo comando. Non è qualcosa che
+> si aggira riprovando, e l'account con cui usi Claude non c'entra.
+
+Cosa fanno le due skill, con che frasi si attivano e cosa producono:
+**[§ Le skill](le-skill.md)** e **[il manuale](../plugins/blueprints/docs/manuale.md)**.
+
+## Una skill da sola
+
+Una skill si può aggiungere alle proprie chat **senza plugin**: serve a chi lavora in chat su
+claude.ai e non usa né Claude Desktop né Claude Code.
+
+1. dalla stessa [pagina delle release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest),
+   scarica il file con il nome della skill — `xrcopilotlab-assessment.zip`,
+   `xrcopilotlab-blueprint.zip`, `xrcopilotlab-blueprint-test.zip`;
+2. su claude.ai vai in **Impostazioni → Capacità → Skill** e caricalo lì.
+
+I due pacchetti **non** sono intercambiabili: quello del plugin (`Xrcopilotlab-….zip`) e quello
+della skill (`xrcopilotlab-….zip`) hanno una forma interna diversa, e scambiarli è l'errore che
+capita per primo. La differenza, per chi mantiene: [§ Manutenzione](manutenzione.md#caricare-una-skill-singola-su-claudeai--non-è-lo-stesso-pacchetto-del-plugin).
+
+Attenzione a una cosa: le due skill dei blueprint, caricate da sole, sanno **spiegare e scrivere**
+un manifest, ma non possono applicarlo — applicare richiede lo strumento a riga di comando, che
+esiste solo dentro Claude Code.
+
+## A chi chiedere
+
+Se ti blocchi, scrivi a chi mantiene il catalogo (AI Team) dicendo **cosa stavi facendo** e
+**copiando il messaggio d'errore per intero**: quasi tutti gli errori di queste pagine dicono
+esattamente cosa manca, ma solo se arrivano interi.

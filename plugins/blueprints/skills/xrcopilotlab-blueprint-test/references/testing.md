@@ -47,7 +47,7 @@ suite): la mail la manda la suite, i compiti li completa lei, il calendario lo c
 
 I passi automatici che scrivono fuori dal tenant (il calendario) stanno **dopo** i compiti umani:
 finché un compito aspetta, non c'è niente da cercare nel calendario. Guida al triage:
-[`.claude/skills/xrcopilotlab-blueprint-test/references/triage.md`](../../.claude/skills/xrcopilotlab-blueprint-test/references/triage.md).
+[`triage.md`](triage.md).
 
 ## Come si risolvono le entità
 

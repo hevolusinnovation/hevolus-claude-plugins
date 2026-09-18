@@ -3,3 +3,6 @@ dist/
 
 # la cartella dove l'app Claude scarica i file di questa sessione
 Claude outputs/
+
+# i .pyc degli script
+__pycache__/

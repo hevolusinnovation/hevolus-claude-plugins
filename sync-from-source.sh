@@ -1,85 +1,17 @@
 #!/usr/bin/env bash
-# Allinea il plugin al repository sorgente di XRCopilotLab.
+# Allinea le skill al repository sorgente di XRCopilotLab.
 #
-# La skill e i suoi riferimenti vivono in xrcopilotlab-webapp-dotnet: qui ne serve una copia,
-# perché chi installa il plugin quel repository non ce l'ha. Copiarla a mano vorrebbe dire vederla
-# divergere alla prima modifica, quindi la copia si rifà con questo script e si committa.
+# Le skill vivono in xrcopilotlab-webapp-dotnet: qui ne serve una copia, e si rifà con questo
+# invece che a mano. Riscrive anche i link che nel plugin punterebbero a file inesistenti.
 #
-#   ./sync-from-source.sh [percorso-del-repo-xrcopilotlab]
-
+#   ./sync-from-source.sh ../xrcopilotlab-webapp-dotnet
+#
+# Avviatore: la logica sta in tools/sync_from_source.py, che gira uguale su macOS, Linux e Windows.
+# Gemello di sync-from-source.ps1 — due porte sulla stessa stanza, nessuna logica duplicata.
 set -euo pipefail
 
-SRC="${1:-../xrcopilotlab-webapp-dotnet}"
-DEST="plugins/blueprints/skills/xrcopilotlab-blueprint"
+root="$(cd "$(dirname "$0")" && pwd)"
+py="$(command -v python3 || command -v python || true)"
+[ -n "$py" ] || { echo "Serve Python 3: installalo da python.org o con il gestore di pacchetti." >&2; exit 1; }
 
-if [ ! -f "$SRC/CLAUDE.md" ]; then
-  echo "Non trovo il repository XRCopilotLab in '$SRC'." >&2
-  echo "Passalo come argomento: ./sync-from-source.sh /percorso/di/xrcopilotlab-webapp-dotnet" >&2
-  exit 1
-fi
-
-mkdir -p "$DEST/references"
-
-# La skill e i riferimenti che le appartengono.
-cp "$SRC/.claude/skills/xrcopilotlab-blueprint/SKILL.md"                       "$DEST/SKILL.md"
-cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/regole-del-grafo.md" "$DEST/references/"
-cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/intervista.md"       "$DEST/references/"
-cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/mcp-builder.md"      "$DEST/references/"
-cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/knowledge.md"        "$DEST/references/"
-cp "$SRC/.claude/skills/xrcopilotlab-blueprint/references/modelli.md"          "$DEST/references/"
-
-# I riferimenti che nel repository stanno altrove e qui devono viaggiare con la skill.
-cp "$SRC/docs/blueprints/manifest-reference.md" "$DEST/references/"
-cp "$SRC/docs/blueprints/cli-reference.md"      "$DEST/references/"
-cp "$SRC/src/XRCopilotLab/XRCopilotLab.BluePrints/Schema/blueprint.v1.schema.json" "$DEST/references/"
-cp "$SRC/blueprints/studiopolis-agenda.yml"     "$DEST/references/esempio-agenda.yml"
-cp "$SRC/blueprints/test-agenda.yml"            "$DEST/references/esempio-minimo.yml"
-
-# Nel repository la SKILL.md punta a percorsi che qui non esistono: si riscrivono sui file copiati.
-python3 - "$DEST/SKILL.md" <<'PY'
-import sys, re
-p = sys.argv[1]
-s = open(p).read()
-
-s = s.replace("[`docs/blueprints/manifest-reference.md`](../../../docs/blueprints/manifest-reference.md)",
-              "[`references/manifest-reference.md`](references/manifest-reference.md)")
-s = s.replace("[`docs/blueprints/cli-reference.md`](../../../docs/blueprints/cli-reference.md)",
-              "[`references/cli-reference.md`](references/cli-reference.md)")
-s = s.replace("| Guida d'insieme | [`BLUEPRINTS.md`](../../../BLUEPRINTS.md) |",
-              "| Manuale d'uso del plugin | [`../../docs/manuale.md`](../../docs/manuale.md) |")
-s = s.replace("Lo schema autorevole è `src/XRCopilotLab/XRCopilotLab.BluePrints/Schema/blueprint.v1.schema.json`.\nUn esempio completo e commentato è in `blueprints/`.",
-              "Lo schema è in [`references/blueprint.v1.schema.json`](references/blueprint.v1.schema.json).\n"
-              "Due esempi commentati: [`references/esempio-agenda.yml`](references/esempio-agenda.yml) (scenario reale)\n"
-              "e [`references/esempio-minimo.yml`](references/esempio-minimo.yml) (il giro più corto).")
-s = s.replace("Il file va in `blueprints/<tag-minuscolo>-<slug>.yml`.",
-              "Il file va in `blueprints/<tag-minuscolo>-<slug>.yml` dentro il progetto dell'utente; se quella\ncartella non esiste, si crea.")
-
-open(p, "w").write(s)
-print("percorsi della skill riscritti")
-PY
-
-# La skill di collaudo: collauda un blueprint applicato con `xrcopilotlab-bp test`.
-TEST_DEST="plugins/blueprints/skills/xrcopilotlab-blueprint-test"
-mkdir -p "$TEST_DEST/references"
-cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/SKILL.md"                  "$TEST_DEST/SKILL.md"
-cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/domande.md"     "$TEST_DEST/references/"
-cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/giudizio.md"    "$TEST_DEST/references/"
-cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/triage.md"      "$TEST_DEST/references/"
-cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/segnalazione.md" "$TEST_DEST/references/"
-cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/bpm.md"          "$TEST_DEST/references/"
-cp "$SRC/.claude/skills/xrcopilotlab-blueprint-test/references/guida-cliente.md" "$TEST_DEST/references/"
-cp "$SRC/docs/blueprints/testing.md"                                           "$TEST_DEST/references/"
-cp "$SRC/blueprints/tests/studiopolis-agenda.tests.yml"                        "$TEST_DEST/references/esempio-suite-agenda.tests.yml"
-
-python3 - "$TEST_DEST/SKILL.md" <<'PY2'
-import sys
-p = sys.argv[1]
-s = open(p).read()
-s = s.replace("[`docs/blueprints/testing.md`](../../../docs/blueprints/testing.md)",
-              "[`references/testing.md`](references/testing.md)")
-open(p, "w").write(s)
-print("percorsi della skill di collaudo riscritti")
-PY2
-
-echo "Allineato da: $SRC"
-ls -1 "$DEST/references" "$TEST_DEST/references"
+exec "$py" "$root/tools/sync_from_source.py" "$@"

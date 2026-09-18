@@ -1,8 +1,8 @@
 # Manifest di un blueprint — riferimento
 
 Formato **v1**. Schema JSON:
-[`XRCopilotLab.BluePrints/Schema/blueprint.v1.schema.json`](../../src/XRCopilotLab/XRCopilotLab.BluePrints/Schema/blueprint.v1.schema.json).
-Esempio completo: [`blueprints/test-agenda.yml`](../../blueprints/test-agenda.yml).
+[`blueprint.v1.schema.json`](blueprint.v1.schema.json).
+Esempio completo: [`esempio-minimo.yml`](esempio-minimo.yml).
 
 Due regole valgono ovunque nel file:
 

@@ -215,7 +215,7 @@ data spostata di un giorno, un tipo diverso dall'atteso), dirlo prima che il pas
 usi.
 
 Quando la casella di collaudo è nostra, il giro intero si scrive come caso **`kind: flow`**
-(formato in [`testing.md`](../../../docs/blueprints/testing.md)): la suite manda la mail con il
+(formato in [`testing.md`](references/testing.md)): la suite manda la mail con il
 tool del blueprint, aspetta l'istanza, completa i compiti per conto di `defaults.userId`, controlla
 il calendario. Va in una suite **a parte** (`<nome>-flusso.tests.yml`), lanciata con un sì
 esplicito e nell'ordine del file, perché completa compiti e scrive sul calendario: prima di

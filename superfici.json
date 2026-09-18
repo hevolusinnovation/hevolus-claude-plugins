@@ -1,0 +1,11 @@
+{
+  "blueprints": {
+    "superficie": "code",
+    "distribuzione": "marketplace"
+  },
+  "assessment": {
+    "superficie": "desktop",
+    "distribuzione": "zip",
+    "nomeNelPacchetto": "xrcopilotlab"
+  }
+}

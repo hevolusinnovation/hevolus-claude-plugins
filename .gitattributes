@@ -3,5 +3,6 @@
 *.cmd text eol=crlf
 *.ps1 text eol=crlf
 
-# Tutto il resto resta a LF, compreso l'avviatore POSIX.
+# Tutto il resto resta a LF, compreso l'avviatore POSIX e la logica che entrambi avviano.
 *.sh  text eol=lf
+*.py  text eol=lf
