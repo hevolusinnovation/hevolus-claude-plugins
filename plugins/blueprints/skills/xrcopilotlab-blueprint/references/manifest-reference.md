@@ -484,10 +484,20 @@ non si può nemmeno aggiungere: si trascina il primo agente e si parte da lì. N
 step si elenca per primo, e i flussi collegano il resto. Uno step `type: start` scritto per
 abitudine è accettato, segnalato (`BP094`) e ignorato dal piano insieme ai suoi flussi.
 
+**Il messaggio di benvenuto è `welcomeMessage`, non uno step.** Il blueprint crea con l'orchestratore
+il suo endpoint di chat (come «Default Agent Endpoint» per gli agenti), e `welcomeMessage` è ciò
+che la chat mostra **all'apertura, prima che l'utente scriva**: il posto giusto per dire come si fa
+una domanda a questa orchestrazione e suggerirne alcune. Al massimo 1500 caratteri (`BP016`);
+`language` è la lingua dell'endpoint (default `it`). Uno step `sendMessage` in testa **non** serve
+allo scopo: il suo testo arriva in chat solo insieme alla risposta finale.
+
 ```yaml
 orchestrators:
   - key: arricchimento
     name: Arricchimento scheda
+    welcomeMessage: |
+      Scrivi il nome dell'azienda e che cosa vuoi sapere. Per esempio: «Profilo di Rossi S.p.A.
+      con le ultime notizie».
     steps:
       - key: profilo                     # il primo step: da qui si parte
         name: Profilo

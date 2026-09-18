@@ -626,6 +626,14 @@
           "description": {
             "type": "string"
           },
+          "welcomeMessage": {
+            "type": "string",
+            "description": "Messaggio mostrato all'apertura della chat dell'orchestratore, prima che l'utente scriva (max 1500 caratteri)."
+          },
+          "language": {
+            "type": "string",
+            "description": "Lingua dell'endpoint di chat (it, en…); default it."
+          },
           "steps": {
             "type": "array",
             "minItems": 1,

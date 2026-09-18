@@ -221,7 +221,11 @@ blueprint: studiopolis-agenda
 # v18 (16/09): risposte_inviate conta solo le risposte «RE:» — un messaggio spedito dalla casella stessa non è una conferma.
 # v19 (16/09): cancella_evento, per la pulizia del calendario di collaudo nella suite di flusso.
 # v20 (16/09): un campo del modulo vuoto o lasciato come «{{…}}» non è una divergenza (la scadenza senza ora usciva NON REGISTRATO).
-version: 20
+# v21 (16/09): la Riconciliazione parte da un messaggio che dice che cosa fa e che cosa si può chiedere.
+#              Applicata sul posto al solo orchestratore (script, senza rifare il blueprint): le altre entità restano della v20.
+# v22 (16/09): quel messaggio passa da uno step sendMessage — che in chat arriva solo con la risposta finale — a
+#              `welcomeMessage`, mostrato all'apertura della chat sull'endpoint dell'orchestratore. Applicato sul posto.
+version: 22
 tag: STUDIOPOLIS
 description: Organizer dello Studio — dalla mail, dal dettato in chat o dalla comunicazione del tribunale alla pratica e al calendario comune
 
@@ -1107,6 +1111,21 @@ orchestrators:
     description: >
       Confronta gli avvisi arrivati in casella con gli impegni del calendario comune e riporta
       doppioni, divergenze e udienze che stanno in una sola delle due viste.
+    # Mostrato all'apertura della chat, prima che l'utente scriva: che cosa fa la riconciliazione e
+    # come chiederla. Uno step sendMessage in testa non serve allo scopo — il suo testo arriva in
+    # chat solo insieme alla risposta finale (v21 → v22). Massimo 1500 caratteri.
+    welcomeMessage: |
+      **Riconciliazione agende.** Confronto la casella di ascolto con il calendario comune dello
+      Studio e riporto quattro cose: avvisi senza impegno, impegni senza avviso, doppioni,
+      divergenze di data o di ora.
+
+      Scrivi che cosa vuoi confrontare. Per esempio:
+      - «Confronta gli avvisi degli ultimi sette giorni con il calendario dei prossimi trenta»
+      - «Ci sono udienze a calendario senza una comunicazione in casella?»
+      - «Le date del fascicolo R.G. 4127/2025 coincidono fra casella e calendario?»
+
+      Se non indichi una finestra, guardo gli ultimi quattordici giorni di posta e i prossimi
+      quattordici di calendario. La lettura delle due viste richiede circa un minuto.
     steps:
       - key: letture
         name: Le due viste

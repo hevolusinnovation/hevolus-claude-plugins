@@ -241,6 +241,11 @@ Sei errori che si fanno se non si sta attenti:
     cui nessun flusso arriva — come nel designer, dove uno «Start» non si può aggiungere. Un
     `type: start` scritto per abitudine è segnalato (`BP094`) e ignorato dal piano; due step senza
     flussi entranti, o nessuno, fermano il piano (`BP095`).
+12. **Le domande suggerite all'utente stanno in `welcomeMessage`, sull'orchestratore.** È il messaggio
+    che la chat mostra all'apertura, prima che l'utente scriva (max 1500 caratteri). **Non** uno step
+    `sendMessage` in testa alla catena: il suo testo arriva in chat solo insieme alla risposta
+    finale, quando non serve più. Scriverci la forma che una domanda deve avere e due o tre esempi
+    che funzionano davvero.
 
 L'id dei flussi lasciarlo fuori: lo genera la CLI, e il file resta leggibile.
 
