@@ -11,6 +11,16 @@ from pathlib import Path
 
 RADICE = Path(__file__).resolve().parent.parent
 
+# La versione più vecchia su cui questi script sono scritti per girare. Non si usano API più
+# recenti: la macchina di un collega non è quella di chi ha scritto lo script.
+MINIMA = (3, 8)
+if sys.version_info < MINIMA:
+    raise SystemExit(
+        "Serve Python {}.{} o successivo — qui c'è {}.{}.".format(
+            *MINIMA, sys.version_info[0], sys.version_info[1]
+        )
+    )
+
 
 def prepara_console():
     """Fa parlare la console in UTF-8 anche su Windows.
@@ -44,8 +54,13 @@ def carica_catalogo():
 
 
 def leggi_testo(percorso):
-    """Legge un file di testo senza toccare i fine riga."""
-    return Path(percorso).read_text(encoding="utf-8", newline="")
+    """Legge un file di testo senza toccare i fine riga.
+
+    Con `open(newline="")` e non con `Path.read_text(newline=...)`, che esiste solo da Python 3.13:
+    questi script devono girare anche sulla versione che uno ha già installato.
+    """
+    with open(percorso, encoding="utf-8", newline="") as f:
+        return f.read()
 
 
 def scrivi_testo(percorso, contenuto):
