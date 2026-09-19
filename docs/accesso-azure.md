@@ -63,6 +63,18 @@ Le risorse su cui vanno assegnati, per ambiente:
 > Nella sottoscrizione esiste anche un `kv-xrcopilotlab-staging`, che **non** è quello usato da
 > staging. Se ti viene chiesto su quale vault assegnare un ruolo, è `kv-xrcopilotlab-stg-01`.
 
+Due cose che sorprendono chi amministra, ed entrambe fanno perdere tempo se non si sanno prima.
+
+**Essere Owner della sottoscrizione non basta.** Questi sono ruoli del **piano dati**: né *Owner*
+né *Contributor* li portano con sé. Chi amministra la sottoscrizione ha comunque le due
+assegnazioni scritte esplicitamente sulle risorse — se qualcuno obietta «ma ho già i permessi su
+tutto», è questo il punto.
+
+**E non c'è la scorciatoia dell'access policy.** Il vault di staging ha l'autorizzazione **RBAC**
+attiva e **zero** access policy: aggiungerne una — la prima cosa che viene in mente quando si
+chiede accesso a un Key Vault — non ha alcun effetto. Serve l'assegnazione di ruolo, quella dei
+comandi qui sotto.
+
 Se non li hai, non è qualcosa che puoi risolvere da solo: scrivi a chi amministra la sottoscrizione
 riportando **il nome della risorsa** e **il ruolo** che il messaggio d'errore nomina.
 
