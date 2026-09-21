@@ -3,6 +3,10 @@
 Questa pagina è per chi deve **usare** gli strumenti, non per chi li sviluppa. Non serve saper
 programmare, non serve clonare niente e non serve aprire un terminale.
 
+> C'è anche in forma di **pagina da aprire**, con i comandi da copiare con un clic e la richiesta
+> dei ruoli Azure già scritta: [`sito/index.html`](../sito/index.html). È la forma da girare a un
+> collega che non ha questo repository — si apre con un doppio clic, non ha bisogno di niente.
+
 ## Qual è il tuo caso
 
 | Quello che devi fare | Lo strumento | Vai a |
@@ -64,8 +68,27 @@ di prenderlo è questo.
 
 ## Claude Code — il plugin *blueprints*
 
-Qui serve Claude Code installato. Dentro Claude Code, si registra il catalogo una volta sola e poi
-si installa il plugin:
+**Non serve clonare nessun repository di prodotto**, non serve .NET e non serve compilare niente:
+il plugin porta le skill e si procura da solo lo strumento a riga di comando.
+
+### Cosa deve esserci sulla macchina
+
+| | Perché | Come si verifica |
+|---|---|---|
+| **Claude Code** | è lì che gira il plugin | lo stai usando; altrimenti [code.claude.com](https://code.claude.com) |
+| **`git`** | registrare il catalogo è un clone di questo repository | `git --version` |
+| **Un accesso GitHub a `hevolusinnovation`** | questo catalogo è privato: serve a installare il plugin **e** a scaricare la CLI, che vive fra i suoi allegati | `gh auth status` (installa GitHub CLI se manca: `brew install gh` / `winget install GitHub.cli`, poi `gh auth login`) |
+| **I ruoli Azure** | la CLI legge App Configuration e Key Vault dell'ambiente | [§ L'accesso ad Azure](accesso-azure.md) |
+
+> **Un accesso solo, non due.** Il binario della CLI nasce nel repository di prodotto, ma i suoi
+> allegati vengono rispecchiati qui a ogni release: l'avviatore guarda **prima** in questo catalogo,
+> e solo come riserva nel prodotto. Quindi chi può installare il plugin può anche scaricare la CLI.
+>
+> Vale dalla prima release rispecchiata in poi. Se stai usando una versione più vecchia e il primo
+> comando risponde `404`, non è «la release non esiste»: è «non hai accesso al repository di
+> prodotto». Chiedi al team di pubblicare una release aggiornata, invece di riprovare.
+
+### Le due righe
 
 ```
 /plugin marketplace add hevolusinnovation/hevolus-claude-plugins
@@ -73,7 +96,20 @@ si installa il plugin:
 ```
 
 Nessuno zip da scaricare: il catalogo è il repository, e lo strumento a riga di comando che il
-plugin usa se lo scarica da solo al primo utilizzo.
+plugin usa se lo scarica da solo al primo utilizzo — una cinquantina di megabyte, una volta per
+versione, con l'impronta SHA-256 verificata prima di eseguirlo.
+
+I binari coprono **macOS** (Apple Silicon e Intel), **Windows** (x64 e ARM) e **Linux** (x64 e ARM):
+tutte le piattaforme che l'avviatore può chiedere, compresi i portatili Windows ARM che prima
+restavano fuori.
+
+### Fuori da un clone, l'ambiente si dice sempre
+
+Chi ha il repository di prodotto ha anche un `local.settings.json` da cui la CLI deduce dove
+lavorare. Tu no: quindi ogni comando che tocca la rete vuole **`--env staging`**, `--env preview` o
+`--env prod`. Non c'è un valore predefinito, e non è una dimenticanza: scegliere per conto proprio
+l'ambiente su cui si crea roba è esattamente ciò che non deve succedere. Alla skill basta dirlo a
+parole («su staging»).
 
 Poi basta chiedere, in una cartella di lavoro qualsiasi:
 
@@ -87,6 +123,18 @@ Poi basta chiedere, in una cartella di lavoro qualsiasi:
 
 Cosa fanno le due skill, con che frasi si attivano e cosa producono:
 **[§ Le skill](le-skill.md)** e **[il manuale](../plugins/blueprints/docs/manuale.md)**.
+
+### Se qualcosa non va
+
+| Cosa vedi | Cosa è successo |
+|---|---|
+| `/plugin marketplace add` dà **404** o chiede credenziali | Non hai accesso a questo repository, o `git` sulla macchina non è autenticato su GitHub. `gh auth login`, e se resta 404 chiedi di essere aggiunto all'organizzazione |
+| «per scaricare la CLI serve l'accesso a GitHub» | `gh` non c'è o non sei autenticato: `gh auth login` |
+| «non sono riuscito a scaricare …» al primo comando | Il messaggio elenca le tre cause possibili e il rimedio di ciascuna. La più frequente: sei autenticato su GitHub, ma con un account che non legge il catalogo. Non si risolve riprovando |
+| «la release non contiene l'allegato …» | Stai su una versione pubblicata prima del mirror, oppure su una piattaforma senza binario. Chiedi al team una release aggiornata, o fatti passare il binario e indicalo con `XRCOPILOTLAB_BP_BIN` |
+| «Non è detto su quale ambiente lavorare» | Manca `--env`: fuori da un clone non c'è un ambiente predefinito. Dillo a parole («su staging») |
+| Un comando «non esiste» anche se il manuale lo cita | Sulla macchina c'è un `xrcopilotlab-bp` installato a mano, che l'avviatore preferisce alla copia del plugin — e può essere vecchio di mesi. `xrcopilotlab-bp version` dice quale sta girando e da dove; poi `dotnet tool uninstall --global xrcopilotlab-bp` |
+| Errori su App Configuration o Key Vault | Mancano i ruoli Azure: [§ L'accesso ad Azure](accesso-azure.md) |
 
 ## Una skill da sola
 

@@ -12,6 +12,7 @@ verifica-superfici.sh / .ps1                       controlla che superfici.json,
 sync-from-source.sh / .ps1                         riallinea le skill al repository di prodotto
 build-desktop-plugin.sh / .ps1                     lo zip del plugin Desktop
 build-skill-zip.sh / .ps1                          lo zip di una skill singola per claude.ai
+sito/index.html                                    la pagina da girare a chi deve installare: un file, nessuna dipendenza
 .github/workflows/controlli.yml                    i controlli, a ogni push e pull request
 .github/workflows/pacchetti.yml                    costruisce i pacchetti e li allega a una release
 docs/                                              la documentazione, divisa per lettore
@@ -112,7 +113,20 @@ L'avviatore cerca la CLI in quest'ordine, e si ferma al primo che trova:
 1. `XRCOPILOTLAB_BP_BIN`, se qualcuno l'ha impostata a mano;
 2. lo strumento globale `.dotnet/tools/xrcopilotlab-bp`, per chi sviluppa sul prodotto;
 3. la copia già scaricata in cache;
-4. l'allegato della release, che scarica e verifica con l'impronta SHA-256.
+4. l'allegato della release `bp-v<version.txt>`, cercato **prima qui nel catalogo** e solo come
+   riserva nel repository di prodotto, poi verificato con l'impronta SHA-256.
+
+Il quarto punto è cambiato il 21/09/2026, ed è il motivo per cui il plugin è davvero installabile da
+chi non sviluppa: la pipeline del prodotto rispecchia gli allegati su una release omonima di questo
+repository, così l'unico accesso che serve è quello che serviva comunque per installare il plugin.
+Prima il binario stava solo nel prodotto, e chi non poteva leggerlo vedeva un `404` che sembrava
+dire «la release non esiste».
+
+Il secondo posto ha un effetto collaterale che vale la pena conoscere: su una macchina dove qualcuno
+ha installato lo strumento globale, quello **vince sempre** sulla copia del plugin, anche se è
+vecchio di mesi e anche dopo un `/plugin update`. Il sintomo è un comando che «non esiste» pur
+essendo nel manuale. Da vedere si vede con `xrcopilotlab-bp version`, che stampa numero, percorso e
+origine del binario che sta girando; la cura è `dotnet tool uninstall --global xrcopilotlab-bp`.
 
 ### Pubblicare una versione nuova della CLI
 
@@ -134,8 +148,31 @@ echo "1.1.2" > plugins/blueprints/bin/version.txt
 E si alza la versione del plugin in `plugins/blueprints/.claude-plugin/plugin.json` e nella voce
 corrispondente di `.claude-plugin/marketplace.json`.
 
-> I tre numeri devono coincidere: il tag della release, `version.txt` e la versione del plugin. Se
-> divergono, l'avviatore cerca un allegato che non esiste e lo dice solo a chi prova a usarlo.
+> **Quello che conta davvero è `version.txt`**: l'avviatore compone il tag come `bp-v$(cat
+> version.txt)` e cerca lì l'allegato. Se nomina una release che non esiste, il download muore per
+> tutti — e lo scopre solo chi prova a usarlo.
+>
+> La versione del **plugin** (`plugin.json` e `marketplace.json`) è un numero diverso: sale anche
+> quando cambiano solo le skill, senza una CLI nuova. Alzarli insieme «per coerenza» è il modo di
+> rompere il download. Oggi infatti divergono — plugin `2.12.0`, CLI `2.11.2` — ed è corretto così.
+
+Che il numero in `version.txt` corrisponda a una release davvero scaricabile lo verifica
+`controlli.yml` a ogni push: la release deve esistere **qui** (cioè essere stata rispecchiata) e
+portare il binario di tutte e sei le piattaforme — `osx-arm64`, `osx-x64`, `win-x64`, `win-arm64`,
+`linux-x64`, `linux-arm64`. Finché una release non è rispecchiata il controllo avvisa invece di
+fallire, perché è lo stato in cui si trovano le versioni pubblicate prima del mirror.
+
+A mano, lo stesso controllo è:
+
+```bash
+V=$(cat plugins/blueprints/bin/version.txt)
+gh release view "bp-v$V" --json assets --jq '.assets[].name'
+```
+
+> **Il mirror vuole un secret nel repository di prodotto**: `CATALOG_RELEASE_TOKEN`, un token con
+> permesso di scrittura sulle release di questo catalogo. Se manca, il passo di mirror fallisce — di
+> proposito: una release non rispecchiata è una release che i colleghi non possono scaricare, e
+> scoprirlo dalla pipeline costa molto meno che scoprirlo da loro.
 
 ### Caricare una skill singola su claude.ai — non è lo stesso pacchetto del plugin
 

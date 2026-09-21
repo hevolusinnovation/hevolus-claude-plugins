@@ -10,7 +10,13 @@
 
 set -euo pipefail
 
-REPO="hevolusinnovation/xrcopilotlab-webapp-dotnet"
+# Due repository, in quest'ordine. Il binario nasce da una release del repository di prodotto e
+# viene rispecchiato su questo catalogo: chi usa i blueprint ha accesso al catalogo — gli è servito
+# per installare il plugin — ma quasi mai al prodotto, e quando mancava vedeva un 404 che sembrava
+# dire «la release non esiste» invece di «non hai accesso». Il prodotto resta come riserva, per il
+# caso in cui una release non sia ancora stata rispecchiata.
+REPO_CATALOGO="hevolusinnovation/hevolus-claude-plugins"
+REPO_PRODOTTO="hevolusinnovation/xrcopilotlab-webapp-dotnet"
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION="$(cat "$HERE/version.txt")"
 CACHE_DIR="${CLAUDE_PLUGIN_DATA:-$HOME/.xrcopilotlab-bp/cache}/bin"
@@ -22,9 +28,41 @@ if [ -n "${XRCOPILOTLAB_BP_BIN:-}" ]; then
   exec "$XRCOPILOTLAB_BP_BIN" "$@"
 fi
 
-# 2. Lo strumento globale .NET, se chi usa il plugin sviluppa anche sul repository.
-if [ -x "$HOME/.dotnet/tools/xrcopilotlab-bp" ]; then
-  exec "$HOME/.dotnet/tools/xrcopilotlab-bp" "$@"
+# Vero se la prima versione è almeno pari alla seconda. Confronto numerico campo per campo:
+# «2.11.2» e «2.9.0» vanno confrontati come numeri, non come stringhe, dove il secondo vincerebbe.
+aggiornato() {
+  awk -v a="$1" -v b="$2" 'BEGIN {
+    na = split(a, x, "."); nb = split(b, y, ".");
+    n = (na > nb ? na : nb);
+    for (i = 1; i <= n; i++) {
+      xa = (i <= na ? x[i] + 0 : 0); yb = (i <= nb ? y[i] + 0 : 0);
+      if (xa > yb) exit 0;
+      if (xa < yb) exit 1;
+    }
+    exit 0
+  }'
+}
+
+# 2. Lo strumento globale .NET, per chi sviluppa anche sul repository — ma solo se non è più
+#    vecchio della versione che il plugin si aspetta.
+#
+#    Prima veniva usato in ogni caso, ed è la trappola che costava di più: chi aveva installato la
+#    CLI a mano mesi prima continuava a usare quella anche dopo un aggiornamento del plugin, con le
+#    skill che nominavano comandi che quel binario non ha. Nessuno dei due lo segnalava.
+#    Chi vuole imporre la propria build ha la strada di sopra: XRCOPILOTLAB_BP_BIN.
+TOOL="$HOME/.dotnet/tools/xrcopilotlab-bp"
+
+if [ -x "$TOOL" ]; then
+  # Due accortezze: l'output non va a un terminale, quindi la CLI non colora e il numero si legge
+  # pulito; e una CLI che non conosce «version» esce con 1, che con `set -e` ucciderebbe in
+  # silenzio proprio l'avviatore — da qui il `|| true`, che è il caso normale, non un'eccezione.
+  TOOL_VERSION="$({ "$TOOL" version 2>/dev/null || true; } | awk '/^xrcopilotlab-bp [0-9]/ { print $2; exit }' || true)"
+
+  if [ -n "$TOOL_VERSION" ] && aggiornato "$TOOL_VERSION" "$VERSION"; then
+    exec "$TOOL" "$@"
+  fi
+
+  echo "xrcopilotlab-bp: ignoro lo strumento globale (${TOOL_VERSION:-più vecchio di 'version'}), il plugin chiede la $VERSION. Per imporlo: XRCOPILOTLAB_BP_BIN=$TOOL" >&2
 fi
 
 # 3. La copia già scaricata.
@@ -52,35 +90,51 @@ ASSET="xrcopilotlab-bp-$RID"
 TAG="bp-v$VERSION"
 
 istruzioni_accesso() {
-  echo "xrcopilotlab-bp: per scaricare la CLI serve l'accesso a GitHub." >&2
-  echo "  · installa GitHub CLI e fai 'gh auth login', oppure" >&2
-  echo "  · esporta GH_TOKEN con un token che possa leggere $REPO, oppure" >&2
-  echo "  · scarica a mano $ASSET dalla release $TAG e indicalo con:" >&2
-  echo "      export XRCOPILOTLAB_BP_BIN=/percorso/del/binario" >&2
+  echo "xrcopilotlab-bp: non sono riuscito a scaricare $ASSET (release $TAG)." >&2
+  echo "" >&2
+  echo "  Le cause sono tre, e il rimedio è diverso:" >&2
+  echo "  · non sei autenticato su GitHub  → 'gh auth login', oppure esporta GH_TOKEN;" >&2
+  echo "  · lo sei, ma quell'account non legge $REPO_CATALOGO" >&2
+  echo "    → chiedi l'accesso a chi mantiene il catalogo: riprovare non serve;" >&2
+  echo "  · la release non ha l'allegato per questa piattaforma ($RID)" >&2
+  echo "    → fatti passare il binario e indicalo con:" >&2
+  echo "        export XRCOPILOTLAB_BP_BIN=/percorso/del/binario" >&2
   exit 70
 }
 
-scarica() {
-  # nome dell'allegato = $1, file di destinazione = $2
-  if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-    gh release download "$TAG" --repo "$REPO" --pattern "$1" --output "$2" --clobber
-    return $?
-  fi
+da_gh() {
+  # repository = $1, nome dell'allegato = $2, destinazione = $3
+  command -v gh >/dev/null 2>&1 || return 1
+  gh auth status >/dev/null 2>&1 || return 1
+  gh release download "$TAG" --repo "$1" --pattern "$2" --output "$3" --clobber >/dev/null 2>&1
+}
 
+da_token() {
+  # repository = $1, nome dell'allegato = $2, destinazione = $3
   TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
-  [ -n "$TOKEN" ] || istruzioni_accesso
+  [ -n "$TOKEN" ] || return 1
 
   # Il nome dell'allegato si passa come argomento a python3, non come variabile d'ambiente:
   # in una pipeline la variabile in testa vale per il primo comando, non per quello a valle.
   ASSET_ID="$(curl -fsSL \
       -H "Authorization: Bearer $TOKEN" \
-      "https://api.github.com/repos/$REPO/releases/tags/$TAG" \
-    | python3 -c 'import json,sys; a=[x["id"] for x in json.load(sys.stdin).get("assets",[]) if x["name"]==sys.argv[1]]; print(a[0] if a else "")' "$1")"
+      "https://api.github.com/repos/$1/releases/tags/$TAG" 2>/dev/null \
+    | python3 -c 'import json,sys; a=[x["id"] for x in json.load(sys.stdin).get("assets",[]) if x["name"]==sys.argv[1]]; print(a[0] if a else "")' "$2" 2>/dev/null)"
 
-  [ -n "$ASSET_ID" ] || die "la release $TAG non contiene l'allegato $1."
+  [ -n "$ASSET_ID" ] || return 1
 
   curl -fsSL -H "Authorization: Bearer $TOKEN" -H "Accept: application/octet-stream" \
-    "https://api.github.com/repos/$REPO/releases/assets/$ASSET_ID" -o "$2"
+    "https://api.github.com/repos/$1/releases/assets/$ASSET_ID" -o "$3" 2>/dev/null
+}
+
+scarica() {
+  # nome dell'allegato = $1, file di destinazione = $2. Zero se ce l'ha fatta, da qualunque strada.
+  for repo in "$REPO_CATALOGO" "$REPO_PRODOTTO"; do
+    da_gh "$repo" "$1" "$2" && return 0
+    da_token "$repo" "$1" "$2" && return 0
+  done
+
+  return 1
 }
 
 # 4. Scaricare. Succede una volta per versione, e lo si annuncia: cinquanta megabyte che arrivano
@@ -91,10 +145,10 @@ mkdir -p "$CACHE_DIR"
 TMP="$(mktemp "$CACHE_DIR/.download.XXXXXX")"
 trap 'rm -f "$TMP" "$TMP.sha256"' EXIT
 
-scarica "$ASSET" "$TMP"
+scarica "$ASSET" "$TMP" || istruzioni_accesso
 
 # Verifica dell'impronta: si sta per eseguire ciò che si è appena scaricato.
-if scarica "$ASSET.sha256" "$TMP.sha256" 2>/dev/null && [ -s "$TMP.sha256" ]; then
+if scarica "$ASSET.sha256" "$TMP.sha256" && [ -s "$TMP.sha256" ]; then
   ATTESA="$(awk '{print $1}' "$TMP.sha256" | tr -d '\r')"
   OTTENUTA="$(shasum -a 256 "$TMP" | awk '{print $1}')"
   if [ "$ATTESA" != "$OTTENUTA" ]; then

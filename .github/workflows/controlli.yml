@@ -23,3 +23,42 @@ jobs:
 
       - name: Pacchetto Desktop — si costruisce davvero
         run: ./build-desktop-plugin.sh
+
+      - name: CLI — la versione dichiarata esiste, e per tutte le piattaforme
+        # version.txt è il numero che gli avviatori compongono in «bp-v<numero>» per cercare
+        # l'allegato: se nomina una release che non c'è, o che non porta il binario di una
+        # piattaforma, il download muore per chi ci prova — e non c'era modo di accorgersene prima.
+        #
+        # Si guarda nel catalogo, dove la pipeline del prodotto rispecchia gli allegati: è lo stesso
+        # posto da cui li prende chi usa il plugin, quindi il controllo verifica ciò che vede lui.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSIONE="$(cat plugins/blueprints/bin/version.txt)"
+          TAG="bp-v$VERSIONE"
+
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::warning::la release $TAG non è ancora rispecchiata qui: chi non ha accesso al" \
+                 "repository di prodotto non può scaricare la CLI. Si popola alla prossima release."
+            exit 0
+          fi
+
+          ALLEGATI="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+          MANCANTI=""
+
+          for RID in osx-arm64 osx-x64 linux-x64 linux-arm64; do
+            echo "$ALLEGATI" | grep -qx "xrcopilotlab-bp-$RID" || MANCANTI="$MANCANTI $RID"
+          done
+
+          for RID in win-x64 win-arm64; do
+            echo "$ALLEGATI" | grep -qx "xrcopilotlab-bp-$RID.exe" || MANCANTI="$MANCANTI $RID"
+          done
+
+          if [ -n "$MANCANTI" ]; then
+            echo "::error::la release $TAG non porta il binario per:$MANCANTI — su quelle" \
+                 "piattaforme il plugin non ha da dove prendere la CLI."
+            exit 1
+          fi
+
+          echo "$TAG: allegati completi per tutte le piattaforme che gli avviatori possono chiedere."
+

@@ -35,8 +35,10 @@ Tre cose, e due sono probabilmente già a posto.
 **Claude Code.** Se stai leggendo questo manuale dentro Claude Code, ce l'hai. Altrimenti si
 installa da [code.claude.com](https://code.claude.com).
 
-**Accesso a GitHub dell'organizzazione Hevolus.** Serve per scaricare il plugin e, al primo avvio,
-la CLI. Verifica così:
+**Accesso a GitHub dell'organizzazione Hevolus**, e `git` installato. Servono a registrare il
+catalogo dei plugin — che è un clone di `hevolus-claude-plugins` — e, al primo avvio, a scaricare la
+CLI, che sta fra gli allegati di quello stesso catalogo. È un accesso solo: se puoi installare il
+plugin, puoi anche prendere la CLI. Verifica così:
 
 ```bash
 gh auth status
@@ -59,6 +61,10 @@ gli ambienti, indicando l'ambiente su cui devi lavorare. Il plugin ti dirà chia
 
 Non devi installare Azure CLI: al primo comando che ha bisogno di Azure si apre il browser e ti fa
 accedere. Se hai già fatto `az login` per altri motivi, il plugin usa quello e non ti chiede nulla.
+
+Quello che **non** ti serve: il codice di XRCopilotLab, .NET, un compilatore. Il binario che il
+plugin scarica è autonomo, ed è pubblicato per macOS (Apple Silicon e Intel), Windows (x64 e ARM) e
+Linux (x64 e ARM).
 
 ---
 
@@ -325,12 +331,29 @@ export XRCOPILOTLAB_BP_BIN=~/Downloads/xrcopilotlab-bp-osx-arm64
 $env:XRCOPILOTLAB_BP_BIN = "$HOME\Downloads\xrcopilotlab-bp-win-x64.exe"
 ```
 
-### «Nessun ambiente da cui partire»
+### «Non è detto su quale ambiente lavorare»
 
-Il plugin non sa a quale ambiente parlare. Dentro un clone del repository di XRCopilotLab lo
-deduce da solo; fuori, serve un profilo. Chiedilo al team: è un file di poche righe da mettere in
-`~/.xrcopilotlab-bp/profiles.json`, e contiene l'indirizzo della configurazione dell'ambiente, non
-credenziali.
+Manca `--env`. Dentro un clone del repository di XRCopilotLab l'ambiente si deduce dal
+`local.settings.json`; fuori — cioè nel caso normale — non c'è nulla da cui dedurlo, e la CLI si
+ferma **prima** di collegarsi a qualsiasi cosa invece di scegliere per te. Basta dire a parole dove
+vuoi lavorare («su staging»), o passare `--env staging`, `--env preview`, `--env prod`.
+
+Un profilo in `~/.xrcopilotlab-bp/profiles.json` serve solo per un ambiente che non è fra quei tre:
+non è la strada normale, e non ti serve chiederlo a nessuno.
+
+### Un comando del manuale «non esiste»
+
+Sulla macchina c'è una copia di `xrcopilotlab-bp` installata a mano — di solito da chi ha lavorato
+sul codice — e l'avviatore la preferisce a quella del plugin, per non intralciare chi sviluppa.
+Se è vecchia, i comandi aggiunti dopo non ci sono.
+
+```bash
+xrcopilotlab-bp version
+```
+
+Dice il numero, il percorso del binario e da quale strada viene: se la riga «origine» nomina lo
+strumento globale, è quello il problema. Si toglie con
+`dotnet tool uninstall --global xrcopilotlab-bp`, e da lì in poi vale la copia del plugin.
 
 ### «App Configuration non leggibile» oppure «Key Vault ... non è leggibile»
 
