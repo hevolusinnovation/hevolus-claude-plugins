@@ -3,8 +3,20 @@
 Gli strumenti interni dell'AI Team, in un posto solo: portano una proposta di cliente fino a un
 ambiente XRCopilotLab configurato e collaudato.
 
-**Se devi solo usarli, la pagina da leggere è una: [§ Installare](docs/installare.md).** Non serve
-clonare questo repository, non serve un terminale e non serve saper programmare.
+## Ti serve solo usarli? Parti da qui
+
+| Quello che devi fare | Dove si fa | Cosa fare adesso |
+|---|---|---|
+| Capire come si realizza la proposta di un cliente | **Claude Desktop** | scarica `Xrcopilotlab-….zip` dalle [release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest) e caricalo su [claude.ai/customize/plugins](https://claude.ai/customize/plugins) |
+| Configurare o collaudare l'ambiente di un cliente | **Claude Code** | le [due righe](#installare-in-breve) qui sotto — ma prima [l'accesso ad Azure](docs/accesso-azure.md), che è il punto contro cui si sbatte per primo |
+| Scrivere o capire un manifest, senza installare un plugin | **claude.ai** | scarica `xrcopilotlab-….zip` dalle stesse release e caricalo in *Impostazioni → Capacità → Skill*. Da lì si scrive, non si applica |
+
+**Da girare a un collega che non ha questo repository:** [`sito/index.html`](sito/index.html) — la
+stessa cosa in una pagina sola, che si apre con un doppio clic, con i comandi da copiare, la
+richiesta dei ruoli Azure già scritta e cosa fare quando qualcosa non va. È un file: si manda, si
+mette su una cartella condivisa, o si pubblica dove si vuole.
+
+I passi per intero, in forma di documento: [§ Installare](docs/installare.md).
 
 ## Cosa c'è dentro
 
@@ -45,10 +57,16 @@ e caricalo su [claude.ai/customize/plugins](https://claude.ai/customize/plugins)
 /plugin install blueprints@hevolus
 ```
 
-Prima di usare `blueprints` serve l'accesso alle risorse Azure di Hevolus: è il punto contro cui si
-sbatte per primo, e si sistema una volta sola — [§ L'accesso ad Azure](docs/accesso-azure.md).
+Non serve clonare il repository di prodotto, non serve .NET e non serve compilare niente: il plugin
+porta le skill e scarica da sé lo strumento a riga di comando al primo uso, dalle release di questo
+stesso catalogo. Servono `git` e un accesso GitHub a `hevolusinnovation`: **uno solo**, quello che
+serviva comunque per installare.
 
-I passi per intero, con cosa fare quando qualcosa non va: [§ Installare](docs/installare.md).
+Prima di usare `blueprints` serve l'accesso alle risorse Azure di Hevolus: è il punto contro cui si
+sbatte per primo, non si aggira riprovando, e si sistema una volta sola —
+[§ L'accesso ad Azure](docs/accesso-azure.md).
+
+Cosa fare quando qualcosa non va: [§ Installare](docs/installare.md#se-qualcosa-non-va).
 
 ## Dove trovi il resto
 
@@ -87,6 +105,10 @@ Il dettaglio di ciascuna, con esempi di manifest, di suite e di cosa **non** fan
 
 Su Windows gli stessi quattro, con il gemello `.ps1` (`.\verifica-superfici.ps1`): sono avviatori
 sopra un solo programma Python in `tools/`, quindi si comportano uguale. Serve Python 3 e nient'altro.
+
+La pagina `sito/index.html` non si costruisce: è un file statico che si modifica a mano, senza
+dipendenze e senza numeri di versione dentro — i pacchetti li nomina, ma li fa scaricare dalle
+release, così non può invecchiare.
 
 I pacchetti non vanno costruiti a mano per distribuirli: li costruisce la CI e li allega a una
 release, che è da dove i colleghi li scaricano. Il resto — sincronizzazione dalle sorgenti, versioni

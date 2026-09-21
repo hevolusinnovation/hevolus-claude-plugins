@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Strumenti AI Team — Hevolus</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --sfondo: #fbfaf8;
+    --carta: #ffffff;
+    --testo: #1c1b19;
+    --tenue: #5f5b55;
+    --bordo: #e3ded6;
+    --accento: #b4531f;
+    --accento-tenue: #fdf1e8;
+    --codice: #f5f2ed;
+    --ok: #1d6b3f;
+    --attenzione: #8a5a00;
+    --ombra: 0 1px 2px rgba(28, 27, 25, .06), 0 8px 24px rgba(28, 27, 25, .05);
+    --raggio: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --sfondo: #16151a;
+      --carta: #1e1d23;
+      --testo: #ece9e4;
+      --tenue: #a7a29a;
+      --bordo: #302e37;
+      --accento: #ef9b6a;
+      --accento-tenue: #2a1f19;
+      --codice: #14131a;
+      --ok: #6cc08b;
+      --attenzione: #e0b25c;
+      --ombra: none;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--sfondo);
+    color: var(--testo);
+    font: 16px/1.62 ui-sans-serif, -apple-system, "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accento); text-underline-offset: 2px; }
+
+  .guscio { max-width: 880px; margin: 0 auto; padding: 0 20px 96px; }
+
+  header.testata {
+    border-bottom: 1px solid var(--bordo);
+    background: var(--carta);
+    margin-bottom: 40px;
+  }
+
+  .testata .guscio { padding-top: 40px; padding-bottom: 32px; }
+
+  .occhiello {
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--tenue);
+    margin: 0 0 10px;
+  }
+
+  h1 { font-size: 34px; line-height: 1.2; margin: 0 0 12px; letter-spacing: -.02em; }
+  h2 { font-size: 23px; margin: 48px 0 6px; letter-spacing: -.01em; scroll-margin-top: 20px; }
+  h3 { font-size: 17px; margin: 28px 0 6px; }
+  p { margin: 0 0 14px; }
+  .sommario { font-size: 18px; color: var(--tenue); max-width: 62ch; margin: 0; }
+  .nota { color: var(--tenue); font-size: 14.5px; }
+
+  .scelte { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 24px 0 8px; }
+
+  .scelta {
+    display: block;
+    background: var(--carta);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    padding: 18px 18px 16px;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: var(--ombra);
+    transition: border-color .15s, transform .15s;
+  }
+
+  .scelta:hover { border-color: var(--accento); transform: translateY(-1px); }
+  .scelta b { display: block; font-size: 16px; margin-bottom: 6px; }
+  .scelta span { display: block; color: var(--tenue); font-size: 14.5px; line-height: 1.5; }
+  .scelta .dove { margin-top: 10px; font-size: 12.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--accento); }
+
+  section.blocco {
+    background: var(--carta);
+    border: 1px solid var(--bordo);
+    border-radius: var(--raggio);
+    padding: 4px 24px 24px;
+    margin: 20px 0 0;
+    box-shadow: var(--ombra);
+  }
+
+  ol.passi { counter-reset: passo; list-style: none; padding: 0; margin: 18px 0 0; }
+
+  ol.passi > li {
+    counter-increment: passo;
+    position: relative;
+    padding: 0 0 4px 44px;
+    margin: 0 0 22px;
+  }
+
+  ol.passi > li::before {
+    content: counter(passo);
+    position: absolute;
+    left: 0; top: -1px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--accento-tenue);
+    color: var(--accento);
+    font-size: 14px; font-weight: 700;
+    display: grid; place-items: center;
+  }
+
+  ol.passi > li > b { display: block; margin-bottom: 4px; }
+
+  pre, code { font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace; }
+  code { background: var(--codice); padding: 1px 5px; border-radius: 5px; font-size: .9em; }
+
+  .comando { position: relative; margin: 12px 0 14px; }
+
+  .comando pre {
+    background: var(--codice);
+    border: 1px solid var(--bordo);
+    border-radius: 10px;
+    margin: 0;
+    padding: 14px 92px 14px 16px;
+    overflow-x: auto;
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+
+  .comando button {
+    position: absolute; top: 9px; right: 9px;
+    background: var(--carta);
+    color: var(--tenue);
+    border: 1px solid var(--bordo);
+    border-radius: 7px;
+    padding: 5px 11px;
+    font: inherit; font-size: 12.5px;
+    cursor: pointer;
+  }
+
+  .comando button:hover { border-color: var(--accento); color: var(--accento); }
+  .comando button.fatto { color: var(--ok); border-color: var(--ok); }
+
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14.5px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--bordo); vertical-align: top; }
+  th { font-size: 12.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--tenue); font-weight: 600; }
+  .tabella-scorrevole { overflow-x: auto; }
+
+  .avviso {
+    border-left: 3px solid var(--accento);
+    background: var(--accento-tenue);
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    margin: 18px 0;
+    font-size: 15px;
+  }
+
+  .avviso b { color: var(--accento); }
+
+  .scarica { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 14px 0 4px; }
+
+  .bottone {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--accento); color: #fff;
+    border-radius: 9px; padding: 10px 16px;
+    text-decoration: none; font-size: 15px; font-weight: 600;
+    border: 1px solid transparent;
+  }
+
+  .bottone:hover { filter: brightness(1.06); }
+  .bottone.assente { background: var(--codice); color: var(--tenue); pointer-events: none; }
+  .peso { color: var(--tenue); font-size: 13.5px; }
+
+  .schede { display: flex; gap: 6px; margin: 16px 0 0; flex-wrap: wrap; }
+
+  .schede button {
+    background: transparent; border: 1px solid var(--bordo); color: var(--tenue);
+    border-radius: 999px; padding: 5px 14px; font: inherit; font-size: 14px; cursor: pointer;
+  }
+
+  .schede button[aria-selected="true"] { background: var(--accento-tenue); border-color: var(--accento); color: var(--accento); font-weight: 600; }
+
+  footer {
+    border-top: 1px solid var(--bordo);
+    margin-top: 64px;
+    padding-top: 22px;
+    color: var(--tenue);
+    font-size: 14px;
+  }
+
+  @media (max-width: 560px) {
+    h1 { font-size: 27px; }
+    section.blocco { padding: 4px 16px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="testata">
+  <div class="guscio">
+    <p class="occhiello">Hevolus Innovation · AI Team</p>
+    <h1>Gli strumenti per XRCopilotLab, dentro Claude</h1>
+    <p class="sommario">
+      Due strumenti: uno traduce la proposta di un cliente in una soluzione, l'altro configura
+      l'ambiente che ne esce e lo collauda. Si installano da qui, in pochi minuti, senza scaricare
+      codice e senza saper programmare.
+    </p>
+  </div>
+</header>
+
+<main class="guscio">
+
+  <h2 id="parti">Da dove parti</h2>
+  <p class="nota">Tre casi. Il primo che ti somiglia è quello giusto.</p>
+
+  <div class="scelte">
+    <a class="scelta" href="#assessment">
+      <b>Ho la proposta di un cliente</b>
+      <span>E devo capire come si realizza su XRCopilotLab: scenari, agenti o processo, fattibilità dei dati, dossier tecnico.</span>
+      <span class="dove">Claude Desktop · 3 minuti</span>
+    </a>
+    <a class="scelta" href="#blueprints">
+      <b>Devo configurare un ambiente</b>
+      <span>Topic, knowledge, ruoli, agenti, processi: scritti in un file e applicati al tenant, con il piano mostrato prima di creare. E poi collaudati.</span>
+      <span class="dove">Claude Code · 10 minuti</span>
+    </a>
+    <a class="scelta" href="#chat">
+      <b>Voglio solo scrivere o capire un manifest</b>
+      <span>In chat, senza installare un plugin. Le stesse regole, le stesse domande — ma da qui non si applica niente.</span>
+      <span class="dove">claude.ai · 2 minuti</span>
+    </a>
+  </div>
+
+  <!-- ─────────────────────────────  ASSESSMENT  ───────────────────────────── -->
+
+  <h2 id="assessment">Valutare una proposta — plugin <em>assessment</em></h2>
+  <p>
+    Gira su <b>Claude Desktop</b>. Porti la proposta in chat — PDF o Word — e ne esce un dossier
+    tecnico in Markdown e Word: scenari, scelta fra agenti orchestrati e processo BPM, fattibilità
+    delle fonti dati, e il capitolo da cui nasce poi la configurazione vera.
+    Non serve nessun accesso ad Azure.
+  </p>
+
+  <section class="blocco">
+    <ol class="passi">
+      <li>
+        <b>Scarica il pacchetto</b>
+        <div class="scarica">
+          <a class="bottone" href="https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest" target="_blank" rel="noopener">Apri la pagina dei pacchetti</a>
+          <span class="peso">sotto <b>Assets</b>, il file <code>Xrcopilotlab-….zip</code></span>
+        </div>
+        <p class="nota">Non aprirlo e non estrarlo: va caricato così com'è. Uno zip estratto e
+          ricompresso cambia forma, e il caricamento viene rifiutato.</p>
+      </li>
+      <li>
+        <b>Caricalo su Claude</b>
+        <p>Vai su <a href="https://claude.ai/customize/plugins" target="_blank" rel="noopener">claude.ai/customize/plugins</a>,
+          scegli <b>Carica plugin</b> e seleziona il file. L'anteprima deve dire
+          <b>XRCopilotLab Assessment</b>: conferma.</p>
+      </li>
+      <li>
+        <b>Usalo</b>
+        <p>Apri una chat, <b>carica prima il documento</b> e scrivi cosa vuoi. Non serve nominare la
+          skill: si attiva da sola.</p>
+        <p class="nota">«fammi l'assessment di questa proposta» · «come la implementiamo su
+          XRCopilotLab?» · «è fattibile la parte sui documenti del cliente?»</p>
+      </li>
+    </ol>
+  </section>
+
+  <!-- ─────────────────────────────  BLUEPRINTS  ───────────────────────────── -->
+
+  <h2 id="blueprints">Configurare e collaudare un ambiente — plugin <em>blueprints</em></h2>
+  <p>
+    Gira su <b>Claude Code</b>, e non è un capriccio: configurare un tenant vuol dire lanciare uno
+    strumento a riga di comando, e Claude Code è l'unico posto che ce l'ha. Il plugin porta con sé
+    le skill e si procura lo strumento da solo al primo comando — niente codice da scaricare,
+    niente da compilare.
+  </p>
+
+  <div class="avviso">
+    <b>Prima di tutto il resto: l'accesso ad Azure.</b> È il punto contro cui si sbatte per primo,
+    e non dipende da te. Leggi <a href="#azure">§ L'accesso ad Azure</a> e, se i ruoli non ce li
+    hai, fai partire la richiesta adesso: mentre aspetti, l'installazione la fai lo stesso.
+  </div>
+
+  <section class="blocco">
+    <ol class="passi">
+      <li>
+        <b>Claude Code sulla macchina</b>
+        <p>Se stai già usando Claude Code, ce l'hai. Altrimenti si installa da
+          <a href="https://code.claude.com" target="_blank" rel="noopener">code.claude.com</a>.</p>
+      </li>
+      <li>
+        <b>Un accesso a GitHub</b>
+        <p>Serve a prendere il plugin e lo strumento a riga di comando, che stanno in un repository
+          privato dell'organizzazione. Verifica con <code>gh auth status</code>; se il comando non
+          esiste o dice che non sei autenticato:</p>
+
+        <div class="schede" role="tablist" aria-label="Sistema operativo">
+          <button role="tab" data-so="mac" aria-selected="true">macOS</button>
+          <button role="tab" data-so="win" aria-selected="false">Windows</button>
+          <button role="tab" data-so="linux" aria-selected="false">Linux</button>
+        </div>
+
+        <div class="comando" data-so="mac">
+          <pre><code>brew install gh
+gh auth login</code></pre>
+        </div>
+        <div class="comando" data-so="win" hidden>
+          <pre><code>winget install GitHub.cli
+gh auth login</code></pre>
+        </div>
+        <div class="comando" data-so="linux" hidden>
+          <pre><code>sudo apt install gh    # oppure il gestore di pacchetti della tua distribuzione
+gh auth login</code></pre>
+        </div>
+
+        <p class="nota">Se <code>gh auth login</code> va a buon fine ma più avanti vedi un 404,
+          non è un guasto: è che quell'account non è nell'organizzazione. Si chiede, non si riprova.</p>
+      </li>
+      <li>
+        <b>Installa il plugin</b>
+        <p>Due righe da incollare <b>dentro Claude Code</b>. La prima registra il catalogo — si fa
+          una volta sola, e vale anche per i plugin che arriveranno; la seconda installa questo.</p>
+
+        <div class="comando">
+          <pre><code>/plugin marketplace add hevolusinnovation/hevolus-claude-plugins
+/plugin install blueprints@hevolus</code></pre>
+        </div>
+      </li>
+      <li>
+        <b>Il primo comando</b>
+        <p>Succedono due cose, una volta sola ciascuna: si scarica lo strumento (una cinquantina di
+          megabyte, con l'impronta verificata prima di eseguirlo) e, se sulla macchina non c'è già
+          una credenziale Azure, si apre il browser per l'accesso. <b>Quel primo accesso devi farlo
+          tu, dal tuo terminale</b>: Claude non può farlo al posto tuo, e infatti il plugin non ci
+          prova. Fatto una volta, vale per tutte le volte dopo.</p>
+      </li>
+      <li>
+        <b>Chiedi in italiano</b>
+        <p class="nota">«crea un blueprint per lo studio legale Polis» · «applica
+          <code>blueprints/studiopolis-agenda.yml</code> su staging» · «collauda il blueprint
+          STUDIOPOLIS» · «cosa è andato male, e di chi è?»</p>
+        <p><b>Di' sempre su quale ambiente lavori</b> — «su staging», «su preview». Fuori da un
+          clone del repository di prodotto non esiste un ambiente predefinito, ed è voluto:
+          scegliere per conto proprio dove creare roba è esattamente ciò che non deve succedere.</p>
+      </li>
+    </ol>
+
+    <p class="nota">Il manuale passo per passo, con il ciclo completo e cosa fare quando qualcosa
+      non va: <a id="manuale-bp" href="https://github.com/hevolusinnovation/hevolus-claude-plugins/blob/main/plugins/blueprints/docs/manuale.md" target="_blank" rel="noopener">manuale del plugin blueprints</a>.</p>
+  </section>
+
+  <!-- ─────────────────────────────  SKILL SINGOLE  ───────────────────────────── -->
+
+  <h2 id="chat">Scrivere o capire un manifest in chat — le skill da sole</h2>
+  <p>
+    Una skill si può caricare nelle proprie chat <b>senza nessun plugin</b>: è la strada di chi
+    lavora su claude.ai e non usa Claude Code. Si scarica lo zip e si carica in
+    <b>Impostazioni → Capacità → Skill</b>.
+  </p>
+
+  <section class="blocco">
+    <div class="scarica">
+      <a class="bottone" href="https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest" target="_blank" rel="noopener">Apri la pagina dei pacchetti</a>
+      <span class="peso">sotto <b>Assets</b>, un file per skill</span>
+    </div>
+
+    <table>
+      <thead><tr><th>Il file</th><th>Cosa sa fare</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>xrcopilotlab-assessment.zip</code></td>
+          <td>Traduce la proposta di un cliente in una soluzione: scenari, fattibilità dei dati, dossier tecnico.</td>
+        </tr>
+        <tr>
+          <td><code>xrcopilotlab-blueprint.zip</code></td>
+          <td>Conduce l'intervista e scrive il manifest di un ambiente: agenti, knowledge, ruoli, processi.</td>
+        </tr>
+        <tr>
+          <td><code>xrcopilotlab-blueprint-test.zip</code></td>
+          <td>Scrive le domande di collaudo di un ambiente e giudica le risposte.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="avviso">
+      <b>Da qui si scrive, non si applica.</b> Le due skill dei blueprint, caricate da sole, sanno
+      spiegare le regole, condurre l'intervista e produrre il manifest. Ma applicarlo a un tenant
+      richiede lo strumento a riga di comando, che esiste solo dentro Claude Code: se il tuo
+      obiettivo è configurare davvero un ambiente, la strada è
+      <a href="#blueprints">§ plugin blueprints</a>. Preferiamo dirlo qui che lasciartelo scoprire
+      a metà lavoro.
+    </div>
+
+    <p class="nota">I due pacchetti non sono intercambiabili: quello del plugin
+      (<code>Xrcopilotlab-….zip</code>) va su <i>Carica plugin</i>, quelli delle skill
+      (<code>xrcopilotlab-….zip</code>) nella libreria delle skill. Scambiarli dà l'errore
+      «All files must be inside the top-level folder».</p>
+  </section>
+
+  <!-- ─────────────────────────────  AZURE  ───────────────────────────── -->
+
+  <h2 id="azure">L'accesso ad Azure</h2>
+  <p>
+    Serve <b>solo</b> al plugin blueprints. Lo strumento legge la configurazione degli ambienti da
+    Azure App Configuration e i segreti da Key Vault: senza i ruoli giusti si ferma al primo
+    comando, e non è qualcosa che si aggira riprovando.
+  </p>
+
+  <div class="avviso">
+    <b>L'account con cui usi Claude non c'entra, e nemmeno quello con cui entri in XRCopilotLab.</b>
+    Quello che conta è il tuo account aziendale <code>@hevolus.it</code> — lo stesso della posta.
+    Dentro il prodotto si entra con un'identità diversa (Azure AD B2C, anche con Google): avere
+    XRCopilotLab da amministratore non dà alcun accesso allo strumento, e viceversa.
+  </div>
+
+  <h3>I ruoli, per quello che devi fare</h3>
+  <div class="tabella-scorrevole">
+  <table>
+    <thead><tr><th>Cosa vuoi fare</th><th>Ruoli necessari</th></tr></thead>
+    <tbody>
+      <tr><td>Controllare un file di blueprint (<code>validate</code>)</td><td><b>nessuno</b>: non tocca la rete</td></tr>
+      <tr><td>Applicare, collaudare, annullare</td><td>App Configuration <b>Data Reader</b> · Key Vault <b>Secrets User</b></td></tr>
+      <tr><td>In più, impostare un segreto</td><td>App Configuration <b>Data Owner</b> · Key Vault <b>Secrets Officer</b></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h3>Su quali risorse</h3>
+  <div class="tabella-scorrevole">
+  <table>
+    <thead><tr><th>Ambiente</th><th>App Configuration</th><th>Key Vault</th></tr></thead>
+    <tbody>
+      <tr><td><b>staging</b> — quello che si usa quasi sempre</td><td><code>appcs-xrcopilotlab-staging-01</code></td><td><code>kv-xrcopilotlab-stg-01</code></td></tr>
+      <tr><td><b>preview</b></td><td><code>appcs-xrcopilotlab-preview-italynorth</code></td><td><code>kv-xrcopilotlab-preview</code></td></tr>
+      <tr><td><b>prod</b> — la produzione</td><td><code>appcs-xrcopilotlab-prod-italynorth</code></td><td>da verificare con chi amministra</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="nota">Nella sottoscrizione esiste anche un <code>kv-xrcopilotlab-staging</code>, che
+    <b>non</b> è quello usato da staging. Se ti viene chiesto su quale vault assegnare il ruolo, è
+    <code>kv-xrcopilotlab-stg-01</code>: indovinarlo dal nome fa scrivere i segreti in un vault che
+    nessuno legge, senza errori.</p>
+
+  <h3>Il messaggio da mandare a chi amministra</h3>
+  <p>Copialo, metti il tuo indirizzo e mandalo a un <b>Owner</b> o <b>User Access Administrator</b>
+    del resource group. Contiene già i comandi: così non deve cercare niente.</p>
+
+  <div class="comando">
+    <pre><code>Ciao, devo usare lo strumento di provisioning XRCopilotLab (plugin Claude «blueprints»)
+sull'ambiente di staging. Mi servono due ruoli del piano dati sulla mia utenza
+nome.cognome@hevolus.it, nella sottoscrizione Azure AI:
+
+  · App Configuration Data Reader  su  appcs-xrcopilotlab-staging-01
+  · Key Vault Secrets User         su  kv-xrcopilotlab-stg-01
+
+Due cose che fanno perdere tempo se non si sanno prima: essere Owner della
+sottoscrizione non basta (sono ruoli del piano dati, vanno assegnati esplicitamente),
+e sul vault non serve una access policy — ha l'autorizzazione RBAC attiva, quindi
+un'access policy non ha alcun effetto.
+
+I comandi, se ti è comodo:
+
+UTENTE=nome.cognome@hevolus.it
+SUB=/subscriptions/73961d27-722e-4282-be21-bfb36e97c0f0/resourceGroups/rg-xrcopilotlab-staging-itn-01
+APPCS=$SUB/providers/Microsoft.AppConfiguration/configurationStores/appcs-xrcopilotlab-staging-01
+KV=$SUB/providers/Microsoft.KeyVault/vaults/kv-xrcopilotlab-stg-01
+
+az role assignment create --assignee "$UTENTE" --role "App Configuration Data Reader" --scope "$APPCS"
+az role assignment create --assignee "$UTENTE" --role "Key Vault Secrets User"        --scope "$KV"
+
+Grazie!</code></pre>
+  </div>
+
+  <p class="nota">Se le persone che useranno lo strumento sono più di due o tre, conviene assegnare
+    i ruoli a un <b>gruppo di sicurezza</b>: un posto solo da guardare quando qualcuno cambia
+    squadra.</p>
+
+  <h3>E poi, una volta per macchina</h3>
+  <p>Non serve installare Azure CLI: al primo comando che ha bisogno di Azure si apre il browser.
+    Se preferisci farlo prima, o se hai più sottoscrizioni:</p>
+
+  <div class="comando">
+    <pre><code>az login --tenant hevolus.it
+az account set --subscription "Azure AI"</code></pre>
+  </div>
+
+  <div class="avviso">
+    <b>«App Configuration Data Reader» ha un nome che suona innocuo, e non lo è.</b> Dentro quella
+    configurazione c'è la chiave con cui si comanda l'API di XRCopilotLab su quell'ambiente: chi
+    legge la configurazione può agire sul backend del prodotto. Va chiesto per chi deve
+    configurare ambienti, non come un banale permesso di sola lettura.
+  </div>
+
+  <!-- ─────────────────────────────  ERRORI  ───────────────────────────── -->
+
+  <h2 id="problemi">Se qualcosa non va</h2>
+  <div class="tabella-scorrevole">
+  <table>
+    <thead><tr><th>Cosa vedi</th><th>Cosa è successo</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>/plugin marketplace add</code> dà <b>404</b> o chiede credenziali</td>
+        <td>Il catalogo è privato: o <code>git</code> non è autenticato su GitHub (<code>gh auth login</code>), o il tuo account non è nell'organizzazione. Nel secondo caso si chiede l'accesso.</td>
+      </tr>
+      <tr>
+        <td>«non sono riuscito a scaricare…» al primo comando</td>
+        <td>Il messaggio elenca le tre cause e il rimedio di ciascuna. La più frequente: sei autenticato su GitHub, ma con un account che non legge il catalogo.</td>
+      </tr>
+      <tr>
+        <td>«App Configuration non leggibile», «Key Vault … non è leggibile»</td>
+        <td>Mancano i ruoli: <a href="#azure">§ L'accesso ad Azure</a>. Il messaggio dice quale risorsa e quale ruolo: riportali tali e quali nella richiesta.</td>
+      </tr>
+      <tr>
+        <td>«Non è detto su quale ambiente lavorare»</td>
+        <td>Non hai detto dove. Aggiungi «su staging» alla richiesta, o <code>--env staging</code> al comando.</td>
+      </tr>
+      <tr>
+        <td>Un comando del manuale «non esiste»</td>
+        <td>Sulla macchina c'è una copia vecchia dello strumento, installata a mano, che ha la precedenza. <code>xrcopilotlab-bp version</code> dice quale sta girando e da dove; poi <code>dotnet tool uninstall --global xrcopilotlab-bp</code>.</td>
+      </tr>
+      <tr>
+        <td>Il piano si ferma: «un nome esiste già»</td>
+        <td>Non è un guasto. Il blueprint non sovrascrive mai: si ferma <b>prima</b> di creare qualsiasi cosa. Cambi il nome, cambi il tag, o togli ciò che c'è già — ed è una decisione tua.</td>
+      </tr>
+      <tr>
+        <td>Lo zip della skill non si carica</td>
+        <td>«All files must be inside the top-level folder» = pacchetto giusto, posto sbagliato. Il plugin va su <i>Carica plugin</i>, le skill nella libreria delle skill.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>
+    Se resti bloccato, scrivi all'AI Team dicendo <b>cosa stavi facendo</b> e <b>copiando il
+    messaggio d'errore per intero</b>: quasi tutti questi errori dicono esattamente cosa manca, ma
+    solo se arrivano interi.
+  </p>
+
+  <h2 id="limiti">Cosa questi strumenti non fanno</h2>
+  <ul>
+    <li><b>Non sostituiscono l'interfaccia.</b> Un agente nato da un blueprint è un agente come un
+      altro: si modifica da XRCopilotLab, senza sapere da dove viene. Per cambiare una cosa sola si
+      va dalla UI, non si riapplica un file.</li>
+    <li><b>Non creano utenti né licenze.</b> Le persone che metti nei ruoli devono già esistere sul
+      tenant: il blueprint le aggiunge ai ruoli, non le inventa. Se un indirizzo non esiste, il
+      piano si ferma prima di toccare qualsiasi cosa.</li>
+    <li><b>Non lavorano sui tenant dei clienti in produzione.</b> Lì la riga di comando vede il solo
+      tenant di Hevolus — il filtro lo applica l'API — e gli ambienti dei clienti si configurano
+      dall'interfaccia.</li>
+    <li><b>Non applicano niente da Claude Desktop.</b> Le skill caricate in chat scrivono e
+      spiegano; per applicare serve Claude Code.</li>
+  </ul>
+
+  <footer>
+    <p>I pacchetti e i numeri di versione stanno sulla
+      <a href="https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest" target="_blank" rel="noopener">pagina delle release</a>: è sempre
+      l'ultima, e per questo qui non c'è un numero scritto che possa invecchiare.</p>
+    <p>
+      Repository: <a href="https://github.com/hevolusinnovation/hevolus-claude-plugins" target="_blank" rel="noopener">hevolus-claude-plugins</a> ·
+      manuali: <a href="https://github.com/hevolusinnovation/hevolus-claude-plugins/blob/main/plugins/assessment/docs/manuale.md" target="_blank" rel="noopener">assessment</a>,
+      <a href="https://github.com/hevolusinnovation/hevolus-claude-plugins/blob/main/plugins/blueprints/docs/manuale.md" target="_blank" rel="noopener">blueprints</a> ·
+      <a href="https://github.com/hevolusinnovation/hevolus-claude-plugins/blob/main/docs/accesso-azure.md" target="_blank" rel="noopener">accesso ad Azure</a>
+    </p>
+    <p>Documento interno di Hevolus Innovation: contiene le coordinate degli ambienti Azure. Si apre
+      con un doppio clic — non ha bisogno di niente installato — e si gira a un collega come si gira
+      un file. Fuori dall'azienda non va.</p>
+  </footer>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  // ── Copiare un comando ────────────────────────────────────────────────────
+  // Il bottone si aggiunge qui e non nel markup: se JavaScript non gira, la pagina resta
+  // leggibile e i comandi si selezionano a mano, invece di mostrare un bottone morto.
+  document.querySelectorAll(".comando").forEach(function (blocco) {
+    var bottone = document.createElement("button");
+    bottone.type = "button";
+    bottone.textContent = "Copia";
+
+    bottone.addEventListener("click", function () {
+      var testo = blocco.querySelector("code").innerText;
+
+      navigator.clipboard.writeText(testo).then(function () {
+        bottone.textContent = "Copiato";
+        bottone.classList.add("fatto");
+        setTimeout(function () {
+          bottone.textContent = "Copia";
+          bottone.classList.remove("fatto");
+        }, 1800);
+      }).catch(function () {
+        bottone.textContent = "Copia a mano";
+      });
+    });
+
+    blocco.appendChild(bottone);
+  });
+
+  // ── Il sistema operativo giusto, già scelto ───────────────────────────────
+  var schede = document.querySelector(".schede");
+
+  if (schede) {
+    var suo = navigator.platform || "";
+    var agente = navigator.userAgent || "";
+    var so = /Win/i.test(suo) || /Windows/i.test(agente) ? "win"
+           : /Mac/i.test(suo) || /Mac OS/i.test(agente) ? "mac"
+           : /Linux|X11/i.test(suo + agente) ? "linux" : "mac";
+
+    var mostra = function (scelto) {
+      schede.querySelectorAll("button").forEach(function (b) {
+        b.setAttribute("aria-selected", String(b.dataset.so === scelto));
+      });
+      document.querySelectorAll(".comando[data-so]").forEach(function (c) {
+        c.hidden = c.dataset.so !== scelto;
+      });
+    };
+
+    schede.querySelectorAll("button").forEach(function (b) {
+      b.addEventListener("click", function () { mostra(b.dataset.so); });
+    });
+
+    mostra(so);
+  }
+
+})();
+</script>
+
+</body>
+</html>
