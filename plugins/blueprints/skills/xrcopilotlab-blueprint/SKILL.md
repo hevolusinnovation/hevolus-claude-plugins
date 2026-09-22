@@ -32,9 +32,16 @@ Cosa riportare, in quest'ordine:
    si fa dal proprio terminale. Dettagli in [§ Con quale identità gira](#con-quale-identità-gira--da-chiarire-al-primo-comando-che-fallisce-o-prima):
    vale la pena dirlo qui, perché è il punto contro cui si sbatte prima di riuscire a fare qualsiasi
    altra cosa.
-3. **Su cosa si può lavorare adesso.** Gli ambienti sono `staging`, `preview`, `prod`; senza `--env`
-   vale lo sviluppo, cioè il `local.settings.json` del clone. Dire che in produzione si lavora solo
-   sul tenant di Hevolus, e perché.
+3. **Su cosa si può lavorare adesso.** Non recitare l'elenco degli ambienti: eseguire
+   `xrcopilotlab-bp environments` e riportarne l'esito. Gli ambienti sono gli stessi per tutti — i
+   **permessi no**, e sono personali: quel comando li prova con l'utenza corrente e dice su quali
+   si può davvero lavorare, invece di far scoprire un errore di ruoli a lavoro cominciato. Senza
+   `--env` vale lo sviluppo, cioè il `local.settings.json` del clone. Dire che in produzione si
+   lavora solo sul tenant di Hevolus, e perché.
+
+   Se un ambiente risulta **non accessibile**, non proporlo come se lo fosse: distinguere il ruolo
+   mancante — che si chiede a chi amministra la sottoscrizione — dall'accesso ad Azure mai fatto su
+   quella macchina, che l'utente risolve da sé, una volta, da un terminale.
 4. **I blueprint che esistono già**, se c'è una cartella `blueprints/`: elencare i file con tag e
    versione. È la risposta più utile, perché quasi sempre chi chiede aiuto vuole ripartire da uno.
 5. **Cosa c'è già sul tenant**, se l'utente ha indicato un ambiente: `xrcopilotlab-bp status` lo
@@ -355,7 +362,7 @@ xrcopilotlab-bp plan --tag <TAG> --company <guid>
 ```
 
 Dentro il repository, senza `--env`, si lavora sull'ambiente del `local.settings.json`. Per
-sceglierlo si aggiunge `--env staging`, `--env preview` o `--env prod`: gli ambienti sono dentro il
+sceglierlo si aggiunge `--env staging` o `--env prod`: gli ambienti sono dentro il
 binario, non c'è nulla da configurare.
 
 Il **tenant** non si scrive: senza `--company` la CLI ne elenca i nomi e chiede quale. Eseguita da

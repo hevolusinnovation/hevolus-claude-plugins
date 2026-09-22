@@ -57,7 +57,7 @@ Oggetto: [collaudo <TAG>] <n> casi da verificare — <componente sospettato>
 <Una frase: che cosa non funziona, come lo vede il cliente.>
 
 ## Dove e quando
-- ambiente: <staging | preview | prod> · tenant: <nome> (`<companyId>`)
+- ambiente: <staging | prod> · tenant: <nome> (`<companyId>`)
 - blueprint: <blueprintId> v<n> · run del collaudo: `<runId della suite>`
 - data: <gg/mm/aaaa hh:mm>
 - chi ha collaudato: <nome>

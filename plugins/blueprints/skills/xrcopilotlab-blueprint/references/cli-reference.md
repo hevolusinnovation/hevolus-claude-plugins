@@ -44,7 +44,7 @@ Due strade, scelte in quest'ordine:
 
 ## Ambiente e tenant: si scelgono per nome
 
-Gli ambienti sono **dentro il binario** — `staging`, `preview`, `prod` — e si scelgono con
+Gli ambienti sono **dentro il binario** — `staging` e `prod` — e si scelgono con
 `--env`. Nessun file da scrivere, nessuno da scaricare:
 
 ```bash
@@ -132,8 +132,8 @@ variabile d'ambiente: è la forma da preferire per tutto ciò che è una credenz
 ne contiene nessuna.
 
 `keyVaultUri` serve solo a `secrets set`, che deve sapere dove scrivere il valore. Per `staging` e
-`preview` **non va scritto**: lo portano gli ambienti incorporati. Resta da indicare a mano solo per
-`prod` e per un endpoint non riconosciuto.
+`prod` **non va scritto**: lo portano gli ambienti incorporati. Resta da indicare a mano solo per un
+endpoint non riconosciuto.
 
 ⚠️ Se lo si scrive, va preso dai riferimenti a Key Vault **già presenti** nell'App Configuration di
 quell'ambiente — non dedotto dal nome. Nella sottoscrizione esistono sia `kv-xrcopilotlab-staging`
@@ -146,7 +146,7 @@ Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 
 | Opzione | Significato |
 |---|---|
-| `--env <nome>` | Ambiente: `staging`, `preview`, `prod`, o un profilo scritto a mano. Senza, vale lo sviluppo (il `local.settings.json` del clone). |
+| `--env <nome>` | Ambiente: `staging` o `prod`, o un profilo scritto a mano. Senza, vale lo sviluppo (il `local.settings.json` del clone). |
 | `--company <guid>` | Tenant. Senza, lo si sceglie per nome da un elenco. |
 | `--tag <TAG>` | Blueprint su cui operare, per i comandi che partono da uno già pubblicato. |
 | `--version <n>` | Versione del manifest. Senza, si usa la più recente. |
@@ -383,6 +383,49 @@ Con `--resume` riparte da un run esistente: le operazioni già in inventario ven
 
 Senza `--run`, elenca i blueprint pubblicati sul tenant e le ultime esecuzioni. Con `--run`, mostra
 stato, fasi e inventario di quel run. `--watch` attende la conclusione.
+
+## `environments [--env <nome>]`
+
+Su quali ambienti l'utenza corrente può davvero lavorare.
+
+Gli ambienti stanno **dentro il binario** e sono gli stessi per chiunque — `staging` e `prod`. I permessi no: sono ruoli di Azure sulla tua utenza, e fino a qui la differenza si scopriva
+al primo comando, come errore di autorizzazione a lavoro già cominciato. Chi non è tecnico, davanti
+a quell'errore, non sa nemmeno se il problema sia suo, dell'ambiente o del manifest.
+
+Il comando prova a leggere l'App Configuration di ogni ambiente con la credenziale corrente, ed è
+lo stesso permesso che serve a tutto il resto: quello che risponde qui è esattamente quello che
+risponderà al primo comando vero. Non è una stima.
+
+```
+$ xrcopilotlab-bp environments
+
+Ambienti
+  La prova legge le chiavi di App Configuration con la tua utenza Azure: nessun segreto, niente scritture.
+
+✓ staging   Staging     accessibile
+    senza --company si lavora sul tenant di prova di questo ambiente
+! prod      PRODUZIONE  manca il ruolo 'App Configuration Data Reader' sulla tua utenza
+```
+
+Quattro esiti, e distinguerli conta perché mandano da persone diverse:
+
+| Esito | Cosa vuol dire | Cosa si fa |
+|---|---|---|
+| **accessibile** | la lettura è riuscita | si lavora |
+| **manca il ruolo** | sei autenticato, ma l'utenza non legge quell'App Configuration | si chiede il ruolo a chi amministra la sottoscrizione ([`manuale.md`](../../../docs/manuale.md)) |
+| **nessun accesso ad Azure** | nessuna credenziale sulla macchina | l'accesso si fa **una volta**, da un terminale |
+| **non raggiungibile** | rete, DNS, endpoint | si riprova; non è un problema di permessi |
+
+La prova chiede solo i **nomi** delle chiavi, mai i valori: non tocca Key Vault e non le passa
+davanti nessun segreto. Con `--env <nome>` si prova un ambiente solo. Se nessuno è utilizzabile
+esce **3**, così uno script — o la skill — se ne accorge senza leggere il testo.
+
+I **profili scritti a mano** non vengono provati, solo elencati: puntano dove ha deciso chi li ha
+scritti, e darli per buoni significherebbe affermare qualcosa che non è stato verificato.
+
+Quello che questo comando **non** dice è quali *tenant* vedrai dentro un ambiente: quell'elenco lo
+filtra il server sulla chiave `Companies:ListingFilter`, ed è uguale per tutti — in produzione, il
+solo tenant di Hevolus. Il permesso personale riguarda l'ambiente, non il tenant.
 
 ## `rollback --run <runId>`
 

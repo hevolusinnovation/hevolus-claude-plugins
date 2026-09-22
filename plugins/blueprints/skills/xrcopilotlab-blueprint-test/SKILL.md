@@ -31,6 +31,7 @@ Riferimenti, da leggere quando si arriva al passo:
 | Scrivere la segnalazione | [`references/segnalazione.md`](references/segnalazione.md) — il modello per i tre repository e cosa non va scritto |
 | Non poter verificare (niente cloni, niente repository) | [`references/consegna-dev.md`](references/consegna-dev.md) — come si consegna un fallimento a chi può guardarlo, e perché i test proseguono |
 | Le guide per il cliente | [`references/guida-cliente.md`](references/guida-cliente.md) — le domande di prova (la traduzione inversa della suite) e la guida allo scenario; dove vanno, la struttura che ha retto, le regole |
+| Guardare ciò che vede il cliente | [`references/browser.md`](references/browser.md) — quando aprire il browser invece della suite, come si collega Claude a Chrome (anche da Claude Desktop), cosa si riporta |
 | Collaudare un processo | [`references/bpm.md`](references/bpm.md) — il modello di esecuzione (token, gateway, work item, soglie) tradotto nel motore, le otto domande da farsi su ogni processo del manifest, come leggere gli eventi di un'istanza, cosa il motore non fa |
 | Formato della suite e del report | [`references/testing.md`](references/testing.md) |
 
@@ -171,6 +172,28 @@ Cose da sapere sull'esecuzione:
 
 Il report finisce in `blueprints/tests/reports/<tag>/<data>/` — `report.md` per leggere,
 `report.json` per tutto il resto. La cartella è ignorata da git: contiene risposte e id del tenant.
+
+## 2-bis. Quando la suite non basta: il browser
+
+La suite prova il prodotto **attraverso l'API**. Il cliente non usa l'API: fra la risposta e ciò che
+lui vede c'è la chat, il form di avvio di un processo, la coda dei compiti — e quello strato sa
+rompersi da solo, lasciando la suite verde.
+
+Quando il caso è di quelli — il benvenuto che non compare all'apertura della chat, il campo allegato
+che non si vede nel form, una voce che resta in inglese, un «da noi non funziona» senza altro — si
+apre **Chrome con l'estensione Claude in Chrome** e si guarda. Funziona da Claude Code (`/chrome`,
+anche nella scheda Code dell'app) e da Claude Desktop, usando la sessione già autenticata di chi
+collauda.
+
+Tre cose da non sbagliare, il resto è in [`references/browser.md`](references/browser.md):
+
+1. **prima la suite, poi il browser** — aprirlo per qualcosa che la suite sa già dire è tempo speso
+   a guardare una pagina invece che un log;
+2. **si guarda, non si cambia**: niente modifiche alla configurazione dalla UI, mai su un tenant di
+   un cliente in produzione. Un tenant ritoccato a mano smette di corrispondere al manifest;
+3. **l'evidenza si porta via**: GIF, errori di console filtrati, richieste di rete fallite. Sono
+   quelle che rendono una issue riproducibile — e vanno guardate prima di allegarle, perché una
+   pagina autenticata riprende anche i dati del cliente.
 
 ## 3. Giudicare
 

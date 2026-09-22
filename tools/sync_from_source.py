@@ -46,6 +46,7 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-test/references/segnalazione.md", DEST_TEST / "references"),
     (".claude/skills/xrcopilotlab-blueprint-test/references/consegna-dev.md", DEST_TEST / "references"),
     (".claude/skills/xrcopilotlab-blueprint-test/references/bpm.md", DEST_TEST / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-test/references/browser.md", DEST_TEST / "references"),
     (".claude/skills/xrcopilotlab-blueprint-test/references/guida-cliente.md", DEST_TEST / "references"),
     ("docs/blueprints/testing.md", DEST_TEST / "references"),
     ("blueprints/tests/studiopolis-agenda.tests.yml", DEST_TEST / "references" / "esempio-suite-agenda.tests.yml"),
@@ -82,6 +83,10 @@ RISCRITTURE = {
     DEST / "references" / "cli-reference.md": [
         (
             "[`README.md`](README.md)",
+            "[`manuale.md`](../../../docs/manuale.md)",
+        ),
+        (
+            "[`primi-passi.md`](primi-passi.md)",
             "[`manuale.md`](../../../docs/manuale.md)",
         ),
         (
