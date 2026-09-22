@@ -9,6 +9,7 @@ ambiente XRCopilotLab configurato e collaudato.
 |---|---|---|
 | Capire come si realizza la proposta di un cliente | **Claude Desktop** | scarica `Xrcopilotlab-….zip` dalle [release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest) e caricalo su [claude.ai/customize/plugins](https://claude.ai/customize/plugins) |
 | Configurare o collaudare l'ambiente di un cliente | **Claude Code** | le [due righe](#installare-in-breve) qui sotto — ma prima [l'accesso ad Azure](docs/accesso-azure.md), che è il punto contro cui si sbatte per primo |
+| Avere `xrcopilotlab-bp` sul proprio PC, senza Claude Code | **terminale** | scarica il binario dalla release [`bp-v2.11.2`](https://github.com/hevolusinnovation/xrcopilotlab-webapp-dotnet/releases/tag/bp-v2.11.2) — i passi per macOS e Windows: [§ Solo lo strumento a riga di comando](docs/installare.md#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc) |
 | Scrivere o capire un manifest, senza installare un plugin | **claude.ai** | scarica `xrcopilotlab-….zip` dalle stesse release e caricalo in *Impostazioni → Capacità → Skill*. Da lì si scrive, non si applica |
 
 **Da girare a un collega che non ha questo repository:** [`sito/index.html`](sito/index.html) — la
@@ -66,6 +67,11 @@ Prima di usare `blueprints` serve l'accesso alle risorse Azure di Hevolus: è il
 sbatte per primo, non si aggira riprovando, e si sistema una volta sola —
 [§ L'accesso ad Azure](docs/accesso-azure.md).
 
+**Solo la riga di comando, senza Claude Code?** Il binario si scarica dalla release e non si
+installa niente — è un file solo, senza .NET:
+[§ Solo lo strumento a riga di comando](docs/installare.md#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc),
+con i passi per macOS e per Windows.
+
 Cosa fare quando qualcosa non va: [§ Installare](docs/installare.md#se-qualcosa-non-va).
 
 ## Dove trovi il resto
@@ -73,6 +79,7 @@ Cosa fare quando qualcosa non va: [§ Installare](docs/installare.md#se-qualcosa
 | Se vuoi | Leggi |
 |---|---|
 | Installare e cominciare a usarli | [§ Installare](docs/installare.md) |
+| Avere lo strumento a riga di comando sul proprio PC, senza plugin | [§ Solo lo strumento a riga di comando](docs/installare.md#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc) |
 | Capire perché il plugin non ti fa entrare, e cosa chiedere a chi | [§ L'accesso ad Azure](docs/accesso-azure.md) |
 | Sapere cosa fa ciascuna skill, con che frasi si attiva e cosa produce | [§ Le skill](docs/le-skill.md) |
 | Il manuale passo passo di un plugin | [assessment](plugins/assessment/docs/manuale.md) · [blueprints](plugins/blueprints/docs/manuale.md) |

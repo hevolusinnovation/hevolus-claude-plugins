@@ -99,9 +99,11 @@ Nessuno zip da scaricare: il catalogo è il repository, e lo strumento a riga di
 plugin usa se lo scarica da solo al primo utilizzo — una cinquantina di megabyte, una volta per
 versione, con l'impronta SHA-256 verificata prima di eseguirlo.
 
-I binari coprono **macOS** (Apple Silicon e Intel), **Windows** (x64 e ARM) e **Linux** (x64 e ARM):
-tutte le piattaforme che l'avviatore può chiedere, compresi i portatili Windows ARM che prima
-restavano fuori.
+L'avviatore sa chiedere sei binari — **macOS** (Apple Silicon e Intel), **Windows** (x64 e ARM) e
+**Linux** (x64 e ARM) — ma li porta la release che li pubblica: l'ultima,
+[`bp-v2.11.2`](https://github.com/hevolusinnovation/xrcopilotlab-webapp-dotnet/releases/tag/bp-v2.11.2),
+ne ha quattro, e Windows ARM e Linux ARM arrivano con la prossima. Su quelle due macchine, per ora,
+si usa il binario x64 in emulazione.
 
 ### Fuori da un clone, l'ambiente si dice sempre
 
@@ -135,6 +137,100 @@ Cosa fanno le due skill, con che frasi si attivano e cosa producono:
 | «Non è detto su quale ambiente lavorare» | Manca `--env`: fuori da un clone non c'è un ambiente predefinito. Dillo a parole («su staging») |
 | Un comando «non esiste» anche se il manuale lo cita | Sulla macchina c'è un `xrcopilotlab-bp` installato a mano, che l'avviatore preferisce alla copia del plugin — e può essere vecchio di mesi. `xrcopilotlab-bp version` dice quale sta girando e da dove; poi `dotnet tool uninstall --global xrcopilotlab-bp` |
 | Errori su App Configuration o Key Vault | Mancano i ruoli Azure: [§ L'accesso ad Azure](accesso-azure.md) |
+
+## Solo lo strumento a riga di comando, sul proprio PC
+
+Chi usa Claude Code non deve fare niente di tutto questo: il plugin scarica `xrcopilotlab-bp` da
+sé. Questa strada serve a tre casi — chi vuole la CLI in un terminale senza Claude Code, chi deve
+**fissare una versione precisa**, e chi lavora su una macchina che al primo avvio non può
+raggiungere GitHub.
+
+I binari stanno fra gli allegati della release
+[`bp-v2.11.2`](https://github.com/hevolusinnovation/xrcopilotlab-webapp-dotnet/releases/tag/bp-v2.11.2).
+Accanto a ciascuno c'è un file `.sha256` che contiene **solo l'impronta**: si confronta, non si dà
+in pasto a `shasum -c`.
+
+| Il tuo PC | Allegato da scaricare |
+|---|---|
+| macOS Apple Silicon (M1/M2/M3/M4) | `xrcopilotlab-bp-osx-arm64` |
+| macOS Intel | `xrcopilotlab-bp-osx-x64` |
+| Windows x64 | `xrcopilotlab-bp-win-x64.exe` |
+| Linux x64 | `xrcopilotlab-bp-linux-x64` |
+
+Non c'è niente da installare: è **un file solo**, autosufficiente. Non serve .NET.
+
+### macOS
+
+```bash
+gh release download bp-v2.11.2 --repo hevolusinnovation/xrcopilotlab-webapp-dotnet \
+    --pattern 'xrcopilotlab-bp-osx-arm64*' --dir ~/Downloads
+
+# L'impronta si confronta prima di eseguire ciò che si è appena scaricato.
+[ "$(shasum -a 256 ~/Downloads/xrcopilotlab-bp-osx-arm64 | awk '{print $1}')" \
+  = "$(tr -d '\r\n' < ~/Downloads/xrcopilotlab-bp-osx-arm64.sha256)" ] \
+  && echo "impronta ok" || echo "NON eseguirlo"
+
+mkdir -p ~/.local/bin
+mv ~/Downloads/xrcopilotlab-bp-osx-arm64 ~/.local/bin/xrcopilotlab-bp
+chmod +x ~/.local/bin/xrcopilotlab-bp
+```
+
+Se il file l'hai preso **dal browser** invece che con `gh`, macOS lo mette in quarantena e al primo
+avvio dice che «non è possibile verificare lo sviluppatore». Si toglie l'attributo una volta sola,
+**dopo** aver verificato l'impronta qui sopra:
+
+```bash
+xattr -d com.apple.quarantine ~/.local/bin/xrcopilotlab-bp
+```
+
+Perché il comando si trovi in ogni terminale nuovo, `~/.local/bin` deve stare nel `PATH`
+(`echo $PATH`); se non c'è, si aggiunge al proprio `~/.zshrc`:
+
+```bash
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
+```
+
+### Windows (PowerShell)
+
+```powershell
+gh release download bp-v2.11.2 --repo hevolusinnovation/xrcopilotlab-webapp-dotnet `
+    --pattern 'xrcopilotlab-bp-win-x64.exe*' --dir $HOME\Downloads
+
+$atteso   = (Get-Content $HOME\Downloads\xrcopilotlab-bp-win-x64.exe.sha256).Trim()
+$ottenuto = (Get-FileHash $HOME\Downloads\xrcopilotlab-bp-win-x64.exe -Algorithm SHA256).Hash.ToLower()
+if ($atteso -eq $ottenuto) { "impronta ok" } else { "NON eseguirlo" }
+
+New-Item -ItemType Directory -Force "$HOME\bin" | Out-Null
+Move-Item $HOME\Downloads\xrcopilotlab-bp-win-x64.exe "$HOME\bin\xrcopilotlab-bp.exe"
+Unblock-File "$HOME\bin\xrcopilotlab-bp.exe"     # toglie il marchio «scaricato da internet»
+
+[Environment]::SetEnvironmentVariable(
+    "Path", [Environment]::GetEnvironmentVariable("Path", "User") + ";$HOME\bin", "User")
+```
+
+L'ultima riga mette `$HOME\bin` nel `PATH` dell'utente: vale dalle finestre aperte **dopo**.
+
+### Linux
+
+Come macOS, con l'allegato `xrcopilotlab-bp-linux-x64` e `sha256sum` al posto di `shasum -a 256`.
+Niente quarantena da togliere.
+
+### Ha funzionato?
+
+```bash
+xrcopilotlab-bp --help
+```
+
+L'elenco che stampa è anche la risposta alla domanda «questa versione cosa sa fare»: se un comando
+citato da una guida non compare lì, il binario è più vecchio della guida — si riscarica da una
+release più recente. Fuori da un clone del repository di prodotto ogni comando che tocca la rete
+vuole `--env staging`, `--env preview` o `--env prod`, e prima serve
+[l'accesso ad Azure](accesso-azure.md).
+
+> **Se hai anche il plugin, attenzione a una cosa.** Un `xrcopilotlab-bp` installato a mano viene
+> preferito dall'avviatore a quello del plugin, e resta fermo alla versione che hai scaricato: è la
+> causa numero uno del «questo comando non esiste» mesi dopo. `xrcopilotlab-bp version` dice quale
+> sta girando e da dove.
 
 ## Una skill da sola
 
