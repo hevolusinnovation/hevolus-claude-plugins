@@ -1,18 +1,42 @@
 # Installare
 
 Questa pagina è per chi deve **usare** gli strumenti, non per chi li sviluppa. Non serve saper
-programmare, non serve clonare niente e non serve aprire un terminale.
+programmare, non serve clonare niente e non serve scrivere comandi in un terminale.
+
+Un'eccezione sola, e conviene saperla adesso: il **primo accesso ad Azure** — una volta sola, su
+quella macchina — va fatto da un terminale vero, e Claude non può farlo al posto tuo. Il perché e
+come si fa: [§ L'accesso ad Azure](accesso-azure.md). Riguarda solo i blueprint; l'assessment no.
 
 > C'è anche in forma di **pagina da aprire**, con i comandi da copiare con un clic e la richiesta
 > dei ruoli Azure già scritta: [`sito/index.html`](../sito/index.html). È la forma da girare a un
 > collega che non ha questo repository — si apre con un doppio clic, non ha bisogno di niente.
 
+## Un'app sola, due schede
+
+Sia l'assessment sia i blueprint si usano dall'**app Claude** installata sul computer, senza mai
+aprire un terminale e senza clonare nessun repository. L'app ha due schede, e la differenza fra
+loro è tutto ciò che serve capire:
+
+| Scheda | Cos'è | Cosa ci gira |
+|---|---|---|
+| **Chat** | la conversazione: ci si caricano documenti | il plugin *assessment* |
+| **Code** | la stessa app, ma qui Claude può **eseguire comandi** sul tuo computer | il plugin *blueprints* |
+
+«Claude Code» in queste pagine vuol dire quella scheda. Chi sviluppa la usa da terminale, ma non è
+obbligatorio e per te non cambia niente: si installa l'app e si clicca **Code**.
+
+- **macOS** — [installer universale (.dmg)](https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect)
+- **Windows** — [installer x64](https://claude.ai/api/desktop/win32/x64/setup/latest/redirect) ·
+  [installer ARM64](https://claude.ai/api/desktop/win32/arm64/setup/latest/redirect)
+
+Installa, accedi, e la scheda **Code** è lì in alto.
+
 ## Qual è il tuo caso
 
-| Quello che devi fare | Lo strumento | Vai a |
+| Quello che devi fare | Dove | Vai a |
 |---|---|---|
-| Ho la proposta di un cliente e devo capire come si realizza su XRCopilotLab | **Claude Desktop**, plugin *assessment* | [§ Claude Desktop](#claude-desktop--il-plugin-assessment) |
-| Devo configurare l'ambiente di un cliente, o collaudarne uno già configurato | **Claude Code**, plugin *blueprints* | [§ Claude Code](#claude-code--il-plugin-blueprints) |
+| Ho la proposta di un cliente e devo capire come si realizza su XRCopilotLab | app Claude, scheda **Chat**, plugin *assessment* | [§ Claude Desktop](#claude-desktop--il-plugin-assessment) |
+| Devo configurare l'ambiente di un cliente, o collaudarne uno già configurato | app Claude, scheda **Code**, plugin *blueprints* | [§ Claude Code](#claude-code--il-plugin-blueprints) |
 | Voglio una di queste skill sull'altra app, o senza plugin | una **skill** singola, su Desktop o su Code | [§ Una skill da sola](#una-skill-da-sola-su-desktop-o-su-code) |
 
 Le due righe qui sopra sono la strada **consigliata**, non l'unica: sono i due plugin, e ogni
@@ -27,10 +51,15 @@ invece su **Claude Desktop oppure Claude Code**, quella che usi — cambia cosa 
 | `xrcopilotlab-blueprint` | la skill da sola: scrive e spiega un manifest, **non lo applica** | il plugin `blueprints@hevolus` — **la strada consigliata** |
 | `xrcopilotlab-blueprint-test` | la skill da sola: prepara le domande di collaudo, **non le esegue** | il plugin `blueprints@hevolus` — **la strada consigliata** |
 
-Una regola sola governa tutta la tabella, e non è una preferenza: **applicare e collaudare vogliono
-un terminale**, perché passano da `xrcopilotlab-bp`, e su Desktop il terminale non c'è. Tutto ciò
-che si fa a parole e su documenti — l'assessment, scrivere un manifest, preparare una suite, capire
-un errore — funziona su entrambe.
+Una regola sola governa tutta la tabella, e non è una preferenza: **applicare e collaudare passano
+da `xrcopilotlab-bp`**, cioè da un comando, e i comandi girano solo nella scheda **Code**. Nella
+Chat non è questione di permessi: non c'è proprio niente che possa eseguirli. Tutto il resto — fare
+l'assessment, scrivere un manifest, preparare una suite di collaudo, capire un errore — funziona di
+qua e di là.
+
+Da notare, perché è la cosa che si teme di più e non c'è: **la CLI non la installi tu**. Il plugin
+*blueprints* se la scarica da solo al primo uso, dentro l'app, e ne verifica l'impronta. Niente
+terminale, niente .NET, niente clone del repository di prodotto.
 
 Perché i due plugin sono confezionati uno per superficie:
 [§ Claude Code o Claude Desktop](code-o-desktop.md).
@@ -91,9 +120,9 @@ il plugin porta le skill e si procura da solo lo strumento a riga di comando.
 
 | | Perché | Come si verifica |
 |---|---|---|
-| **Claude Code** | è lì che gira il plugin | lo stai usando; altrimenti [code.claude.com](https://code.claude.com) |
-| **`git`** | registrare il catalogo è un clone di questo repository | `git --version` |
-| **Un accesso GitHub a `hevolusinnovation`** | questo catalogo è privato: serve a installare il plugin **e** a scaricare la CLI, che vive fra i suoi allegati | `gh auth status` (installa GitHub CLI se manca: `brew install gh` / `winget install GitHub.cli`, poi `gh auth login`) |
+| **L'app Claude, scheda Code** | è lì che gira il plugin | [installer per macOS e Windows](#unapp-sola-due-schede) — poi accedi e clicca **Code** |
+| **`git`** | registrare il catalogo è un clone di questo repository | chiedi a Claude, nella scheda Code: «`git --version` funziona?» |
+| **Un accesso GitHub a `hevolusinnovation`** | questo catalogo è privato: serve a installare il plugin **e** a scaricare la CLI, che vive fra i suoi allegati | chiedi a Claude: «sono autenticato su GitHub?» — se non lo sei ti guida lui (`gh auth login` apre il browser). Se `git` o GitHub CLI non ci sono proprio, chiedi al team: è l'unico pezzo che non puoi mettere a posto da solo |
 | **I ruoli Azure** | la CLI legge App Configuration e Key Vault dell'ambiente | [§ L'accesso ad Azure](accesso-azure.md) |
 
 > **Un accesso solo, non due.** Il binario della CLI nasce nel repository di prodotto, ma i suoi
@@ -106,10 +135,18 @@ il plugin porta le skill e si procura da solo lo strumento a riga di comando.
 
 ### Le due righe
 
+Si scrivono **dentro l'app**, nella casella dei messaggi della scheda Code — non in un terminale.
+Sono comandi di Claude, non del computer:
+
 ```
 /plugin marketplace add hevolusinnovation/hevolus-claude-plugins
 /plugin install blueprints@hevolus
 ```
+
+La prima registra il catalogo di Hevolus e si dà una volta sola; la seconda installa il plugin. Da
+lì in poi, per vedere cosa hai installato o per aggiungere altro, c'è anche la strada a pulsanti:
+**+** accanto alla casella dei messaggi → **Plugins**. La registrazione del catalogo, però, passa
+per forza dalla prima riga: un catalogo privato dal pannello non si aggiunge.
 
 Nessuno zip da scaricare: il catalogo è il repository, e lo strumento a riga di comando che il
 plugin usa se lo scarica da solo al primo utilizzo — una cinquantina di megabyte, una volta per
@@ -152,14 +189,15 @@ Cosa fanno le due skill, con che frasi si attivano e cosa producono:
 | «la release non contiene l'allegato …» | Stai su una versione pubblicata prima del mirror, oppure su una piattaforma senza binario. Chiedi al team una release aggiornata, o fatti passare il binario e indicalo con `XRCOPILOTLAB_BP_BIN` |
 | «Non è detto su quale ambiente lavorare» | Manca `--env`: fuori da un clone non c'è un ambiente predefinito. Dillo a parole («su staging») |
 | Un comando «non esiste» anche se il manuale lo cita | Sulla macchina c'è un `xrcopilotlab-bp` installato a mano, che l'avviatore preferisce alla copia del plugin — e può essere vecchio di mesi. `xrcopilotlab-bp version` dice quale sta girando e da dove; poi `dotnet tool uninstall --global xrcopilotlab-bp` |
+| Il catalogo sparisce, o il plugin smette di aggiornarsi | L'aggiornamento automatico dei cataloghi **privati** gira senza le credenziali git e fallisce in silenzio. Chiedi al team di impostare `CLAUDE_CODE_PLUGIN_KEEP_MARKETPLACE_ON_FAILURE=1` e `gh auth setup-git`: nel frattempo ripetere la prima delle due righe rimette a posto |
 | Errori su App Configuration o Key Vault | Mancano i ruoli Azure: [§ L'accesso ad Azure](accesso-azure.md) |
 
 ## Solo lo strumento a riga di comando, sul proprio PC
 
-Chi usa Claude Code non deve fare niente di tutto questo: il plugin scarica `xrcopilotlab-bp` da
-sé. Questa strada serve a tre casi — chi vuole la CLI in un terminale senza Claude Code, chi deve
-**fissare una versione precisa**, e chi lavora su una macchina che al primo avvio non può
-raggiungere GitHub.
+**Se usi l'app, salta questa sezione**: il plugin scarica `xrcopilotlab-bp` da sé, dentro l'app, e
+non devi installare niente. Serve a tre casi diversi — chi vuole la CLI in un terminale senza
+passare da Claude, chi deve **fissare una versione precisa**, e chi lavora su una macchina che al
+primo avvio non può raggiungere GitHub.
 
 I binari stanno fra gli allegati della release
 [`bp-v2.11.2`](https://github.com/hevolusinnovation/xrcopilotlab-webapp-dotnet/releases/tag/bp-v2.11.2).

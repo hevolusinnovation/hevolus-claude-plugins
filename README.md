@@ -8,7 +8,7 @@ ambiente XRCopilotLab configurato e collaudato.
 | Quello che devi fare | Dove si fa | Cosa fare adesso |
 |---|---|---|
 | Capire come si realizza la proposta di un cliente | **Claude Desktop** | scarica `Xrcopilotlab-….zip` dalle [release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest) e caricalo su [claude.ai/customize/plugins](https://claude.ai/customize/plugins) |
-| Configurare o collaudare l'ambiente di un cliente | **Claude Code** | le [due righe](#installare-in-breve) qui sotto — ma prima [l'accesso ad Azure](docs/accesso-azure.md), che è il punto contro cui si sbatte per primo |
+| Configurare o collaudare l'ambiente di un cliente | **app Claude, scheda Code** — niente terminale, niente clone | le [due righe](#installare-in-breve) qui sotto, scritte nella casella dei messaggi — ma prima [l'accesso ad Azure](docs/accesso-azure.md), che è il punto contro cui si sbatte per primo |
 | Avere `xrcopilotlab-bp` sul proprio PC, senza Claude Code | **terminale** | scarica il binario dalla release [`bp-v2.11.2`](https://github.com/hevolusinnovation/xrcopilotlab-webapp-dotnet/releases/tag/bp-v2.11.2) — i passi per macOS e Windows: [§ Solo lo strumento a riga di comando](docs/installare.md#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc) |
 | Avere una di queste skill sull'altra app — l'assessment in Claude Code, i blueprint su Desktop — o senza plugin | **Claude Desktop o Claude Code** | scarica `xrcopilotlab-….zip` dalle stesse release: su Desktop si carica in *Impostazioni → Capacità → Skill*, su Code si scompatta in `~/.claude/skills/`. I passi: [§ Una skill da sola](docs/installare.md#una-skill-da-sola-su-desktop-o-su-code) — da Desktop si scrive, non si applica |
 

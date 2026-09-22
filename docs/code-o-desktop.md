@@ -1,14 +1,16 @@
 # Claude Code o Claude Desktop
 
 Ogni plugin di questo repository gira su **una** delle due superfici, e non è una preferenza: è una
-conseguenza di cosa la skill deve poter toccare. Questa pagina dice come si decide, dove la
+conseguenza di cosa la skill deve poter toccare. «Superficie» non vuol dire «due programmi da
+installare»: sono due schede della stessa app Claude, Chat e Code — chi deve solo usarle parta da
+[§ Installare](installare.md#unapp-sola-due-schede). Questa pagina dice come si decide, dove la
 decisione è scritta e cosa succede da sola una volta presa.
 
 ## Le due superfici, e cosa cambia davvero
 
 | | **Claude Code** | **Claude Desktop** |
 |---|---|---|
-| Dov'è | un terminale, dentro una cartella di lavoro | l'app di chat, con i file caricati nella conversazione |
+| Dov'è | la scheda **Code** dell'app Claude, dentro una cartella di lavoro — o un terminale, per chi sviluppa | la scheda **Chat** della stessa app, con i file caricati nella conversazione |
 | Può eseguire comandi | **sì** — `bin/` finisce nel PATH | **no**: non c'è nessun terminale |
 | Vede i file del progetto | **sì**, li legge e li scrive | solo quelli caricati in chat, e quelli che produce |
 | Come si installa | dal catalogo: `/plugin install` | caricando uno **zip** su claude.ai |
