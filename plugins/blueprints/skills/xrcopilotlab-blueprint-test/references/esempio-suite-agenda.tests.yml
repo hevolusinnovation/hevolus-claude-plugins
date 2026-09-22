@@ -19,13 +19,24 @@
 # i suoi tre casi sono stati tolti. La registrazione sul calendario è automatica, ma scrive: i suoi
 # casi stanno in studiopolis-agenda-scrittura.tests.yml.
 #
+# Dalla v23 i casi nuovi vengono dalle comunicazioni VERE dello Studio (documentazione del cliente,
+# 17/09/2026, in hevolus-assessment/customers/studiopolis/test-data). Nomi di parti, imputati e
+# clienti sono sostituiti; la forma — sigle, ordine dei campi, punteggiatura, firme — è quella
+# autentica, ed è la forma che si sta collaudando. Sono riconoscibili dal nome: le due righe degli
+# elenchi («da segnare», «Rinvii»), il modulo del processo telematico civile, l'inoltro penale con
+# la data dell'atto, l'agenda scansionata.
+#
+# Attenzione ai casi «sim-sorveglianza-*»: dalla v23 la Sorveglianza APRE le pratiche da sé con
+# apri_pratica, quindi i casi simulati le chiedono di ELENCARE le chiamate («PRATICA: …») invece di
+# farle. Se un giorno un caso le facesse davvero, aprirebbe pratiche vere sul tenant.
+#
 # Le entità si risolvono dall'ultimo run completato del tag: su un tenant dove è applicata una
 # versione precedente del manifest, i casi sulle entità che non esistono escono in errore
 # «non trovato» — è l'informazione giusta, non un difetto della suite.
 
 blueprint: studiopolis-agenda
 tag: STUDIOPOLIS
-version: 12
+version: 26
 description: Collaudo dello scenario Agenda di Studio Polis
 
 defaults:
@@ -129,6 +140,68 @@ cases:
       matches: ["(?i)^\\s*rinvio\\s*$"]
       noError: true
     tags: [agent, classificatore]
+
+  # ── Le forme reali dello Studio (documentazione del cliente, 17/09/2026) ──────────────────
+  # Nomi di parti e imputati sostituiti; la FORMA — sigle, punteggiatura, ordine dei campi — è
+  # quella delle comunicazioni vere.
+
+  - key: classificatore-riga-da-segnare
+    name: "Classificatore: una riga dell'elenco «da segnare» è un'Udienza"
+    kind: agent
+    target: classificatore
+    message: |
+      5.11.2026 - Trib. De Rosa: Ingargiola
+    expect:
+      answer: "Esattamente «Udienza»: una data nuova, l'autorità con il giudice, le parti."
+      matches: ["(?i)^\\s*udienza\\s*$"]
+      noError: true
+    tags: [agent, classificatore]
+
+  - key: classificatore-riga-rinvio-collega
+    name: "Classificatore: la riga del giro dei rinvii è un Rinvio"
+    kind: agent
+    target: classificatore
+    message: |
+      Oggetto: Rinvii 17.9
+
+      Tm Mascari: Zuccaro al 15.10.2026 ore 11.00 per discussione
+    expect:
+      answer: "Esattamente «Rinvio»: «al <data>» su un'udienza che esisteva già."
+      matches: ["(?i)^\\s*rinvio\\s*$"]
+      noError: true
+    tags: [agent, classificatore]
+
+  - key: classificatore-notifica-atto-penale
+    name: "Classificatore: la notifica di un atto con la data dell'atto NON è una Scadenza"
+    kind: agent
+    target: classificatore
+    message: |
+      Oggetto: I: [PM NOTI 2026/4420 BARI] - Notifica/Comunicazione atti penali
+
+      In relazione al procedimento penale in oggetto si notifica/comunica nell'interesse di
+      MARTELLI FRANCESCO quanto segue in allegato
+
+      Avviso conclusione indagini e Informazione di Garanzia - 415 bis, 369 c.p.p. - 09/09/2026
+
+      PROCURA DELLA REPUBBLICA PRESSO IL TRIBUNALE ORDINARIO
+    expect:
+      answer: >
+        «Attività» o «Visione» sono entrambe difendibili — c'è qualcosa da fare, ma il testo non
+        scrive nessuna data di adempimento. Quello che NON deve succedere è «Scadenza» o
+        «Udienza»: il 09/09/2026 è la data dell'ATTO, e il termine di venti giorni non è scritto
+        da nessuna parte. Il referente sceglie nel modulo.
+      matches: ["(?i)^\\s*(attività|visione)\\s*$"]
+      wrongAnswers:
+        - pattern: "(?i)^\\s*scadenza\\s*$"
+          means: >
+            Ha letto la data dell'atto come una scadenza: in esercizio l'avviso 415 bis finirebbe
+            in calendario al 09/09, che è il giorno in cui l'atto è stato emesso.
+          suspect: Manifest
+        - pattern: "(?i)^\\s*udienza\\s*$"
+          means: "Ha letto la data dell'atto come un'udienza. Qui non c'è nessuna udienza fissata."
+          suspect: Manifest
+      noError: true
+    tags: [agent, classificatore, negative]
 
   # ════════════════════════════════════════════════════════════════════════════════════════
   # Agenda — estrazione degli estremi, senza dedurre e senza calcolare
@@ -254,6 +327,150 @@ cases:
         Non sceglie uno dei due: riporta entrambi, oppure segnala in fondo che il testo si
         riferisce a più procedimenti.
       contains: ["4127/2025", "5310/2025"]
+      noError: true
+    tags: [agent, agenda]
+
+  # ── Le forme reali dello Studio (documentazione del cliente, 17/09/2026) ──────────────────
+
+  - key: agenda-pct-civile-modulo
+    name: "Agenda: il modulo del processo telematico civile, e «00:00» che non è un'ora"
+    kind: agent
+    target: agenda
+    message: |
+      Tipo: Rinvio. Fonte: cancelleria. Materia: Civile. Fascicolo: da attribuire.
+
+      --
+      Comunicazione di cancelleria
+      Sezione: A5
+
+      Tipo procedimento: Contenzioso Civile
+      Numero di Ruolo generale: 87/2026
+      Giudice: SAMMARTINO SILVIA
+      Attore principale: ANTICO MULINO HOLDING IMMOBILIARE S.R.L.
+      Conv. principale: CAT. CONSULTING CONSULENZA AMBIENTALE E TERRITORIO DI RAGONE MARCO
+
+      Oggetto: RINVIO AD ALTRA UDIENZA DI DISCUSSIONE
+      Descrizione: RINVIATO AD ALTRA UDIENZA DI DISCUSSIONE IL 14/01/2027 00:00 in presenza
+
+      Note:
+
+      Notificato alla PEC / in cancelleria il 17/09/2026 08:55
+      Registrato da PIETRALONGO MICHELE
+      --
+    expect:
+      answer: >
+        Nuova data 14/01/2027; ORA «non indicato» — «00:00» nel modulo vuol dire che l'ora non è
+        stata indicata, non mezzanotte; R.G. 87/2026; giudice Sammartino; parti Antico Mulino
+        Holding Immobiliare c/ CAT. Consulting; adempimento rinvio ad altra udienza di
+        discussione. Il 17/09/2026 è la data della notifica, non dell'udienza.
+      contains: ["14/01/2027", "87/2026", "non indicato"]
+      wrongAnswers:
+        - pattern: "00:00"
+          means: >
+            Ha preso «00:00» per un'ora vera: in calendario l'udienza finirebbe a mezzanotte, e
+            la riconciliazione vedrebbe una divergenza di nove ore con l'impegno giusto.
+          suspect: Manifest
+        - pattern: "(?i)data e ora[^\\n]*17/09/2026"
+          means: "Ha preso la data della notifica per quella dell'udienza."
+          suspect: Manifest
+      language: it
+      noError: true
+    tags: [agent, agenda, pct]
+
+  - key: agenda-notifica-penale-data-atto
+    name: "Agenda: nella notifica penale la data è quella dell'ATTO, l'udienza sta nel PDF"
+    kind: agent
+    target: agenda
+    message: |
+      Tipo: Udienza. Fonte: cancelleria. Materia: Penale. Fascicolo: da attribuire.
+
+      Oggetto: I: [GIP NOTI 2026/4821 BARI] - Notifica/Comunicazione atti penali
+
+      In relazione al procedimento penale in oggetto si notifica/comunica nell'interesse di
+      MASTRANGELO DARIO quanto segue in allegato
+
+      Avviso fissazione udienza procedimento in camera di consiglio - 127 c. 1 c.p.p. - 03/09/2026
+
+      GIP PRESSO IL TRIBUNALE ORDINARIO
+    expect:
+      answer: >
+        Data e ora dell'udienza «non indicato»: il 03/09/2026 è la data dell'atto, e la data
+        dell'udienza sta nel PDF allegato che l'agente non vede. Autorità: GIP presso il
+        Tribunale ordinario di Bari. Numero di ruolo: quello dell'oggetto (GIP 4821/2026).
+        Parti: Mastrangelo Dario. Adempimento: udienza in camera di consiglio ex art. 127 c.p.p.
+      contains: ["non indicato", "4821", "Mastrangelo"]
+      wrongAnswers:
+        - pattern: "(?i)data e ora[^\\n]*03/09/2026"
+          means: >
+            Ha preso la data dell'atto per la data dell'udienza. È il caso più frequente del
+            penale — gli avvisi arrivano inoltrati, con l'udienza solo nel PDF — e una data
+            sbagliata qui va in calendario con la verifica del referente sopra.
+          suspect: Manifest
+      noError: true
+    tags: [agent, agenda, penale, negative]
+
+  - key: agenda-riga-da-segnare
+    name: "Agenda: una riga dell'elenco «da segnare», con tre «non indicato»"
+    kind: agent
+    target: agenda
+    message: |
+      Tipo: Udienza. Fonte: mail. Materia: Penale. Fascicolo: da attribuire.
+
+      Oggetto: da segnare
+      Da: avv.neri@studiopolis.it
+
+      5.11.2026 - Trib. De Rosa: Ingargiola
+    expect:
+      answer: >
+        Data 5 novembre 2026; ora «non indicato»; autorità Tribunale (monocratico), giudice
+        De Rosa; numero di ruolo «non indicato»; parti Ingargiola; adempimento udienza.
+        Non inventa l'ora e non inventa il numero di ruolo.
+      contains: ["non indicato", "Ingargiola"]
+      matches: ["(?i)(5\\.11\\.2026|5 novembre 2026)"]
+      wrongAnswers:
+        - pattern: "(?i)(9|09)[:.]00"
+          means: "Ha messo un'ora che nel testo non c'è."
+          suspect: Manifest
+        - pattern: "(?i)parti[^\\n]*De Rosa"
+          means: >
+            Ha preso il giudice per una parte. Nella forma dello Studio il nome dopo l'autorità
+            è il giudice, e le parti vengono dopo i due punti.
+          suspect: Manifest
+      noError: true
+    tags: [agent, agenda, penale]
+
+  - key: agenda-firma-non-e-contenuto
+    name: "Agenda: la firma dello Studio non è la comunicazione"
+    kind: agent
+    target: agenda
+    message: |
+      Tipo: Rinvio. Fonte: mail. Materia: Civile. Fascicolo: da attribuire.
+
+      Oggetto: Re: Rinvii 17.9
+      Da: avv.neri@studiopolis.it
+
+      Corte Potenza: Nardò + a. (Corvino/Guzzo pp.cc.) al 19.11.2026 (ore 10.30) - come da
+      calendario - per discussione delle parti civili.
+
+      Neri Antonio
+      avv.neri@studiopolis.it - www.studiopolis.it
+      Bari 70100
+      Via della Repubblica, 1
+      Tel +39.080.0000000 - Fax +39.080.0000001
+      Cod. Fisc. P. IVA 00000000000 | Registro imprese di Bari n. 00000000000
+      -
+      Please consider your environmental responsibility before printing this email.
+      Il contenuto di questa e-mail è rivolto unicamente alle persone cui è indirizzato, e puo'
+      contenere informazioni la cui riservatezza è tutelata.
+    expect:
+      answer: >
+        Nuova data 19 novembre 2026 ore 10:30; autorità Corte d'appello di Potenza; parti Nardò
+        e altri, con Corvino e Guzzo parti civili; adempimento discussione delle parti civili;
+        numero di ruolo «non indicato». Della firma non prende niente: né l'indirizzo come sede,
+        né la partita IVA come numero di ruolo.
+      contains: ["Potenza"]
+      matches: ["(?i)(19\\.11\\.2026|19 novembre 2026)", "10[:.]30"]
+      notContains: ["Via della Repubblica", "00000000000", "environmental"]
       noError: true
     tags: [agent, agenda]
 
@@ -593,8 +810,10 @@ cases:
     target: sorveglianza
     message: |
       Lettura simulata della casella: NON chiamare gli strumenti. Questi sono i messaggi arrivati
-      negli ultimi dieci minuti, già letti con leggi_messaggio. Applica le tue regole e restituisci
-      esattamente ciò che restituiresti al processo.
+      negli ultimi dieci minuti, già letti con leggi_messaggio. Applica le tue regole e restituisci esattamente ciò che restituiresti al
+      processo. Se il messaggio ha più voci, aggiungi in fondo una riga «PRATICA:» per ogni
+      voce SUCCESSIVA alla prima, con gli argomenti che passeresti ad apri_pratica: qui NON lo
+      chiami, aprirebbe pratiche vere.
 
       --- Messaggio 1 ---
       Da: newsletter@rivistagiuridica.it
@@ -619,9 +838,10 @@ cases:
     expect:
       answer: >
         Il solo testo del messaggio 3 (l'avviso di Bari), senza preambolo, senza riassunto, senza
-        estremi estratti. Niente della newsletter né della fattura.
+        estremi estratti, e senza righe PRATICA: la comunicazione è una sola. Niente della
+        newsletter né della fattura.
       contains: ["4127/2025", "14/10/2026"]
-      notContains: ["Fattura", "newsletter", "NESSUN AVVISO"]
+      notContains: ["PRATICA", "Fattura", "newsletter", "NESSUN AVVISO"]
       wrongAnswers:
         - pattern: "(?i)^\\s*(ecco|ho trovato|di seguito|il messaggio)"
           means: "Preambolo: in esercizio finirebbe dentro testoAvviso del processo"
@@ -641,8 +861,10 @@ cases:
     target: sorveglianza
     message: |
       Lettura simulata della casella: NON chiamare gli strumenti. Questi sono i messaggi arrivati
-      negli ultimi due minuti, già letti con leggi_messaggio. Applica le tue regole e restituisci
-      esattamente ciò che restituiresti al processo.
+      negli ultimi due minuti, già letti con leggi_messaggio. Applica le tue regole e restituisci esattamente ciò che restituiresti al
+      processo. Se il messaggio ha più voci, aggiungi in fondo una riga «PRATICA:» per ogni
+      voce SUCCESSIVA alla prima, con gli argomenti che passeresti ad apri_pratica: qui NON lo
+      chiami, aprirebbe pratiche vere.
 
       --- Messaggio 1 ---
       Da: amministrazione@fornitore-it.it
@@ -656,7 +878,7 @@ cases:
     expect:
       answer: >
         Il solo testo del messaggio 2, tale e quale (abbreviazioni comprese), senza preambolo e
-        senza estremi estratti. La fattura ha una «scadenza» ma non riguarda un procedimento.
+        senza righe PRATICA. La fattura ha una «scadenza» ma non riguarda un procedimento.
       contains: ["rossi/alfa", "14/10"]
       notContains: ["318/2026", "NESSUN AVVISO"]
       wrongAnswers:
@@ -675,8 +897,10 @@ cases:
     target: sorveglianza
     message: |
       Lettura simulata della casella: NON chiamare gli strumenti. Un messaggio, già letto con
-      leggi_messaggio e leggi_allegati. Applica le tue regole e restituisci esattamente ciò che
-      restituiresti al processo.
+      leggi_messaggio e leggi_allegati. Applica le tue regole e restituisci esattamente ciò che restituiresti al
+      processo. Se il messaggio ha più voci, aggiungi in fondo una riga «PRATICA:» per ogni
+      voce SUCCESSIVA alla prima, con gli argomenti che passeresti ad apri_pratica: qui NON lo
+      chiami, aprirebbe pratiche vere.
 
       --- Messaggio 1 ---
       Da: posta-certificata@telecompost.it
@@ -716,8 +940,10 @@ cases:
     target: sorveglianza
     message: |
       Lettura simulata della casella: NON chiamare gli strumenti. Un messaggio, già letto con
-      leggi_messaggio, leggi_allegati e leggi_eml. Applica le tue regole e restituisci esattamente
-      ciò che restituiresti al processo.
+      leggi_messaggio, leggi_allegati e leggi_eml. Applica le tue regole e restituisci esattamente ciò che restituiresti al
+      processo. Se il messaggio ha più voci, aggiungi in fondo una riga «PRATICA:» per ogni
+      voce SUCCESSIVA alla prima, con gli argomenti che passeresti ad apri_pratica: qui NON lo
+      chiami, aprirebbe pratiche vere.
 
       --- Messaggio 1 ---
       Da: posta-certificata@telecompost.it
@@ -761,8 +987,10 @@ cases:
     target: sorveglianza
     message: |
       Lettura simulata della casella: NON chiamare gli strumenti. Un messaggio, già letto con
-      leggi_messaggio e leggi_allegati. Applica le tue regole e restituisci esattamente ciò che
-      restituiresti al processo.
+      leggi_messaggio e leggi_allegati. Applica le tue regole e restituisci esattamente ciò che restituiresti al
+      processo. Se il messaggio ha più voci, aggiungi in fondo una riga «PRATICA:» per ogni
+      voce SUCCESSIVA alla prima, con gli argomenti che passeresti ad apri_pratica: qui NON lo
+      chiami, aprirebbe pratiche vere.
 
       --- Messaggio 1 ---
       Da: posta-certificata@telecompost.it
@@ -793,8 +1021,10 @@ cases:
     target: sorveglianza
     message: |
       Lettura simulata della casella: NON chiamare gli strumenti. Mittenti interni: dominio
-      hevolus.it. Questi sono i risultati già ottenuti. Applica le tue regole e restituisci
-      esattamente ciò che restituiresti al processo.
+      hevolus.it. Questi sono i risultati già ottenuti. Applica le tue regole e restituisci esattamente ciò che restituiresti al
+      processo. Se il messaggio ha più voci, aggiungi in fondo una riga «PRATICA:» per ogni
+      voce SUCCESSIVA alla prima, con gli argomenti che passeresti ad apri_pratica: qui NON lo
+      chiami, aprirebbe pratiche vere.
 
       --- posta_in_arrivo (ultimi due minuti) ---
       Messaggio 1 — id: AAMk001 — conversationId: CONV-7781 — da: avv.neri@hevolus.it
@@ -821,7 +1051,8 @@ cases:
     target: sorveglianza
     message: |
       Lettura simulata della casella: NON chiamare gli strumenti; dimmi invece, in una riga finale
-      che comincia con «CHIAMEREI:», quali strumenti chiameresti e con quali argomenti. Mittenti
+      che comincia con «CHIAMEREI:», tutti gli strumenti che chiameresti e con quali argomenti —
+      apri_pratica compreso, se servisse. Mittenti
       interni: dominio hevolus.it. Testo di conferma: «Presa in carico: la tua comunicazione è
       stata registrata e un referente dell'agenda la verificherà.»
 
@@ -835,8 +1066,9 @@ cases:
       (nessuna)
     expect:
       answer: >
-        Passa il testo della cancelleria. Nella riga «CHIAMEREI:» compare leggi_messaggio, e NON
-        compare rispondi_messaggio: il mittente è l'autorità, non un interno.
+        Passa il testo della cancelleria. Nella riga «CHIAMEREI:» compare leggi_messaggio e NON
+        compaiono né rispondi_messaggio — il mittente è l'autorità, non un interno — né
+        apri_pratica: la comunicazione è una sola, e la prima voce la apre il testo restituito.
       contains: ["4127/2025", "CHIAMEREI"]
       wrongAnswers:
         - pattern: "(?i)rispondi_messaggio"
@@ -851,8 +1083,10 @@ cases:
     target: sorveglianza
     message: |
       Lettura simulata della casella: NON chiamare gli strumenti. Questi sono i messaggi arrivati
-      negli ultimi dieci minuti, già letti con leggi_messaggio. Applica le tue regole e restituisci
-      esattamente ciò che restituiresti al processo.
+      negli ultimi dieci minuti, già letti con leggi_messaggio. Applica le tue regole e restituisci esattamente ciò che restituiresti al
+      processo. Se il messaggio ha più voci, aggiungi in fondo una riga «PRATICA:» per ogni
+      voce SUCCESSIVA alla prima, con gli argomenti che passeresti ad apri_pratica: qui NON lo
+      chiami, aprirebbe pratiche vere.
 
       --- Messaggio 1 ---
       Da: newsletter@rivistagiuridica.it
@@ -880,8 +1114,8 @@ cases:
     message: |
       Lettura simulata della casella: NON chiamare gli strumenti. Questi sono i messaggi arrivati
       negli ultimi dieci minuti, dal più recente, già letti con leggi_messaggio. Applica le regole
-      del tuo compito — «restituisci il testo del primo che trovi» — e restituisci esattamente ciò
-      che restituiresti al processo.
+      del tuo compito — «prendi il primo messaggio non ancora preso in carico» — e restituisci
+      esattamente ciò che restituiresti al processo.
 
       --- Messaggio 1 ---
       Da: luca.ferri@studiopolis.it
@@ -896,14 +1130,177 @@ cases:
     expect:
       answer: >
         Secondo il prompt del task, il solo testo del messaggio 1. Il caso esiste per rendere
-        visibile il limite: il messaggio 2 NON arriva al processo in questo giro, e al giro dopo
-        è ancora nella finestra solo se non ne arriva un terzo.
+        visibile il limite che RESTA: dalla v26 un messaggio con più voci le apre tutte, ma i
+        messaggi restano uno per giro. Il messaggio 2 non viene preso in questo giro, e al giro
+        dopo è ancora nella finestra solo se non ne arriva un terzo.
       contains: ["5310/2025"]
       noError: true
     tags: [simulata, agent, limite]
     notes: >
-      Se passa, conferma un limite del manifest, non un difetto dell'agente: un avviso per giro.
-      Da discutere con lo Studio quanti avvisi arrivano insieme (le mailing list delle udienze).
+      Se passa, conferma un limite del manifest, non un difetto dell'agente: un MESSAGGIO per
+      giro (più voci dello stesso messaggio, invece, ora passano tutte). Da discutere con lo
+      Studio quanti messaggi arrivano insieme — l'agenda settimanale e il giro dei rinvii del
+      giovedì arrivano a raffica.
+
+  # ── Le forme reali dello Studio: elenchi, thread, inoltri, scansioni (17/09/2026) ─────────
+
+  - key: sim-sorveglianza-elenco-due-udienze
+    name: "Simulata · Sorveglianza: l'elenco «da segnare» apre DUE pratiche"
+    kind: agent
+    target: sorveglianza
+    message: |
+      Lettura simulata della casella: NON chiamare gli strumenti. Un messaggio, già letto con
+      leggi_messaggio. Applica le tue regole e dimmi, con una riga «PRATICA:» per ciascuna, le
+      chiamate ad apri_pratica che faresti — materia, fonte, mittente e il testo che passeresti.
+      NON chiamare lo strumento: aprirebbe pratiche vere.
+
+      --- Messaggio 1 ---
+      Da: avv.neri@studiopolis.it
+      Oggetto: da segnare
+      Corpo:
+      5.11.2026 - Trib. De Rosa: Ingargiola;
+
+      12.10.2026 - GUP Minori: Ingargiola.
+
+      Neri Antonio
+      avv.neri@studiopolis.it - www.studiopolis.it
+      Please consider your environmental responsibility before printing this email.
+    expect:
+      answer: >
+        Il testo della PRIMA voce (5.11.2026, Trib. De Rosa, Ingargiola) come risposta — è quella
+        che il webhook apre da sé — e UNA riga PRATICA per la seconda (12.10.2026, GUP Minori),
+        materia Penale, fonte mail. Lo stesso nome nelle due righe non le rende una sola: sono due
+        udienze, in due giorni, davanti a due autorità.
+      contains: ["5.11.2026", "12.10.2026", "PRATICA"]
+      notContains: ["environmental", "NESSUN AVVISO"]
+      wrongAnswers:
+        - pattern: "(?s)PRATICA[^\\n]*5\\.11\\.2026"
+          means: >
+            Ha aperto con lo strumento anche la prima voce, che il webhook apre già dal testo
+            restituito: quella comunicazione avrebbe due pratiche identiche.
+          suspect: Manifest
+        - pattern: "(?si)^(?:(?!PRATICA).)*$"
+          means: >
+            Nessuna riga PRATICA: la seconda udienza non arriverebbe mai in calendario. È il
+            difetto che il materiale dello Studio ha reso visibile.
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent, sorveglianza]
+
+  - key: sim-sorveglianza-thread-rinvii
+    name: "Simulata · Sorveglianza: nella risposta conta solo il rinvio nuovo, non quello citato"
+    kind: agent
+    target: sorveglianza
+    message: |
+      Lettura simulata della casella: NON chiamare gli strumenti. Un messaggio, già letto con
+      leggi_messaggio. Applica le tue regole e dimmi, con una riga «PRATICA:» per ciascuna, le
+      chiamate ad apri_pratica che faresti — materia, fonte, mittente e il testo che passeresti.
+      NON chiamare lo strumento: aprirebbe pratiche vere.
+
+      --- Messaggio 1 ---
+      Da: avv.lorusso@studiopolis.it
+      Oggetto: Re: Rinvii 17.9
+      Corpo:
+      Corte Potenza: Nardò + a. (Corvino/Guzzo pp.cc.) al 19.11.2026 (ore 10.30) - come da
+      calendario - per discussione delle parti civili.
+
+      ________________________________
+      Da: Giacomo Martone <giacomo.martone@studiopolis.it>
+      Inviato: giovedì 17 settembre 2026 14:24
+      A: Penale <penale@studiopolis.it>
+      Oggetto: Rinvii 17.9
+
+      Tm Mascari: Zuccaro al 15.10.2026 ore 11.00 per discussione
+    expect:
+      answer: >
+        Il solo testo del rinvio nuovo (Corte di Potenza, 19.11.2026), senza righe PRATICA: è una
+        voce sola. Il rinvio Zuccaro citato sotto è il messaggio precedente, già arrivato per
+        conto suo: riaprirlo qui vorrebbe dire una seconda pratica e, a valle, un secondo
+        spostamento sullo stesso impegno.
+      contains: ["19.11.2026"]
+      notContains: ["15.10.2026", "NESSUN AVVISO", "PRATICA"]
+      noError: true
+    tags: [simulata, agent, sorveglianza, negative]
+
+  - key: sim-sorveglianza-inoltro-pct-penale
+    name: "Simulata · Sorveglianza: l'inoltro del PCT penale → materia Penale, senza la firma"
+    kind: agent
+    target: sorveglianza
+    message: |
+      Lettura simulata della casella: NON chiamare gli strumenti. Un messaggio, già letto con
+      leggi_messaggio. Mittenti interni: dominio studiopolis.it. Applica le tue regole e dimmi,
+      con una riga «PRATICA:» per ciascuna, le chiamate ad apri_pratica che faresti — materia,
+      fonte, mittente e il testo che passeresti. NON chiamare lo strumento.
+
+      --- Messaggio 1 ---
+      Da: avv.starace@studiopolis.it
+      Oggetto: I: [GIP NOTI 2026/4821 BARI] - Notifica/Comunicazione atti penali
+      Corpo:
+      Starace Stefano
+      avv.starace@studiopolis.it - www.studiopolis.it
+      Bari 70100 - Via della Repubblica, 1
+      Cod. Fisc. P. IVA 00000000000
+      -
+      Please consider your environmental responsibility before printing this email.
+      -----Messaggio originale-----
+      Da: app.tribunale.bari@penale.ptel.giustiziacert.it
+      Inviato: mercoledì 9 settembre 2026 09:25
+      A: avv.laforgia@pec.studiopolis.it
+      Oggetto: [GIP NOTI 2026/4821 BARI] - Notifica/Comunicazione atti penali
+
+      In relazione al procedimento penale in oggetto si notifica/comunica nell'interesse di
+      MASTRANGELO DARIO quanto segue in allegato
+
+      Avviso fissazione udienza procedimento in camera di consiglio - 127 c. 1 c.p.p. - 03/09/2026
+
+      GIP PRESSO IL TRIBUNALE ORDINARIO
+    expect:
+      answer: >
+        Il testo del PCT — non la firma di chi ha inoltrato — con l'oggetto che porta il numero di
+        ruolo. Una voce sola, quindi nessuna riga PRATICA: la materia di questa la conferma il
+        referente nel modulo (il corpo del webhook è fisso).
+      contains: ["MASTRANGELO", "4821"]
+      notContains: ["environmental", "00000000000", "NESSUN AVVISO", "PRATICA"]
+      wrongAnswers:
+        - pattern: "(?i)Starace Stefano"
+          means: "Ha passato la firma di chi inoltra come parte della comunicazione."
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent, sorveglianza, penale]
+
+  - key: sim-sorveglianza-agenda-scansionata
+    name: "Simulata · Sorveglianza: l'agenda settimanale è un PDF scansionato, il corpo è vuoto"
+    kind: agent
+    target: sorveglianza
+    message: |
+      Lettura simulata della casella: NON chiamare gli strumenti. Un messaggio, già letto con
+      leggi_messaggio e leggi_allegati. Applica le tue regole e dimmi, con una riga «PRATICA:»
+      per ciascuna, le chiamate ad apri_pratica che faresti. NON chiamare lo strumento.
+
+      --- Messaggio 1 ---
+      Da: segreteria@studiopolis.it
+      Oggetto: Agenda 14.9 18.9.2026
+      Corpo:
+      Buon pomeriggio,
+      in allegato il riepilogo udienze della prossima settimana.
+      Buon lavoro
+
+      --- Allegati (leggi_allegati) ---
+      1. Agenda 14.9-18.9.2026.pdf - file, application/pdf, 507 KB
+    expect:
+      answer: >
+        Passa la nota «ATTENZIONE: comunicazione in allegato non leggibile (Agenda
+        14.9-18.9.2026.pdf), aprire la mail» e l'oggetto, che è l'unico posto dove la settimana è
+        scritta. Non inventa udienze che non ha letto, e non scarta il messaggio: le agende
+        settimanali arrivano tutte così, e scartarle vorrebbe dire non vederle mai.
+      contains: ["ATTENZIONE", "Agenda 14.9-18.9.2026.pdf", "Oggetto"]
+      notContains: ["NESSUN AVVISO"]
+      noError: true
+    tags: [simulata, agent, sorveglianza, limite]
+    notes: >
+      Questa forma è la metà del materiale reale: quattro comunicazioni su otto hanno il dato solo
+      nel PDF. Finché non c'è la lettura dei PDF, la pratica serve a far sapere al referente che
+      quella mail esiste.
 
   - key: sim-ricognizione-elenco
     name: "Simulata · Ricognizione: una riga per avviso, «non indicato» dove manca"
@@ -1048,12 +1445,17 @@ cases:
       - Giudice: non indicato
     expect:
       answer: >
-        Chiamata crea_evento con titolo «Udienza Test c/ Collaudo R.G. 7777/2026», inizio
+        Chiamata crea_evento con titolo «Tribunale di Bari, Seconda Civile: Test c/ Collaudo —
+        R.G. 7777/2026» (la forma con cui lo Studio nomina le udienze), inizio
         2026-10-13T09:30:00 e fine 2026-10-13T10:30:00 (ora locale, senza offset: il corpo del tool
         dichiara già timeZone Europe/Rome), luogo Tribunale di Bari, Seconda Civile, note con
         adempimento e professionista. Risposta al processo con prima riga REGISTRATO.
       contains: ["crea_evento", "7777/2026", "REGISTRATO"]
-      matches: ["2026-10-13T09:30", "2026-10-13T10:30"]
+      # Il titolo va verificato, non descritto: fino alla v26 questa assertion cercava solo il
+      # numero di ruolo e combaciava con qualunque forma — il 17/09 sul calendario vero è finito
+      # il titolo della v22 e nessun caso l'ha notato.
+      matches: ["Seconda Civile: Test c/ Collaudo — R.G. 7777/2026", "2026-10-13T09:30", "2026-10-13T10:30"]
+      notContains: ["Udienza Test c/ Collaudo", "7777/2026 R.G."]
       wrongAnswers:
         - pattern: "2026-10-13T09:30(:00)?(\\.0+)?(\\+02:00|Z)"
           means: >
@@ -1075,7 +1477,7 @@ cases:
     target: registrazione
     message: |
       Prova a secco: NON chiamare gli strumenti. cerca_eventi sul 13/10/2026 ha già restituito:
-      {"value":[{"id":"AAMk-7","subject":"Udienza Test c/ Collaudo R.G. 7777/2026",
+      {"value":[{"id":"AAMk-7","subject":"Tribunale di Bari, Seconda Civile: Test c/ Collaudo — R.G. 7777/2026",
         "start":{"dateTime":"2026-10-13T09:30:00.0000000","timeZone":"Europe/Rome"},
         "end":{"dateTime":"2026-10-13T10:30:00.0000000","timeZone":"Europe/Rome"},
         "location":{"displayName":"Tribunale di Bari, Seconda Civile"}}]}
@@ -1109,7 +1511,7 @@ cases:
     target: registrazione
     message: |
       Prova a secco: NON chiamare gli strumenti. cerca_eventi sul 13/10/2026 ha già restituito:
-      {"value":[{"id":"AAMk-7","subject":"Udienza Test c/ Collaudo R.G. 7777/2026",
+      {"value":[{"id":"AAMk-7","subject":"Tribunale di Bari, Seconda Civile: Test c/ Collaudo — R.G. 7777/2026",
         "start":{"dateTime":"2026-10-13T09:30:00.0000000","timeZone":"Europe/Rome"},
         "end":{"dateTime":"2026-10-13T10:30:00.0000000","timeZone":"Europe/Rome"}}]}
 
@@ -1129,7 +1531,7 @@ cases:
         Chiamata sposta_evento con eventoId AAMk-7, inizio 2026-10-20T11:00:00, fine
         2026-10-20T12:00:00; risposta con prima riga SPOSTATO. Nessun crea_evento.
       contains: ["sposta_evento", "AAMk-7", "SPOSTATO"]
-      matches: ["2026-10-20T11:00"]
+      matches: ["13/10/2026\\s*-->", "2026-10-20T11:00"]
       wrongAnswers:
         - pattern: "2026-10-20T11:00(:00)?(\\.0+)?(\\+02:00|Z)"
           means: >
@@ -1198,6 +1600,53 @@ cases:
           suspect: Manifest
       noError: true
     tags: [simulata, agent, registrazione, negative]
+
+  - key: sim-registrazione-rinvio-senza-ora
+    name: "Simulata · Registrazione: rinvio senza ora, tiene l'ora che c'era e lo dice"
+    kind: agent
+    target: registrazione
+    message: |
+      Prova a secco: NON chiamare gli strumenti. cerca_eventi sul 15/09/2026 ha già restituito:
+      {"value":[{"id":"AAMk-9","subject":"Giudice di pace di Corato: Casalini c/ Lacerenza — R.G. 727/2025",
+        "start":{"dateTime":"2026-09-15T09:30:00.0000000","timeZone":"Europe/Rome"},
+        "end":{"dateTime":"2026-09-15T10:30:00.0000000","timeZone":"Europe/Rome"},
+        "body":{"content":"Udienza di prima comparizione — avv. Neri"}}]}
+
+      Scrivi la chiamata che faresti adesso (strumento e parametri esatti), poi la risposta per il processo.
+
+      Rinvio: sposta l'impegno già in calendario.
+      Udienza precedente (da cercare): R.G. 727/2025 del 15/09/2026
+      Nuova data: 2027-02-02
+      Nuova ora: {{oraUdienza}}
+      Autorità, sede e sezione: Giudice di pace di Corato
+
+      Estremi letti dall'avviso e verificati dal referente (numero di ruolo, parti):
+      - Numero di ruolo: R.G. 727/2025
+      - Parti: Casalini c/ Lacerenza
+      - Data e ora: 2 febbraio 2027, ora non indicata
+    expect:
+      answer: >
+        sposta_evento su AAMk-9 al 2027-02-02T09:30:00 — l'ora che l'impegno aveva, perché la
+        comunicazione di rinvio non ne dà una — e nelle note la catena «15/09/2026 --> ». Prima
+        riga SPOSTATO, e la riga sotto dice a chiare lettere che l'ora è quella precedente.
+        È il caso NORMALE del civile: la cancelleria comunica il giorno, non l'ora.
+      contains: ["sposta_evento", "AAMk-9", "SPOSTATO"]
+      matches: ["15/09/2026\\s*-->", "2027-02-02T09:30"]
+      wrongAnswers:
+        - pattern: "(?i)NON REGISTRATO"
+          means: >
+            Si è fermato perché manca l'ora. Fino alla v22 era la regola giusta per un'udienza
+            nuova; per un rinvio no: l'ora c'è già sull'impegno da spostare, e non spostarlo
+            lascia in agenda la data vecchia, che è l'errore peggiore.
+          suspect: Manifest
+        - pattern: "2027-02-02T00:00"
+          means: "Ha messo mezzanotte al posto dell'ora che non c'era."
+          suspect: Manifest
+        - pattern: "(?i)crea_evento\\s*[({:]"
+          means: "Crea un evento nuovo per un rinvio: doppione."
+          suspect: Manifest
+      noError: true
+    tags: [simulata, agent, registrazione]
 
   - key: sim-riconciliazione-orchestratore
     name: "Simulata · Orchestratore: le due letture in parallelo arrivano al Confronto"

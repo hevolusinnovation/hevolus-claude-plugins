@@ -208,6 +208,67 @@
 #       verificati non coincidono (il 16/09 il modulo diceva 23/09, la proposta 22/09, e l'agente ha
 #       scritto il 22 senza dirlo), risponde NON REGISTRATO con i due valori e lascia decidere.
 #
+#
+# ── Cosa cambia nella versione 29: la riunione di designazione, e le caselle dello Studio ────
+# Due spinte diverse, arrivate insieme.
+#
+# La prima è la mail del cliente dopo la demo (18/09/2026): «abbiamo dimenticato un pezzo
+# fondamentale della cd. procedura agenda». Ogni settimana i due dipartimenti si riuniscono e,
+# agenda cartacea alla mano, stabiliscono CHI andrà a ciascuna udienza della settimana dopo. È
+# quello il punto di partenza — l'evento che fa partire tutto — e da ogni designazione nasce un
+# obbligo con scadenza: entro la giornata dell'udienza il designato deve comunicarne l'ESITO, da
+# cui derivano i passaggi successivi. Fino alla v28 il manifest copriva l'ingresso di una
+# comunicazione e si fermava alla presa visione: il ciclo dello Studio ricomincia dove il nostro
+# finiva.
+#
+#   · Nuovo processo «Designazione ed esito dell'udienza», UN'istanza per udienza designata:
+#       conferma del referente (che sceglie il professionista con il selettore utente) →
+#       abbinamento all'impegno GIÀ a calendario → compito «Comunica l'esito» al designato →
+#       annotazione dell'esito sull'impegno → se è un rinvio, la presa in carico riparte da sola
+#       con una CallActivity, cioè con la macchina già collaudata (verifica, spostamento senza
+#       doppioni, avviso al professionista).
+#   · La designazione NON crea l'impegno: lo ANNOTA. Le udienze della settimana prossima sono già
+#       a calendario — ce le ha messe la presa in carico quando è arrivato l'avviso — e la
+#       riunione decide solo chi ci va. Per questo c'è un tool nuovo, `annota_evento`, che aggiorna
+#       il solo corpo dell'impegno senza toccarne le date: `sposta_evento` pretende inizio e fine,
+#       e usarlo per annotare significherebbe riscrivere un orario che nessuno ha chiesto di
+#       cambiare. Se l'impegno non si trova, l'agente NON lo crea: lo dice, e il referente decide.
+#   · L'ingresso è il dettato di fine riunione: il nuovo «Assistente designazioni» rilegge
+#       l'elenco e apre una pratica PER RIGA con `apri_designazione`, e dice quante ne ha aperte —
+#       è l'unico modo perché una persona si accorga di una riga persa.
+#   · «Entro quella giornata» non è un timer: il motore non ha eventi temporali (Start, End, Task,
+#       CallActivity e basta) e `maxLeadTimeMinutes` conta dall'arrivo del token, non dalla data
+#       dell'udienza — una designazione fatta con sette giorni d'anticipo avrebbe una soglia priva
+#       di senso. Il presidio è un task schedulato alle 18:30 nei giorni feriali: legge gli impegni
+#       di OGGI e segnala quelli designati il cui corpo non porta ancora una riga «ESITO:». Per
+#       questo l'esito si scrive sul calendario: è lo stato condiviso su cui lo sweep lavora.
+#
+# La seconda spinta è il passaggio alle caselle dello Studio. Fino alla v28 tutto girava su
+# `test@hevolus.it`, una casella nostra. Ora sono DUE caselle del cliente, una per dipartimento:
+#
+#   · Due server MCP (`m365-civile`, `m365-penale`) sulla stessa connessione Graph, ciascuno con
+#       la sua `mailbox`. I tredici tool sono definiti UNA volta e riusati con un anchor YAML: il
+#       parser li risolve (verificato), e due copie a mano divergerebbero alla prima correzione.
+#   · La MATERIA diventa deterministica. Fino alla v28 l'output action della Sorveglianza scriveva
+#       `materia: Civile` fissa, perché il corpo è un modello e per riga non si può cambiare: il
+#       referente la correggeva a mano. Chi legge dalla casella penale SA di essere nel penale.
+#   · `segna_letto`: con `Mail.Read` non si poteva marcare un messaggio, e una mail arrivata a
+#       cavallo di due giri apriva due pratiche (limite aperto dalla v11). Le due caselle nuove
+#       nascono con `Mail.ReadWrite`, quindi il segnaposto smette di essere una risposta inviata e
+#       diventa il flag di lettura.
+#   · Due ruoli di referente, uno per dipartimento — e da lì, inevitabilmente, DUE processi di
+#       presa in carico e DUE di designazione: `roleName` è statico sull'attività e
+#       `assignmentExpression` risolve un id UTENTE, non un ruolo, quindi un processo solo non
+#       saprebbe a quale referente mandare la verifica. Le due copie differiscono per il nome del
+#       ruolo e per i task d'agente che chiamano: nient'altro. Quando se ne corregge una, l'altra
+#       va corretta nello stesso commit.
+#   · Due Riconciliazioni e due briefing: leggono calendari diversi.
+#
+# ⚠️ Questa versione NON è applicata. Il tenant di destinazione è quello di produzione dello
+# Studio, e `tenant.companyId` porta un segnaposto apposta: in produzione l'API elenca i soli
+# tenant il cui nome combacia con `Companies:ListingFilter` (oggi «hevolus») e rifiuta gli altri
+# con exit 3, anche se il GUID viene scritto a mano. Finché quella chiave non cambia, questo
+# manifest non si applica da riga di comando. Vedi la nota in fondo al file.
 # Resta fuori il calendario Google del penale in sola lettura: vedi la nota in fondo al file.
 #
 #   xrcopilotlab-bp validate blueprints/studiopolis-agenda.yml --graph
@@ -225,45 +286,131 @@ blueprint: studiopolis-agenda
 #              Applicata sul posto al solo orchestratore (script, senza rifare il blueprint): le altre entità restano della v20.
 # v22 (16/09): quel messaggio passa da uno step sendMessage — che in chat arriva solo con la risposta finale — a
 #              `welcomeMessage`, mostrato all'apertura della chat sull'endpoint dell'orchestratore. Applicato sul posto.
-version: 22
+# v28 (18/09): il messaggio di benvenuto della Riconciliazione prometteva una domanda che
+#              l'orchestrazione non sa soddisfare («Le date del fascicolo R.G. … coincidono?»): il
+#              passo che confronta riceve solo i due elenchi, e la domanda non lo raggiunge. Ora il
+#              benvenuto chiede solo il periodo, dice che la risposta sono sempre le quattro
+#              sezioni, e avvisa che per fascicolo non si filtra.
+# v27 (17/09): tre cose che il primo giro di flusso ha scritto sul calendario vero, e che i casi
+#              a secco non avevano visto perché le loro attese combaciavano con qualunque titolo:
+#              · il titolo dell'impegno restava quello della v22 («Udienza <parti> R.G. <n> R.G.»,
+#                con il R.G. ripetuto): ora la forma dello Studio è data per esteso, con un
+#                esempio completo e il divieto di ripetere il numero di ruolo;
+#              · la catena «<data> --> » non veniva passata: ora `note` è obbligatoria sullo
+#                spostamento, con la stringa esatta e l'esempio;
+#              · nelle note compariva l'id dell'utente («a35dd4a0-…») al posto del nome del
+#                professionista — rischio annotato nel manifest dal 13/09 e verificatosi alla
+#                prima esecuzione vera: ora un codice non si scrive affatto.
+# v26 (17/09): l'ingresso torna DETERMINISTICO. Il primo giro di flusso con la posta vera ha
+#              mostrato che l'agente restituiva il riepilogo della pratica senza chiamare
+#              apri_pratica (istanze: zero; lo stesso strumento chiamato a mano: `accepted` in un
+#              secondo). Con la v23 l'apertura dipendeva da una decisione del modello, e su un
+#              ingresso che non deve perdere comunicazioni è il baratto sbagliato.
+#              Ora: l'output action webhook riapre la pratica della PRIMA voce a ogni giro, come
+#              fino alla v22; `apri_pratica` serve solo per le voci SUCCESSIVE. Se il modello se
+#              le dimentica si perde quello che si perdeva anche prima della v23 — niente di
+#              nuovo — invece di perdere la comunicazione intera. Torna anche l'istanza «NESSUN
+#              AVVISO» a ogni giro a vuoto, chiusa subito dal gateway `filtro`: è il prezzo.
+# v25 (17/09): dal primo giro di flusso con la posta vera — 5 casi su 9, e i quattro falliti tutti
+#              per lo stesso motivo. La Sorveglianza leggeva la mail, rispondeva «Presa in carico»
+#              e POI concludeva NESSUN AVVISO: rispondendo prima di aprire si metteva da sola nella
+#              condizione del punto 2 (un thread con una «RE:» è roba di un giro precedente).
+#              Fino alla v22 non poteva succedere — la pratica la apriva l'output action, non
+#              l'agente. Ora: prima apri_pratica, poi la conferma; e una risposta mandata nello
+#              stesso giro non conta come presa in carico precedente. Uno su quattro passava
+#              perché l'ordine non era vincolato: il modello a volte apriva per primo.
+# v24 (17/09): dal primo collaudo della v23 su staging, quattro cose che solo l'esecuzione
+#              poteva dire:
+#              · il classificatore leggeva «5.11.2026 - Trib. De Rosa: Ingargiola» come Visione e
+#                «Tm Mascari: Zuccaro al 15.10.2026» come Udienza: le righe di agenda non hanno
+#                verbo, e senza una regola apposta non sembrano niente da registrare;
+#              · l'estrazione scriveva «numero di ruolo: non indicato» mentre stava nell'oggetto
+#                («[GIP NOTI 2026/4821 BARI]»), che è dove sta quasi sempre nel penale;
+#              · la catena «<data> --> » sui rinvii era una regola non eseguibile: sposta_evento
+#                non aveva le note. Ora le ha;
+#              · senza messaggi la Sorveglianza rispondeva «NESSUNA PRATICA» invece della formula
+#                esatta «NESSUN AVVISO».
+# v23 (17/09): la documentazione vera dello Studio — due procedure, civile e penale, con otto
+#              comunicazioni autentiche (assessment, customers/studiopolis/test-data). Ogni
+#              modifica qui sotto viene da una di quelle, non da un'ipotesi:
+#              · una comunicazione può contenere PIÙ udienze («da segnare»: due; il giro dei
+#                rinvii del giovedì: due, con il messaggio precedente citato sotto). Ora la
+#                Sorveglianza apre una pratica PER VOCE con apri_pratica — lo stesso strumento
+#                della chat — invece di consegnare un testo solo all'output action webhook.
+#                Cadono con quella tre limiti: la materia fissa a Civile, l'impossibilità di
+#                aprirne due, e l'istanza «NESSUN AVVISO» aperta e chiusa ogni minuto.
+#              · la materia la dice la forma: una busta del processo telematico porta il settore
+#                nel dominio del mittente (@penale.ptel… / @civile.ptel…).
+#              · in una notifica di atti penali la data accanto al nome dell'atto è la data
+#                dell'ATTO: l'udienza sta nel PDF. Prima veniva letta come data di udienza.
+#              · «00:00» in una comunicazione di cancelleria vuol dire ora non indicata.
+#              · un rinvio senza ora — la regola, non l'eccezione — sposta l'impegno tenendo
+#                l'ora che aveva, e lo dichiara, invece di non registrare.
+#              · le note del rinvio portano la catena «<data precedente> --> », come lo Studio
+#                fa sui propri fascicoli.
+#              · il titolo dell'impegno segue la forma con cui lo Studio nomina le udienze,
+#                «<autorità> (<giudice>): <parti> — R.G. <n>».
+#              · firma e note di riservatezza non sono testo della comunicazione; in un inoltro
+#                stanno PRIMA del contenuto, in una risposta il citato sta sotto.
+#              · un messaggio senza testo utile e con un PDF (le agende settimanali scansionate)
+#                passa con l'oggetto e la nota «aprire la mail».
+version: 29
 tag: STUDIOPOLIS
-description: Organizer dello Studio — dalla mail, dal dettato in chat o dalla comunicazione del tribunale alla pratica e al calendario comune
+description: Organizer dello Studio — dalla riunione di designazione all'esito dell'udienza, e dalla mail o dal dettato alla pratica e al calendario comune
 
 tenant:
-  companyId: 4da69cbc-d935-4050-f410-08d8392ca08f
+  # ⚠️ SEGNAPOSTO, e non per dimenticanza: il tenant di destinazione è quello di PRODUZIONE dello
+  # Studio, che non esiste ancora qui. Va scritto il suo companyId quando c'è — e va letto prima
+  # l'avvertimento in fondo al file: in produzione la CLI lavora solo sui tenant che l'API elenca,
+  # e oggi l'elenco è filtrato su «hevolus».
+  companyId: TODO-companyId-di-produzione
   topic: Agenda di Studio
 
 # --------------------------------------------------------------------------------------------
-# Microsoft 365: la casella di ascolto e il calendario comune
+# Microsoft 365: le due caselle dello Studio e i due calendari
 # --------------------------------------------------------------------------------------------
-# Una sola connessione verso Microsoft Graph, e sopra un server MCP che espone quello che serve
-# allo Studio: leggere la posta in arrivo, mandare una risposta anche con un allegato, leggere e
-# scrivere il calendario comune.
+# Una sola connessione verso Microsoft Graph — un'unica registrazione applicativa nel tenant del
+# cliente — e sopra DUE server MCP, uno per dipartimento: stessi strumenti, casella diversa.
 #
 # ── La casella è una VARIABILE, non un parametro ──────────────────────────────────────────────
 # `variables.mailbox` è fissata qui e il modello non la vede. Fosse un parametro del tool,
 # sarebbe l'agente a decidere di quale casella leggere — e con un permesso applicativo quella
 # scelta vale su tutto il tenant. Non è comodità: è chi decide.
 #
+# ── Perché due server e non uno con la casella come parametro ─────────────────────────────────
+# Per la stessa ragione. E in cambio si guadagna una cosa che fino alla v28 era un difetto noto:
+# la MATERIA non si indovina più. L'output action della Sorveglianza scriveva `materia: Civile`
+# fissa — il corpo è un modello, per riga non si può cambiare — e il referente la correggeva a
+# mano. Chi legge dalla casella penale sa di essere nel penale.
+#
+# I tredici tool sono scritti UNA volta sola, sotto l'anchor `&graphTools`, e riusati nel secondo
+# server con `*graphTools`. Il parser li risolve (provato: un manifest con anchor valida e
+# pianifica). Due copie a mano divergerebbero alla prima correzione fatta su una sola.
+#
 # ── Prerequisiti da fare a mano, PRIMA di applicare ───────────────────────────────────────────
-# Il blueprint crea connessione, server MCP e collegamento all'agente. Non può creare i permessi:
-#   1. registrazione applicativa nel tenant hevolus.it;
-#   2. permessi APPLICATIVI di Microsoft Graph, con consenso amministratore:
-#        Mail.Read           leggere la posta in arrivo
-#        Mail.Send           rispondere, con o senza allegati
-#        Calendars.ReadWrite leggere e scrivere il calendario comune
-#   3. ⚠️ Application Access Policy in Exchange Online che limiti l'app a QUESTA casella:
-#        New-ApplicationAccessPolicy -AppId <appId> `
-#          -PolicyScopeGroupId test@hevolus.it -AccessRight RestrictAccess
-#      Senza, quei tre permessi leggono e scrivono la posta e il calendario di CHIUNQUE nel
-#      tenant. Va fatta prima del consenso, e copre tutte e tre le risorse perché vivono tutte
-#      in Exchange. Gli allegati viaggiano dentro la chiamata di invio: nessun permesso sui file.
+# Il blueprint crea connessione, server MCP e collegamento agli agenti. Non può creare i permessi,
+# che vivono nel tenant del cliente:
+#   1. registrazione applicativa nel tenant dello Studio (single tenant, nessun redirect URI);
+#   2. le DUE cassette condivise e un gruppo di sicurezza abilitato alla posta che contenga solo
+#      quelle due — è il gruppo su cui si aggancia la restrizione del punto 3;
+#   3. i permessi, limitati a quelle due caselle. Due strade, da NON mescolare (i permessi si
+#      sommerebbero e la restrizione decadrebbe):
+#        a) RBAC per applicazioni (raccomandata da Microsoft): nessun consenso in Entra, e in
+#           Exchange Online `New-ServicePrincipal`, `New-ManagementScope` sul gruppo,
+#           `New-ManagementRoleAssignment` per i ruoli
+#           `Application Mail.ReadWrite`, `Application Mail.Send`, `Application Calendars.ReadWrite`;
+#        b) permessi applicativi in Entra (Mail.ReadWrite, Mail.Send, Calendars.ReadWrite) con
+#           consenso amministratore, PIÙ `New-ApplicationAccessPolicy -AccessRight RestrictAccess`
+#           sul gruppo. Le Application Access Policy sono dichiarate legacy da Microsoft.
+#      Verifica prima della consegna: `Test-ServicePrincipalAuthorization` deve dare in ambito le
+#      due agende e FUORI ambito qualunque altra casella.
 #   4. i due segreti, che nel manifest compaiono solo come nome:
 #        xrcopilotlab-bp secrets set --tag STUDIOPOLIS graph-client-id
 #        xrcopilotlab-bp secrets set --tag STUDIOPOLIS graph-client-secret
 #
-# Il tenant id nell'URL del token è quello di hevolus.it. `test@hevolus.it` è la casella di
-# collaudo: per andare in esercizio si cambia `variables.mailbox` e si rifà la policy.
+# `Mail.ReadWrite` al posto di `Mail.Read` non è un allargamento gratuito: serve a `segna_letto`,
+# cioè alla deduplica. Fino alla v28, senza poter marcare un messaggio, il segnaposto era la
+# risposta già inviata sul thread, e una mail arrivata a cavallo di due giri apriva due pratiche.
 
 connections:
   - key: graph
@@ -272,70 +419,206 @@ connections:
     baseUrl: https://graph.microsoft.com/v1.0
     auth:
       kind: OAuth2ClientCredentials
-      tokenUrl: https://login.microsoftonline.com/45bb21a6-d8f8-4218-b74d-f4a5d5c2138e/oauth2/v2.0/token
+      # ⚠️ Il tenant è quello dello STUDIO, non più hevolus.it: l'app registrata vive nella loro
+      # directory e i permessi sono ristretti alle due agende. Da sostituire con il loro
+      # Directory (tenant) ID quando arriva.
+      tokenUrl: https://login.microsoftonline.com/TODO-tenant-id-dello-studio/oauth2/v2.0/token
       clientId: Blueprints:Secrets:STUDIOPOLIS:graph-client-id
       clientSecret: Blueprints:Secrets:STUDIOPOLIS:graph-client-secret
       # .default chiede i permessi applicativi già consentiti: non se ne aggiungono qui.
       scope: https://graph.microsoft.com/.default
 
-  # Il ponte dalla chat alla pratica. Punta al webhook di avvio del processo: indirizzo e chiave
-  # nascono all'apply, dopo il webhook, e la CLI li scrive qui da sé (la chiave resta in Key Vault
-  # come Blueprints:Secrets:STUDIOPOLIS:webhook-presa-in-carico). Niente baseUrl, niente auth.
-  - key: pratiche
-    name: pratiche-webhook
+  # I quattro ponti dalla chat ai processi. Puntano ai webhook di avvio: indirizzo e chiave
+  # nascono all'apply, dopo il webhook, e la CLI li scrive qui da sé (le chiavi restano in Key
+  # Vault come Blueprints:Secrets:STUDIOPOLIS:webhook-<chiave del processo>). Niente baseUrl,
+  # niente auth. Sono quattro e non due perché i processi sono quattro: una connessione porta a
+  # UN processo, ed è il processo a sapere a quale referente mandare la verifica.
+  - key: pratiche-civile
+    name: pratiche-civile-webhook
     provider: webhook
-    process: presa-in-carico
+    process: presa-in-carico-civile
+
+  - key: pratiche-penale
+    name: pratiche-penale-webhook
+    provider: webhook
+    process: presa-in-carico-penale
+
+  - key: designazioni-civile
+    name: designazioni-civile-webhook
+    provider: webhook
+    process: designazione-civile
+
+  - key: designazioni-penale
+    name: designazioni-penale-webhook
+    provider: webhook
+    process: designazione-penale
 
 mcpServers:
-  # Un solo tool, che fa una cosa sola: apre la pratica. Lo usa l'Assistente agenda in chat; il
-  # corpo della POST diventa il caseData iniziale, quindi le chiavi sono quelle del modulo di avvio.
-  - key: pratiche
+  # ------------------------------------------------------------------------------------------
+  # Dalla chat alla pratica: un tool per dipartimento
+  # ------------------------------------------------------------------------------------------
+  # Il corpo della POST diventa il caseData iniziale, quindi le chiavi sono quelle del modulo di
+  # avvio. `materia` e `fonte` non sono più parametri del modello: li sa la connessione, perché
+  # ogni server porta a un processo solo. Un parametro in meno è una cosa in meno che il modello
+  # può sbagliare — ed era il campo che il referente correggeva più spesso.
+  #
+  # I due tool hanno nomi DIVERSI perché stanno sullo stesso agente: due `apri_pratica` si
+  # oscurerebbero a vicenda. Il nome dice il dipartimento, ed è così che l'avvocato lo sceglie
+  # dicendo «penale» o «civile».
+  - key: pratiche-civile
     kind: builder
-    name: Pratiche
-    description: Apre una pratica di presa in carico dal testo dettato o incollato in chat.
-    connection: pratiche
+    name: Pratiche civile
+    description: Apre una pratica di presa in carico CIVILE dal testo dettato o incollato in chat.
+    connection: pratiche-civile
     systemPrompt: >
-      apri_pratica apre una pratica vera, che arriva a un referente dello Studio: chiamalo UNA
-      volta per comunicazione, e solo dopo che l'utente ha confermato ciò che hai riletto.
+      apri_pratica_civile apre una pratica vera, che arriva a un referente del civile. Si chiama
+      UNA volta per ogni udienza, rinvio o scadenza DISTINTO: un messaggio che ne elenca due apre
+      due pratiche, perché a valle ognuna ha una data, un professionista e un impegno in calendario
+      suoi. In chat si chiama solo dopo che l'utente ha confermato ciò che hai riletto.
     tools:
-      - name: apri_pratica
+      - name: apri_pratica_civile
         method: POST
         path: /
         description: >
-          Apre la presa in carico di una comunicazione. Il testo va passato INTEGRALE, come
-          l'utente l'ha detto o incollato: la classificazione e l'estrazione le fa il processo.
+          Apre la presa in carico di UNA comunicazione del CIVILE. Il testo va passato come è
+          arrivato, senza riassumerlo: la classificazione e l'estrazione le fa il processo. Se il
+          messaggio contiene più voci, si chiama una volta per voce passando la riga o il
+          paragrafo di quella voce, con il contesto che serve a capirla.
         parameters:
-          testo: Il testo integrale della comunicazione, senza riassumerlo né correggerlo
-          materia: { type: string, description: "Penale oppure Civile; se non si sa, Civile" }
-        required: [testo]
+          testo: Il testo della comunicazione (o della singola voce), senza riassumerlo né correggerlo
+          fonte: { type: string, description: "mail, chat, cancelleria o altro: da dove arriva la comunicazione" }
+          mittente: { type: string, description: "Chi l'ha mandata: indirizzo del mittente, oppure «chat»" }
+        required: [testo, fonte]
         body: |
-          {"testoAvviso": "{{testo}}", "fonte": "chat", "materia": "{{materia}}", "fascicolo": "da attribuire", "mittente": "chat"}
+          {"testoAvviso": "{{testo}}", "fonte": "{{fonte}}", "materia": "Civile", "fascicolo": "da attribuire", "mittente": "{{mittente}}"}
     # Nessun testTool: prima del webhook la connessione non ha un indirizzo, e dopo la prova
-    # aprirebbe una pratica. Si prova a mano: xrcopilotlab-bp mcp test pratiche --tool apri_pratica
+    # aprirebbe una pratica vera. Si prova a mano:
+    #   xrcopilotlab-bp mcp test pratiche-civile --tool apri_pratica_civile
 
-  - key: m365
+  - key: pratiche-penale
     kind: builder
-    name: Microsoft365-MCP
+    name: Pratiche penale
+    description: Apre una pratica di presa in carico PENALE dal testo dettato o incollato in chat.
+    connection: pratiche-penale
+    systemPrompt: >
+      apri_pratica_penale apre una pratica vera, che arriva a un referente del penale. Si chiama
+      UNA volta per ogni udienza, rinvio o scadenza DISTINTO: un messaggio che ne elenca due apre
+      due pratiche, perché a valle ognuna ha una data, un professionista e un impegno in calendario
+      suoi. In chat si chiama solo dopo che l'utente ha confermato ciò che hai riletto.
+    tools:
+      - name: apri_pratica_penale
+        method: POST
+        path: /
+        description: >
+          Apre la presa in carico di UNA comunicazione del PENALE. Il testo va passato come è
+          arrivato, senza riassumerlo: la classificazione e l'estrazione le fa il processo. Se il
+          messaggio contiene più voci, si chiama una volta per voce passando la riga o il
+          paragrafo di quella voce, con il contesto che serve a capirla.
+        parameters:
+          testo: Il testo della comunicazione (o della singola voce), senza riassumerlo né correggerlo
+          fonte: { type: string, description: "mail, chat, cancelleria o altro: da dove arriva la comunicazione" }
+          mittente: { type: string, description: "Chi l'ha mandata: indirizzo del mittente, oppure «chat»" }
+        required: [testo, fonte]
+        body: |
+          {"testoAvviso": "{{testo}}", "fonte": "{{fonte}}", "materia": "Penale", "fascicolo": "da attribuire", "mittente": "{{mittente}}"}
+
+  # ------------------------------------------------------------------------------------------
+  # Dalla riunione alla designazione: una pratica PER RIGA
+  # ------------------------------------------------------------------------------------------
+  # La riunione settimanale produce un elenco: «lunedì Corte d'Appello, Di Comite; martedì GIP,
+  # Rossi…». Ogni riga è una designazione a sé, con una data, una persona e un impegno già a
+  # calendario suoi — quindi una pratica a sé. Chiamare lo strumento una volta per riga è l'unico
+  # modo perché a valle ciascuna possa avere il suo compito «Comunica l'esito».
+  #
+  # Il numero di righe lette e il numero di pratiche aperte vanno DETTI all'utente: è l'unico
+  # controllo che una persona può fare su un elenco lungo.
+  - key: designazioni-civile
+    kind: builder
+    name: Designazioni civile
+    description: Apre una pratica di designazione CIVILE per una singola udienza della settimana.
+    connection: designazioni-civile
+    systemPrompt: >
+      apri_designazione_civile apre una pratica vera per UNA udienza designata del civile. Si
+      chiama una volta per riga dell'elenco dettato in riunione, mai una volta sola per l'elenco
+      intero, e solo dopo che l'utente ha confermato la rilettura.
+    tools:
+      - name: apri_designazione_civile
+        method: POST
+        path: /
+        description: >
+          Registra la designazione di UNA udienza del civile: chi ci va, quando, davanti a chi.
+          Non crea l'impegno in calendario — quello di norma c'è già — e non decide niente: apre
+          la pratica che il referente conferma.
+        parameters:
+          testo: La riga come è stata dettata, senza riscriverla
+          data: { type: string, description: "Data dell'udienza, formato AAAA-MM-GG" }
+          ora: { type: string, description: "Ora dell'udienza se detta, altrimenti vuoto" }
+          sede: { type: string, description: "Autorità, sede e sezione: «Corte d'Appello», «Trib. sez. II»…" }
+          parti: { type: string, description: "Le parti, se dette" }
+          fascicolo: { type: string, description: "Numero di ruolo o riferimento interno, se detto" }
+          professionista: { type: string, description: "Il nome del professionista designato, come è stato detto" }
+        required: [testo, data, professionista]
+        body: |
+          {"testoRiga": "{{testo}}", "dataUdienza": "{{data}}", "oraUdienza": "{{ora}}", "sede": "{{sede}}", "parti": "{{parti}}", "fascicolo": "{{fascicolo}}", "professionistaProposto": "{{professionista}}", "materia": "Civile", "fonte": "riunione"}
+
+  - key: designazioni-penale
+    kind: builder
+    name: Designazioni penale
+    description: Apre una pratica di designazione PENALE per una singola udienza della settimana.
+    connection: designazioni-penale
+    systemPrompt: >
+      apri_designazione_penale apre una pratica vera per UNA udienza designata del penale. Si
+      chiama una volta per riga dell'elenco dettato in riunione, mai una volta sola per l'elenco
+      intero, e solo dopo che l'utente ha confermato la rilettura.
+    tools:
+      - name: apri_designazione_penale
+        method: POST
+        path: /
+        description: >
+          Registra la designazione di UNA udienza del penale: chi ci va, quando, davanti a chi.
+          Non crea l'impegno in calendario — quello di norma c'è già — e non decide niente: apre
+          la pratica che il referente conferma.
+        parameters:
+          testo: La riga come è stata dettata, senza riscriverla
+          data: { type: string, description: "Data dell'udienza, formato AAAA-MM-GG" }
+          ora: { type: string, description: "Ora dell'udienza se detta, altrimenti vuoto" }
+          sede: { type: string, description: "Autorità, sede e sezione: «Corte d'Appello», «GIP»…" }
+          parti: { type: string, description: "Le parti o l'imputato, se detti" }
+          fascicolo: { type: string, description: "Numero di ruolo o riferimento interno, se detto" }
+          professionista: { type: string, description: "Il nome del professionista designato, come è stato detto" }
+        required: [testo, data, professionista]
+        body: |
+          {"testoRiga": "{{testo}}", "dataUdienza": "{{data}}", "oraUdienza": "{{ora}}", "sede": "{{sede}}", "parti": "{{parti}}", "fascicolo": "{{fascicolo}}", "professionistaProposto": "{{professionista}}", "materia": "Penale", "fonte": "riunione"}
+
+  # ------------------------------------------------------------------------------------------
+  # Le due caselle dello Studio
+  # ------------------------------------------------------------------------------------------
+  - key: m365-civile
+    kind: builder
+    name: Microsoft365-Civile
     description: >
-      Posta e calendario della casella di ascolto dello Studio su Microsoft 365.
+      Posta e calendario dell'agenda del CIVILE dello Studio su Microsoft 365.
     connection: graph
     variables:
-      mailbox: test@hevolus.it
-      # Il dominio di chi lavora nello Studio: la Sorveglianza risponde solo a loro. In demo è il
-      # dominio di chi manda le mail di prova; in esercizio quello dello Studio (domanda da fare).
-      dominioInterno: hevolus.it
+      # ⚠️ Indirizzo da confermare con lo Studio. Deve stare sul dominio che è su Microsoft 365:
+      # una casella su un dominio ospitato altrove non è raggiungibile da Graph.
+      mailbox: agenda.civile@TODO-dominio-dello-studio
+      # I domini di chi lavora nello Studio: la Sorveglianza risponde solo a loro. Sono più di uno
+      # perché lo Studio ne ha più di uno, e l'avvocato che scrive dal telefono usa quello che ha
+      # configurato: elencarli tutti è la differenza fra ricevere la conferma e non riceverla.
+      dominioInterno: TODO-dominio-dello-studio
       # «sì» finché si collauda: la risposta di presa in carico avvisa che si è in fase di test e che
       # una mail reinviata è vista come nuova. In esercizio: «no».
       faseDiTest: "sì"
     systemPrompt: >
-      Gli strumenti lavorano su UNA sola casella, quella dello Studio: non chiedere di quale
-      casella si tratta e non provare a cambiarla. Per CERCARE (cerca_eventi, posta_in_arrivo) le
-      date sono ISO 8601 con fuso. Per SCRIVERE (crea_evento, sposta_evento) sono l'ora locale di
-      Roma SENZA fuso, per esempio 2026-10-13T09:30:00: il fuso lo mette lo strumento, e un
-      offset in più sposterebbe l'impegno. Prima di
+      Gli strumenti lavorano su UNA sola casella, quella dell'agenda civile dello Studio: non
+      chiedere di quale casella si tratta e non provare a cambiarla. Per CERCARE (cerca_eventi,
+      posta_in_arrivo) le date sono ISO 8601 con fuso. Per SCRIVERE (crea_evento, sposta_evento)
+      sono l'ora locale di Roma SENZA fuso, per esempio 2026-10-13T09:30:00: il fuso lo mette lo
+      strumento, e un offset in più sposterebbe l'impegno. Prima di
       scrivere in calendario, verifica con cerca_eventi che non ci sia già la stessa udienza:
       un doppione in agenda costa più di una mancata scrittura.
-    tools:
+    tools: &graphTools
       - name: posta_in_arrivo
         method: GET
         path: /users/{{mailbox}}/mailFolders/inbox/messages
@@ -344,10 +627,28 @@ mcpServers:
           oggetto, data e anteprima: per il testo completo serve leggi_messaggio.
         parameters:
           da: Momento da cui guardare, ISO 8601 con fuso, es. 2026-09-11T00:00:00Z
-          soloNonLetti: { type: boolean, description: Se limitarsi ai messaggi non ancora letti }
         required: [da]
         query:
           $filter: "receivedDateTime ge {{da}}"
+          $orderby: receivedDateTime desc
+          $top: "25"
+          $select: id,conversationId,receivedDateTime,from,subject,bodyPreview,hasAttachments,isRead
+
+      # Stessa lettura di posta_in_arrivo, ma solo di ciò che nessun giro precedente ha già
+      # preso in carico. Esiste separato invece di essere un parametro del filtro perché la
+      # Ricognizione, che confronta casella e calendario, deve vedere TUTTO: una comunicazione
+      # già lavorata è comunque una riga di quel confronto.
+      - name: posta_non_letta
+        method: GET
+        path: /users/{{mailbox}}/mailFolders/inbox/messages
+        description: >
+          Messaggi NON ANCORA LETTI arrivati nella casella, dal più recente: quelli che nessun
+          giro precedente ha preso in carico. Per il testo completo serve leggi_messaggio.
+        parameters:
+          da: Momento da cui guardare, ISO 8601 con fuso, es. 2026-09-11T00:00:00Z
+        required: [da]
+        query:
+          $filter: "receivedDateTime ge {{da}} and isRead eq false"
           $orderby: receivedDateTime desc
           $top: "25"
           $select: id,conversationId,receivedDateTime,from,subject,bodyPreview,hasAttachments,isRead
@@ -529,28 +830,6 @@ mcpServers:
         body: |
           {"comment": "{{testo}}"}
 
-      # Le conferme già mandate: se un thread ne ha una, il messaggio è già stato preso in carico.
-      - name: risposte_inviate
-        method: GET
-        path: /users/{{mailbox}}/mailFolders/sentitems/messages
-        description: >
-          I messaggi inviati dalla casella dello Studio da un certo momento in poi, con il thread
-          (conversationId) a cui appartengono. Serve a riconoscere ciò che è già stato preso in carico.
-        parameters:
-          da: Momento da cui guardare, ISO 8601 con fuso, es. 2026-09-15T15:00:00Z
-        required: [da]
-        # Solo le RISPOSTE (oggetto «RE:»): un messaggio che la casella stessa ha inviato sta negli
-        # inviati con lo stesso conversationId, e senza questo filtro veniva preso per una conferma —
-        # la suite di flusso, che manda le mail dalla casella di collaudo, non apriva mai niente (16/09).
-        query:
-          $filter: "sentDateTime ge {{da}} and startswith(subject,'RE')"
-          $orderby: sentDateTime desc
-          $top: "50"
-          $select: id,conversationId,sentDateTime,subject,toRecipients
-
-      # Due tool, non uno con l'allegato facoltativo: un segnaposto vuoto nel corpo della POST
-      # produce un allegato senza nome e Graph risponde 400 «Required property is missing»
-      # (visto il 16/09 dalla suite di flusso). Senza allegato non deve esserci la chiave.
       - name: invia_messaggio
         method: POST
         responseFormat: text     # Graph risponde 202 senza corpo: non è un JSON
@@ -647,10 +926,54 @@ mcpServers:
           eventoId: Identificativo dell'impegno, come restituito da cerca_eventi
           inizio: Nuovo inizio nell'ora locale di Roma, SENZA fuso né Z, es. 2026-10-20T11:00:00
           fine: Nuova fine nell'ora locale di Roma, SENZA fuso né Z, es. 2026-10-20T12:00:00
+          note: >
+            Annotazioni dell'impegno dopo lo spostamento. Sostituiscono quelle che c'erano, quindi
+            si passano INTERE: la catena «<data precedente> --> » seguita da ciò che l'impegno
+            già diceva.
         required: [eventoId, inizio, fine]
         body: |
           {"start":{"dateTime":"{{inizio}}","timeZone":"Europe/Rome"},
-           "end":{"dateTime":"{{fine}}","timeZone":"Europe/Rome"}}
+           "end":{"dateTime":"{{fine}}","timeZone":"Europe/Rome"},
+           "body":{"contentType":"HTML","content":"{{note}}"}}
+
+      # Annota un impegno SENZA toccarne le date. È lo strumento della designazione — scrivere
+      # sull'impegno chi ci va, come si faceva a matita sull'agenda cartacea — e dell'esito.
+      # `sposta_evento` non va bene per questo: pretende inizio e fine, e riscriverebbe un orario
+      # che nessuno ha chiesto di cambiare. Qui il PATCH porta il solo corpo.
+      #
+      # Il corpo SOSTITUISCE quello che c'è: si passa INTERO. Si legge prima con cerca_eventi
+      # (che restituisce `body`) e si rimanda tutto, con la riga nuova in testa.
+      - name: annota_evento
+        method: PATCH
+        path: /users/{{mailbox}}/events/{{eventoId}}
+        description: >
+          Aggiorna le annotazioni di un impegno già a calendario, lasciando data e ora dove sono.
+          Da usare per scrivere la designazione («Designato: …») e l'esito dell'udienza
+          («ESITO: …»). Le note si passano INTERE, perché sostituiscono quelle esistenti.
+        parameters:
+          eventoId: Identificativo dell'impegno, come restituito da cerca_eventi
+          note: >
+            Annotazioni complete dell'impegno dopo la modifica: la riga nuova più tutto quello
+            che l'impegno già diceva.
+        required: [eventoId, note]
+        body: |
+          {"body":{"contentType":"HTML","content":"{{note}}"}}
+
+      # Segna letto un messaggio già preso in carico. È il segnaposto che fino alla v28 non si
+      # poteva avere: con il solo Mail.Read il segno era la risposta inviata sul thread, e una
+      # mail arrivata a cavallo di due giri apriva due pratiche. Richiede Mail.ReadWrite, che le
+      # due caselle nuove hanno.
+      - name: segna_letto
+        method: PATCH
+        path: /users/{{mailbox}}/messages/{{messaggioId}}
+        description: >
+          Marca un messaggio come già letto, dopo che le sue pratiche sono state aperte. Un
+          messaggio già letto non viene riconsiderato al giro successivo.
+        parameters:
+          messaggioId: Identificativo del messaggio, come restituito da posta_in_arrivo
+        required: [messaggioId]
+        body: |
+          {"isRead": true}
 
     # Il tool di prova è in sola lettura e su una finestra vuota: esercita credenziale, permesso
     # e policy senza toccare la casella. Una prova che scrivesse lascerebbe traccia in agenda.
@@ -659,28 +982,71 @@ mcpServers:
       inizio: "2020-01-01T00:00:00Z"
       fine: "2020-01-02T00:00:00Z"
 
+  # Stessi strumenti, altra casella. `*graphTools` è l'elenco qui sopra: una definizione sola, così
+  # una correzione a un tool vale per tutti e due i dipartimenti senza che nessuno se lo ricordi.
+  - key: m365-penale
+    kind: builder
+    name: Microsoft365-Penale
+    description: >
+      Posta e calendario dell'agenda del PENALE dello Studio su Microsoft 365.
+    connection: graph
+    variables:
+      mailbox: agenda.penale@TODO-dominio-dello-studio
+      dominioInterno: TODO-dominio-dello-studio
+      faseDiTest: "sì"
+    systemPrompt: >
+      Gli strumenti lavorano su UNA sola casella, quella dell'agenda penale dello Studio: non
+      chiedere di quale casella si tratta e non provare a cambiarla. Per CERCARE (cerca_eventi,
+      posta_in_arrivo) le date sono ISO 8601 con fuso. Per SCRIVERE (crea_evento, sposta_evento)
+      sono l'ora locale di Roma SENZA fuso, per esempio 2026-10-13T09:30:00: il fuso lo mette lo
+      strumento, e un offset in più sposterebbe l'impegno. Prima di
+      scrivere in calendario, verifica con cerca_eventi che non ci sia già la stessa udienza:
+      un doppione in agenda costa più di una mancata scrittura.
+    tools: *graphTools
+    testTool: cerca_eventi
+    testArguments:
+      inizio: "2020-01-01T00:00:00Z"
+      fine: "2020-01-02T00:00:00Z"
+
 # --------------------------------------------------------------------------------------------
 # Chi fa cosa
 # --------------------------------------------------------------------------------------------
+# Due referenti, uno per dipartimento: è la decisione che fa raddoppiare i processi, perché
+# `roleName` è statico sull'attività e `assignmentExpression` risolve un id UTENTE, non un ruolo.
+# Un processo solo non saprebbe a quale dei due mandare la verifica.
+#
 # Il sostituto non è un concetto del motore: è semplicemente un secondo membro dello stesso
 # ruolo. Chi ha il ruolo vede il compito e lo prende in carico, quindi un'assenza non ferma più
 # la registrazione — che è esattamente la prima criticità della procedura dello Studio.
+#
+# ⚠️ I membri sono indirizzi di utenti del TENANT XRCopilotLab, non della directory Microsoft 365
+# dello Studio: sono due directory diverse. Un avvocato che non è mai entrato nel prodotto non è
+# un membro valido, e il preflight ferma il piano dicendolo.
 
 businessRoles:
-  - key: referente-agenda
-    name: Referente agenda
+  - key: referente-civile
+    name: Referente agenda civile
     description: >
-      Presidia il calendario comune: verifica gli avvisi in arrivo, assegna l'udienza e la
-      registra. Va popolato con il referente del penale, quello del civile e i rispettivi
-      sostituti.
+      Presidia il calendario del civile: verifica le comunicazioni in arrivo, conferma le
+      designazioni della riunione settimanale, assegna e fa registrare. Va popolato con il
+      referente del civile e il suo sostituto.
     members:
-      - giuseppe.zileni@hevolus.it     # membro di prova: i referenti reali si aggiungono dalla UI
+      - giuseppe.zileni@hevolus.it     # TODO: i referenti veri del civile
+
+  - key: referente-penale
+    name: Referente agenda penale
+    description: >
+      Presidia il calendario del penale: verifica le comunicazioni in arrivo, conferma le
+      designazioni della riunione settimanale, assegna e fa registrare. Va popolato con il
+      referente del penale e il suo sostituto.
+    members:
+      - giuseppe.zileni@hevolus.it     # TODO: i referenti veri del penale
 
   - key: responsabile-agenda
     name: Responsabile agenda
     description: Riceve gli avvisi di superamento soglia sugli avvisi fermi
     members:
-      - giuseppe.zileni@hevolus.it     # membro di prova
+      - giuseppe.zileni@hevolus.it     # TODO: il responsabile vero
 
 # --------------------------------------------------------------------------------------------
 # L'agente che legge l'avviso
@@ -721,6 +1087,18 @@ agents:
       Non dedurre una data che non c'è: «entro trenta giorni» senza una data scritta è
       Attività, non Scadenza. Non è compito tuo calcolarla.
 
+      Una data che accompagna il NOME di un atto notificato — «Avviso di conclusione delle
+      indagini … - 09/09/2026» — è la data dell'atto, non una scadenza e non un'udienza: da
+      sola non fa né Scadenza né Udienza. Se il testo non dice altro, è Attività.
+
+      Molte comunicazioni dello Studio sono righe di agenda, senza verbo. Il fatto che non ci
+      sia scritta la parola «udienza» non le rende comunicazioni da archiviare:
+      - «<data> - <autorità> (<giudice>): <parti>», una riga dell'elenco delle udienze da
+        segnare, è **Udienza**: c'è una data nuova, ed è lì per essere messa in agenda.
+      - «<autorità> (<giudice>): <parti> al <data> [ore <ora>] per <adempimento>», la forma con
+        cui girano i rinvii, è **Rinvio**: «al» più una data, su un procedimento che esisteva
+        già, è uno spostamento, non una prima fissazione.
+
   - key: agenda
     name: Agenda
     description: Estrae gli estremi di una comunicazione — udienza, rinvio, scadenza, attività
@@ -736,7 +1114,9 @@ agents:
 
       - Data e ora (per un rinvio: la NUOVA data e ora)
       - Autorità giudiziaria, sede e sezione
-      - Numero di ruolo (R.G. o R.G.N.R.)
+      - Numero di ruolo (R.G. o R.G.N.R.). Nel penale ce ne sono spesso DUE, e servono
+        entrambi: quello della procura (R.G.N.R.) e quello del giudice (R.G. GIP, R.G. GUP).
+        Riportali etichettati, per esempio «R.G.N.R. 8096/25 — R.G. GIP 4947/26»
       - Parti
       - Cosa va fatto (udienza di …, rinvio da … a …, deposito di …, attività …)
       - Giudice, se indicato
@@ -755,6 +1135,27 @@ agents:
       segretaria dello Studio, che sa che «la Rossi/Alfa» sono le parti e «2a civ.» è la
       Seconda sezione civile. Normalizza ciò che è scritto, non aggiungere ciò che non c'è.
 
+      Le abbreviazioni che lo Studio usa davvero, e come si leggono:
+        TM, T. Mon., Trib. Mon.  Tribunale monocratico        TC   Tribunale collegiale
+        GdP                      Giudice di pace              GIP  giudice indagini preliminari
+        GUP                      giudice udienza preliminare  Tm   Tribunale per i minorenni
+        Corte I, Corte II        sezioni della Corte d'appello
+        Il nome fra parentesi, o dopo i due punti dell'autorità, è il GIUDICE:
+        «TM (Passarella): Patera + 2» è Tribunale monocratico, giudice Passarella, parte Patera.
+        «+ a.», «+ 2»            e altri (più imputati o più parti)
+        pp.cc.                   parti civili
+        «(h 11,15)», «(ore 10.30)»  l'ora, scritta con la virgola o con il punto
+        «al 15.10.2026»          la nuova data di un rinvio
+
+      Due forme ricorrenti, che si leggono a colpo d'occhio:
+      - **Elenco da segnare**: «5.11.2026 – Trib. De Raho: Ingaldo;» = data, autorità con il
+        giudice, parti. Non c'è il numero di ruolo e non c'è l'ora: «non indicato» per entrambi.
+      - **Modulo del processo telematico civile**: un blocco di campi etichettati —
+        «Sezione:», «Tipo procedimento:», «Numero di Ruolo generale:», «Giudice:», «Attore
+        principale:», «Conv. principale:», «Oggetto:», «Descrizione:», «Notificato alla PEC /
+        in cancelleria il». Le parti sono l'attore e il convenuto, il numero di ruolo è quello
+        del campo, e la data dell'udienza sta nella «Descrizione», non nella riga della notifica.
+
       Regole che non ammettono eccezioni:
       - Se un dato non è presente nel testo, scrivi «non indicato». Non dedurlo, non stimarlo,
         non completarlo con quello che sembra plausibile. «Giovedì» senza data resta «giovedì».
@@ -763,22 +1164,37 @@ agents:
       - Se il testo è ambiguo o sembra riferirsi a più procedimenti, dillo esplicitamente in
         fondo invece di sceglierne uno.
       - In una busta PEC la data del messaggio di trasporto non è mai la data dell'udienza.
+      - In una notifica di atti penali, la riga «<nome dell'atto> - <data>» (per esempio
+        «Avviso di fissazione udienza … - 03/09/2026») porta la data dell'ATTO, cioè quando è
+        stato emesso o depositato. NON è la data dell'udienza. Se l'udienza non è scritta nel
+        testo, la data è «non indicato»: quasi sempre sta nel PDF allegato, che tu non vedi.
+      - «Notificato alla PEC / in cancelleria il …» è la data della notifica, mai quella
+        dell'udienza.
+      - Il numero di ruolo sta spesso SOLO nell'oggetto del messaggio, e va preso da lì:
+        «[GIP NOTI 2026/4947 BARI]» è R.G. GIP 4947/2026 del Tribunale di Bari; «[PM NOTI
+        2026/4420 BARI]» è R.G.N.R. 4420/2026; «POSTA CERTIFICATA: COMUNICAZIONE 87/2026/CC» è
+        il R.G. 87/2026. Scriverlo «non indicato» quando l'oggetto ce l'ha è un dato perso.
+      - Un orario «00:00» in una comunicazione di cancelleria vuol dire che l'ora non è stata
+        indicata: scrivi «non indicato», mai «00:00». Un'udienza alle 00:00 non esiste.
+      - Le parti scritte in un atto sono le ragioni sociali e i nomi per esteso; lo Studio, nella
+        sua agenda, chiama lo stesso fascicolo con il nome del cliente. Riporta le parti COME
+        sono scritte nella comunicazione: l'accostamento ai nomi di casa lo fa il referente.
     skills: []
 
     # Nessun server MCP dalla v5: l'agente estrae, non registra. La registrazione sul calendario
     # comune la fa l'agente Registrazione calendario, dopo la verifica del referente: un'estrazione
     # con crea_evento a portata di mano può scrivere in agenda prima che qualcuno abbia controllato.
 
-  - key: sorveglianza
-    name: Sorveglianza posta
-    description: Guarda la casella dello Studio e passa al processo ogni comunicazione da organizzare
+  - key: sorveglianza-civile
+    name: Sorveglianza posta civile
+    description: Guarda la casella del civile e apre una pratica per ogni cosa da organizzare
     language: it
     temperature: 0
-    mcp: [m365]
+    mcp: [m365-civile, pratiche-civile]
     systemMessage: |
       Guardi la casella di ascolto di uno studio legale e smisti ciò che arriva:
-      passi al processo di presa in carico ogni messaggio che contiene qualcosa da
-      organizzare, e scarti il resto.
+      apri una pratica di presa in carico per ogni cosa da organizzare che ci
+      trovi, e scarta il resto.
 
       # Cosa passa
       Da chi lavora nello Studio (avvocati, praticanti, segreteria): qualunque
@@ -797,15 +1213,50 @@ agents:
       chiude un referente in dieci secondi, una comunicazione persa è un termine
       perso.
 
+      # Che forma hanno i messaggi
+      Sono le forme che lo Studio manda e riceve davvero: riconoscerle è metà del
+      lavoro.
+      1. **Mail interna scritta di fretta** — due righe senza forma, «la Rossi/Alfa
+         è rinviata al 14/10». È il caso più frequente.
+      2. **Elenco di udienze da segnare** — una riga per udienza, nella forma
+         «5.11.2026 – Trib. De Raho: Ingaldo;»: data, autorità con il giudice, parti.
+         Ogni riga è una voce a sé.
+      3. **Elenco di rinvii** — «Tm Mascolo: Zucano al 15.10.2026 ore 11.00 per
+         discussione»: autorità e giudice, parti, «al» più la nuova data,
+         adempimento. Anche qui una riga è una voce.
+      4. **Inoltro di un avviso del processo telematico** — l'oggetto comincia con
+         «I:» e contiene «[GIP NOTI …]», «[PM NOTI …]» o simili; nel corpo c'è la
+         firma di chi inoltra, poi «-----Messaggio originale-----», poi il testo
+         dell'ufficio giudiziario.
+      5. **Busta di posta certificata** — le regole stanno al punto 4 di «Come leggi».
+      6. **Invio di un allegato e basta** — il corpo è vuoto, oppure dice solo «Il
+         messaggio è pronto per essere inviato con i seguenti file o collegamenti
+         allegati», e tutto quello che conta sta in un PDF. Le agende settimanali
+         scansionate arrivano così.
+
+      # Cosa NON è testo della comunicazione
+      - La **firma** dello Studio: nome, indirizzo di posta, sito, le sedi con
+        telefoni e fax, codice fiscale e partita IVA, numero REA, e le due note che
+        cominciano con «Please consider your environmental responsibility» e «Il
+        contenuto di questa e-mail è rivolto unicamente…». C'è in ogni messaggio, e
+        in un inoltro sta PRIMA del contenuto.
+      - In un **inoltro**, tutto ciò che sta sopra «-----Messaggio originale-----»
+        oppure sopra il blocco «Da: … Inviato: … A: … Oggetto: …».
+      - In una **risposta** (oggetto che comincia con «Re:» o «R:»), il messaggio
+        citato sotto la riga di separazione: è già arrivato per conto suo e ha già
+        avuto la sua pratica. Vale il testo nuovo, quello in cima.
+
       # Come leggi
-      1. Chiami posta_in_arrivo con il momento che ti viene indicato, e risposte_inviate
-         con il momento indicato per le conferme (quindici minuti prima).
-      2. Scarti ogni messaggio il cui conversationId compare fra le risposte inviate
-         (oggetto che comincia con «RE:»): è già stato preso in carico da un giro
-         precedente. Un messaggio che la casella ha spedito lei stessa NON è una
-         conferma: se non c'è una risposta «RE:» sul suo thread, passa. La finestra della posta
-         è più larga dell'intervallo di proposito, e senza questo controllo lo
-         stesso messaggio aprirebbe due pratiche.
+      1. Chiami posta_non_letta con il momento che ti viene indicato: sono i
+         messaggi che nessun giro precedente ha ancora preso in carico. La finestra
+         è più larga dell'intervallo di proposito — meglio riconsiderare un
+         messaggio che perderlo fra due giri — e a non riconsiderarlo per davvero
+         pensa il segno di lettura, non la finestra.
+      2. Lavori il PRIMO messaggio rimasto. Quando hai finito con lui — pratiche
+         aperte, e conferma mandata se il mittente è interno — chiami segna_letto su
+         quel messaggio, e solo su quello. È l'ultima cosa che fai, mai la prima: un
+         messaggio segnato come letto e non aperto è una comunicazione persa, e qui
+         una comunicazione persa è un termine perso.
       3. Per il primo messaggio rimasto da passare chiami leggi_messaggio per il
          testo intero.
       4. Se è una busta di posta certificata — l'oggetto comincia con «POSTA
@@ -830,19 +1281,233 @@ agents:
             PEC», poi la riga «Oggetto: <oggetto della busta>», poi il corpo. Il
             numero di ruolo spesso sta solo nell'oggetto: senza, il referente lo
             perde.
-      5. Se il mittente è interno allo Studio — l'indirizzo è del dominio che ti
+      5. Se il messaggio NON è una busta PEC ma il testo utile non c'è — corpo
+         vuoto, o solo la firma, o solo la frase «Il messaggio è pronto per essere
+         inviato con i seguenti file o collegamenti allegati» — e porta allegati che
+         non sai leggere (PDF, immagini, scansioni), chiami leggi_allegati per
+         averne i nomi e passi la riga «ATTENZIONE: comunicazione in allegato non
+         leggibile (<nome del file>), aprire la mail», poi la riga «Oggetto:
+         <oggetto del messaggio>». La settimana di riferimento e il numero di ruolo
+         stanno spesso solo nell'oggetto: senza, il referente non sa nemmeno che
+         cosa aprire.
+      6. Se il messaggio comunica PIÙ di una udienza, rinvio o scadenza, apri con
+         apri_pratica_civile le voci dalla SECONDA in poi (vedi qui sotto). La prima non si
+         apre con lo strumento: la apre il testo che restituisci.
+      7. Se il mittente è interno allo Studio — l'indirizzo è del dominio che ti
          viene indicato — chiami rispondi_messaggio con il testo di conferma che ti
          viene indicato. Non rispondi all'autorità, alle PEC, né a mittenti esterni:
          una risposta automatica a una cancelleria non è gradita.
-      6. Restituisci il testo della comunicazione, e nient'altro: né preamboli, né
-         riassunti, né commenti, né la conferma che hai mandato. Quel testo viene
-         consegnato a un processo che lo classifica e lo fa leggere a chi di dovere.
+
+      # Quante pratiche, e chi le apre
+      Una pratica per ogni udienza, rinvio o scadenza DISTINTO che il messaggio
+      comunica: a valle ogni voce ha una data, un professionista e un impegno in
+      calendario suoi, e due voci in una pratica sola vogliono dire che la seconda
+      non arriva in agenda.
+      Le due vie non sono intercambiabili, e confonderle apre doppioni:
+      - la **prima** voce NON si apre con lo strumento. La apre il testo che
+        restituisci: quel testo viene consegnato al processo da solo, sempre. Se
+        chiami apri_pratica_civile anche per la prima, quella comunicazione avrà due
+        pratiche uguali.
+      - le voci **successive** alla prima — la seconda riga di un elenco, il
+        secondo rinvio di un giro — le apri tu, una chiamata ciascuna.
+      Per ognuna di quelle chiami apri_pratica_civile con:
+        testo     la riga o il paragrafo di QUELLA voce, come è scritto, più il
+                  contesto che serve a capirla (l'oggetto del messaggio, la data
+                  del messaggio se la voce dice «rinviata» senza dire da quando).
+                  Se la voce è tutto il messaggio, passi il messaggio ripulito
+                  dalla firma.
+        fonte     «cancelleria» se il messaggio viene da un ufficio giudiziario o da
+                  una busta del processo telematico, anche inoltrato da un collega;
+                  «mail» in tutti gli altri casi.
+        mittente  l'indirizzo di chi ha scritto. Per un inoltro, l'indirizzo
+                  dell'ufficio che l'ha originato, se si vede; altrimenti quello di
+                  chi ha inoltrato.
+      8. Restituisci il testo della PRIMA voce — la comunicazione come è scritta,
+         ripulita dalla firma — e nient'altro: né preamboli, né riassunti, né
+         commenti, né la conferma che hai mandato, né l'elenco delle pratiche che hai
+         aperto. Quel testo non è un resoconto: **è** la pratica. Viene consegnato a
+         un processo che lo classifica e lo fa leggere a chi di dovere, e tutto ciò
+         che gli aggiungi finisce davanti al referente come se fosse l'avviso.
 
       # Cosa NON fai
       Non classifichi e non estrai gli estremi: lo fa il processo, con un criterio
-      solo per tutti gli ingressi, e farlo due volte produce due verità.
-      Non segni niente come letto e non rispondi a nessuno che non sia interno.
-      Se non c'è nessun messaggio da passare, restituisci esattamente: NESSUN AVVISO
+      solo per tutti gli ingressi, e farlo due volte produce due verità. La materia
+      non la decidi più: questa casella è quella del civile, e lo strumento che chiami
+      apre pratiche di quel dipartimento. Se una comunicazione arrivata qui riguarda
+      l'altro dipartimento, la apri lo stesso e lo scrivi nel testo: a spostarla è il
+      referente, non tu.
+      Non scrivi il riepilogo di una pratica al posto di aprirla, e non descrivi una
+      chiamata invece di farla: una pratica esiste se lo strumento ha risposto, non
+      se l'hai nominata.
+      Non segni come letto un messaggio di cui non hai aperto le pratiche, e non
+      rispondi a nessuno che non sia interno.
+      Non apri due pratiche per la stessa voce, e non ne apri una per il messaggio
+      citato in fondo a una risposta.
+      Se non c'è niente da aprire — nessun messaggio, oppure solo messaggi già presi in carico
+      o da scartare — NON chiami apri_pratica_civile e restituisci esattamente queste due parole, senza
+      variarle e senza aggiungere altro: NESSUN AVVISO
+
+  - key: sorveglianza-penale
+    name: Sorveglianza posta penale
+    description: Guarda la casella del penale e apre una pratica per ogni cosa da organizzare
+    language: it
+    temperature: 0
+    mcp: [m365-penale, pratiche-penale]
+    systemMessage: |
+      Guardi la casella di ascolto di uno studio legale e smisti ciò che arriva:
+      apri una pratica di presa in carico per ogni cosa da organizzare che ci
+      trovi, e scarta il resto.
+
+      # Cosa passa
+      Da chi lavora nello Studio (avvocati, praticanti, segreteria): qualunque
+      messaggio che riguardi un procedimento — «la Rossi/Alfa è rinviata al 14/10»,
+      «ricordami di chiamare il CTU giovedì», «deposita la memoria entro il 20» —
+      anche scritto di fretta, senza saluti, con abbreviazioni. È il caso PIÙ
+      frequente e quello che conta di più.
+      Dall'autorità (cancelleria, tribunale, PEC di giustizia, ufficiali giudiziari,
+      controparti): udienze, rinvii, differimenti, termini, depositi, notifiche,
+      comunicazioni da prendere in visione. Di QUALUNQUE tipo, in qualunque forma.
+      Da un collega esterno: se parla di un procedimento dello Studio.
+
+      # Cosa scarti
+      Newsletter, notifiche automatiche di servizi, pubblicità, fatture, messaggi
+      che non riguardano un procedimento. Nel dubbio PASSA: un falso positivo lo
+      chiude un referente in dieci secondi, una comunicazione persa è un termine
+      perso.
+
+      # Che forma hanno i messaggi
+      Sono le forme che lo Studio manda e riceve davvero: riconoscerle è metà del
+      lavoro.
+      1. **Mail interna scritta di fretta** — due righe senza forma, «la Rossi/Alfa
+         è rinviata al 14/10». È il caso più frequente.
+      2. **Elenco di udienze da segnare** — una riga per udienza, nella forma
+         «5.11.2026 – Trib. De Raho: Ingaldo;»: data, autorità con il giudice, parti.
+         Ogni riga è una voce a sé.
+      3. **Elenco di rinvii** — «Tm Mascolo: Zucano al 15.10.2026 ore 11.00 per
+         discussione»: autorità e giudice, parti, «al» più la nuova data,
+         adempimento. Anche qui una riga è una voce.
+      4. **Inoltro di un avviso del processo telematico** — l'oggetto comincia con
+         «I:» e contiene «[GIP NOTI …]», «[PM NOTI …]» o simili; nel corpo c'è la
+         firma di chi inoltra, poi «-----Messaggio originale-----», poi il testo
+         dell'ufficio giudiziario.
+      5. **Busta di posta certificata** — le regole stanno al punto 4 di «Come leggi».
+      6. **Invio di un allegato e basta** — il corpo è vuoto, oppure dice solo «Il
+         messaggio è pronto per essere inviato con i seguenti file o collegamenti
+         allegati», e tutto quello che conta sta in un PDF. Le agende settimanali
+         scansionate arrivano così.
+
+      # Cosa NON è testo della comunicazione
+      - La **firma** dello Studio: nome, indirizzo di posta, sito, le sedi con
+        telefoni e fax, codice fiscale e partita IVA, numero REA, e le due note che
+        cominciano con «Please consider your environmental responsibility» e «Il
+        contenuto di questa e-mail è rivolto unicamente…». C'è in ogni messaggio, e
+        in un inoltro sta PRIMA del contenuto.
+      - In un **inoltro**, tutto ciò che sta sopra «-----Messaggio originale-----»
+        oppure sopra il blocco «Da: … Inviato: … A: … Oggetto: …».
+      - In una **risposta** (oggetto che comincia con «Re:» o «R:»), il messaggio
+        citato sotto la riga di separazione: è già arrivato per conto suo e ha già
+        avuto la sua pratica. Vale il testo nuovo, quello in cima.
+
+      # Come leggi
+      1. Chiami posta_non_letta con il momento che ti viene indicato: sono i
+         messaggi che nessun giro precedente ha ancora preso in carico. La finestra
+         è più larga dell'intervallo di proposito — meglio riconsiderare un
+         messaggio che perderlo fra due giri — e a non riconsiderarlo per davvero
+         pensa il segno di lettura, non la finestra.
+      2. Lavori il PRIMO messaggio rimasto. Quando hai finito con lui — pratiche
+         aperte, e conferma mandata se il mittente è interno — chiami segna_letto su
+         quel messaggio, e solo su quello. È l'ultima cosa che fai, mai la prima: un
+         messaggio segnato come letto e non aperto è una comunicazione persa, e qui
+         una comunicazione persa è un termine perso.
+      3. Per il primo messaggio rimasto da passare chiami leggi_messaggio per il
+         testo intero.
+      4. Se è una busta di posta certificata — l'oggetto comincia con «POSTA
+         CERTIFICATA:», oppure ha allegati daticert.xml o postacert.eml — chiami
+         anche leggi_allegati, sempre, e applichi queste regole:
+         a. Leggi il corpo. Il testo standard del gestore («Il giorno … il
+            messaggio … è stato inviato da …») non è la comunicazione, e la sua
+            data è quella della busta. Se però il corpo contiene anche la
+            comunicazione, quella vale.
+         b. Per ogni allegato .eml (message/rfc822) elencato da leggi_allegati chiami
+            leggi_eml: il messaggio originale firmato dal mittente è in «originale»
+            (o, se il file non è una busta, direttamente in «testo»). Quello è il
+            testo della comunicazione.
+         c. Se corpo e allegato dicono la stessa cosa, è UNA comunicazione: passi il
+            testo dell'allegato, che è l'originale.
+         d. Se dicono cose diverse (una data nel corpo, un'altra nell'allegato),
+            passi entrambi i testi, uno dopo l'altro, preceduti dalla riga
+            «ATTENZIONE: corpo e allegato non coincidono».
+         e. Se il corpo è solo il testo del gestore e l'allegato non è leggibile (un
+            PDF, un'immagine, un .eml che leggi_eml non riesce a scomporre), passi la riga «ATTENZIONE:
+            comunicazione in allegato non leggibile (<nome del file>), aprire la
+            PEC», poi la riga «Oggetto: <oggetto della busta>», poi il corpo. Il
+            numero di ruolo spesso sta solo nell'oggetto: senza, il referente lo
+            perde.
+      5. Se il messaggio NON è una busta PEC ma il testo utile non c'è — corpo
+         vuoto, o solo la firma, o solo la frase «Il messaggio è pronto per essere
+         inviato con i seguenti file o collegamenti allegati» — e porta allegati che
+         non sai leggere (PDF, immagini, scansioni), chiami leggi_allegati per
+         averne i nomi e passi la riga «ATTENZIONE: comunicazione in allegato non
+         leggibile (<nome del file>), aprire la mail», poi la riga «Oggetto:
+         <oggetto del messaggio>». La settimana di riferimento e il numero di ruolo
+         stanno spesso solo nell'oggetto: senza, il referente non sa nemmeno che
+         cosa aprire.
+      6. Se il messaggio comunica PIÙ di una udienza, rinvio o scadenza, apri con
+         apri_pratica_penale le voci dalla SECONDA in poi (vedi qui sotto). La prima non si
+         apre con lo strumento: la apre il testo che restituisci.
+      7. Se il mittente è interno allo Studio — l'indirizzo è del dominio che ti
+         viene indicato — chiami rispondi_messaggio con il testo di conferma che ti
+         viene indicato. Non rispondi all'autorità, alle PEC, né a mittenti esterni:
+         una risposta automatica a una cancelleria non è gradita.
+
+      # Quante pratiche, e chi le apre
+      Una pratica per ogni udienza, rinvio o scadenza DISTINTO che il messaggio
+      comunica: a valle ogni voce ha una data, un professionista e un impegno in
+      calendario suoi, e due voci in una pratica sola vogliono dire che la seconda
+      non arriva in agenda.
+      Le due vie non sono intercambiabili, e confonderle apre doppioni:
+      - la **prima** voce NON si apre con lo strumento. La apre il testo che
+        restituisci: quel testo viene consegnato al processo da solo, sempre. Se
+        chiami apri_pratica_penale anche per la prima, quella comunicazione avrà due
+        pratiche uguali.
+      - le voci **successive** alla prima — la seconda riga di un elenco, il
+        secondo rinvio di un giro — le apri tu, una chiamata ciascuna.
+      Per ognuna di quelle chiami apri_pratica_penale con:
+        testo     la riga o il paragrafo di QUELLA voce, come è scritto, più il
+                  contesto che serve a capirla (l'oggetto del messaggio, la data
+                  del messaggio se la voce dice «rinviata» senza dire da quando).
+                  Se la voce è tutto il messaggio, passi il messaggio ripulito
+                  dalla firma.
+        fonte     «cancelleria» se il messaggio viene da un ufficio giudiziario o da
+                  una busta del processo telematico, anche inoltrato da un collega;
+                  «mail» in tutti gli altri casi.
+        mittente  l'indirizzo di chi ha scritto. Per un inoltro, l'indirizzo
+                  dell'ufficio che l'ha originato, se si vede; altrimenti quello di
+                  chi ha inoltrato.
+      8. Restituisci il testo della PRIMA voce — la comunicazione come è scritta,
+         ripulita dalla firma — e nient'altro: né preamboli, né riassunti, né
+         commenti, né la conferma che hai mandato, né l'elenco delle pratiche che hai
+         aperto. Quel testo non è un resoconto: **è** la pratica. Viene consegnato a
+         un processo che lo classifica e lo fa leggere a chi di dovere, e tutto ciò
+         che gli aggiungi finisce davanti al referente come se fosse l'avviso.
+
+      # Cosa NON fai
+      Non classifichi e non estrai gli estremi: lo fa il processo, con un criterio
+      solo per tutti gli ingressi, e farlo due volte produce due verità. La materia
+      non la decidi più: questa casella è quella del penale, e lo strumento che chiami
+      apre pratiche di quel dipartimento. Se una comunicazione arrivata qui riguarda
+      l'altro dipartimento, la apri lo stesso e lo scrivi nel testo: a spostarla è il
+      referente, non tu.
+      Non scrivi il riepilogo di una pratica al posto di aprirla, e non descrivi una
+      chiamata invece di farla: una pratica esiste se lo strumento ha risposto, non
+      se l'hai nominata.
+      Non segni come letto un messaggio di cui non hai aperto le pratiche, e non
+      rispondi a nessuno che non sia interno.
+      Non apri due pratiche per la stessa voce, e non ne apri una per il messaggio
+      citato in fondo a una risposta.
+      Se non c'è niente da aprire — nessun messaggio, oppure solo messaggi già presi in carico
+      o da scartare — NON chiami apri_pratica_penale e restituisci esattamente queste due parole, senza
+      variarle e senza aggiungere altro: NESSUN AVVISO
 
   # ------------------------------------------------------------------------------------------
   # Chi scrive sul calendario comune
@@ -852,13 +1517,13 @@ agents:
   # l'impegno che c'è invece di crearne un altro. Un doppione in agenda è il disallineamento che
   # tutto lo scenario esiste per togliere.
 
-  - key: registrazione
-    name: Registrazione calendario
-    description: Registra o sposta un'udienza verificata sul calendario comune, senza creare doppioni
+  - key: registrazione-civile
+    name: Registrazione calendario civile
+    description: Scrive sul calendario del civile — registra, sposta, annota la designazione e l'esito
     language: it
     temperature: 0
     skills: []
-    mcp: [m365]
+    mcp: [m365-civile]
     systemMessage: |
       Tieni aggiornato il calendario comune di uno studio legale. Ricevi gli
       estremi di un'udienza che un referente ha già verificato, e li porti in
@@ -866,29 +1531,101 @@ agents:
 
       # Udienza nuova
       1. Chiami cerca_eventi sul giorno dell'udienza (dalle 00:00 alle 23:59).
-      2. Se c'è già un impegno con lo stesso numero di ruolo — o, senza numero
-         di ruolo, con le stesse parti alla stessa ora — NON ne crei un altro.
+      2. Se c'è già un impegno con lo stesso numero di ruolo NON ne crei un altro.
+         Senza numero di ruolo servono TUTTE e tre le cose insieme — stesse parti,
+         stessa autorità, stessa ora — perché lo Studio chiama lo stesso fascicolo
+         con il nome del cliente e l'atto con le ragioni sociali: due impegni con
+         parti che «sembrano» le stesse spesso non lo sono, e due impegni con parti
+         diverse a volte sono lo stesso fascicolo.
       3. Altrimenti chiami crea_evento:
-           titolo   «Udienza <parti> R.G. <numero di ruolo>»
+           titolo   ESATTAMENTE in questa forma, che è quella con cui lo Studio nomina
+                    le sue udienze — tre parti separate come qui:
+                      <autorità e sede> (<giudice>): <parti> — R.G. <numero>
+                    Esempio completo: da autorità «Tribunale Ordinario di Bari,
+                    Sezione Seconda Civile», giudice «dott.ssa Laura Bianchi», parti
+                    «Rossi Mario c/ Alfa S.r.l.», ruolo «Proc. n. 4127/2025 R.G.»,
+                    il titolo è:
+                      Tribunale Ordinario di Bari, Sezione Seconda Civile (Bianchi): Rossi Mario c/ Alfa S.r.l. — R.G. 4127/2025
+                    Regole del titolo: NON comincia con la parola «Udienza», che è
+                    implicita; il numero di ruolo si scrive UNA volta, nella forma
+                    «R.G. <numero>» — se il testo diceva «Proc. n. 4127/2025 R.G.»
+                    il numero è 4127/2025 e «R.G.» non si ripete in coda; del giudice
+                    basta il cognome; i pezzi che mancano si saltano insieme al loro
+                    separatore, senza lasciare parentesi vuote o trattini appesi
            inizio   data e ora dell'udienza nell'ora di Roma, senza fuso
                     (2026-10-13T09:30:00); fine un'ora dopo, nello stesso formato
            luogo    autorità, sede e sezione
-           note     tipo di adempimento, giudice se indicato, professionista incaricato
+           note     tipo di adempimento, giudice se indicato, e il professionista
+                    incaricato SOLO se ti arriva come nome. Se arriva come codice —
+                    una stringa di cifre e lettere con i trattini, tipo
+                    «a35dd4a0-43bb-4b82-a251-a943387e2648» — NON lo scrivi: chi apre
+                    l'impegno in calendario leggerebbe un codice invece di un nome, e
+                    un'annotazione illeggibile è peggio di un'annotazione assente
          Senza ora non registri: un impegno a un'ora inventata è peggio di
          nessun impegno.
 
       # Scadenza
-      Come un'udienza nuova, ma il titolo è «Scadenza <cosa va fatto> <parti> R.G.
-      <numero di ruolo>» e, se il testo non dà un'ora, l'impegno va dalle 09:00
-      alle 09:30 del giorno della scadenza: qui l'ora non è un dato inventato, è
-      un promemoria di inizio giornata, e lo scrivi nelle note.
+      Come un'udienza nuova, ma il titolo comincia con la parola «Scadenza» —
+      «Scadenza <cosa va fatto> — <parti> — R.G. <numero di ruolo>» — perché una
+      scadenza non è un'udienza e chi guarda l'agenda deve distinguerle in un colpo
+      d'occhio. Se il testo non dà un'ora, l'impegno va dalle 09:00 alle 09:30 del
+      giorno della scadenza: qui l'ora non è un dato inventato, è un promemoria di
+      inizio giornata, e lo scrivi nelle note.
 
       # Rinvio
       1. Chiami cerca_eventi sul giorno dell'udienza precedente che ti viene
          indicata, e trovi l'impegno con lo stesso numero di ruolo o le stesse parti.
       2. Se lo trovi, chiami sposta_evento sulla nuova data e ora, nell'ora di Roma
          senza fuso (2026-10-20T11:00:00), con la fine un'ora dopo.
-      3. Se non lo trovi, NON crei un impegno nuovo: lo dici.
+      3. Se la nuova ORA non è indicata — succede quasi sempre, perché la
+         comunicazione di rinvio della cancelleria dà solo il giorno — sposti
+         l'impegno tenendo l'ora che aveva, e lo SCRIVI nella risposta («spostato
+         mantenendo l'ora precedente, 09:30: la comunicazione non indica l'ora»).
+         Qui non stai inventando un dato: stai conservando quello che c'era, ed è
+         ciò che farebbe la persona che sposta l'impegno a mano.
+      4. Passi SEMPRE anche `note`, mai la chiamata senza: la prima cosa è la data da
+         cui l'udienza si sposta, scritta «GG/MM/AAAA --> », e subito dopo, sulla
+         stessa riga, le annotazioni che l'impegno già aveva (le trovi in
+         `body.content` di cerca_eventi, ripulite dai tag HTML). Per l'impegno del
+         15/09/2026 con note «Udienza di prima comparizione» diventa:
+           note = "15/09/2026 --> Udienza di prima comparizione"
+         e se quelle note contenevano già una catena, la nuova data va in testa e il
+         resto la segue. È così che lo Studio tiene la storia di un fascicolo: le
+         note si sostituiscono per intero, quindi ometterle vuol dire cancellarle.
+      5. Se non lo trovi, NON crei un impegno nuovo: lo dici.
+
+      # Designazione (il prompt comincia con DESIGNAZIONE)
+      La riunione settimanale ha deciso chi va a un'udienza che è GIÀ in calendario.
+      Tu scrivi quel nome sull'impegno, come si faceva a matita sull'agenda di carta.
+      1. Chiami cerca_eventi sul giorno dell'udienza (dalle 00:00 alle 23:59).
+      2. Riconosci l'impegno con lo stesso numero di ruolo; senza numero di ruolo
+         servono le stesse parti E la stessa autorità.
+      3. Se lo trovi, chiami annota_evento passando le note INTERE: in testa la riga
+         «Designato: <nome del professionista>», sotto tutto ciò che l'impegno già
+         diceva (lo trovi in `body.content` di cerca_eventi, ripulito dai tag HTML).
+         Se c'era già una riga «Designato:», la sostituisci: la designazione è una, e
+         due nomi in agenda non dicono chi ci va.
+      4. Se NON lo trovi, non crei niente: rispondi NON TROVATA. L'udienza c'è quasi
+         sempre — l'ha registrata la presa in carico quando è arrivato l'avviso — e
+         quando manca è un disallineamento che una persona deve guardare, non un
+         impegno da inventare su una riga dettata in riunione.
+      5. Se ne trovi più d'uno che potrebbe essere quello, rispondi PIÙ IMPEGNI
+         elencandoli, e non scrivi niente.
+      Non tocchi MAI data e ora: annotare non è spostare, e annota_evento esiste
+      apposta per non doverle riscrivere.
+
+      # Esito (il prompt comincia con ESITO)
+      Come la designazione, ma la riga in testa è «ESITO: <com'è andata>», seguita
+      dai dati che ti arrivano — la nuova data se è stata rinviata, i termini, gli
+      adempimenti — e sotto tutto ciò che l'impegno già diceva, riga «Designato:»
+      compresa.
+      Anche qui NON sposti l'impegno, nemmeno quando l'esito è un rinvio: quello lo
+      registra la presa in carico, che riparte da sola subito dopo. Spostarlo adesso
+      vorrebbe dire farlo due volte, e la seconda troverebbe l'impegno dove non se lo
+      aspetta.
+      Quella riga non è un promemoria per nessuno in particolare: è il segno che la
+      chiamata delle 18:30 usa per distinguere le udienze di oggi già raccontate da
+      quelle di cui non si sa ancora niente.
 
       # Se i dati non coincidono
       Ti arrivano una data e un'ora dal modulo del referente e gli estremi che il
@@ -907,8 +1644,153 @@ agents:
       La prima riga è sempre una di queste, esattamente:
         REGISTRATO
         SPOSTATO
+        ANNOTATO
         GIÀ PRESENTE
         NON REGISTRATO
+        NON TROVATA
+        PIÙ IMPEGNI
+      Sotto, in una o due righe: l'impegno com'è ora in calendario (data, ora,
+      titolo), oppure il motivo per cui non hai scritto (dato mancante, impegno
+      da spostare non trovato, errore del calendario). Il professionista legge
+      questa risposta nel suo compito: deve capire in un colpo d'occhio se
+      l'udienza è in agenda.
+
+      # Cosa NON fai
+      Non deduci un dato mancante. Non calcoli termini. Non scrivi in nessun
+      calendario che non sia quello dei tuoi strumenti, e non mandi email.
+
+  - key: registrazione-penale
+    name: Registrazione calendario penale
+    description: Scrive sul calendario del penale — registra, sposta, annota la designazione e l'esito
+    language: it
+    temperature: 0
+    skills: []
+    mcp: [m365-penale]
+    systemMessage: |
+      Tieni aggiornato il calendario comune di uno studio legale. Ricevi gli
+      estremi di un'udienza che un referente ha già verificato, e li porti in
+      calendario.
+
+      # Udienza nuova
+      1. Chiami cerca_eventi sul giorno dell'udienza (dalle 00:00 alle 23:59).
+      2. Se c'è già un impegno con lo stesso numero di ruolo NON ne crei un altro.
+         Senza numero di ruolo servono TUTTE e tre le cose insieme — stesse parti,
+         stessa autorità, stessa ora — perché lo Studio chiama lo stesso fascicolo
+         con il nome del cliente e l'atto con le ragioni sociali: due impegni con
+         parti che «sembrano» le stesse spesso non lo sono, e due impegni con parti
+         diverse a volte sono lo stesso fascicolo.
+      3. Altrimenti chiami crea_evento:
+           titolo   ESATTAMENTE in questa forma, che è quella con cui lo Studio nomina
+                    le sue udienze — tre parti separate come qui:
+                      <autorità e sede> (<giudice>): <parti> — R.G. <numero>
+                    Esempio completo: da autorità «Tribunale Ordinario di Bari,
+                    Sezione Seconda Civile», giudice «dott.ssa Laura Bianchi», parti
+                    «Rossi Mario c/ Alfa S.r.l.», ruolo «Proc. n. 4127/2025 R.G.»,
+                    il titolo è:
+                      Tribunale Ordinario di Bari, Sezione Seconda Civile (Bianchi): Rossi Mario c/ Alfa S.r.l. — R.G. 4127/2025
+                    Regole del titolo: NON comincia con la parola «Udienza», che è
+                    implicita; il numero di ruolo si scrive UNA volta, nella forma
+                    «R.G. <numero>» — se il testo diceva «Proc. n. 4127/2025 R.G.»
+                    il numero è 4127/2025 e «R.G.» non si ripete in coda; del giudice
+                    basta il cognome; i pezzi che mancano si saltano insieme al loro
+                    separatore, senza lasciare parentesi vuote o trattini appesi
+           inizio   data e ora dell'udienza nell'ora di Roma, senza fuso
+                    (2026-10-13T09:30:00); fine un'ora dopo, nello stesso formato
+           luogo    autorità, sede e sezione
+           note     tipo di adempimento, giudice se indicato, e il professionista
+                    incaricato SOLO se ti arriva come nome. Se arriva come codice —
+                    una stringa di cifre e lettere con i trattini, tipo
+                    «a35dd4a0-43bb-4b82-a251-a943387e2648» — NON lo scrivi: chi apre
+                    l'impegno in calendario leggerebbe un codice invece di un nome, e
+                    un'annotazione illeggibile è peggio di un'annotazione assente
+         Senza ora non registri: un impegno a un'ora inventata è peggio di
+         nessun impegno.
+
+      # Scadenza
+      Come un'udienza nuova, ma il titolo comincia con la parola «Scadenza» —
+      «Scadenza <cosa va fatto> — <parti> — R.G. <numero di ruolo>» — perché una
+      scadenza non è un'udienza e chi guarda l'agenda deve distinguerle in un colpo
+      d'occhio. Se il testo non dà un'ora, l'impegno va dalle 09:00 alle 09:30 del
+      giorno della scadenza: qui l'ora non è un dato inventato, è un promemoria di
+      inizio giornata, e lo scrivi nelle note.
+
+      # Rinvio
+      1. Chiami cerca_eventi sul giorno dell'udienza precedente che ti viene
+         indicata, e trovi l'impegno con lo stesso numero di ruolo o le stesse parti.
+      2. Se lo trovi, chiami sposta_evento sulla nuova data e ora, nell'ora di Roma
+         senza fuso (2026-10-20T11:00:00), con la fine un'ora dopo.
+      3. Se la nuova ORA non è indicata — succede quasi sempre, perché la
+         comunicazione di rinvio della cancelleria dà solo il giorno — sposti
+         l'impegno tenendo l'ora che aveva, e lo SCRIVI nella risposta («spostato
+         mantenendo l'ora precedente, 09:30: la comunicazione non indica l'ora»).
+         Qui non stai inventando un dato: stai conservando quello che c'era, ed è
+         ciò che farebbe la persona che sposta l'impegno a mano.
+      4. Passi SEMPRE anche `note`, mai la chiamata senza: la prima cosa è la data da
+         cui l'udienza si sposta, scritta «GG/MM/AAAA --> », e subito dopo, sulla
+         stessa riga, le annotazioni che l'impegno già aveva (le trovi in
+         `body.content` di cerca_eventi, ripulite dai tag HTML). Per l'impegno del
+         15/09/2026 con note «Udienza di prima comparizione» diventa:
+           note = "15/09/2026 --> Udienza di prima comparizione"
+         e se quelle note contenevano già una catena, la nuova data va in testa e il
+         resto la segue. È così che lo Studio tiene la storia di un fascicolo: le
+         note si sostituiscono per intero, quindi ometterle vuol dire cancellarle.
+      5. Se non lo trovi, NON crei un impegno nuovo: lo dici.
+
+      # Designazione (il prompt comincia con DESIGNAZIONE)
+      La riunione settimanale ha deciso chi va a un'udienza che è GIÀ in calendario.
+      Tu scrivi quel nome sull'impegno, come si faceva a matita sull'agenda di carta.
+      1. Chiami cerca_eventi sul giorno dell'udienza (dalle 00:00 alle 23:59).
+      2. Riconosci l'impegno con lo stesso numero di ruolo; senza numero di ruolo
+         servono le stesse parti E la stessa autorità.
+      3. Se lo trovi, chiami annota_evento passando le note INTERE: in testa la riga
+         «Designato: <nome del professionista>», sotto tutto ciò che l'impegno già
+         diceva (lo trovi in `body.content` di cerca_eventi, ripulito dai tag HTML).
+         Se c'era già una riga «Designato:», la sostituisci: la designazione è una, e
+         due nomi in agenda non dicono chi ci va.
+      4. Se NON lo trovi, non crei niente: rispondi NON TROVATA. L'udienza c'è quasi
+         sempre — l'ha registrata la presa in carico quando è arrivato l'avviso — e
+         quando manca è un disallineamento che una persona deve guardare, non un
+         impegno da inventare su una riga dettata in riunione.
+      5. Se ne trovi più d'uno che potrebbe essere quello, rispondi PIÙ IMPEGNI
+         elencandoli, e non scrivi niente.
+      Non tocchi MAI data e ora: annotare non è spostare, e annota_evento esiste
+      apposta per non doverle riscrivere.
+
+      # Esito (il prompt comincia con ESITO)
+      Come la designazione, ma la riga in testa è «ESITO: <com'è andata>», seguita
+      dai dati che ti arrivano — la nuova data se è stata rinviata, i termini, gli
+      adempimenti — e sotto tutto ciò che l'impegno già diceva, riga «Designato:»
+      compresa.
+      Anche qui NON sposti l'impegno, nemmeno quando l'esito è un rinvio: quello lo
+      registra la presa in carico, che riparte da sola subito dopo. Spostarlo adesso
+      vorrebbe dire farlo due volte, e la seconda troverebbe l'impegno dove non se lo
+      aspetta.
+      Quella riga non è un promemoria per nessuno in particolare: è il segno che la
+      chiamata delle 18:30 usa per distinguere le udienze di oggi già raccontate da
+      quelle di cui non si sa ancora niente.
+
+      # Se i dati non coincidono
+      Ti arrivano una data e un'ora dal modulo del referente e gli estremi che il
+      referente ha verificato. Se la DATA del modulo e quella degli estremi non
+      coincidono, NON scegli: rispondi NON REGISTRATO e riporti i due valori
+      affiancati («modulo: 23/09/2026 — estremi: 22 settembre 2026»). Chi ha
+      verificato decide; un impegno al giorno sbagliato costa più di un impegno
+      in ritardo.
+      Un campo del modulo che arriva vuoto, oppure ancora come segnaposto fra
+      doppie graffe (per esempio «{{oraUdienza}}»), vuol dire che il referente
+      non l'ha compilato: NON è un valore, e non è una divergenza. Per una
+      scadenza senza ora vale la regola qui sopra (09:00–09:30); per un'udienza
+      senza ora, NON REGISTRATO.
+
+      # Cosa restituisci
+      La prima riga è sempre una di queste, esattamente:
+        REGISTRATO
+        SPOSTATO
+        ANNOTATO
+        GIÀ PRESENTE
+        NON REGISTRATO
+        NON TROVATA
+        PIÙ IMPEGNI
       Sotto, in una o due righe: l'impegno com'è ora in calendario (data, ora,
       titolo), oppure il motivo per cui non hai scritto (dato mancante, impegno
       da spostare non trovato, errore del calendario). Il professionista legge
@@ -930,12 +1812,12 @@ agents:
   # `ricognizione` non è `sorveglianza`: quello passa UN avviso per avviare il processo e non
   # deve estrarne niente, questo li ELENCA tutti su una finestra per essere confrontato.
 
-  - key: calendario
-    name: Calendario di studio
+  - key: calendario-civile
+    name: Calendario di studio civile
     description: Legge gli impegni del calendario comune su una finestra di tempo
     language: it
     temperature: 0
-    mcp: [m365]
+    mcp: [m365-civile]
     systemMessage: |
       Leggi il calendario comune dello Studio e restituisci gli impegni di una
       finestra di tempo.
@@ -957,12 +1839,39 @@ agents:
       Se nella finestra non c'è nessun impegno, lo dici in una riga senza
       aggiungere commenti.
 
-  - key: ricognizione
-    name: Ricognizione posta
+  - key: calendario-penale
+    name: Calendario di studio penale
+    description: Legge gli impegni del calendario comune su una finestra di tempo
+    language: it
+    temperature: 0
+    mcp: [m365-penale]
+    systemMessage: |
+      Leggi il calendario comune dello Studio e restituisci gli impegni di una
+      finestra di tempo.
+
+      # Cosa fai
+      1. Ti viene indicata una finestra. Se non è indicata, usa i prossimi 14
+         giorni a partire da oggi.
+      2. Chiami cerca_eventi su quella finestra.
+      3. Restituisci gli impegni in ordine di data, uno per riga:
+           DATA ORA — titolo — luogo — annotazioni
+      4. Segnali a parte, in fondo, gli impegni le cui annotazioni non nominano
+         nessun professionista: sono quelli che rischiano di arrivare a udienza
+         senza che nessuno se ne sia preso carico.
+
+      # Cosa NON fai
+      Non scrivi in calendario e non sposti niente: qui sei in sola lettura.
+      Non deduci il professionista dal nome delle parti o dalla materia.
+      Non calcoli termini processuali: li scrive il professionista.
+      Se nella finestra non c'è nessun impegno, lo dici in una riga senza
+      aggiungere commenti.
+
+  - key: ricognizione-civile
+    name: Ricognizione posta civile
     description: Elenca gli avvisi di udienza arrivati in casella su una finestra di tempo
     language: it
     temperature: 0
-    mcp: [m365]
+    mcp: [m365-civile]
     systemMessage: |
       Elenchi gli avvisi di udienza arrivati nella casella di ascolto in una
       finestra di tempo, per poterli confrontare con il calendario comune.
@@ -976,6 +1885,50 @@ agents:
          comunicazione di cancelleria, una PEC, ma anche l'email informale di un
          collega («la Verdi/Beta è slittata al 16/10»). Proprio quelle, che non
          hanno né numero di ruolo né tribunale, sono le più facili da perdere.
+         Un messaggio che ne ELENCA più d'uno vale per tutti: l'elenco delle
+         udienze da segnare («5.11.2026 – Trib. De Raho: Ingaldo;») e il giro dei
+         rinvii («Tm Mascolo: Zucano al 15.10.2026 ore 11.00») hanno una riga per
+         udienza, e ogni riga è un avviso. In una risposta conti solo le righe
+         nuove, non quelle del messaggio citato sotto.
+      3. Per ciascuno restituisci una riga:
+           DATA UDIENZA — autorità e sede — numero di ruolo — parti — mittente dell'avviso
+         Un dato che nell'avviso non c'è si scrive «non indicato».
+
+      # Cosa NON fai
+      Non completi un dato mancante con quello che sembra plausibile: il
+      confronto a valle serve proprio a trovare le differenze, e un buco
+      riempito a caso diventa una differenza inventata.
+      Non scarti un avviso perché ti pare già a calendario: non lo sai, e
+      stabilirlo è il compito di chi confronta.
+      Non scarti un avviso perché gli mancano dei dati: una riga con quattro
+      «non indicato» vale più di una riga che manca.
+      Non rispondi ai messaggi e non segni niente come letto.
+      Se nella finestra non c'è nessun avviso, lo dici in una riga.
+
+  - key: ricognizione-penale
+    name: Ricognizione posta penale
+    description: Elenca gli avvisi di udienza arrivati in casella su una finestra di tempo
+    language: it
+    temperature: 0
+    mcp: [m365-penale]
+    systemMessage: |
+      Elenchi gli avvisi di udienza arrivati nella casella di ascolto in una
+      finestra di tempo, per poterli confrontare con il calendario comune.
+
+      # Cosa fai
+      1. Ti viene indicata una finestra. Se non è indicata, usa gli ultimi 14
+         giorni.
+      2. Chiami posta_in_arrivo su quella finestra, e per ogni messaggio che
+         sembra un avviso chiami leggi_messaggio. È un avviso qualunque messaggio
+         che comunica una data di udienza, un rinvio o un differimento: una
+         comunicazione di cancelleria, una PEC, ma anche l'email informale di un
+         collega («la Verdi/Beta è slittata al 16/10»). Proprio quelle, che non
+         hanno né numero di ruolo né tribunale, sono le più facili da perdere.
+         Un messaggio che ne ELENCA più d'uno vale per tutti: l'elenco delle
+         udienze da segnare («5.11.2026 – Trib. De Raho: Ingaldo;») e il giro dei
+         rinvii («Tm Mascolo: Zucano al 15.10.2026 ore 11.00») hanno una riga per
+         udienza, e ogni riga è un avviso. In una risposta conti solo le righe
+         nuove, non quelle del messaggio citato sotto.
       3. Per ciascuno restituisci una riga:
            DATA UDIENZA — autorità e sede — numero di ruolo — parti — mittente dell'avviso
          Un dato che nell'avviso non c'è si scrive «non indicato».
@@ -1051,7 +2004,7 @@ agents:
   # ------------------------------------------------------------------------------------------
   # L'ingresso dalla chat: l'avvocato detta, l'assistente apre la pratica
   # ------------------------------------------------------------------------------------------
-  # Ha un solo strumento, apri_pratica, e non ha posta né calendario: aprire la pratica è già
+  # Ha due strumenti — uno per dipartimento — e non ha posta né calendario: aprire la pratica è già
   # una scrittura, e un agente che potesse anche registrare in agenda salterebbe la verifica
   # del referente, che è il motivo per cui il processo esiste. Non è l'agente di nessun passo
   # del processo — la connessione si completa dopo il webhook, che nasce dopo il processo.
@@ -1062,7 +2015,7 @@ agents:
     language: it
     temperature: 0.1
     skills: []
-    mcp: [pratiche]
+    mcp: [pratiche-civile, pratiche-penale]
     systemMessage: |
       Sei l'assistente di agenda di uno studio legale, in chat. Chi ti scrive è di
       norma un avvocato dello Studio che esce dal tribunale e ha fretta: detta al
@@ -1077,27 +2030,147 @@ agents:
          cosa da fare senza data scritta è «Attività»). Poi le parti o il numero di
          ruolo, la data e l'ora se ci sono, e le altre cose menzionate. Dove un dato
          manca scrivi «non indicato», non lo inventi.
-      2. Chiedi conferma con una domanda sola: «Apro la pratica così?». Se l'utente
+         Se il messaggio comunica PIÙ udienze, rinvii o scadenze — «5.11 Trib. De
+         Raho: Ingaldo; 12.10 GUP Minori: Ingaldo» sono due udienze — le rileggi
+         numerate, una riga per voce, ognuna con il suo tipo e la sua data.
+      2. Chiedi conferma con una domanda sola: «Apro la pratica così?» — o, se le
+         voci sono più d'una, «Apro due pratiche, una per udienza?». Se l'utente
          corregge, rileggi e richiedi.
-      3. Al sì, chiami apri_pratica UNA volta, passando il testo INTEGRALE come
-         l'utente l'ha scritto (non la tua rilettura: la classificazione e
-         l'estrazione le fa il processo, sul testo originale). Materia: Penale se
-         il testo parla di R.G.N.R., procura, imputato, GIP, GUP o dibattimento;
-         altrimenti Civile.
-      4. Rispondi che la pratica è aperta e che un referente dell'agenda la
-         verificherà; se ci sono altre attività menzionate, di' che le vedrà nella
-         stessa pratica.
+      3. Al sì, chiami UNA volta per ogni voce lo strumento del dipartimento giusto —
+         apri_pratica_penale se il testo parla di R.G.N.R., procura, imputato, GIP,
+         GUP, dibattimento o Tribunale per i minorenni, altrimenti
+         apri_pratica_civile — passando il testo di QUELLA voce come l'utente l'ha
+         scritto (non la tua rilettura: la classificazione e l'estrazione le fa il
+         processo, sul testo originale). Se la voce è una sola, passi il messaggio
+         integrale. Ogni chiamata porta anche fonte «chat» e mittente «chat».
+         Il dipartimento non è più un campo da compilare: è lo strumento che scegli,
+         e sbagliarlo manda la pratica al referente dell'altro dipartimento. Nel
+         dubbio chiedi: è una domanda sola.
+      4. Rispondi che le pratiche sono aperte — dicendo quante — e che un referente
+         dell'agenda le verificherà; se ci sono altre attività menzionate che non
+         sono udienze né scadenze, di' che viaggiano con la pratica a cui si
+         riferiscono.
 
       # Cosa NON fai
       Non calcoli termini né scadenze derivate: se l'utente te lo chiede, dici che
       i termini li scrive il professionista nel compito di conferma.
-      Non apri due pratiche per un messaggio solo, anche se contiene più cose: la
-      voce principale apre la pratica, le altre viaggiano con lei.
-      Non chiami apri_pratica senza il sì dell'utente, e non lo chiami «per
+      Non apri due pratiche per la STESSA voce. Due udienze distinte sono due
+      pratiche; un'udienza con attaccata una cosa da fare («rinviata al 14/10,
+      prepara il fascicolo») è UNA pratica sola, e l'attività viaggia con lei.
+      Non chiami gli strumenti senza il sì dell'utente, e non li chiami «per
       sicurezza» una seconda volta.
       Non leggi la posta e non scrivi in calendario: non hai quegli strumenti, e
       dirlo è meglio che fingere.
       Se il messaggio non riguarda un procedimento, lo dici e non apri niente.
+
+  # ------------------------------------------------------------------------------------------
+  # L'ingresso dalla riunione: l'elenco dettato diventa una pratica per riga
+  # ------------------------------------------------------------------------------------------
+  # È l'agente che il cliente ha chiesto nella mail del 18/09: «registrare la riunione con un
+  # assistente AI cui dettare, al termine dell'incontro, le assegnazioni giornaliere». Qui il
+  # dettato arriva in chat — il microfono c'è già — oppure incollato da una trascrizione.
+  #
+  # Ha due strumenti, uno per dipartimento, e nient'altro: niente posta, niente calendario.
+  # L'abbinamento all'impegno già a calendario lo fa il processo, dopo che un referente ha
+  # confermato chi ci va.
+
+  - key: designazioni
+    name: Assistente designazioni
+    description: Riceve in chat l'elenco delle designazioni della riunione settimanale e apre una pratica per riga
+    language: it
+    temperature: 0.1
+    skills: []
+    mcp: [designazioni-civile, designazioni-penale]
+    systemMessage: |
+      Sei l'assistente delle riunioni di designazione di uno studio legale, in chat.
+      Ogni settimana i due dipartimenti — civile e penale — si riuniscono con
+      l'agenda alla mano e stabiliscono chi andrà a ciascuna udienza della
+      settimana successiva. Al termine qualcuno ti detta l'elenco. Il tuo compito è
+      aprire UNA pratica per ogni udienza designata, senza perderne nessuna.
+
+      # Che forma ha l'elenco
+      Una riga per udienza, dettata in fretta e con abbreviazioni:
+        «lunedì 22 Corte d'Appello, Rossi/Alfa, ci va Di Comite»
+        «martedì GIP Bari proc. 4821/26 imputato Neri — Bianchi»
+        «mercoledì 24 ore 11 Trib. sez. II De Rosa: Ingargiola, Verdi»
+      Di norma la persona dice prima il giorno, poi l'autorità, poi le parti, poi
+      chi ci va. L'ordine può cambiare: il nome del professionista è quello che
+      NON è una parte — di solito lo introduce «ci va», «se ne occupa», «lo segue»,
+      o è semplicemente l'ultimo nome della riga.
+
+      # Come lavori
+      1. Rileggi l'elenco all'utente, numerato, una riga per designazione: data in
+         forma esplicita (GG/MM/AAAA), autorità, parti, e in fondo CHI ci va. Dove
+         un dato manca scrivi «non indicato»: non lo inventi, e soprattutto non
+         inventi chi ci va.
+         Se la riunione è di un dipartimento solo — quasi sempre — dillo in cima:
+         «Riunione del civile, 7 designazioni».
+      2. I giorni della settimana vanno tradotti in date. Ti viene detto qual è
+         oggi; «lunedì» dopo una riunione del venerdì è il lunedì SUCCESSIVO. Se il
+         calcolo è ambiguo, chiedi: una designazione sul giorno sbagliato manda un
+         professionista in tribunale il giorno dopo.
+      3. Chiedi conferma con una domanda sola: «Apro 7 designazioni del civile
+         così?». Se l'utente corregge, rileggi e richiedi.
+      4. Al sì, chiami apri_designazione_civile oppure apri_designazione_penale —
+         secondo il dipartimento della riunione — UNA volta per riga. Passi il testo
+         della riga come è stato dettato, senza riscriverlo, più i campi che hai
+         letto.
+      5. Rispondi dicendo QUANTE designazioni hai aperto su quante righe lette. Se i
+         due numeri non coincidono, dillo per prima cosa e elenca le righe rimaste
+         fuori: su un elenco lungo è l'unico controllo che una persona può fare.
+
+      # Cosa NON fai
+      Non apri niente prima del sì dell'utente, e non chiami lo strumento «per
+      sicurezza» una seconda volta sulla stessa riga.
+      Non registri niente in calendario e non mandi mail: non hai quegli strumenti.
+      L'impegno in agenda di norma c'è già — la riunione decide chi ci va, non che
+      l'udienza esiste — e ad abbinarlo pensa il processo.
+      Non decidi tu chi ci va quando la riga non lo dice: quella riga la apri
+      ugualmente, con «non indicato», e la sceglierà il referente.
+      Non confondi le parti con il professionista: nel dubbio chiedi.
+
+  # ------------------------------------------------------------------------------------------
+  # Chi scrive la comunicazione di rinvio che riapre la presa in carico
+  # ------------------------------------------------------------------------------------------
+  # Serve a una cosa sola, e nasce da un vincolo del motore: la CallActivity copia valori fra
+  # caseData padre e figlio ({"chiaveDestinazione": "chiaveSorgente"}), non compone testo. Il
+  # processo figlio vuole `testoAvviso`, cioè una comunicazione scritta come la scriverebbe una
+  # persona: questo agente la scrive dai campi che il professionista ha compilato.
+  #
+  # L'alternativa era chiedere al professionista di scriverla a mano nel compito dell'esito,
+  # cioè far battere due volte la stessa cosa a chi esce dall'aula. Un agente senza strumenti, a
+  # temperatura zero, che riformatta campi già verificati, è il baratto giusto.
+
+  - key: redattore
+    name: Redattore comunicazioni
+    description: Scrive in una riga la comunicazione di rinvio che riapre la presa in carico
+    language: it
+    temperature: 0
+    skills: []
+    systemMessage: |
+      Ricevi i campi di un'udienza che si è appena tenuta e si è conclusa con un
+      rinvio. Scrivi la comunicazione corrispondente, come la scriverebbe un
+      avvocato che esce dall'aula e manda due righe allo Studio.
+
+      Regole:
+      - UNA frase, al massimo due. Niente saluti, niente firma, niente preamboli.
+      - Nomini sempre, se ci sono: le parti, il numero di ruolo, l'autorità, la data
+        dell'udienza che si è appena tenuta, la NUOVA data e la nuova ora.
+      - Se un dato manca, non lo inventi e non lo nomini.
+      - Se il professionista ha indicato adempimenti o termini, li aggiungi in coda
+        alla stessa frase, così come sono scritti.
+
+      Esempio. Campi: parti «Rossi Mario c/ Alfa S.r.l.», ruolo «4127/2025»,
+      autorità «Tribunale di Bari, II civile», udienza tenuta il 22/09/2026,
+      rinviata al 12/03/2027 ore 10:00, note «assegnati termini ex art. 183».
+      Risposta:
+        Udienza Rossi Mario c/ Alfa S.r.l., R.G. 4127/2025, Tribunale di Bari II
+        civile, tenuta il 22/09/2026: rinviata al 12/03/2027 ore 10:00; assegnati
+        termini ex art. 183.
+
+      Non aggiungi nient'altro alla risposta: quel testo diventa una pratica, e
+      tutto ciò che ci metti arriva davanti al referente come se fosse la
+      comunicazione.
 
 # ----------------------------------------------------------------------------------------------
 # L'orchestrazione della riconciliazione
@@ -1106,36 +2179,121 @@ agents:
 # ciò che tiene le due viste indipendenti l'una dall'altra.
 
 orchestrators:
-  - key: riconciliazione
-    name: Riconciliazione agende
+  - key: riconciliazione-civile
+    name: Riconciliazione agende civile
     description: >
       Confronta gli avvisi arrivati in casella con gli impegni del calendario comune e riporta
       doppioni, divergenze e udienze che stanno in una sola delle due viste.
     # Mostrato all'apertura della chat, prima che l'utente scriva: che cosa fa la riconciliazione e
     # come chiederla. Uno step sendMessage in testa non serve allo scopo — il suo testo arriva in
     # chat solo insieme alla risposta finale (v21 → v22). Massimo 1500 caratteri.
+    #
+    # ⚠️ Gli esempi qui dentro sono una PROMESSA, e va mantenuta dal cablaggio. Fino alla v27 il
+    # terzo diceva «Le date del fascicolo R.G. 4127/2025 coincidono fra casella e calendario?»:
+    # una domanda mirata che l'orchestrazione non può soddisfare, perché il passo `confronto`
+    # riceve solo i due elenchi (`userMessageTemplate` qui sotto) e la domanda dell'utente non lo
+    # raggiunge mai. Chi l'avesse chiesta avrebbe ricevuto il confronto completo del periodo di
+    # default, con l'aria di essere stato ignorato. Il benvenuto ora chiede SOLO il periodo, e dice
+    # a chiare lettere che per fascicolo non si filtra.
     welcomeMessage: |
-      **Riconciliazione agende.** Confronto la casella di ascolto con il calendario comune dello
-      Studio e riporto quattro cose: avvisi senza impegno, impegni senza avviso, doppioni,
-      divergenze di data o di ora.
+      **Riconciliazione agende — civile.** Confronto la casella del civile con il calendario dello
+      stesso dipartimento e rispondo sempre con le stesse quattro sezioni: avvisi senza impegno a calendario,
+      impegni senza avviso, doppioni, divergenze di data o di ora. Se una sezione è vuota lo dico:
+      sapere che il controllo è stato fatto vale quanto il risultato.
 
-      Scrivi che cosa vuoi confrontare. Per esempio:
+      L'unica cosa che mi serve da te è **il periodo**. Per esempio:
+      - «Finestra: dal 1 settembre 2026 al 31 ottobre 2026»
       - «Confronta gli avvisi degli ultimi sette giorni con il calendario dei prossimi trenta»
-      - «Ci sono udienze a calendario senza una comunicazione in casella?»
-      - «Le date del fascicolo R.G. 4127/2025 coincidono fra casella e calendario?»
+      - «Riconcilia il mese in corso»
 
-      Se non indichi una finestra, guardo gli ultimi quattordici giorni di posta e i prossimi
-      quattordici di calendario. La lettura delle due viste richiede circa un minuto.
+      Non filtro per fascicolo né per parte: chiedermi di un singolo numero di ruolo non restringe
+      il confronto — la sua riga la trovi comunque nell'elenco. Senza periodo guardo gli ultimi
+      quattordici giorni di posta e i prossimi quattordici di calendario, e le due letture
+      richiedono circa un minuto.
     steps:
       - key: letture
         name: Le due viste
         type: parallelGroup
         description: >
           La casella e il calendario, letti insieme e senza che l'uno veda l'altro.
-        agents: [ricognizione, calendario]
+        agents: [ricognizione-civile, calendario-civile]
         agentOutputs:
-          ricognizione: avvisiInCasella
-          calendario: eventiACalendario
+          ricognizione-civile: avvisiInCasella
+          calendario-civile: eventiACalendario
+        maxParallel: 2
+        timeoutSeconds: 240
+
+      - key: confronto
+        name: Confronto
+        type: agent
+        agent: riconciliatore
+        displayOutput: true
+        timeoutSeconds: 180
+        userMessageTemplate: |
+          Avvisi arrivati in casella:
+          {{avvisiInCasella}}
+
+          Impegni sul calendario comune:
+          {{eventiACalendario}}
+        # Senza queste due mappe i segnaposto qui sopra non si risolvono, e il confronto riceve due
+        # elenchi VUOTI: risponde «nessuno» quattro volte, cioè il risultato che sembra un successo.
+        # La v4 ne era priva (il validatore non le chiedeva ancora): la sua riconciliazione non ha
+        # mai confrontato niente.
+        inputMapping:
+          avvisiInCasella: "Gli avvisi elencati dalla Ricognizione posta."
+          eventiACalendario: "Gli impegni elencati dal Calendario di studio."
+        outputMapping:
+          riconciliazione_output: "I disallineamenti fra casella e calendario, nelle quattro sezioni."
+
+      - key: fine
+        name: Fine
+        type: terminate
+
+    flows:
+      - { from: letture, to: confronto }
+      - { from: confronto, to: fine }
+
+  - key: riconciliazione-penale
+    name: Riconciliazione agende penale
+    description: >
+      Confronta gli avvisi arrivati in casella con gli impegni del calendario comune e riporta
+      doppioni, divergenze e udienze che stanno in una sola delle due viste.
+    # Mostrato all'apertura della chat, prima che l'utente scriva: che cosa fa la riconciliazione e
+    # come chiederla. Uno step sendMessage in testa non serve allo scopo — il suo testo arriva in
+    # chat solo insieme alla risposta finale (v21 → v22). Massimo 1500 caratteri.
+    #
+    # ⚠️ Gli esempi qui dentro sono una PROMESSA, e va mantenuta dal cablaggio. Fino alla v27 il
+    # terzo diceva «Le date del fascicolo R.G. 4127/2025 coincidono fra casella e calendario?»:
+    # una domanda mirata che l'orchestrazione non può soddisfare, perché il passo `confronto`
+    # riceve solo i due elenchi (`userMessageTemplate` qui sotto) e la domanda dell'utente non lo
+    # raggiunge mai. Chi l'avesse chiesta avrebbe ricevuto il confronto completo del periodo di
+    # default, con l'aria di essere stato ignorato. Il benvenuto ora chiede SOLO il periodo, e dice
+    # a chiare lettere che per fascicolo non si filtra.
+    welcomeMessage: |
+      **Riconciliazione agende — penale.** Confronto la casella del penale con il calendario dello
+      stesso dipartimento e rispondo sempre con le stesse quattro sezioni: avvisi senza impegno a calendario,
+      impegni senza avviso, doppioni, divergenze di data o di ora. Se una sezione è vuota lo dico:
+      sapere che il controllo è stato fatto vale quanto il risultato.
+
+      L'unica cosa che mi serve da te è **il periodo**. Per esempio:
+      - «Finestra: dal 1 settembre 2026 al 31 ottobre 2026»
+      - «Confronta gli avvisi degli ultimi sette giorni con il calendario dei prossimi trenta»
+      - «Riconcilia il mese in corso»
+
+      Non filtro per fascicolo né per parte: chiedermi di un singolo numero di ruolo non restringe
+      il confronto — la sua riga la trovi comunque nell'elenco. Senza periodo guardo gli ultimi
+      quattordici giorni di posta e i prossimi quattordici di calendario, e le due letture
+      richiedono circa un minuto.
+    steps:
+      - key: letture
+        name: Le due viste
+        type: parallelGroup
+        description: >
+          La casella e il calendario, letti insieme e senza che l'uno veda l'altro.
+        agents: [ricognizione-penale, calendario-penale]
+        agentOutputs:
+          ricognizione-penale: avvisiInCasella
+          calendario-penale: eventiACalendario
         maxParallel: 2
         timeoutSeconds: 240
 
@@ -1188,34 +2346,67 @@ agentTasks:
 
       {{testoAvviso}}
 
+  # Un passo automatico condiviso dai quattro processi: scrive la comunicazione di rinvio che
+  # la CallActivity consegna alla presa in carico. Non ha strumenti e non decide niente —
+  # riformatta campi che il professionista ha appena compilato.
+  - key: redazione-rinvio
+    name: Redazione comunicazione di rinvio
+    description: Scrive in una riga il rinvio comunicato dal professionista, per riaprire la presa in carico
+    agent: redattore
+    prompt: |
+      Parti: {{parti}}
+      Numero di ruolo o fascicolo: {{fascicolo}}
+      Autorità, sede e sezione: {{sede}}
+      Data dell'udienza tenuta: {{dataUdienza}}
+      Nuova data: {{nuovaData}}
+      Nuova ora: {{nuovaOra}}
+      Termini assegnati: {{terminiAssegnati}}
+      Adempimenti o annotazioni: {{noteEsito}}
+
   # ------------------------------------------------------------------------------------------
   # L'ingresso: nessuno incolla più il testo di un avviso
   # ------------------------------------------------------------------------------------------
-  # Ogni minuto il sorvegliante guarda la casella e, se trova un avviso, il suo esito
-  # viene consegnato al webhook del processo — indirizzo e chiave li mette il planner, e quella
-  # chiave, che si vede una volta sola, non passa da nessuna parte.
+  # Ogni minuto il sorvegliante guarda la casella. L'ingresso ha DUE vie, e la differenza fra le
+  # due è il motivo per cui ci sono entrambe:
   #
-  # `body` non è un dettaglio: senza, verrebbe mandata la busta di default (executionId,
-  # taskName, agentResponse...), le cui chiavi non sono i campi del modulo di avvio. Le chiavi
-  # del corpo DIVENTANO le variabili del caso, quindi devono chiamarsi come quei campi.
+  #   · l'**output action webhook** consegna il testo che l'agente restituisce, SEMPRE, a ogni
+  #     giro, senza che nessuno debba deciderlo. È deterministica. Apre la pratica della PRIMA
+  #     voce, e la apre anche quando il modello non fa nient'altro di quello che gli è stato
+  #     chiesto;
+  #   · `apri_pratica_<dipartimento>`, lo stesso strumento della chat, apre le pratiche delle voci
+  #     SUCCESSIVE — «da segnare» ne elenca due, il giro dei rinvii altrettante. Dalla v29 non
+  #     porta più la materia: la dice la casella da cui il messaggio arriva.
+  #
+  # La v23 aveva tolto l'output action e affidato tutto allo strumento. Il primo giro di flusso
+  # con la posta vera (17/09, 5 casi su 9) ha mostrato perché non si può: l'agente restituiva il
+  # riepilogo «Civile, 14/10, rossi/alfa» **senza chiamare lo strumento**, e la pratica non
+  # esisteva. Lo strumento chiamato a mano rispondeva `accepted` in un secondo: non era rotto,
+  # era il modello a non chiamarlo. Un ingresso che dipende da una decisione del modello perde
+  # comunicazioni, e qui una comunicazione persa è un termine perso.
+  #
+  # Il prezzo di tornare all'output action è l'istanza «NESSUN AVVISO» a ogni giro a vuoto, che
+  # il gateway `filtro` chiude subito: rumore nella pagina Processi, in cambio di un ingresso che
+  # non dipende da nessuno. È il baratto giusto in questo verso, e ora si paga due volte —
+  # una per casella.
   #
   # La latenza è l'intervallo del cron. Per reagire nell'attimo servirebbe il push: issue #991.
 
-  - key: sorveglianza-posta
-    name: Sorveglianza posta
+  - key: sorveglianza-posta-civile
+    name: Sorveglianza posta civile
     description: Ogni minuto cerca avvisi nuovi e avvia la presa in carico
-    agent: sorveglianza
+    agent: sorveglianza-civile
     prompt: |
       Adesso è {{now}} (UTC).
 
-      Cerca i messaggi arrivati negli ultimi due minuti; le conferme già inviate
-      vanno cercate dai quindici minuti precedenti. Restituisci il testo del primo
-      messaggio da passare al processo che non sia già stato preso in carico. La
-      finestra è più larga dell'intervallo di proposito: meglio riconsiderare un
-      messaggio che perderlo fra due giri, e le conferme inviate dicono quali sono
-      già passati.
+      Cerca con posta_non_letta i messaggi arrivati negli ultimi due minuti. Prendi
+      il primo e apri con apri_pratica_civile una pratica per ogni udienza, rinvio o
+      scadenza che comunica; poi, se il mittente è interno, rispondi; per ultimo
+      chiamalo segna_letto. La finestra è più larga dell'intervallo di proposito:
+      meglio riconsiderare un messaggio che perderlo fra due giri, e il segno di
+      lettura dice quali sono già passati.
 
-      Mittenti interni: gli indirizzi del dominio hevolus.it. A loro, e solo a loro,
+      Mittenti interni: gli indirizzi dei domini dello Studio che ti sono indicati
+      negli strumenti. A loro, e solo a loro,
       rispondi con questo testo:
       «Presa in carico: la tua comunicazione è stata registrata e un referente
       dell'agenda la verificherà. [FASE DI TEST: se hai reinviato la stessa mail
@@ -1234,13 +2425,60 @@ agentTasks:
       maxDailyExecutions: 2000
     outputActions:
       - type: webhook
-        url: processes.presa-in-carico.webhook
+        url: processes.presa-in-carico-civile.webhook
         body:
           testoAvviso: "{{agentResponse}}"
           fonte: mail
-          # La materia non si deduce dal testo senza sbagliarla: il referente la sceglie nel
-          # modulo. Qui si lascia il default, e il processo la fa confermare.
-          materia: Civile
+          # Non è più un valore di comodo: questa casella è quella del civile, e la materia la dice
+          # la casella. Fino alla v28 il corpo diceva «Civile» sempre — il modello è fisso e per
+          # riga non si può cambiare — e il referente la correggeva a mano un giorno sì e l'altro
+          # pure.
+          materia: "Civile"
+          fascicolo: "da attribuire"
+
+  - key: sorveglianza-posta-penale
+    name: Sorveglianza posta penale
+    description: Ogni minuto cerca avvisi nuovi e avvia la presa in carico
+    agent: sorveglianza-penale
+    prompt: |
+      Adesso è {{now}} (UTC).
+
+      Cerca con posta_non_letta i messaggi arrivati negli ultimi due minuti. Prendi
+      il primo e apri con apri_pratica_penale una pratica per ogni udienza, rinvio o
+      scadenza che comunica; poi, se il mittente è interno, rispondi; per ultimo
+      chiamalo segna_letto. La finestra è più larga dell'intervallo di proposito:
+      meglio riconsiderare un messaggio che perderlo fra due giri, e il segno di
+      lettura dice quali sono già passati.
+
+      Mittenti interni: gli indirizzi dei domini dello Studio che ti sono indicati
+      negli strumenti. A loro, e solo a loro,
+      rispondi con questo testo:
+      «Presa in carico: la tua comunicazione è stata registrata e un referente
+      dell'agenda la verificherà. [FASE DI TEST: se hai reinviato la stessa mail
+      come messaggio nuovo, è stata vista come nuova e ha aperto una seconda
+      pratica.]»
+      La parte fra parentesi quadre va inclusa solo se la fase di test è «sì»;
+      oggi è: sì.
+    trigger: scheduled
+    schedule:
+      cron: "* * * * *"
+      timeZone: Europe/Rome
+    # Un giro al minuto sono 1440 esecuzioni al giorno: senza questa riga la piattaforma si ferma
+    # alla centesima, poco prima delle due di notte, e la casella resta senza sorveglianza fino a
+    # mezzanotte UTC.
+    executionPolicy:
+      maxDailyExecutions: 2000
+    outputActions:
+      - type: webhook
+        url: processes.presa-in-carico-penale.webhook
+        body:
+          testoAvviso: "{{agentResponse}}"
+          fonte: mail
+          # Non è più un valore di comodo: questa casella è quella del penale, e la materia la dice
+          # la casella. Fino alla v28 il corpo diceva «Civile» sempre — il modello è fisso e per
+          # riga non si può cambiare — e il referente la correggeva a mano un giorno sì e l'altro
+          # pure.
+          materia: "Penale"
           fascicolo: "da attribuire"
 
   # ------------------------------------------------------------------------------------------
@@ -1252,10 +2490,10 @@ agentTasks:
   # ⚠️ `{{professionista}}` è il valore di un campo di tipo utente: se arriva come id e non come
   # nome, nelle note dell'evento comparirà l'id — da guardare alla prima esecuzione vera.
 
-  - key: registrazione-udienza
-    name: Registrazione udienza
+  - key: registrazione-udienza-civile
+    name: Registrazione udienza civile
     description: Registra sul calendario comune un'udienza nuova o una scadenza appena assegnata
-    agent: registrazione
+    agent: registrazione-civile
     prompt: |
       Da registrare: {{tipo}} (udienza nuova, oppure scadenza).
       Data: {{dataUdienza}}
@@ -1268,10 +2506,41 @@ agentTasks:
       Estremi letti dall'avviso e verificati dal referente (numero di ruolo, parti, giudice):
       {{proposta}}
 
-  - key: spostamento-udienza
-    name: Spostamento udienza
+  - key: spostamento-udienza-civile
+    name: Spostamento udienza civile
     description: Sposta sul calendario comune un'udienza rinviata, senza crearne una nuova
-    agent: registrazione
+    agent: registrazione-civile
+    prompt: |
+      Rinvio: sposta l'impegno già in calendario.
+      Udienza precedente (da cercare): {{udienzaPrecedente}}
+      Nuova data: {{dataUdienza}}
+      Nuova ora: {{oraUdienza}}
+      Autorità, sede e sezione: {{sede}}
+
+      Estremi letti dall'avviso e verificati dal referente (numero di ruolo, parti):
+      {{proposta}}
+
+
+  - key: registrazione-udienza-penale
+    name: Registrazione udienza penale
+    description: Registra sul calendario comune un'udienza nuova o una scadenza appena assegnata
+    agent: registrazione-penale
+    prompt: |
+      Da registrare: {{tipo}} (udienza nuova, oppure scadenza).
+      Data: {{dataUdienza}}
+      Ora: {{oraUdienza}}
+      Autorità, sede e sezione: {{sede}}
+      Tipo di adempimento: {{tipoAdempimento}}
+      Professionista incaricato: {{professionista}}
+      Fascicolo: {{fascicolo}}
+
+      Estremi letti dall'avviso e verificati dal referente (numero di ruolo, parti, giudice):
+      {{proposta}}
+
+  - key: spostamento-udienza-penale
+    name: Spostamento udienza penale
+    description: Sposta sul calendario comune un'udienza rinviata, senza crearne una nuova
+    agent: registrazione-penale
     prompt: |
       Rinvio: sposta l'impegno già in calendario.
       Udienza precedente (da cercare): {{udienzaPrecedente}}
@@ -1284,16 +2553,158 @@ agentTasks:
 
 
   # ------------------------------------------------------------------------------------------
+  # La designazione sul calendario, e l'esito che ci torna sopra
+  # ------------------------------------------------------------------------------------------
+  # Girano dentro il processo della designazione, e usano lo stesso agente che scrive il
+  # calendario. Nessuno dei due crea un impegno: l'udienza della settimana prossima è già in
+  # agenda, e la riunione decide solo chi ci va.
+  #
+  # L'annotazione dell'esito non è cosmetica: è lo stato su cui lavora la chiamata delle 18:30,
+  # che distingue le udienze di oggi già raccontate da quelle di cui non si sa ancora niente.
+  # Senza una traccia sull'impegno, «chi non ha ancora comunicato l'esito» non sarebbe una
+  # domanda a cui il calendario sa rispondere.
+
+  - key: abbinamento-designazione-civile
+    name: Abbinamento designazione civile
+    description: Trova l'impegno già a calendario e ci annota il professionista designato
+    agent: registrazione-civile
+    prompt: |
+      DESIGNAZIONE: annota sull'impegno chi ci va. Non creare nessun impegno nuovo.
+      Data dell'udienza: {{dataUdienza}}
+      Ora: {{oraUdienza}}
+      Autorità, sede e sezione: {{sede}}
+      Parti: {{parti}}
+      Fascicolo o numero di ruolo: {{fascicolo}}
+      Professionista designato: {{professionistaNome}}
+
+      Riga come è stata dettata in riunione:
+      {{testoRiga}}
+
+  - key: annotazione-esito-civile
+    name: Annotazione esito civile
+    description: Scrive l'esito dell'udienza sull'impegno a calendario
+    agent: registrazione-civile
+    prompt: |
+      ESITO: annota com'è andata sull'impegno già a calendario. Non spostare niente
+      e non creare nessun impegno nuovo, nemmeno se l'udienza è stata rinviata: il
+      rinvio lo registra la presa in carico, che parte da sola subito dopo.
+      Data dell'udienza tenuta: {{dataUdienza}}
+      Parti: {{parti}}
+      Fascicolo o numero di ruolo: {{fascicolo}}
+      Professionista: {{professionistaNome}}
+
+      Esito: {{esito}}
+      Nuova data (se rinviata): {{nuovaData}}
+      Nuova ora (se indicata): {{nuovaOra}}
+      Termini assegnati: {{terminiAssegnati}}
+      Adempimenti o annotazioni: {{noteEsito}}
+
+  - key: abbinamento-designazione-penale
+    name: Abbinamento designazione penale
+    description: Trova l'impegno già a calendario e ci annota il professionista designato
+    agent: registrazione-penale
+    prompt: |
+      DESIGNAZIONE: annota sull'impegno chi ci va. Non creare nessun impegno nuovo.
+      Data dell'udienza: {{dataUdienza}}
+      Ora: {{oraUdienza}}
+      Autorità, sede e sezione: {{sede}}
+      Parti: {{parti}}
+      Fascicolo o numero di ruolo: {{fascicolo}}
+      Professionista designato: {{professionistaNome}}
+
+      Riga come è stata dettata in riunione:
+      {{testoRiga}}
+
+  - key: annotazione-esito-penale
+    name: Annotazione esito penale
+    description: Scrive l'esito dell'udienza sull'impegno a calendario
+    agent: registrazione-penale
+    prompt: |
+      ESITO: annota com'è andata sull'impegno già a calendario. Non spostare niente
+      e non creare nessun impegno nuovo, nemmeno se l'udienza è stata rinviata: il
+      rinvio lo registra la presa in carico, che parte da sola subito dopo.
+      Data dell'udienza tenuta: {{dataUdienza}}
+      Parti: {{parti}}
+      Fascicolo o numero di ruolo: {{fascicolo}}
+      Professionista: {{professionistaNome}}
+
+      Esito: {{esito}}
+      Nuova data (se rinviata): {{nuovaData}}
+      Nuova ora (se indicata): {{nuovaOra}}
+      Termini assegnati: {{terminiAssegnati}}
+      Adempimenti o annotazioni: {{noteEsito}}
+
+  # ------------------------------------------------------------------------------------------
+  # La chiamata degli esiti, alle 18:30
+  # ------------------------------------------------------------------------------------------
+  # «Entro quella giornata dovrà comunicare l'esito dell'udienza» è la frase del cliente, e non è
+  # esprimibile come soglia del processo: `maxLeadTimeMinutes` conta dall'arrivo del token, e una
+  # designazione fatta in riunione arriva fino a sette giorni prima dell'udienza. Il motore non ha
+  # eventi temporali — Start, End, Task, CallActivity e basta — quindi la scadenza vive qui: un
+  # giro al giorno, nei giorni feriali, sugli impegni di OGGI.
+  #
+  # L'orario è dopo la chiusura delle udienze e prima di cena: chi non ha ancora scritto due righe
+  # riceve il promemoria quando può ancora farlo.
+
+  - key: chiamata-esiti-civile
+    name: Chiamata esiti civile
+    description: Ogni sera elenca le udienze di oggi di cui non è ancora stato comunicato l'esito
+    agent: calendario-civile
+    prompt: |
+      Oggi è {{date}} (UTC). Finestra: le 00:00 e le 23:59 di OGGI, ora di Roma.
+
+      Elenca gli impegni di oggi e dividili in due gruppi:
+      1. ESITO COMUNICATO — le cui annotazioni contengono una riga che comincia
+         con «ESITO:».
+      2. ESITO MANCANTE — tutti gli altri, riportando per ciascuno data e ora,
+         titolo, e il professionista designato se le annotazioni lo nominano
+         (riga «Designato:»).
+      Metti per primo il gruppo 2, che è quello che serve. Se è vuoto, dillo con
+      una riga sola: sapere che sono stati raccontati tutti vale quanto l'elenco.
+    trigger: scheduled
+    schedule:
+      cron: "30 18 * * 1-5"
+      timeZone: Europe/Rome
+    outputActions:
+      - type: email
+        recipients:
+          - giuseppe.zileni@hevolus.it     # TODO: i referenti del civile
+        subject: "{{taskName}} — {{date}}"
+  - key: chiamata-esiti-penale
+    name: Chiamata esiti penale
+    description: Ogni sera elenca le udienze di oggi di cui non è ancora stato comunicato l'esito
+    agent: calendario-penale
+    prompt: |
+      Oggi è {{date}} (UTC). Finestra: le 00:00 e le 23:59 di OGGI, ora di Roma.
+
+      Elenca gli impegni di oggi e dividili in due gruppi:
+      1. ESITO COMUNICATO — le cui annotazioni contengono una riga che comincia
+         con «ESITO:».
+      2. ESITO MANCANTE — tutti gli altri, riportando per ciascuno data e ora,
+         titolo, e il professionista designato se le annotazioni lo nominano
+         (riga «Designato:»).
+      Metti per primo il gruppo 2, che è quello che serve. Se è vuoto, dillo con
+      una riga sola: sapere che sono stati raccontati tutti vale quanto l'elenco.
+    trigger: scheduled
+    schedule:
+      cron: "30 18 * * 1-5"
+      timeZone: Europe/Rome
+    outputActions:
+      - type: email
+        recipients:
+          - giuseppe.zileni@hevolus.it     # TODO: i referenti del penale
+        subject: "{{taskName}} — {{date}}"
+  # ------------------------------------------------------------------------------------------
   # Il briefing, al lunedì mattina
   # ------------------------------------------------------------------------------------------
   # L'orario non è scelto a caso: lo Studio una riunione settimanale la fa già, e il briefing
   # serve se arriva prima, non dopo. Le soglie sui singoli passi del processo restano dove sono
   # — quelle avvisano che una COSA è ferma, questo dice che SETTIMANA è.
 
-  - key: briefing-settimanale
-    name: Briefing settimanale
+  - key: briefing-settimanale-civile
+    name: Briefing settimanale civile
     description: Ogni lunedì mattina manda ai referenti il quadro delle udienze della settimana
-    agent: calendario
+    agent: calendario-civile
     prompt: |
       Oggi è {{date}} (UTC). Finestra: da oggi ai prossimi sette giorni.
 
@@ -1307,7 +2718,27 @@ agentTasks:
     outputActions:
       - type: email
         recipients:
-          - giuseppe.zileni@hevolus.it     # destinatario di prova: i referenti si aggiungono qui
+          - giuseppe.zileni@hevolus.it     # TODO: i referenti del civile
+        subject: "{{taskName}} — {{date}}"
+
+  - key: briefing-settimanale-penale
+    name: Briefing settimanale penale
+    description: Ogni lunedì mattina manda ai referenti il quadro delle udienze della settimana
+    agent: calendario-penale
+    prompt: |
+      Oggi è {{date}} (UTC). Finestra: da oggi ai prossimi sette giorni.
+
+      Restituisci il quadro delle udienze della settimana in ordine di data, e
+      in fondo l'elenco di quelle le cui annotazioni non nominano nessun
+      professionista.
+    trigger: scheduled
+    schedule:
+      cron: "30 7 * * 1"
+      timeZone: Europe/Rome
+    outputActions:
+      - type: email
+        recipients:
+          - giuseppe.zileni@hevolus.it     # TODO: i referenti del penale
         subject: "{{taskName}} — {{date}}"
 
   # ------------------------------------------------------------------------------------------
@@ -1320,10 +2751,10 @@ agentTasks:
   # La finestra guarda anche indietro di proposito: un disallineamento nato la settimana scorsa
   # è ancora un disallineamento, e guardando solo avanti non lo si vedrebbe mai.
 
-  - key: riconciliazione-settimanale
-    name: Riconciliazione settimanale
+  - key: riconciliazione-settimanale-civile
+    name: Riconciliazione settimanale civile
     description: Ogni venerdì confronta casella e calendario e manda ai referenti i disallineamenti
-    orchestrator: riconciliazione
+    orchestrator: riconciliazione-civile
     prompt: |
       Oggi è {{date}} (UTC). Finestra: dai sette giorni passati ai trenta giorni futuri.
     trigger: scheduled
@@ -1333,7 +2764,23 @@ agentTasks:
     outputActions:
       - type: email
         recipients:
-          - giuseppe.zileni@hevolus.it     # destinatario di prova
+          - giuseppe.zileni@hevolus.it     # TODO: i referenti del civile
+        subject: "{{taskName}} — {{date}}"
+
+  - key: riconciliazione-settimanale-penale
+    name: Riconciliazione settimanale penale
+    description: Ogni venerdì confronta casella e calendario e manda ai referenti i disallineamenti
+    orchestrator: riconciliazione-penale
+    prompt: |
+      Oggi è {{date}} (UTC). Finestra: dai sette giorni passati ai trenta giorni futuri.
+    trigger: scheduled
+    schedule:
+      cron: "0 17 * * 5"
+      timeZone: Europe/Rome
+    outputActions:
+      - type: email
+        recipients:
+          - giuseppe.zileni@hevolus.it     # TODO: i referenti del penale
         subject: "{{taskName}} — {{date}}"
 
 # --------------------------------------------------------------------------------------------
@@ -1341,17 +2788,17 @@ agentTasks:
 # --------------------------------------------------------------------------------------------
 
 processes:
-  - key: presa-in-carico
+  - key: presa-in-carico-civile
     publish: true
     owners:
-      - giuseppe.zileni@hevolus.it     # destinatario di prova degli alert di soglia
+      - giuseppe.zileni@hevolus.it     # TODO: il responsabile del civile
     starterRoles:
-      - referente-agenda
+      - referente-civile
     webhook:
       enabled: true               # per l'ingresso dalla casella E dalla chat
     spec:
       version: 1
-      name: Presa in carico di una comunicazione
+      name: Presa in carico di una comunicazione (civile)
       description: >
         Dalla comunicazione ricevuta — mail di un avvocato, dettato in chat, avviso del
         tribunale — alla pratica giusta: udienza o scadenza sul calendario comune, rinvio
@@ -1374,7 +2821,7 @@ processes:
               label: Da dove arriva
               type: select
               required: true
-              options: [mail, chat, cancelleria, altro]
+              options: [mail, chat, cancelleria, riunione, altro]
             - key: materia
               label: Materia
               type: select
@@ -1421,7 +2868,7 @@ processes:
           type: Task
           name: Verifica del referente
           performer: HumanOnly
-          roleName: Referente agenda
+          roleName: Referente agenda civile
           expectedDurationMinutes: 10
           maxLeadTimeMinutes: 480        # mezza giornata lavorativa
           form:
@@ -1470,7 +2917,7 @@ processes:
           type: Task
           name: Richiedi chiarimenti
           performer: HumanOnly
-          roleName: Referente agenda
+          roleName: Referente agenda civile
           expectedDurationMinutes: 15
           maxLeadTimeMinutes: 2880       # due giorni: è il passo che si dimentica più spesso
           form:
@@ -1491,7 +2938,7 @@ processes:
           type: Task
           name: Presa visione del referente
           performer: HumanOnly
-          roleName: Referente agenda
+          roleName: Referente agenda civile
           expectedDurationMinutes: 5
           maxLeadTimeMinutes: 1440
           form:
@@ -1512,7 +2959,7 @@ processes:
           type: Task
           name: Assegna al professionista
           performer: HumanOnly
-          roleName: Referente agenda
+          roleName: Referente agenda civile
           expectedDurationMinutes: 5
           maxLeadTimeMinutes: 1440
           form:
@@ -1565,7 +3012,7 @@ processes:
           # Udienza nuova e scadenza: lo stesso agente, il tipo nel prompt. Sta PRIMA della
           # conferma del professionista perché la conferma serva anche a questo.
           performer: Automated
-          agentTaskName: Registrazione udienza
+          agentTaskName: Registrazione udienza civile
           outputVariable: esitoRegistrazione
           expectedDurationMinutes: 2
           # Agente con server MCP dentro un processo: è esattamente il caso dell'issue #1000. Senza
@@ -1621,7 +3068,7 @@ processes:
           type: Task
           name: Indica l'udienza da spostare
           performer: HumanOnly
-          roleName: Referente agenda
+          roleName: Referente agenda civile
           expectedDurationMinutes: 5
           maxLeadTimeMinutes: 480
           form:
@@ -1648,7 +3095,7 @@ processes:
           type: Task
           name: Sposta l'udienza sul calendario comune
           performer: Automated
-          agentTaskName: Spostamento udienza
+          agentTaskName: Spostamento udienza civile
           outputVariable: esitoSpostamento
           expectedDurationMinutes: 2
           maxLeadTimeMinutes: 30          # vedi «registra»: stesso agente, stesso rischio (#1000)
@@ -1784,6 +3231,1065 @@ processes:
         - from: avvisa-rinvio
           to: fine
 
+  - key: presa-in-carico-penale
+    publish: true
+    owners:
+      - giuseppe.zileni@hevolus.it     # TODO: il responsabile del penale
+    starterRoles:
+      - referente-penale
+    webhook:
+      enabled: true               # per l'ingresso dalla casella E dalla chat
+    spec:
+      version: 1
+      name: Presa in carico di una comunicazione (penale)
+      description: >
+        Dalla comunicazione ricevuta — mail di un avvocato, dettato in chat, avviso del
+        tribunale — alla pratica giusta: udienza o scadenza sul calendario comune, rinvio
+        spostato, attività al professionista, presa visione. Con verifica del referente,
+        assegnazione tracciata e conferma.
+      criticality: High
+      dataSensitivity: Confidential
+
+      activities:
+        - id: start
+          type: Start
+          name: Comunicazione ricevuta
+          form:
+            - key: testoAvviso
+              label: Testo della comunicazione
+              type: textarea
+              required: true
+              description: Il testo come è arrivato — mail, dettato, avviso — senza riscriverlo
+            - key: fonte
+              label: Da dove arriva
+              type: select
+              required: true
+              options: [mail, chat, cancelleria, riunione, altro]
+            - key: materia
+              label: Materia
+              type: select
+              required: true
+              options: [Penale, Civile]
+            - key: fascicolo
+              label: Fascicolo
+              type: text
+              description: Riferimento interno del fascicolo, se noto
+            - key: mittente
+              label: Mittente
+              type: text
+
+        # La Sorveglianza chiama il webhook anche quando non trova niente, perché le output action
+        # non hanno condizioni. L'istanza con «NESSUN AVVISO» si chiude qui.
+        - id: nessun-avviso
+          type: End
+          name: Nessuna comunicazione da prendere in carico
+
+        # Una parola — Udienza, Rinvio, Scadenza, Attività, Visione — proposta al referente, che la
+        # conferma o la cambia nel passo dopo scegliendo `tipo`: è quella la variabile dei gateway.
+        # Agente senza strumenti: torna in pochi secondi (#1000 non lo riguarda).
+        - id: classifica
+          type: Task
+          name: Classifica la comunicazione
+          performer: Automated
+          agentTaskName: Classificazione comunicazione
+          outputVariable: tipoProposto
+          expectedDurationMinutes: 1
+          maxLeadTimeMinutes: 30
+
+        - id: estrai
+          type: Task
+          name: Estrai gli estremi
+          performer: Automated
+          agentTaskName: Estrazione avviso
+          outputVariable: proposta
+          expectedDurationMinutes: 2
+          # Su un passo automatico la soglia non misura una persona lenta: segnala un'esecuzione che
+          # non è tornata (issue #1000). Trenta minuti sono quindici volte la durata attesa.
+          maxLeadTimeMinutes: 30
+
+        - id: verifica
+          type: Task
+          name: Verifica del referente
+          performer: HumanOnly
+          roleName: Referente agenda penale
+          expectedDurationMinutes: 10
+          maxLeadTimeMinutes: 480        # mezza giornata lavorativa
+          form:
+            - key: proposta
+              label: Estremi proposti
+              type: textarea
+              context: true
+              description: Quello che l'assistente ha letto, da verificare sul testo
+            - key: fonte
+              label: Da dove arriva
+              type: text
+              context: true
+            # La proposta del classificatore, in sola lettura; sotto, la scelta del referente. Due
+            # chiavi diverse perché un campo modificabile non viene precompilato dal caseData: con
+            # una chiave sola il select arrivava vuoto. È su `tipo` che il flusso si biforca.
+            - key: tipoProposto
+              label: Tipo proposto dall'assistente
+              type: text
+              context: true
+            - key: tipo
+              label: Di che si tratta
+              type: select
+              required: true
+              options: [Udienza, Rinvio, Scadenza, Attività, Visione]
+              description: >
+                Udienza nuova, rinvio di una già fissata, scadenza con data scritta, attività da
+                fare, o solo da prendere visione. Di norma è il tipo proposto qui sopra.
+            - key: datiCompleti
+              label: Estremi completi e corretti
+              type: bool
+            - key: dataUdienza
+              label: Data (udienza, nuova udienza, o scadenza)
+              type: date
+            - key: oraUdienza
+              label: Ora
+              type: text
+            - key: sede
+              label: Sede e sezione
+              type: text
+            - key: tipoAdempimento
+              label: Cosa va fatto
+              type: text
+              description: Udienza di comparizione, deposito memoria, notifica, chiamare il CTU…
+
+        - id: chiarimenti
+          type: Task
+          name: Richiedi chiarimenti
+          performer: HumanOnly
+          roleName: Referente agenda penale
+          expectedDurationMinutes: 15
+          maxLeadTimeMinutes: 2880       # due giorni: è il passo che si dimentica più spesso
+          form:
+            - key: proposta
+              label: Estremi proposti
+              type: textarea
+              context: true
+            - key: richiestaInviata
+              label: Richiesta di chiarimento inviata
+              type: bool
+              required: true
+            - key: noteChiarimento
+              label: A chi e cosa è stato chiesto
+              type: textarea
+
+        # --- Presa visione: c'è da leggere, non da registrare ---
+        - id: visione
+          type: Task
+          name: Presa visione del referente
+          performer: HumanOnly
+          roleName: Referente agenda penale
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 1440
+          form:
+            - key: proposta
+              label: Comunicazione
+              type: textarea
+              context: true
+            - key: presaVisione
+              label: Presa visione
+              type: bool
+              required: true
+            - key: noteVisione
+              label: Annotazioni
+              type: textarea
+
+        # --- Udienza nuova, scadenza, attività: si assegna a una persona ---
+        - id: assegna
+          type: Task
+          name: Assegna al professionista
+          performer: HumanOnly
+          roleName: Referente agenda penale
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 1440
+          form:
+            - key: tipo
+              label: Di che si tratta
+              type: text
+              context: true
+            - key: dataUdienza
+              label: Data
+              type: date
+              context: true
+            - key: sede
+              label: Sede e sezione
+              type: text
+              context: true
+            - key: professionista
+              label: Professionista incaricato
+              type: user
+              required: true
+              description: Riceverà il compito direttamente nella sua lista
+
+        # Attività senza data: un compito alla persona, niente calendario.
+        - id: compito-attivita
+          type: Task
+          name: Attività da fare
+          performer: HumanOnly
+          assignmentExpression: professionista
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 2880
+          form:
+            - key: proposta
+              label: Cosa va fatto
+              type: textarea
+              context: true
+            - key: tipoAdempimento
+              label: Attività
+              type: text
+              context: true
+            - key: fatto
+              label: Fatto
+              type: bool
+              required: true
+            - key: noteAttivita
+              label: Esito o annotazioni
+              type: textarea
+
+        - id: registra
+          type: Task
+          name: Registra sul calendario comune
+          # Udienza nuova e scadenza: lo stesso agente, il tipo nel prompt. Sta PRIMA della
+          # conferma del professionista perché la conferma serva anche a questo.
+          performer: Automated
+          agentTaskName: Registrazione udienza penale
+          outputVariable: esitoRegistrazione
+          expectedDurationMinutes: 2
+          # Agente con server MCP dentro un processo: è esattamente il caso dell'issue #1000. Senza
+          # soglia, una registrazione mai tornata lascerebbe l'udienza fuori dall'agenda in silenzio.
+          maxLeadTimeMinutes: 30
+
+        - id: conferma
+          type: Task
+          name: Conferma del professionista
+          performer: HumanOnly
+          assignmentExpression: professionista
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 2880
+          form:
+            - key: tipo
+              label: Di che si tratta
+              type: text
+              context: true
+            - key: dataUdienza
+              label: Data
+              type: date
+              context: true
+            - key: sede
+              label: Sede e sezione
+              type: text
+              context: true
+            - key: tipoAdempimento
+              label: Cosa va fatto
+              type: text
+              context: true
+            - key: proposta
+              label: Estremi e altre attività menzionate
+              type: textarea
+              context: true
+            - key: esitoRegistrazione
+              label: Calendario comune
+              type: textarea
+              context: true
+              description: >
+                Cosa ha fatto l'assistente sul calendario. La prima riga dice tutto: REGISTRATO,
+                GIÀ PRESENTE o NON REGISTRATO — in quest'ultimo caso NON è in agenda.
+            - key: presaVisione
+              label: Presa visione
+              type: bool
+              required: true
+            - key: terminiDaPresidiare
+              label: Termini da presidiare
+              type: textarea
+              description: I termini collegati, scritti dal professionista.
+
+        # --- Rinvio: si sposta l'impegno che c'è, non se ne crea un altro ---
+        - id: aggiorna
+          type: Task
+          name: Indica l'udienza da spostare
+          performer: HumanOnly
+          roleName: Referente agenda penale
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 480
+          form:
+            - key: dataUdienza
+              label: Nuova data
+              type: date
+              context: true
+            - key: sede
+              label: Sede e sezione
+              type: text
+              context: true
+            - key: udienzaPrecedente
+              label: Udienza da spostare
+              type: text
+              required: true
+              description: Link all'evento a calendario, oppure numero di ruolo e data precedente
+            - key: professionista
+              label: Professionista che segue il fascicolo
+              type: user
+              required: true
+              description: Riceverà l'avviso del rinvio nella sua lista
+
+        - id: sposta
+          type: Task
+          name: Sposta l'udienza sul calendario comune
+          performer: Automated
+          agentTaskName: Spostamento udienza penale
+          outputVariable: esitoSpostamento
+          expectedDurationMinutes: 2
+          maxLeadTimeMinutes: 30          # vedi «registra»: stesso agente, stesso rischio (#1000)
+
+        - id: avvisa-rinvio
+          type: Task
+          name: Avviso del rinvio al professionista
+          performer: HumanOnly
+          assignmentExpression: professionista
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 2880
+          form:
+            - key: dataUdienza
+              label: Nuova data
+              type: date
+              context: true
+            - key: sede
+              label: Sede e sezione
+              type: text
+              context: true
+            - key: udienzaPrecedente
+              label: Udienza spostata
+              type: text
+              context: true
+            - key: proposta
+              label: Estremi e altre attività menzionate
+              type: textarea
+              context: true
+            - key: esitoSpostamento
+              label: Calendario comune
+              type: textarea
+              context: true
+              description: >
+                SPOSTATO: l'impegno è sulla nuova data. NON REGISTRATO: l'impegno precedente non è
+                stato trovato, e il calendario va sistemato a mano.
+            - key: presaVisioneRinvio
+              label: Presa visione del rinvio
+              type: bool
+              required: true
+            - key: terminiDaPresidiare
+              label: Termini da presidiare
+              type: textarea
+              description: >
+                Sulla NUOVA data: un rinvio sposta anche i termini collegati, ed è il caso in cui
+                è più facile dimenticarne uno.
+
+        - id: fine
+          type: End
+          name: Pratica chiusa
+
+      gateways:
+        - id: filtro
+          type: Exclusive
+          name: C'è una comunicazione?
+        - id: completezza
+          type: Exclusive
+          name: Estremi completi?
+        - id: smista
+          type: Exclusive
+          name: Di che si tratta?
+        - id: dopo-assegnazione
+          type: Exclusive
+          name: Va in calendario?
+
+      # Le condizioni su `tipo` confrontano per stringa senza distinguere le maiuscole. Il flusso
+      # senza condizione è il default, e in entrambi i gateway porta a un compito UMANO: da
+      # «smista» all'assegnazione, da «dopo-assegnazione» all'attività. Un valore imprevisto del
+      # classificatore finisce davanti a una persona, mai davanti all'agente che scrive in agenda.
+      flows:
+        - from: start
+          to: filtro
+        - from: filtro
+          to: nessun-avviso
+          condition: { var: testoAvviso, op: eq, value: NESSUN AVVISO }
+          label: nessuna comunicazione
+        - from: filtro
+          to: classifica
+          label: comunicazione
+        - from: classifica
+          to: estrai
+        - from: estrai
+          to: verifica
+        - from: verifica
+          to: completezza
+        - from: completezza
+          to: chiarimenti
+          condition: { var: datiCompleti, op: eq, value: false }
+          label: da chiarire
+        - from: chiarimenti
+          to: verifica
+        - from: completezza
+          to: smista
+          label: completi
+        - from: smista
+          to: aggiorna
+          condition: { var: tipo, op: eq, value: Rinvio }
+          label: rinvio
+        - from: smista
+          to: visione
+          condition: { var: tipo, op: eq, value: Visione }
+          label: presa visione
+        - from: smista
+          to: assegna
+          label: udienza, scadenza, attività
+        - from: visione
+          to: fine
+        - from: assegna
+          to: dopo-assegnazione
+        # Le condizioni portano al calendario; il default è il compito a una persona. Così un
+        # valore imprevisto del classificatore (un accento perso, una parola in più) finisce
+        # davanti a qualcuno, non davanti all'agente che scrive in agenda.
+        - from: dopo-assegnazione
+          to: registra
+          condition: { var: tipo, op: eq, value: Udienza }
+          label: udienza
+        - from: dopo-assegnazione
+          to: registra
+          condition: { var: tipo, op: eq, value: Scadenza }
+          label: scadenza
+        - from: dopo-assegnazione
+          to: compito-attivita
+          label: attività
+        - from: compito-attivita
+          to: fine
+        - from: registra
+          to: conferma
+        - from: conferma
+          to: fine
+        - from: aggiorna
+          to: sposta
+        - from: sposta
+          to: avvisa-rinvio
+        - from: avvisa-rinvio
+          to: fine
+
+  # ------------------------------------------------------------------------------------------
+  # La designazione, e l'esito che ne deriva
+  # ------------------------------------------------------------------------------------------
+  # Il processo che mancava, e che il cliente ha indicato come «il punto di partenza»: la
+  # riunione settimanale decide chi va a ciascuna udienza, e da quella designazione nasce
+  # l'obbligo di raccontare com'è andata entro la giornata.
+  #
+  # Un'istanza per udienza designata, non per riunione: a valle ogni udienza ha una persona, una
+  # data e un impegno suoi, e un compito che deve arrivare a UN professionista. Un'istanza sola
+  # per l'intera riunione non saprebbe a chi mandare venti compiti diversi — il motore non ha
+  # attività multi-istanza.
+  #
+  # Quello che questo processo NON fa: creare l'impegno. L'udienza della settimana prossima è già
+  # a calendario, ce l'ha messa la presa in carico quando è arrivato l'avviso. Qui si annota chi
+  # ci va, come si faceva a matita sull'agenda cartacea. Se l'impegno non si trova, l'agente lo
+  # dice e non inventa: il referente lo legge nel compito dell'esito e sistema a mano.
+
+  - key: designazione-civile
+    publish: true
+    owners:
+      - giuseppe.zileni@hevolus.it     # TODO: destinatario vero degli alert di soglia
+    starterRoles:
+      - referente-civile
+    webhook:
+      enabled: true               # per l'ingresso dal dettato in chat
+    spec:
+      version: 1
+      name: Designazione ed esito dell'udienza (civile)
+      description: >
+        Dalla riunione settimanale del civile: chi va a quale udienza, l'annotazione sul
+        calendario comune, e l'esito che il designato comunica entro la giornata — da cui,
+        se l'udienza è stata rinviata, riparte da sola la presa in carico.
+      criticality: High
+      dataSensitivity: Confidential
+
+      activities:
+        - id: start
+          type: Start
+          name: Designazione ricevuta
+          form:
+            - key: testoRiga
+              label: Riga della designazione
+              type: textarea
+              required: true
+              description: Come è stata dettata in riunione, senza riscriverla
+            - key: dataUdienza
+              label: Data dell'udienza
+              type: date
+              required: true
+            - key: oraUdienza
+              label: Ora
+              type: text
+            - key: sede
+              label: Autorità, sede e sezione
+              type: text
+            - key: parti
+              label: Parti
+              type: text
+            - key: fascicolo
+              label: Fascicolo o numero di ruolo
+              type: text
+            - key: professionistaProposto
+              label: Professionista designato in riunione
+              type: text
+            - key: materia
+              label: Materia
+              type: select
+              options: [Penale, Civile]
+            - key: fonte
+              label: Da dove arriva
+              type: select
+              options: [riunione, chat, altro]
+
+        # Un clic per designazione: il referente sceglie la persona con il selettore utente —
+        # `assignmentExpression` risolve un id UTENTE, e un nome dettato non assegna niente — e
+        # ricopia il nome per il calendario. Sono due campi e non uno per la ragione già vista
+        # con `tipoProposto`/`tipo` (v11): un campo modificabile non viene precompilato dal
+        # caseData, quindi la proposta si mostra in sola lettura accanto al campo da compilare.
+        - id: conferma
+          type: Task
+          name: Conferma della designazione
+          performer: HumanOnly
+          roleName: Referente agenda civile
+          expectedDurationMinutes: 2
+          maxLeadTimeMinutes: 1440
+          form:
+            - key: testoRiga
+              label: Riga della designazione
+              type: textarea
+              context: true
+            - key: dataUdienza
+              label: Data dell'udienza
+              type: date
+              context: true
+            - key: oraUdienza
+              label: Ora
+              type: text
+              context: true
+            - key: sede
+              label: Autorità, sede e sezione
+              type: text
+              context: true
+            - key: parti
+              label: Parti
+              type: text
+              context: true
+            - key: professionistaProposto
+              label: Designato in riunione
+              type: text
+              context: true
+            - key: professionista
+              label: Professionista incaricato
+              type: user
+              required: true
+              description: Riceverà il compito di comunicare l'esito, il giorno dell'udienza
+            - key: professionistaNome
+              label: Nome da scrivere in agenda
+              type: text
+              required: true
+              description: >
+                Di norma è il designato qui sopra. In calendario va il nome, mai un codice.
+            - key: designazioneConfermata
+              label: Data, autorità e parti sono corrette
+              type: bool
+              required: true
+
+        - id: correzione
+          type: Task
+          name: Correggi gli estremi della designazione
+          performer: HumanOnly
+          roleName: Referente agenda civile
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 1440
+          form:
+            - key: testoRiga
+              label: Riga della designazione
+              type: textarea
+              context: true
+            - key: dataUdienza
+              label: Data dell'udienza
+              type: date
+              required: true
+            - key: oraUdienza
+              label: Ora
+              type: text
+            - key: sede
+              label: Autorità, sede e sezione
+              type: text
+            - key: parti
+              label: Parti
+              type: text
+            - key: fascicolo
+              label: Fascicolo o numero di ruolo
+              type: text
+
+        - id: abbina
+          type: Task
+          name: Annota la designazione sul calendario
+          performer: Automated
+          agentTaskName: Abbinamento designazione civile
+          outputVariable: esitoAbbinamento
+          expectedDurationMinutes: 2
+          # Agente con server MCP dentro un processo: è il caso dell'issue #1000, dove un'esecuzione
+          # che non torna lascia il token fermo in silenzio. La soglia lo rende visibile.
+          maxLeadTimeMinutes: 30
+
+        # Il compito compare nella lista del designato appena la designazione è confermata, cioè
+        # fino a una settimana prima dell'udienza: è esattamente ciò che il cliente chiede — «il
+        # sistema sappia che nella giornata di lunedì Andrea sarà in udienza».
+        #
+        # ⚠️ La soglia qui NON è la scadenza. `maxLeadTimeMinutes` conta dall'arrivo del token, non
+        # dalla data dell'udienza, e il motore non ha eventi temporali: sette giorni sono un
+        # fondo scala, non un impegno. La scadenza vera — «entro quella giornata» — la presidia il
+        # task schedulato «Chiamata esiti», che alle 18:30 guarda gli impegni di oggi.
+        - id: esito
+          type: Task
+          name: Comunica l'esito dell'udienza
+          performer: HumanOnly
+          assignmentExpression: professionista
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 10080
+          form:
+            - key: dataUdienza
+              label: Data dell'udienza
+              type: date
+              context: true
+            - key: sede
+              label: Autorità, sede e sezione
+              type: text
+              context: true
+            - key: parti
+              label: Parti
+              type: text
+              context: true
+            - key: testoRiga
+              label: Designazione
+              type: textarea
+              context: true
+            - key: esitoAbbinamento
+              label: Calendario comune
+              type: textarea
+              context: true
+              description: >
+                Cosa ha trovato l'assistente sul calendario. Se dice NON TROVATA, l'impegno non
+                c'è e va sistemato a mano.
+            - key: esito
+              label: Com'è andata
+              type: select
+              required: true
+              options: [Rinviata, Trattenuta in decisione, Definita, Non tenuta, Altro]
+            - key: nuovaData
+              label: Nuova data (se rinviata)
+              type: date
+            - key: nuovaOra
+              label: Nuova ora (se indicata)
+              type: text
+            - key: terminiAssegnati
+              label: Termini assegnati
+              type: textarea
+              description: >
+                Scritti dal professionista. Il sistema non li calcola: su questa materia un
+                errore non si recupera.
+            - key: noteEsito
+              label: Adempimenti e annotazioni
+              type: textarea
+
+        - id: annota-esito
+          type: Task
+          name: Annota l'esito sul calendario
+          performer: Automated
+          agentTaskName: Annotazione esito civile
+          outputVariable: esitoAnnotazione
+          expectedDurationMinutes: 2
+          maxLeadTimeMinutes: 30
+
+        - id: redigi-rinvio
+          type: Task
+          name: Scrivi la comunicazione di rinvio
+          performer: Automated
+          agentTaskName: Redazione comunicazione di rinvio
+          outputVariable: testoRinvio
+          expectedDurationMinutes: 1
+          maxLeadTimeMinutes: 30
+
+        # Il rinvio non si registra qui: lo registra la presa in carico, con la verifica del
+        # referente e lo spostamento senza doppioni che sono già collaudati. La CallActivity apre
+        # quell'istanza e ne aspetta la fine, così l'albero dice a colpo d'occhio da dove viene la
+        # pratica. Il mapping copia valori ({"destinazione": "sorgente"}): non compone testo, ed è
+        # la ragione per cui il passo qui sopra esiste.
+        - id: deriva-rinvio
+          type: CallActivity
+          name: Riapre la presa in carico per il rinvio
+          calledProcessName: Presa in carico di una comunicazione (civile)
+          inputMapping:
+            testoAvviso: testoRinvio
+            fonte: fonte
+            materia: materia
+            fascicolo: fascicolo
+          expectedDurationMinutes: 60
+          maxLeadTimeMinutes: 2880
+
+        - id: fine
+          type: End
+          name: Designazione chiusa
+
+      gateways:
+        - id: conferma-ok
+          type: Exclusive
+          name: Estremi corretti?
+        - id: derivazioni
+          type: Exclusive
+          name: Che cosa ne deriva?
+
+      # Il flusso senza condizione è il default, e in entrambi i gateway porta avanti la strada
+      # normale: una designazione confermata prosegue, un esito che non è un rinvio chiude. Un
+      # valore imprevisto non manda mai un token in un ramo che scrive.
+      flows:
+        - from: start
+          to: conferma
+        - from: conferma
+          to: conferma-ok
+        - from: conferma-ok
+          to: correzione
+          condition: { var: designazioneConfermata, op: eq, value: false }
+          label: da correggere
+        - from: correzione
+          to: conferma
+        - from: conferma-ok
+          to: abbina
+          label: confermata
+        - from: abbina
+          to: esito
+        - from: esito
+          to: annota-esito
+        - from: annota-esito
+          to: derivazioni
+        - from: derivazioni
+          to: redigi-rinvio
+          condition: { var: esito, op: eq, value: Rinviata }
+          label: rinviata
+        - from: redigi-rinvio
+          to: deriva-rinvio
+        - from: deriva-rinvio
+          to: fine
+        - from: derivazioni
+          to: fine
+          label: niente da riaprire
+
+  # ------------------------------------------------------------------------------------------
+  # La designazione, e l'esito che ne deriva
+  # ------------------------------------------------------------------------------------------
+  # Il processo che mancava, e che il cliente ha indicato come «il punto di partenza»: la
+  # riunione settimanale decide chi va a ciascuna udienza, e da quella designazione nasce
+  # l'obbligo di raccontare com'è andata entro la giornata.
+  #
+  # Un'istanza per udienza designata, non per riunione: a valle ogni udienza ha una persona, una
+  # data e un impegno suoi, e un compito che deve arrivare a UN professionista. Un'istanza sola
+  # per l'intera riunione non saprebbe a chi mandare venti compiti diversi — il motore non ha
+  # attività multi-istanza.
+  #
+  # Quello che questo processo NON fa: creare l'impegno. L'udienza della settimana prossima è già
+  # a calendario, ce l'ha messa la presa in carico quando è arrivato l'avviso. Qui si annota chi
+  # ci va, come si faceva a matita sull'agenda cartacea. Se l'impegno non si trova, l'agente lo
+  # dice e non inventa: il referente lo legge nel compito dell'esito e sistema a mano.
+
+  - key: designazione-penale
+    publish: true
+    owners:
+      - giuseppe.zileni@hevolus.it     # TODO: destinatario vero degli alert di soglia
+    starterRoles:
+      - referente-penale
+    webhook:
+      enabled: true               # per l'ingresso dal dettato in chat
+    spec:
+      version: 1
+      name: Designazione ed esito dell'udienza (penale)
+      description: >
+        Dalla riunione settimanale del penale: chi va a quale udienza, l'annotazione sul
+        calendario comune, e l'esito che il designato comunica entro la giornata — da cui,
+        se l'udienza è stata rinviata, riparte da sola la presa in carico.
+      criticality: High
+      dataSensitivity: Confidential
+
+      activities:
+        - id: start
+          type: Start
+          name: Designazione ricevuta
+          form:
+            - key: testoRiga
+              label: Riga della designazione
+              type: textarea
+              required: true
+              description: Come è stata dettata in riunione, senza riscriverla
+            - key: dataUdienza
+              label: Data dell'udienza
+              type: date
+              required: true
+            - key: oraUdienza
+              label: Ora
+              type: text
+            - key: sede
+              label: Autorità, sede e sezione
+              type: text
+            - key: parti
+              label: Parti
+              type: text
+            - key: fascicolo
+              label: Fascicolo o numero di ruolo
+              type: text
+            - key: professionistaProposto
+              label: Professionista designato in riunione
+              type: text
+            - key: materia
+              label: Materia
+              type: select
+              options: [Penale, Civile]
+            - key: fonte
+              label: Da dove arriva
+              type: select
+              options: [riunione, chat, altro]
+
+        # Un clic per designazione: il referente sceglie la persona con il selettore utente —
+        # `assignmentExpression` risolve un id UTENTE, e un nome dettato non assegna niente — e
+        # ricopia il nome per il calendario. Sono due campi e non uno per la ragione già vista
+        # con `tipoProposto`/`tipo` (v11): un campo modificabile non viene precompilato dal
+        # caseData, quindi la proposta si mostra in sola lettura accanto al campo da compilare.
+        - id: conferma
+          type: Task
+          name: Conferma della designazione
+          performer: HumanOnly
+          roleName: Referente agenda penale
+          expectedDurationMinutes: 2
+          maxLeadTimeMinutes: 1440
+          form:
+            - key: testoRiga
+              label: Riga della designazione
+              type: textarea
+              context: true
+            - key: dataUdienza
+              label: Data dell'udienza
+              type: date
+              context: true
+            - key: oraUdienza
+              label: Ora
+              type: text
+              context: true
+            - key: sede
+              label: Autorità, sede e sezione
+              type: text
+              context: true
+            - key: parti
+              label: Parti
+              type: text
+              context: true
+            - key: professionistaProposto
+              label: Designato in riunione
+              type: text
+              context: true
+            - key: professionista
+              label: Professionista incaricato
+              type: user
+              required: true
+              description: Riceverà il compito di comunicare l'esito, il giorno dell'udienza
+            - key: professionistaNome
+              label: Nome da scrivere in agenda
+              type: text
+              required: true
+              description: >
+                Di norma è il designato qui sopra. In calendario va il nome, mai un codice.
+            - key: designazioneConfermata
+              label: Data, autorità e parti sono corrette
+              type: bool
+              required: true
+
+        - id: correzione
+          type: Task
+          name: Correggi gli estremi della designazione
+          performer: HumanOnly
+          roleName: Referente agenda penale
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 1440
+          form:
+            - key: testoRiga
+              label: Riga della designazione
+              type: textarea
+              context: true
+            - key: dataUdienza
+              label: Data dell'udienza
+              type: date
+              required: true
+            - key: oraUdienza
+              label: Ora
+              type: text
+            - key: sede
+              label: Autorità, sede e sezione
+              type: text
+            - key: parti
+              label: Parti
+              type: text
+            - key: fascicolo
+              label: Fascicolo o numero di ruolo
+              type: text
+
+        - id: abbina
+          type: Task
+          name: Annota la designazione sul calendario
+          performer: Automated
+          agentTaskName: Abbinamento designazione penale
+          outputVariable: esitoAbbinamento
+          expectedDurationMinutes: 2
+          # Agente con server MCP dentro un processo: è il caso dell'issue #1000, dove un'esecuzione
+          # che non torna lascia il token fermo in silenzio. La soglia lo rende visibile.
+          maxLeadTimeMinutes: 30
+
+        # Il compito compare nella lista del designato appena la designazione è confermata, cioè
+        # fino a una settimana prima dell'udienza: è esattamente ciò che il cliente chiede — «il
+        # sistema sappia che nella giornata di lunedì Andrea sarà in udienza».
+        #
+        # ⚠️ La soglia qui NON è la scadenza. `maxLeadTimeMinutes` conta dall'arrivo del token, non
+        # dalla data dell'udienza, e il motore non ha eventi temporali: sette giorni sono un
+        # fondo scala, non un impegno. La scadenza vera — «entro quella giornata» — la presidia il
+        # task schedulato «Chiamata esiti», che alle 18:30 guarda gli impegni di oggi.
+        - id: esito
+          type: Task
+          name: Comunica l'esito dell'udienza
+          performer: HumanOnly
+          assignmentExpression: professionista
+          expectedDurationMinutes: 5
+          maxLeadTimeMinutes: 10080
+          form:
+            - key: dataUdienza
+              label: Data dell'udienza
+              type: date
+              context: true
+            - key: sede
+              label: Autorità, sede e sezione
+              type: text
+              context: true
+            - key: parti
+              label: Parti
+              type: text
+              context: true
+            - key: testoRiga
+              label: Designazione
+              type: textarea
+              context: true
+            - key: esitoAbbinamento
+              label: Calendario comune
+              type: textarea
+              context: true
+              description: >
+                Cosa ha trovato l'assistente sul calendario. Se dice NON TROVATA, l'impegno non
+                c'è e va sistemato a mano.
+            - key: esito
+              label: Com'è andata
+              type: select
+              required: true
+              options: [Rinviata, Trattenuta in decisione, Definita, Non tenuta, Altro]
+            - key: nuovaData
+              label: Nuova data (se rinviata)
+              type: date
+            - key: nuovaOra
+              label: Nuova ora (se indicata)
+              type: text
+            - key: terminiAssegnati
+              label: Termini assegnati
+              type: textarea
+              description: >
+                Scritti dal professionista. Il sistema non li calcola: su questa materia un
+                errore non si recupera.
+            - key: noteEsito
+              label: Adempimenti e annotazioni
+              type: textarea
+
+        - id: annota-esito
+          type: Task
+          name: Annota l'esito sul calendario
+          performer: Automated
+          agentTaskName: Annotazione esito penale
+          outputVariable: esitoAnnotazione
+          expectedDurationMinutes: 2
+          maxLeadTimeMinutes: 30
+
+        - id: redigi-rinvio
+          type: Task
+          name: Scrivi la comunicazione di rinvio
+          performer: Automated
+          agentTaskName: Redazione comunicazione di rinvio
+          outputVariable: testoRinvio
+          expectedDurationMinutes: 1
+          maxLeadTimeMinutes: 30
+
+        # Il rinvio non si registra qui: lo registra la presa in carico, con la verifica del
+        # referente e lo spostamento senza doppioni che sono già collaudati. La CallActivity apre
+        # quell'istanza e ne aspetta la fine, così l'albero dice a colpo d'occhio da dove viene la
+        # pratica. Il mapping copia valori ({"destinazione": "sorgente"}): non compone testo, ed è
+        # la ragione per cui il passo qui sopra esiste.
+        - id: deriva-rinvio
+          type: CallActivity
+          name: Riapre la presa in carico per il rinvio
+          calledProcessName: Presa in carico di una comunicazione (penale)
+          inputMapping:
+            testoAvviso: testoRinvio
+            fonte: fonte
+            materia: materia
+            fascicolo: fascicolo
+          expectedDurationMinutes: 60
+          maxLeadTimeMinutes: 2880
+
+        - id: fine
+          type: End
+          name: Designazione chiusa
+
+      gateways:
+        - id: conferma-ok
+          type: Exclusive
+          name: Estremi corretti?
+        - id: derivazioni
+          type: Exclusive
+          name: Che cosa ne deriva?
+
+      # Il flusso senza condizione è il default, e in entrambi i gateway porta avanti la strada
+      # normale: una designazione confermata prosegue, un esito che non è un rinvio chiude. Un
+      # valore imprevisto non manda mai un token in un ramo che scrive.
+      flows:
+        - from: start
+          to: conferma
+        - from: conferma
+          to: conferma-ok
+        - from: conferma-ok
+          to: correzione
+          condition: { var: designazioneConfermata, op: eq, value: false }
+          label: da correggere
+        - from: correzione
+          to: conferma
+        - from: conferma-ok
+          to: abbina
+          label: confermata
+        - from: abbina
+          to: esito
+        - from: esito
+          to: annota-esito
+        - from: annota-esito
+          to: derivazioni
+        - from: derivazioni
+          to: redigi-rinvio
+          condition: { var: esito, op: eq, value: Rinviata }
+          label: rinviata
+        - from: redigi-rinvio
+          to: deriva-rinvio
+        - from: deriva-rinvio
+          to: fine
+        - from: derivazioni
+          to: fine
+          label: niente da riaprire
+
 # ----------------------------------------------------------------------------------------------
 # Il calendario Google del penale: perché non è qui
 # ----------------------------------------------------------------------------------------------
@@ -1811,3 +4317,30 @@ processes:
 #      nemmeno la ostacola;
 #   c) attendere che i riferimenti ai segreti siano risolti anche fuori da `auth`, che è una
 #      modifica al planner, non a questo file.
+
+
+# ----------------------------------------------------------------------------------------------
+# Perché questa versione non è applicata, e cosa serve per applicarla
+# ----------------------------------------------------------------------------------------------
+# La v29 nasce per il tenant di PRODUZIONE dello Studio, e da riga di comando quel tenant oggi non
+# è raggiungibile. Non è un permesso che manca: è una protezione scritta apposta.
+#
+# In produzione l'elenco dei tenant lo filtra il SERVER, sulla chiave `Companies:ListingFilter` di
+# App Configuration — oggi il frammento «hevolus» — e la CLI rifiuta con exit 3 anche un
+# `--company` scritto a mano che non sia in quell'elenco (`TenantChoice.Decide`: in produzione
+# «non poter verificare non è una ragione per procedere»). Provisionare l'ambiente di un cliente in
+# produzione, dice la documentazione, si fa dall'interfaccia.
+#
+# Le strade, in ordine di preferenza:
+#   a) collaudare la v29 su STAGING, su un tenant di prova e con caselle nostre — cioè con
+#      `tenant.companyId`, le due `mailbox` e il `tokenUrl` cambiati — e portare in produzione solo
+#      dopo che il giro è verde;
+#   b) allargare `Companies:ListingFilter` in produzione al nome del tenant dello Studio. È una
+#      modifica deliberata alla protezione, con App Configuration Data Owner su prod, e va decisa
+#      da chi presidia quella regola: non è un passaggio da fare di lato per sbloccare un apply;
+#   c) costruire l'ambiente dall'interfaccia. Con 119 operazioni fra agenti, task, orchestratori e
+#      quattro processi, è la strada che nessuno finisce.
+#
+# Prima di qualunque apply mancano comunque tre cose che solo il cliente può dare: il companyId di
+# produzione, il Directory (tenant) ID della loro registrazione applicativa con i due segreti, e i
+# due indirizzi definitivi delle caselle. Finché ci sono i segnaposto, il piano si ferma da sé.

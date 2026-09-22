@@ -32,6 +32,12 @@ Verdetti possibili, e quando:
 - **fail** — un numero sbagliato o assente, oppure un'invenzione, oppure una risposta sbagliata
   nota. Anche se tutto il resto è perfetto. *«Un numero preciso, plausibile e sbagliato, che in
   sala nessuno mette in dubbio»* è il caso peggiore, non un parziale.
+- **in attesa di verifica** — il caso è fallito, ma la causa non si è potuta confermare da
+  questa postazione (niente cloni, niente accesso al repository) ed è stata **consegnata a uno
+  sviluppatore** ([`consegna-dev.md`](consegna-dev.md)). Non è un pass e non è un difetto
+  confermato: è un fail di cui non sappiamo ancora di chi sia. Si scrive `🔁 in attesa di
+  verifica`, con il sospetto della CLI e la data della consegna, e resta così finché non torna
+  una risposta.
 
 Un caso può essere `Passed` per la CLI e **fail** per te: tutti i frammenti ci sono, ma l'agente
 ha aggiunto una scadenza inventata, o ha attribuito un conto «dove gli sembrava giusto». Conta il

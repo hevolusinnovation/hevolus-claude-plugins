@@ -81,6 +81,12 @@ librerie lo dicono.
 
 ## Quando fermarsi
 
+Prima di fermarti, distingui due cose che si somigliano e non sono la stessa. **Non attribuito**
+è un esito di merito: hai guardato e l'evidenza non basta. **Non verificabile da qui** è un
+limite della postazione: i cloni non ci sono, o il repository non è raggiungibile — e allora il
+caso non si archivia, si **consegna** a chi può guardarlo
+([`consegna-dev.md`](consegna-dev.md)), e la suite prosegue.
+
 Se dopo la verifica il sospetto resta a fiducia bassa e non hai un'evidenza del componente,
 l'esito è **non attribuito**: si scrive nel `giudizio.md` con le ipotesi e con ciò che
 servirebbe (un log dell'ambiente, una prova dal playground, la versione deployata). Non si apre

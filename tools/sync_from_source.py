@@ -25,6 +25,7 @@ DEST_TEST = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-bluepri
 COPIE = [
     # La skill di provisioning e i riferimenti che le appartengono.
     (".claude/skills/xrcopilotlab-blueprint/SKILL.md", DEST / "SKILL.md"),
+    (".claude/skills/xrcopilotlab-blueprint/references/installazione.md", DEST / "references"),
     (".claude/skills/xrcopilotlab-blueprint/references/regole-del-grafo.md", DEST / "references"),
     (".claude/skills/xrcopilotlab-blueprint/references/intervista.md", DEST / "references"),
     (".claude/skills/xrcopilotlab-blueprint/references/mcp-builder.md", DEST / "references"),
@@ -43,6 +44,7 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-test/references/giudizio.md", DEST_TEST / "references"),
     (".claude/skills/xrcopilotlab-blueprint-test/references/triage.md", DEST_TEST / "references"),
     (".claude/skills/xrcopilotlab-blueprint-test/references/segnalazione.md", DEST_TEST / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-test/references/consegna-dev.md", DEST_TEST / "references"),
     (".claude/skills/xrcopilotlab-blueprint-test/references/bpm.md", DEST_TEST / "references"),
     (".claude/skills/xrcopilotlab-blueprint-test/references/guida-cliente.md", DEST_TEST / "references"),
     ("docs/blueprints/testing.md", DEST_TEST / "references"),

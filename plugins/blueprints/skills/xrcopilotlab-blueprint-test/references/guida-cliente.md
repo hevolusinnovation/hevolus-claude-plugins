@@ -58,7 +58,8 @@ Struttura che ha retto tre volte (Studio Polis, Como, FinLogic):
   difetti aperti con il numero di issue, cosa non dire come funzionante, dove sta il giudizio.
 
 In testa, sempre, una **tabella di stato** per parte dello scenario (✅ pronta · 🟡 da correggere
-prima di mostrarla · ⛔ da non mostrare come funzionante · ⏳ attende una fonte), ricavata
+prima di mostrarla · ⛔ da non mostrare come funzionante · ⏳ attende una fonte · 🔁 in attesa di
+verifica da uno sviluppatore, quindi da non mostrare come funzionante), ricavata
 dall'**ultimo giudizio**: è la prima cosa che l'utente guarda prima di entrare in sala.
 
 ## La guida allo scenario

@@ -155,6 +155,7 @@ agents:
     temperature: 0.2
     maxTokens: 4000
     language: it          # lingua dell'endpoint di default
+    # endpoint: Anthropic Studio Polis   # solo se la company ha un endpoint AI proprio
     skills: []            # SkillId già a catalogo, es. legal-research
     mcp: []               # chiavi di mcpServers (milestone 2)
     knowledge: []         # chiavi di knowledge[]: i profili che l'agente interroga
@@ -177,6 +178,17 @@ proposti per esclusione: per quelli il compromesso lo dice la descrizione a cata
 
 Ogni agente riceve un **endpoint di default** come quando lo si crea dall'interfaccia: senza, un
 agente esiste ma non è interrogabile.
+
+**`endpoint` serve solo quando la company ne ha uno suo.** Gli endpoint condivisi della piattaforma
+valgono per tutti e non si citano; un endpoint della company — tipicamente il suo account Anthropic,
+perché il consumo sia fatturato a lei — è sempre un non-default, e la piattaforma lo usa **solo se
+esiste un collegamento esplicito** con l'agente. Senza quel collegamento l'agente parla con
+l'endpoint condiviso qualunque modello dichiari, e la differenza non si vede da nessuna parte se non
+in fattura.
+
+Si scrive il nome come compare nella configurazione del tenant, **senza prefisso**: l'endpoint non è
+del blueprint, che lo collega e basta. Il preflight rifiuta con `BP066` un nome che la company non
+ha, elencando quelli che ha; il rollback scollega l'agente e lascia l'endpoint dov'è.
 
 ## `agentTasks`
 
@@ -346,7 +358,9 @@ scritto fra virgolette non farebbe mai scattare il ramo. Vale il core schema di 
 - `Automated` e `AiAssisted` richiedono `agentTaskName`; `HumanOnly` e `AiAssisted` richiedono
   `roleName` oppure `assignmentExpression`;
 - un'attività `Automated` non genera work item, quindi non può avere un form;
-- la variabile di una condizione deve essere la `key` di un campo form o un `outputVariable`.
+- la variabile di una condizione deve essere la `key` di un campo form o un `outputVariable`, e
+  se è un campo allegato l'unico operatore ammesso è `exists`;
+- un campo allegato (`type: file`) sta su un'attività umana, mai sullo `Start`.
 
 ### `form` — i campi di un modulo
 
@@ -354,7 +368,7 @@ scritto fra virgolette non farebbe mai scattare il ramo. Vale il core schema di 
 form:
   - key: testoAvviso
     label: Testo dell'avviso
-    type: textarea         # text | textarea | number | bool | date | select | user
+    type: textarea         # text | textarea | number | bool | date | select | user | file
     description: ...       # spiegazione sotto l'etichetta, non un segnaposto
     required: true
     readonly: false
@@ -363,8 +377,37 @@ form:
     optionsTargetName: ... # solo per select, opzioni da una sorgente dati esterna
 ```
 
-Il tipo **allegato** non è ancora accettato dalla specifica dichiarativa della piattaforma: un
-processo che ne ha bisogno si disegna nel designer e si importa con `bpmnFile`.
+#### `type: file` — l'allegato
+
+Un campo `file` raccoglie uno o più documenti: chi svolge l'attività li carica, e da quel momento
+sono **variabili del processo** come gli altri dati, quindi gli step successivi li ritrovano fra i
+dati a monte e li scaricano.
+
+```yaml
+- id: sopralluogo
+  type: Task
+  name: Sopralluogo
+  performer: HumanOnly
+  roleName: Tecnico
+  form:
+    - key: verbale
+      label: Verbale firmato
+      type: file
+      required: true       # non si completa l'attività senza almeno un file
+```
+
+Due vincoli, e in entrambi i casi il validatore si ferma invece di lasciar nascere un campo che non
+funziona:
+
+- **solo su un'attività umana, mai sullo `Start`.** Un allegato appartiene all'istanza e
+  all'attività in cui è stato caricato, e il form di avvio gira prima che l'istanza esista. Un
+  documento da raccogliere all'avvio si chiede nella prima attività umana del processo.
+- **una condizione può solo chiedere se c'è**, cioè `op: exists`. Il valore di un campo allegato è
+  la lista dei file, non uno scalare: `eq` non darebbe errore, semplicemente non sarebbe mai vero e
+  il ramo non scatterebbe mai.
+
+Per leggere un allegato in uno step successivo lo si dichiara come qualunque altra variabile a
+monte (`context: true`), e chi apre l'attività lo trova con nome, dimensione e download.
 
 ## `connections` e `mcpServers`
 
@@ -395,6 +438,10 @@ mcpServers:
     kind: builder                          # builder | external
     name: Calendario
     connection: graph
+    systemPrompt: |                        # istruzioni d'uso, che viaggiano col server
+      Chiama cerca_eventi prima di invia: senza la finestra non sai se lo slot è libero.
+      Le date sono sempre ISO 8601 con la Z. Questo server non vede le mail, solo il calendario.
+    promptMode: append                     # append (default) | replace | skip
     variables: { mailbox: test@hevolus.it }
     tools:
       - name: cerca_eventi
@@ -426,6 +473,33 @@ mcpServers:
     url: https://.../mcp
     auth: { kind: CustomHeaders, header: X-API-Key, secret: Blueprints:Secrets:LEGAL:mcp-apikey }
 ```
+
+#### `systemPrompt` e `promptMode` — le istruzioni d'uso del server
+
+Chi conosce quegli strumenti scrive **una volta sola** in che ordine vanno chiamati, quali parametri
+sono facili da sbagliare, come si leggono le risposte e cosa quel sistema non copre. Il testo resta
+sul server, e da lì raggiunge ogni agente a cui il server viene collegato.
+
+`promptMode` dice cosa farne sull'agente. Dall'interfaccia la domanda si fa a ogni collegamento; in
+un manifest la risposta si scrive sul server, perché non c'è nessuno a cui chiederla al momento
+giusto:
+
+| `promptMode` | Effetto sul `systemMessage` dell'agente |
+|---|---|
+| `append` (default) | Il prompt del server va in coda, separato da una riga vuota. |
+| `replace` | Il prompt del server sostituisce quello dell'agente. |
+| `skip` | L'agente resta com'è: il testo vive solo sul server. |
+
+La composizione avviene alla **creazione** dell'agente, non al collegamento: l'agente nasce già con
+le istruzioni, e il piano dice quali server vi hanno contribuito — `con il prompt suggerito di
+«calendario»` — così ci si accorge di cosa sta per succedere prima che succeda. Se un agente usa più
+server, si applicano nell'ordine in cui li elenca, e un `replace` azzera ciò che è stato composto
+fino a lì.
+
+Due rilievi (`BP046`): un `promptMode` che non è una delle tre parole è un **errore** — verrebbe
+letto come `append`, e il manifest direbbe una cosa mentre ne succede un'altra; un `promptMode` su
+un server **senza** `systemPrompt` è un **avviso**, perché quasi sempre è il prompt che si è
+dimenticato di scrivere.
 
 ### Una connessione verso il webhook di un processo: `process`
 

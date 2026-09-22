@@ -173,6 +173,10 @@
           "systemPrompt": {
             "type": "string"
           },
+          "promptMode": {
+            "enum": ["append", "replace", "skip"],
+            "description": "Cosa fare del prompt suggerito sull'agente che usa il server: append (default) lo mette in coda al system message, replace lo sostituisce, skip lo lascia solo sul server."
+          },
           "connection": {
             "type": "string",
             "description": "kind=builder: chiave della connessione usata dai tool."
@@ -445,6 +449,10 @@
               "it",
               "en"
             ]
+          },
+          "endpoint": {
+            "type": "string",
+            "description": "Nome di un endpoint AI della company a cui collegare l'agente, come compare nella configurazione del tenant. Serve quando la company ne ha uno proprio (tipicamente Anthropic): senza, l'agente parla con gli endpoint condivisi qualunque modello dichiari. Deve esistere gia: il blueprint lo collega, non lo crea."
           },
           "skills": {
             "type": "array",

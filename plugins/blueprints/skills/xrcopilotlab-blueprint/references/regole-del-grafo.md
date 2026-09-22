@@ -87,15 +87,27 @@ condition: { var: confermato, op: eq, value: true }
 
 ## Campi di un modulo
 
-Tipi ammessi: `text`, `textarea`, `number`, `bool`, `date`, `select`, `user`.
+Tipi ammessi: `text`, `textarea`, `number`, `bool`, `date`, `select`, `user`, `file`.
 
 - `key` obbligatoria e **unica dentro lo stesso modulo**.
 - un campo `select` richiede `options` **oppure** `optionsTargetName`.
 - `context: true` rende il campo di sola lettura, alimentato da una variabile prodotta a monte: si
   usa per mostrare all'operatore l'esito di un passo precedente.
 
-**Il tipo allegato non è ammesso** nella specifica dichiarativa. Un processo che deve raccogliere
-file si disegna nel designer e si importa con `bpmnFile`.
+### `file` — l'allegato
+
+Chi svolge l'attività carica uno o più documenti, che diventano variabili del processo come gli
+altri dati: gli step successivi li ritrovano fra i dati a monte (`context: true`) e li scaricano.
+`required: true` impedisce di completare l'attività senza almeno un file.
+
+Due vincoli, entrambi verificati dal validatore:
+
+- **mai sullo `Start`.** Un allegato appartiene all'istanza e all'attività in cui è stato caricato,
+  e il form di avvio gira prima che l'istanza esista — l'interfaccia lo dice già a chi compila
+  («si può allegare quando l'attività è in corso»), quindi il campo nascerebbe inutilizzabile. Un
+  documento da raccogliere all'avvio si chiede nella prima attività umana.
+- **in una condizione solo `op: exists`.** Il valore è la lista dei file, non uno scalare: `eq` non
+  darebbe errore, semplicemente non sarebbe mai vero e il ramo non scatterebbe mai.
 
 ## Cosa il validatore NON verifica
 

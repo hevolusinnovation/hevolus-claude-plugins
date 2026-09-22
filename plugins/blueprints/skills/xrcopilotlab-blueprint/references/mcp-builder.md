@@ -104,6 +104,14 @@ primo.
 
 Si parte da un **Agente Base** e si collega il server da *Aggiunta conoscenza → MCP*.
 
+**Le istruzioni d'uso non si ricopiano più su ogni agente.** Dalla v3.2.0 il server porta un
+`systemPrompt` — quando chiamare quale strumento e in che ordine, i parametri delicati, come si
+leggono le risposte, cosa non copre — e quel testo raggiunge ogni agente a cui il server viene
+collegato. Nel manifest si scrive una volta sul server, con `promptMode` a dire se va in coda al
+prompt dell'agente (`append`, il default), se lo sostituisce (`replace`) o se resta solo sul server
+(`skip`). Le regole qui sotto restano valide: cambia solo **dove** si scrivono — sul server quando
+riguardano quegli strumenti, sull'agente quando riguardano il suo mestiere.
+
 **Temperature 0.1–0.2.** È una trasformazione deterministica da JSON a linguaggio naturale, non
 scrittura creativa.
 
@@ -162,6 +170,12 @@ mcpServers:
           vatNumber: Partita IVA senza il prefisso paese, es. 00159560366
         required: [countryCode, vatNumber]
         body: '{"countryCode":"{{countryCode}}","vatNumber":"{{vatNumber}}"}'
+    systemPrompt: |
+      Un `"---"` è un campo assente, non un dato. `valid: false` dice che la partita IVA non è
+      abilitata alle operazioni intracomunitarie, non che l'impresa non esista. MS_UNAVAILABLE e
+      TIMEOUT vogliono dire che la fonte non ha risposto: si dichiara il gap e si invita a riprovare.
+      Questo strumento non conosce fatturato, soci né bilanci.
+    promptMode: append
     testTool: vies_check_vat
 
 agents:
@@ -177,7 +191,12 @@ agents:
 pubblicazione nel catalogo del tenant, più il collegamento all'agente che lo userà. Il piano le
 elenca come qualsiasi altra operazione, e si approvano insieme al resto.
 
-Due cose da sapere scrivendo i tool:
+Tre cose da sapere scrivendo i tool:
+
+- **il `systemPrompt` del server è il posto giusto per le regole sui suoi dati** — i gap, il
+  perimetro, come si leggono gli esiti. Nel `systemMessage` dell'agente resta ciò che riguarda il
+  suo mestiere. Prima quelle regole andavano ripetute su ogni agente che usava la fonte, e
+  divergevano alla prima modifica;
 
 - **il valore di un parametro è la sua descrizione**, non il suo tipo: `vatNumber: Partita IVA senza
   prefisso` è ciò che il modello legge per decidere come chiamare il tool. Per il controllo pieno si

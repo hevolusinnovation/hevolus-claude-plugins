@@ -156,6 +156,10 @@ lo dichiara, con il modulo scritto nella suite.
       - expect: { waitingAt: verifica, caseData: { tipoProposto: Udienza } }   # come expect.process, con attesa
       - complete: { activity: verifica, form: { tipo: Udienza, datiCompleti: true, dataUdienza: "2026-09-22" } }
       - complete: { activity: assegna,  form: { professionista: "{{userId}}" } }
+      - complete:                            # un'attività che chiede un documento
+          activity: sopralluogo
+          form: { note: Tutto regolare }
+          files: { verbale: [./allegati/verbale-01.pdf] }   # percorsi relativi alla cartella della suite
       - expect: { waitingAt: conferma, caseData: { esitoRegistrazione: REGISTRATO } }
       - tool: { server: m365, name: cerca_eventi, args: { inizio: "…", fine: "…" }, contains: ["4127/2025"] }
       - waitInstance: { absent: true, caseData: { testoAvviso: "Fattura" } }   # il messaggio va SCARTATO
@@ -165,9 +169,17 @@ lo dichiara, con il modulo scritto nella suite.
 |---|---|---|
 | `tool` | Chiama un tool di un server MCP del blueprint (`server`, `name`, `args`). Con `capture: { nome: value[0].id }` prende un valore dalla risposta JSON, usabile poi come `{{vars.nome}}`; con `optional: true` un errore non ferma il giro (una pulizia su qualcosa che può non esserci) | il tool non risponde con un errore (o è `optional`), e la risposta contiene `contains` e non `notContains` |
 | `waitInstance` | Aspetta un'istanza del processo target avviata dopo l'inizio del caso, il cui caseData contiene i frammenti in `caseData` | compare entro `withinSeconds`; con `absent: true`, se **non** compare |
-| `complete` | Prende e completa il compito aperto sull'attività, con `form` | il compito c'è entro `withinSeconds` e il completamento riesce |
+| `complete` | Prende e completa il compito aperto sull'attività, con `form` e, se l'attività li chiede, gli allegati di `files` | il compito c'è entro `withinSeconds`, i file esistono, e il completamento riesce |
 | `expect` | Le stesse attese di `expect.process`, verificate finché si assestano | tutte vere entro `withinSeconds` |
 | `chat` | Una conversazione a più turni con un agente del blueprint (`agent`, `turns`), nella stessa chat: il dettato dell'avvocato, la rilettura, il «sì» che fa aprire la pratica. I turni compaiono nel report | nessun turno in errore, e l'ultima risposta contiene `contains` e non `notContains` |
+
+**Gli allegati.** Un'attività può chiedere dei file (`type: file` nel suo modulo): `files` li carica
+prima di completare, una lista per campo, con i percorsi **relativi alla cartella della suite** —
+così il collaudo gira da qualunque directory. Il caricamento avviene dentro il compito già preso in
+carico, perché è lì che il file acquista un posto a cui appartenere, e quello che finisce nella
+variabile di processo sono i metadati del file, non il percorso locale: gli step successivi lo
+ritrovano fra i dati a monte e lo scaricano, esattamente come dopo un caricamento fatto a mano. Un
+file che non esiste ferma il caso prima di toccare il tenant.
 
 Segnaposto nelle stringhe di `args` e `form`: `{{userId}}` (l'utente di collaudo, come id — è
 ciò che vuole un campo di tipo utente), `{{instanceId}}`, `{{caseData.<chiave>}}`,
@@ -183,7 +195,8 @@ precedente non fallisce «GIÀ PRESENTE» per caso (16/09/2026). Esempio complet
 | Tipo | Cosa fa la CLI | Quando si ferma |
 |---|---|---|
 | `agent` | Una chat sincrona con `enableLogs: true` sull'endpoint `default`, un turno per messaggio nella stessa conversazione | alla risposta dell'ultimo turno |
-| `orchestrator` | `execute` sull'orchestratore, poi interroga lo stato ogni 3 secondi | a `completed`, `failed`, `cancelled`, `paused` (HITL: esce in errore) o al timeout |
+| `orchestrator` (`via: direct`, default) | `execute` sull'orchestratore, poi interroga lo stato ogni 3 secondi | a `completed`, `failed`, `cancelled`, `paused` (HITL: esce in errore) o al timeout |
+| `orchestrator` con `via: chat` | Avvia l'esecuzione e segue lo **stream degli eventi**, la stessa strada che percorre un utente; alle domande risponde con i turni di `conversation` | a `completed`, `failed`, `cancelled`, quando le domande superano i turni scritti, o al timeout |
 | `process` | Avvia un'istanza con `caseData`, poi legge istanza, eventi e compiti ogni 3 secondi | quando c'è un compito aperto su `waitingAt` (o, senza, un compito aperto qualsiasi), quando lo stato non è più `Running`, o al timeout |
 
 Per conto di chi si parla e si avvia lo decide `defaults.userId`: un'**email** si traduce nell'id
@@ -191,6 +204,16 @@ dell'utente sul tenant. Serve ai processi con ruoli di avvio, che confrontano l'
 usa il nome utente del sistema operativo e l'avvio esce 403 «Non autorizzato ad avviare questo
 processo». Subito dopo l'avvio l'istanza può non esistere ancora (passa da una coda): la CLI
 riprova sul 404 finché non compare o scade il timeout.
+
+**Quando usare `via: chat`.** Su un orchestratore con un passo che fa una domanda, `direct` può solo
+constatare la pausa e uscire in errore: il collaudo non vede mai il risultato che l'utente riceve.
+`via: chat` percorre la stessa strada dell'utente e risponde con i turni scritti, quindi arriva in
+fondo. È anche la strada più fedele in generale, perché è quella che il pannello «Test workflow»
+della pagina di un orchestratore usa dalla v3.2.0: ciò che prova è ciò che l'utente riceve.
+
+Se le domande sono più dei turni scritti, il caso **si ferma e lo dice**, con la domanda rimasta
+senza risposta nel report: rispondere a caso a una domanda non prevista produrrebbe un verde che non
+significa niente.
 
 Per scrivere i casi di un processo serve il modello di esecuzione del motore (token, gateway,
 work item, soglie) e le domande da farsi sul grafo: sono in
@@ -288,6 +311,7 @@ verdetto: la tabella evidenza → verifica è nella skill
 | `BT019` | Una risposta sbagliata da riconoscere non dice come riconoscerla (`contains`, `pattern` o `number`) | errore |
 | `BT020` | Un caso `flow` senza passi, o un passo che non è esattamente uno fra `tool`, `waitInstance`, `complete`, `expect` | errore |
 | `BT021` | Un passo `tool` cita un server MCP o un tool che il manifest non dichiara | errore |
+| `BT022` | `via` non è `direct` né `chat`, o è dichiarato su un caso che non è un orchestratore | errore |
 
 ## Dove vive il codice
 

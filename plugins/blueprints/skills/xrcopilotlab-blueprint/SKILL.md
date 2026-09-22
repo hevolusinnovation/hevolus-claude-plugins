@@ -25,9 +25,11 @@ Cosa riportare, in quest'ordine:
 1. **A cosa serve**: descrivere un ambiente in un file e crearlo su un tenant — topic, agenti,
    connessioni, server MCP, orchestratori, agent task, processi BPM — mostrando il piano e
    chiedendo conferma prima di toccare qualcosa.
-2. **Cosa serve per poterlo usare**, in due righe: un accesso `hevolus.it` — non c'entra l'account
-   con cui si usa Claude — e, la prima volta su quella macchina, un accesso ad Azure che si fa dal
-   proprio terminale. Dettagli in [§ Con quale identità gira](#con-quale-identità-gira--da-chiarire-al-primo-comando-che-fallisce-o-prima):
+2. **Cosa serve per poterlo usare**, in due righe: la CLI — che si ottiene installando il plugin
+   `blueprints@hevolus`, non compilando questo repository ([`references/installazione.md`](references/installazione.md)
+   anche per l'installazione a mano su macOS e Windows) — un accesso `hevolus.it` — non c'entra
+   l'account con cui si usa Claude — e, la prima volta su quella macchina, un accesso ad Azure che
+   si fa dal proprio terminale. Dettagli in [§ Con quale identità gira](#con-quale-identità-gira--da-chiarire-al-primo-comando-che-fallisce-o-prima):
    vale la pena dirlo qui, perché è il punto contro cui si sbatte prima di riuscire a fare qualsiasi
    altra cosa.
 3. **Su cosa si può lavorare adesso.** Gli ambienti sono `staging`, `preview`, `prod`; senza `--env`
@@ -52,6 +54,7 @@ tutto l'orientamento.
 
 | Quando | Documento |
 |---|---|
+| Se la CLI non c'è, o `xrcopilotlab-bp` non è un comando | [`references/installazione.md`](references/installazione.md) — il plugin, e l'installazione a mano su macOS e Windows |
 | Sempre, prima di scrivere lo YAML | [`references/regole-del-grafo.md`](references/regole-del-grafo.md) — cosa il validatore accetta |
 | Quando parti da zero e devi intervistare | [`references/intervista.md`](references/intervista.md) — l'ordine delle domande e come tradurre le risposte |
 | Quando serve una fonte esterna che non è ancora collegata | [`references/mcp-builder.md`](references/mcp-builder.md) — il ciclo connessione → MCP → agente, verificato su VIES |
@@ -162,7 +165,9 @@ status`): si apre il browser, e da lì in poi il token in cache vale anche per i
 
 È il caso per cui esiste il plugin, e conviene dirgli tre cose e non di più:
 
-1. serve l'accesso Hevolus, quello con cui entra nella posta aziendale;
+1. la CLI se la installa il plugin da solo — `/plugin marketplace add hevolusinnovation/hevolus-claude-plugins`
+   e `/plugin install blueprints@hevolus`, e serve l'accesso Hevolus, quello con cui entra nella
+   posta aziendale;
 2. la prima volta si apre una pagina del browser: è normale, è l'accesso ad Azure, e succede una
    volta sola su quella macchina;
 3. se compare un errore che parla di ruoli o di permessi, non è qualcosa che può risolvere da sé —
@@ -189,7 +194,7 @@ occupati** sul tenant (lo dice il preflight del piano) e che i **valori dei segr
 impostati con `secrets set` — nel dossier c'è solo il loro nome, ed è giusto così.
 
 Se il dossier promette qualcosa che il motore non fa — un timer, un ricongiungimento dopo un fork,
-un allegato in un processo dichiarativo — dirlo subito: è meglio scoprirlo qui che a piano rifiutato.
+un allegato raccolto nel form di avvio — dirlo subito: è meglio scoprirlo qui che a piano rifiutato.
 
 Altrimenti condurre l'intervista seguendo [`references/intervista.md`](references/intervista.md):
 una domanda per volta, senza chiedere ciò che si può dedurre e senza inventare ciò che non è stato
@@ -357,6 +362,9 @@ Il **tenant** non si scrive: senza `--company` la CLI ne elenca i nomi e chiede 
 un assistente l'input non è un terminale, quindi stampa l'elenco e si ferma con **6** — vuol dire
 riportare i nomi all'utente e chiedere quale, non indovinarne uno.
 
+Su **staging** fa eccezione: l'ambiente di prova è uno solo, quindi senza `--company` la CLI ci
+lavora e lo annuncia. Non c'è niente da chiedere all'utente, e non c'è un 6 da aspettarsi.
+
 In **produzione** si lavora sul solo tenant di Hevolus: l'API non elenca gli ambienti dei clienti e
 li rifiuta anche se il GUID viene scritto a mano (**3**). Non è un permesso che manca, è una scelta:
 l'ambiente di un cliente si configura dall'interfaccia. Se qualcuno chiede di applicare un blueprint
@@ -428,6 +436,38 @@ esecuzioni con esito, avviso se lo scheduler avanza mentre le esecuzioni no) e
 processi del blueprint: dove sta il token, eventi, compiti, dati del caso). Un token su un compito
 umano — `verifica:waiting`, `assegna:waiting` — vuol dire che manca il passo di una persona, non che
 qualcosa è rotto. Un blueprint applicato si collauda con la skill `xrcopilotlab-blueprint-test`.
+
+## 6-bis. Portare una versione in un altro ambiente o su un altro tenant
+
+Un manifest collaudato **non si riscrive** per applicarlo altrove: si copia. Ogni ambiente ha il
+proprio archivio, e dentro l'archivio ogni tenant il suo, quindi una voce ha quattro coordinate —
+ambiente, tenant, blueprint, versione.
+
+```bash
+xrcopilotlab-bp promote --tag <TAG> --version <n> \
+    --from-env staging --from-company <guid-origine> \
+    --to-env   prod    --to-company   <guid-destinazione>
+```
+
+Quattro cose da dire all'utente, perché sono le quattro che sorprendono:
+
+1. **Non crea niente sul tenant.** La copia è solo in archivio: dopo servono ancora `plan` e
+   `apply`, con la loro approvazione. Riferire il comando di `plan` che la CLI stampa alla fine.
+2. **Ripeterlo non fa danni.** Se alla destinazione c'è già la stessa versione con lo stesso
+   contenuto, non scrive niente e lo dice.
+3. **Se si ferma con «contenuto diverso»**, non aggiungere `--overwrite` per sbloccare: vuol dire
+   che qualcuno ha modificato il manifest per l'ambiente di destinazione, e la strada giusta è
+   quasi sempre alzare `version:`.
+4. **I segreti non viaggiano** — nel manifest ci sono solo i nomi. Quelli che la destinazione non
+   ha, `promote` li elenca: vanno impostati con `secrets set --env <destinazione>` prima del
+   `plan`.
+
+Per rileggere un manifest archiviato — anche senza il file, anche da un altro computer — c'è
+`pull --tag <TAG> [--out <file>] [--with-files]`. Due `pull` e un `diff` dicono senza
+interpretazioni se due ambienti stanno eseguendo davvero lo stesso blueprint.
+
+In **produzione** vale la solita protezione: un tenant che l'API non elenca viene rifiutato con
+**3** anche come destinazione di una copia. L'archivio non è una porta di servizio.
 
 ## 7. Cancellare un blueprint
 

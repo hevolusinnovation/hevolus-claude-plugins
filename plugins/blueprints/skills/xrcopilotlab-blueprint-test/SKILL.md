@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-test
-description: Collauda un blueprint XRCopilotLab applicato su un tenant. Scrive le domande di test per agenti, orchestratori e processi (o parte da una suite già scritta in `blueprints/tests/`), le esegue con `xrcopilotlab-bp test run` raccogliendo risposte e log (passi della pipeline, knowledge consultata, skill selezionate, eventi dell'istanza), giudica le risposte, attribuisce ogni fallimento a un componente (knowledge graph, skill, motore BPM, orchestratori, webapp, manifest), propone le issue con la label del componente aprendole solo dopo un sì, e scrive le guide per il cliente. Usa quando l'utente chiede di "testare un blueprint", "collaudare gli agenti", "scrivere le domande di test", "verificare le risposte e i log", "vedere se il blueprint funziona", "aprire le issue dei fallimenti", "preparare le domande per il cliente", oppure nomina `test run`, `test init` o una suite `.tests.yml`. NON usare per scrivere o applicare un manifest (quello è xrcopilotlab-blueprint) né per test unitari del codice.
+description: Collauda un blueprint XRCopilotLab applicato su un tenant. Scrive le domande di test per agenti, orchestratori e processi (o parte da una suite in `blueprints/tests/`), le esegue con `xrcopilotlab-bp test run` raccogliendo risposte e log (pipeline, knowledge, skill, eventi dell'istanza), giudica le risposte, attribuisce ogni fallimento a un componente (knowledge graph, skill, motore BPM, webapp, manifest), propone le issue aprendole solo dopo un sì, e scrive le guide per il cliente. Chi non ha i repository per confermare una causa non si ferma: consegna il fallimento a uno sviluppatore, con le evidenze, e prosegue. Usa quando l'utente chiede di "testare un blueprint", "collaudare gli agenti", "scrivere le domande di test", "verificare le risposte e i log", "aprire le issue dei fallimenti", "preparare le domande per il cliente", oppure nomina `test run`, `test init` o una suite `.tests.yml`. NON usare per scrivere o applicare un manifest (quello è xrcopilotlab-blueprint) né per test unitari del codice.
 ---
 
 # xrcopilotlab-blueprint-test
@@ -24,10 +24,12 @@ Riferimenti, da leggere quando si arriva al passo:
 
 | Passo | Documento |
 |---|---|
+| Se la CLI non c'è, o `xrcopilotlab-bp` non è un comando | la skill `xrcopilotlab-blueprint`, `references/installazione.md` — il plugin, e l'installazione a mano su macOS e Windows |
 | Scrivere le domande | [`references/domande.md`](references/domande.md) — che cosa chiedere a un agente con knowledge, con skill, a un orchestratore, a un processo; i casi negativi; le attese che la CLI verifica |
 | Giudicare le risposte | [`references/giudizio.md`](references/giudizio.md) — i quattro criteri (esattezza, nessuna invenzione, completezza, forma), i verdetti pass/parziale/fail, il file `giudizio.md` |
 | Attribuire un fallimento | [`references/triage.md`](references/triage.md) — evidenza → componente → repository, e come confermare leggendo il codice |
 | Scrivere la segnalazione | [`references/segnalazione.md`](references/segnalazione.md) — il modello per i tre repository e cosa non va scritto |
+| Non poter verificare (niente cloni, niente repository) | [`references/consegna-dev.md`](references/consegna-dev.md) — come si consegna un fallimento a chi può guardarlo, e perché i test proseguono |
 | Le guide per il cliente | [`references/guida-cliente.md`](references/guida-cliente.md) — le domande di prova (la traduzione inversa della suite) e la guida allo scenario; dove vanno, la struttura che ha retto, le regole |
 | Collaudare un processo | [`references/bpm.md`](references/bpm.md) — il modello di esecuzione (token, gateway, work item, soglie) tradotto nel motore, le otto domande da farsi su ogni processo del manifest, come leggere gli eventi di un'istanza, cosa il motore non fa |
 | Formato della suite e del report | [`references/testing.md`](references/testing.md) |
@@ -35,8 +37,9 @@ Riferimenti, da leggere quando si arriva al passo:
 ## 0. Se `$ARGS` è vuoto, o chiede aiuto
 
 Orientare e fermarsi. In ordine: a cosa serve (collaudare un blueprint applicato, con report e
-triage); che cosa serve (lo stesso accesso della CLI dei blueprint — un'identità `hevolus.it` e
-`az login` fatto una volta; vedi la skill `xrcopilotlab-blueprint`, § «Con quale identità gira»);
+triage); che cosa serve (la CLI, che si ottiene installando il plugin `blueprints@hevolus` e non
+compilando il repository — vedi la skill `xrcopilotlab-blueprint`, `references/installazione.md` —
+e lo stesso accesso: un'identità `hevolus.it` e `az login` fatto una volta; vedi la skill `xrcopilotlab-blueprint`, § «Con quale identità gira»);
 quali suite esistono già in `blueprints/tests/`; quali blueprint hanno un run sul tenant
 (`xrcopilotlab-bp status --env <ambiente> --company <guid>`, **solo** se l'utente ha indicato un
 ambiente). Poi la domanda: quale blueprint, su quale ambiente.
@@ -234,7 +237,9 @@ fiducia, ragione. È un'ipotesi ancorata alle evidenze, non un verdetto, e il tu
 > non una prova, e va corroborata leggendo il codice.
 
 I repository sono cloni fratelli di questo — `../xrcopilotlab-knowledge-graph`,
-`../xrcopilotlab-agent-framework` — e la webapp è questo. **Leggili.** Un sospetto sulla
+`../xrcopilotlab-agent-framework` — e la webapp è questo. **Leggili.** Se non ci sono — un
+commerciale che prova uno scenario ha la CLI del plugin e nient'altro — la verifica è fuori
+portata da qui: non ci si ferma e non si tira a indovinare, si consegna a chi può (§4-bis). Un sospetto sulla
 knowledge graph con fiducia bassa diventa una segnalazione solo dopo aver guardato, per esempio,
 come `CanonicalRetriever` seleziona le sorgenti per quella domanda, o se il profilo era attivo
 (`KnowledgeGraphEndpoints`, tabella dei profili). Un sospetto sulle skill si conferma guardando
@@ -253,6 +258,42 @@ Tre esiti possibili per ogni fallimento:
 Non fermarsi al primo caso: fallimenti diversi con la stessa causa sono **una** segnalazione con
 più casi a supporto, e un fallimento che si ripete su tutti i casi di un agente è quasi sempre
 il manifest.
+
+## 4-bis. Se non puoi verificare: consegna, e vai avanti
+
+Prima di concludere che un fallimento è «non attribuito», chiediti se il problema è che **questa
+postazione non può guardare**. Si verifica, non si suppone:
+
+```bash
+ls ../xrcopilotlab-knowledge-graph ../xrcopilotlab-agent-framework
+ls src/XRCopilotLab
+gh repo view hevolusinnovation/xrcopilotlab-webapp-dotnet --json name
+```
+
+Se i cloni non ci sono, o non siamo dentro la webapp, o `gh` non raggiunge il repository, allora
+confermare il sospetto e aprire la issue sono **fuori portata**, e non per colpa di chi collauda.
+
+In quel caso:
+
+1. **la suite si finisce lo stesso** — tutti i casi, report e giudizio come sempre. Fermarsi al
+   primo fallimento lascerebbe il cliente senza verdetto anche sulle parti che funzionano;
+2. per ogni fallimento da confermare si prepara una **consegna** a chi può guardarlo — il
+   modello, gli allegati e le due cose da non fare sono in
+   [`references/consegna-dev.md`](references/consegna-dev.md);
+3. la si mostra all'utente e **si chiede se mandarla**, come per le bozze di issue. Il
+   destinatario è `giuseppe.zileni@hevolus.it`. Se la sessione non ha uno strumento di posta,
+   **dirlo**: il messaggio è pronto, sta lì, va mandato a mano. Mai dare per mandato ciò che non
+   è partito;
+4. quei casi restano **`🔁 in attesa di verifica`** nel giudizio e nella tabella di stato del
+   cliente. Non `✅`, non `⛔`.
+
+Il sospetto della CLI viaggia con la consegna **come sospetto**. Non avere i cloni non promuove
+un'ipotesi a diagnosi: la regola del triage — un'assenza è un indizio, non una prova — vale
+identica, cambia solo chi la applica.
+
+Una cosa che questa strada ha guadagnato di recente: il manifest della versione provata si
+riscarica dall'archivio con `xrcopilotlab-bp pull --tag <TAG>`, anche senza il repository. È
+l'allegato senza cui il sospetto «è il prompt» non si può nemmeno valutare.
 
 ## 5. Segnalare — solo dopo un sì
 
@@ -313,7 +354,8 @@ nel giudizio: al cliente si dice cosa non funziona e quando sarà corretto, non 
 ## 7. Chiudere
 
 Riportare all'utente, in quest'ordine: quanti casi, quanti passati per la CLI, quanti per il
-tuo giudizio; i fallimenti attribuiti, per componente; le segnalazioni aperte con i numeri; ciò
+tuo giudizio; i fallimenti attribuiti, per componente; le segnalazioni aperte con i numeri; i casi
+**consegnati a uno sviluppatore** e se il messaggio è partito o è solo pronto; ciò
 che è rimasto non attribuito e perché; dove stanno report, giudizio e le guide per il cliente. E
 ricordare che la suite in `blueprints/tests/` va **committata**: è la regressione del blueprint, e la prossima versione
 della libreria si collauda rilanciandola.
@@ -328,6 +370,11 @@ della libreria si collauda rilanciandola.
   librerie: vanno nella webapp, con la label del componente.
 - Non attribuire un fallimento a una libreria per esclusione: senza un'evidenza di quel
   componente, è «non attribuito».
+- Non trasformare «non posso verificare» in una diagnosi: senza i cloni il sospetto resta un
+  sospetto, e si consegna a chi può guardarlo (§4-bis).
+- Non dire che una mail è stata mandata se la sessione non aveva uno strumento per mandarla, e
+  non mandarla senza averla mostrata.
+- Non marcare `✅` un caso consegnato e non ancora verificato: l'esito è `🔁 in attesa di verifica`.
 - Non scrivere `TODO` in una domanda per «vedere cosa succede»: il validatore lo blocca, e a
   ragione — manderebbe al tenant la parola «TODO».
 - Non scrivere nelle guide per il cliente id di istanze, run, webhook o chiavi, né il triage per

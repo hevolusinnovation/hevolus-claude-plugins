@@ -72,6 +72,13 @@ viene preso senza chiedere. Se non c'è un terminale — la CLI eseguita da un a
 pipeline — l'elenco viene stampato e l'esecuzione si ferma con **6**: scegliere un tenant al posto
 di qualcuno non è una decisione da prendere in automatico.
 
+**Su `staging` la domanda non viene posta**: c'è un ambiente di prova e non ce n'è un secondo
+plausibile, quindi senza `--company` si lavora su quello, e il comando lo dice — «Tenant non
+indicato: si usa quello predefinito di Staging» — prima del banner. La precedenza resta dal più
+esplicito al più implicito: `--company`, poi `tenant.companyId` del manifest, poi il `companyId`
+del profilo, e solo alla fine il default dell'ambiente. Nessun altro ambiente ne ha uno, e la
+produzione non deve averlo: lì «quale tenant» è la domanda giusta.
+
 ### In produzione si lavora solo sul tenant di Hevolus
 
 L'elenco lo filtra il **server**, non la CLI: in produzione l'API restituisce i soli tenant il cui
@@ -262,6 +269,79 @@ Cosmos. Stampa identificativo, versione, percorso del blob e impronta SHA-256.
 
 Una versione pubblicata è **immutabile**: ripubblicare la stessa viene rifiutato. Si alza `version:`
 nel manifest, oppure — solo per iterare in sviluppo — si usa `--overwrite`.
+
+## `pull --tag <TAG> [--version <n>] [--out <file>] [--with-files]`
+
+Riscrive su disco il manifest di una versione pubblicata, **com'era stato scritto** — commenti
+compresi: il `push` archivia il testo, non solo il modello interpretato.
+
+Serve a due cose. La prima è recuperare: fino a qui una versione pubblicata era raggiungibile solo
+dal file di chi l'aveva pubblicata, e chi usa la CLI dal plugin quel file non ce l'ha. La seconda è
+confrontare: `pull` di due ambienti e un `diff` dicono, senza interpretazioni, se stanno davvero
+eseguendo lo stesso blueprint.
+
+Senza `--out` il file prende il nome `<blueprint>-v<n>.yml` nella cartella corrente; un file che
+esiste già non viene sovrascritto senza `--overwrite`. Con `--with-files` scende anche la knowledge
+archiviata con la versione, in una cartella `files/` accanto al manifest — con l'avvertenza che i
+percorsi scritti nel manifest sono quelli della macchina che fece il push, e vanno riadattati prima
+di ripubblicare da quel file.
+
+Se la versione è arrivata lì per copia, stampa anche da dove.
+
+## `promote --tag <TAG> [--version <n>] [--from-env <e>] [--to-env <e>] [--from-company <guid>] [--to-company <guid>]`
+
+Copia una versione pubblicata **da un archivio a un altro**.
+
+Una voce d'archivio ha quattro coordinate — **ambiente**, **tenant**, blueprint e versione — e
+questo comando ne cambia una o due. Per questo lo stesso comando serve a portare in produzione ciò
+che è stato collaudato su staging *e* a riusare su un secondo cliente un blueprint scritto per il
+primo: è la stessa copia, su un asse diverso. Nessuna direzione è privilegiata — la produzione può
+essere l'origine tanto quanto la destinazione.
+
+```bash
+# staging → prod, stesso cliente (i companyId restano diversi: sono directory diverse)
+xrcopilotlab-bp promote --tag STUDIOPOLIS --version 29 \
+    --from-env staging --from-company <guid-staging> \
+    --to-env   prod    --to-company   <guid-prod>
+
+# prod → staging, per riprodurre un caso
+xrcopilotlab-bp promote --tag STUDIOPOLIS --from-env prod --to-env staging --to-company <guid>
+
+# tenant → tenant, nello stesso ambiente
+xrcopilotlab-bp promote --tag STUDIOPOLIS --from-company <cliente-A> --to-company <cliente-B>
+```
+
+`--to-env` assente vuol dire stesso ambiente dell'origine; `--from-env` assente vuol dire quello di
+`--env`. Se origine e destinazione finiscono per coincidere, il comando si ferma: non c'è niente da
+copiare.
+
+**Il testo non viene mai riscritto.** Il manifest arriva a destinazione byte per byte, quindi lo
+SHA-256 resta lo stesso ed è la prova che in produzione gira ciò che è stato collaudato. Il
+`tenant.companyId` scritto dentro il manifest non viene corretto: a comandare è `--company` al
+momento del `plan`.
+
+Tre esiti, dal confronto delle impronte:
+
+| Alla destinazione | Esito |
+|---|---|
+| non c'è | copia |
+| c'è, stesso SHA-256 | **non scrive niente**, esce `0` — la copia è ripetibile, anche da uno script |
+| c'è, SHA-256 diverso | **si ferma** (`1`): due testi sotto lo stesso numero di versione. Si alza `version:`, oppure `--overwrite` |
+
+Viaggiano gli **ingressi** della versione: il manifest e la knowledge archiviata con il push. Non
+viaggiano le **uscite** — i `.bpmn` esportati dall'apply — che sono il verbale di un'esecuzione
+avvenuta in quell'ambiente; né i run, gli inventari e le approvazioni, che appartengono a dove sono
+successi; né i **valori** dei segreti, che nel manifest sono solo nomi. Quelli che la destinazione
+non ha vengono elencati prima di scrivere, ma non bloccano: la copia in archivio è inerte, e il
+`plan` si ferma comunque.
+
+**Sul tenant di destinazione non viene creato niente.** Dopo la copia servono ancora `plan` e
+`apply`, con la loro approvazione: copiare è ripetibile, creare entità no. E se la destinazione è
+la produzione, la copia stessa chiede conferma — senza terminale si ferma con `6` e serve `--yes`.
+
+Il tenant di destinazione passa dallo stesso filtro di tutti gli altri comandi: in produzione un
+tenant che l'API non elenca viene rifiutato con `3`, perché l'archivio non diventi la porta di
+servizio di quella protezione.
 
 ## `plan --tag <TAG> [--version <n>]`
 
@@ -527,6 +607,25 @@ del sistema di terze parti — per esempio l'`AADSTS…` di Entra — senza pass
 Emerso il **2026-09-14**: sul tenant di Studio Polis la riga del catalogo del server Microsoft 365
 era sparita fra due collaudi, con i quattro collegamenti ancora in piedi; la causa non è stata
 trovata (telemetria di staging non interrogabile), la riparazione è stata `mcp publish`.
+
+## `version`
+
+Quale CLI sta girando, e da dove viene.
+
+```bash
+xrcopilotlab-bp version
+xrcopilotlab-bp version --verbose   # anche il runtime
+xrcopilotlab-bp --version           # solo il numero
+```
+
+Stampa numero, percorso del binario, piattaforma (RID) e **origine**: variabile
+`XRCOPILOTLAB_BP_BIN`, strumento globale `.dotnet/tools`, cache del plugin o allegato della release.
+
+Serve perché gli avviatori del plugin cercano la CLI in quattro posti e si fermano al primo: su una
+macchina dove qualcuno ha installato lo strumento globale mesi fa, quello continua a vincere anche
+dopo un aggiornamento del plugin. Il sintomo è un comando che «non esiste» pur essendo nel manuale —
+misurato il **21/09/2026**, strumento globale 1.1.1 contro la 2.11.2 del plugin. La prima domanda da
+fare a chi segnala qualcosa di inspiegabile è l'uscita di questo comando.
 
 ## Prerequisiti sul tenant
 
