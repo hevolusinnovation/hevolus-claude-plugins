@@ -217,8 +217,9 @@
     <h1>Gli strumenti per XRCopilotLab, dentro Claude</h1>
     <p class="sommario">
       Due strumenti: uno traduce la proposta di un cliente in una soluzione, l'altro configura
-      l'ambiente che ne esce e lo collauda. Si installano da qui, in pochi minuti, senza scaricare
-      codice e senza saper programmare.
+      l'ambiente che ne esce e lo collauda. Vivono nella <b>stessa app Claude</b>, in due schede
+      diverse — Chat e Code — e si installano da qui in pochi minuti, senza scaricare codice,
+      senza aprire un terminale e senza saper programmare.
     </p>
   </div>
 </header>
@@ -232,25 +233,61 @@
     <a class="scelta" href="#assessment">
       <b>Ho la proposta di un cliente</b>
       <span>E devo capire come si realizza su XRCopilotLab: scenari, agenti o processo, fattibilità dei dati, dossier tecnico.</span>
-      <span class="dove">Claude Desktop · 3 minuti</span>
+      <span class="dove">app Claude, scheda Chat · 3 minuti</span>
     </a>
     <a class="scelta" href="#blueprints">
       <b>Devo configurare un ambiente</b>
       <span>Topic, knowledge, ruoli, agenti, processi: scritti in un file e applicati al tenant, con il piano mostrato prima di creare. E poi collaudati.</span>
-      <span class="dove">Claude Code · 10 minuti</span>
+      <span class="dove">app Claude, scheda Code · 10 minuti</span>
     </a>
     <a class="scelta" href="#chat">
       <b>Voglio solo scrivere o capire un manifest</b>
-      <span>In chat, senza installare un plugin. Le stesse regole, le stesse domande — ma da qui non si applica niente.</span>
-      <span class="dove">claude.ai · 2 minuti</span>
+      <span>Senza installare un plugin: la singola skill, in chat o nella scheda Code. Le stesse regole, le stesse domande — ma dalla chat non si applica niente.</span>
+      <span class="dove">Chat o Code · 2 minuti</span>
     </a>
   </div>
+
+  <!-- ─────────────────────────────  L'APP  ───────────────────────────── -->
+
+  <h2 id="app">Prima di tutto: l'app Claude</h2>
+  <p>
+    Tutt'e due gli strumenti girano lì dentro, e non c'è niente di tecnico da installare. L'app ha
+    due schede, ed è l'unica distinzione che devi tenere a mente:
+  </p>
+
+  <section class="blocco">
+    <table>
+      <thead><tr><th>Scheda</th><th>Cos'è</th><th>Cosa ci gira</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>Chat</b></td>
+          <td>La conversazione di sempre: ci carichi documenti.</td>
+          <td>il plugin <em>assessment</em></td>
+        </tr>
+        <tr>
+          <td><b>Code</b></td>
+          <td>La stessa app, ma qui Claude può <b>eseguire comandi</b> sul tuo computer.</td>
+          <td>il plugin <em>blueprints</em></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="scarica">
+      <a class="bottone" href="https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect" target="_blank" rel="noopener">Installer per macOS</a>
+      <a class="bottone" href="https://claude.ai/api/desktop/win32/x64/setup/latest/redirect" target="_blank" rel="noopener">Windows x64</a>
+      <a class="bottone" href="https://claude.ai/api/desktop/win32/arm64/setup/latest/redirect" target="_blank" rel="noopener">Windows ARM64</a>
+      <span class="peso">installa, accedi, e la scheda <b>Code</b> è lì in alto</span>
+    </div>
+
+    <p class="nota">Quando queste pagine dicono «Claude Code» intendono quella scheda. Chi sviluppa
+      la usa anche da terminale, ma non è obbligatorio e per te non cambia niente.</p>
+  </section>
 
   <!-- ─────────────────────────────  ASSESSMENT  ───────────────────────────── -->
 
   <h2 id="assessment">Valutare una proposta — plugin <em>assessment</em></h2>
   <p>
-    Gira su <b>Claude Desktop</b>. Porti la proposta in chat — PDF o Word — e ne esce un dossier
+    Gira nella scheda <b>Chat</b>. Porti la proposta in chat — PDF o Word — e ne esce un dossier
     tecnico in Markdown e Word: scenari, scelta fra agenti orchestrati e processo BPM, fattibilità
     delle fonti dati, e il capitolo da cui nasce poi la configurazione vera.
     Non serve nessun accesso ad Azure.
@@ -303,13 +340,10 @@
   <section class="blocco">
     <ol class="passi">
       <li>
-        <b>L'app Claude sul computer, scheda Code</b>
-        <p>Non è un programma diverso da quello della chat: è la stessa app, e la scheda
-          <b>Code</b> è dove Claude può eseguire comandi. Non serve un terminale.
-          <a href="https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect" target="_blank" rel="noopener">Installer per macOS</a>
-          · <a href="https://claude.ai/api/desktop/win32/x64/setup/latest/redirect" target="_blank" rel="noopener">Windows x64</a>
-          · <a href="https://claude.ai/api/desktop/win32/arm64/setup/latest/redirect" target="_blank" rel="noopener">Windows ARM64</a>.
-          Installa, accedi, clicca <b>Code</b>.</p>
+        <b>L'app Claude, scheda Code</b>
+        <p>Se l'hai già installata sei a posto: è la stessa app della chat.
+          Altrimenti <a href="#app">§ Prima di tutto: l'app Claude</a> — un installer, un accesso,
+          e la scheda <b>Code</b> è lì in alto.</p>
       </li>
       <li>
         <b>Un accesso a GitHub</b>
@@ -374,11 +408,11 @@ gh auth login</code></pre>
 
   <!-- ─────────────────────────────  SKILL SINGOLE  ───────────────────────────── -->
 
-  <h2 id="chat">Scrivere o capire un manifest in chat — le skill da sole</h2>
+  <h2 id="chat">Una skill da sola — in chat o nella scheda Code</h2>
   <p>
-    Una skill si può caricare nelle proprie chat <b>senza nessun plugin</b>: è la strada di chi
-    lavora su claude.ai e non usa Claude Code. Si scarica lo zip e si carica in
-    <b>Impostazioni → Capacità → Skill</b>.
+    Ogni skill si può installare <b>senza il suo plugin</b>, e su tutt'e due le schede. Serve a due
+    casi: avere l'assessment anche nella scheda Code, o avere le skill dei blueprint in chat per
+    scrivere e capire un manifest senza installare altro.
   </p>
 
   <section class="blocco">
@@ -405,11 +439,27 @@ gh auth login</code></pre>
       </tbody>
     </table>
 
+    <h3>Dove si carica</h3>
+    <p><b>In chat</b> (l'app o claude.ai): <b>Impostazioni → Capacità → Skill</b>, e carichi lo zip.
+      La libreria delle skill è dell'account, quindi la ritrovi ovunque entri con quell'utenza.</p>
+    <p><b>Nella scheda Code</b>: le skill personali stanno in una cartella, e basta scompattare lo
+      zip lì dentro. Se non te la cavi con le cartelle, chiedilo a Claude nella scheda Code —
+      «scompatta questo zip fra le mie skill» — che lo fa lui.</p>
+
+    <div class="comando">
+      <pre><code>~/.claude/skills/            macOS e Linux
+%USERPROFILE%\.claude\skills\   Windows</code></pre>
+    </div>
+
+    <p class="nota">Lo zip contiene una sola cartella con il nome della skill, quindi finisce al
+      posto giusto senza spostare niente. Se hai già il plugin <em>blueprints</em>, non
+      scompattare anche le sue skill qui: avresti due copie, e una non si aggiornerebbe più.</p>
+
     <div class="avviso">
-      <b>Da qui si scrive, non si applica.</b> Le due skill dei blueprint, caricate da sole, sanno
-      spiegare le regole, condurre l'intervista e produrre il manifest. Ma applicarlo a un tenant
-      richiede lo strumento a riga di comando, che esiste solo dentro Claude Code: se il tuo
-      obiettivo è configurare davvero un ambiente, la strada è
+      <b>Dalla chat si scrive, non si applica.</b> Le due skill dei blueprint, caricate da sole in
+      chat, sanno spiegare le regole, condurre l'intervista e produrre il manifest. Ma applicarlo a
+      un tenant vuol dire lanciare un comando, e i comandi girano solo nella scheda <b>Code</b>: se
+      il tuo obiettivo è configurare davvero un ambiente, la strada è
       <a href="#blueprints">§ plugin blueprints</a>. Preferiamo dirlo qui che lasciartelo scoprire
       a metà lavoro.
     </div>
@@ -500,8 +550,13 @@ Grazie!</code></pre>
     squadra.</p>
 
   <h3>E poi, una volta per macchina</h3>
-  <p>Non serve installare Azure CLI: al primo comando che ha bisogno di Azure si apre il browser.
-    Se preferisci farlo prima, o se hai più sottoscrizioni:</p>
+  <p>Non serve installare Azure CLI: basta lanciare <b>una volta</b> un comando del plugin
+    <b>da un terminale</b> — per esempio <code>xrcopilotlab-bp status --env staging</code> — e si
+    apre il browser per l'accesso. È l'unico passo di tutta questa pagina che vuole un terminale, e
+    <b>Claude non può farlo al posto tuo</b>: senza un terminale vero quel ramo è disattivato di
+    proposito, perché il comando resterebbe appeso ad aspettare una pagina che nessuno vede. Fatto
+    una volta, tutti i comandi successivi — compresi quelli che lancia Claude per te — usano il
+    token in cache. Se preferisci farlo con Azure CLI, o se hai più sottoscrizioni:</p>
 
   <div class="comando">
     <pre><code>az login --tenant hevolus.it
@@ -533,6 +588,12 @@ az account set --subscription "Azure AI"</code></pre>
       <tr>
         <td>«App Configuration non leggibile», «Key Vault … non è leggibile»</td>
         <td>Mancano i ruoli: <a href="#azure">§ L'accesso ad Azure</a>. Il messaggio dice quale risorsa e quale ruolo: riportali tali e quali nella richiesta.</td>
+      </tr>
+      <tr>
+        <td>Il catalogo sparisce, o il plugin non si aggiorna più</td>
+        <td>L'aggiornamento automatico dei cataloghi privati gira senza le credenziali di GitHub e
+          fallisce in silenzio. Ridài la prima delle due righe per rimetterlo a posto, e segnalalo
+          al team.</td>
       </tr>
       <tr>
         <td>«Non è detto su quale ambiente lavorare»</td>
@@ -571,8 +632,8 @@ az account set --subscription "Azure AI"</code></pre>
     <li><b>Non lavorano sui tenant dei clienti in produzione.</b> Lì la riga di comando vede il solo
       tenant di Hevolus — il filtro lo applica l'API — e gli ambienti dei clienti si configurano
       dall'interfaccia.</li>
-    <li><b>Non applicano niente da Claude Desktop.</b> Le skill caricate in chat scrivono e
-      spiegano; per applicare serve Claude Code.</li>
+    <li><b>Non applicano niente dalla chat.</b> Le skill caricate in chat scrivono e spiegano;
+      applicare vuol dire lanciare un comando, e i comandi girano solo nella scheda <b>Code</b>.</li>
   </ul>
 
   <footer>
