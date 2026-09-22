@@ -13,11 +13,27 @@ programmare, non serve clonare niente e non serve aprire un terminale.
 |---|---|---|
 | Ho la proposta di un cliente e devo capire come si realizza su XRCopilotLab | **Claude Desktop**, plugin *assessment* | [§ Claude Desktop](#claude-desktop--il-plugin-assessment) |
 | Devo configurare l'ambiente di un cliente, o collaudarne uno già configurato | **Claude Code**, plugin *blueprints* | [§ Claude Code](#claude-code--il-plugin-blueprints) |
-| Voglio una sola skill dentro le mie chat, senza plugin | una **skill** singola | [§ Una skill da sola](#una-skill-da-sola) |
+| Voglio una di queste skill sull'altra app, o senza plugin | una **skill** singola, su Desktop o su Code | [§ Una skill da sola](#una-skill-da-sola-su-desktop-o-su-code) |
 
-Sono due strumenti diversi e non si sostituiscono: l'assessment si fa in chat con il documento del
-cliente sotto mano, il provisioning si fa da Claude Code perché lì lo strumento può parlare con il
-tenant. Perché la divisione è questa: [§ Claude Code o Claude Desktop](code-o-desktop.md).
+Le due righe qui sopra sono la strada **consigliata**, non l'unica: sono i due plugin, e ogni
+plugin è confezionato per una superficie sola. Le **skill** che i plugin contengono si installano
+invece su **Claude Desktop oppure Claude Code**, quella che usi — cambia cosa puoi farci.
+
+## Le tre skill, e su quale app si installano
+
+| Skill | Su **Claude Desktop** | Su **Claude Code** |
+|---|---|---|
+| `xrcopilotlab-assessment` | il plugin `Xrcopilotlab-….zip` — **la strada consigliata** | la skill da sola, scompattata fra le proprie ([§ Una skill da sola](#una-skill-da-sola-su-desktop-o-su-code)) |
+| `xrcopilotlab-blueprint` | la skill da sola: scrive e spiega un manifest, **non lo applica** | il plugin `blueprints@hevolus` — **la strada consigliata** |
+| `xrcopilotlab-blueprint-test` | la skill da sola: prepara le domande di collaudo, **non le esegue** | il plugin `blueprints@hevolus` — **la strada consigliata** |
+
+Una regola sola governa tutta la tabella, e non è una preferenza: **applicare e collaudare vogliono
+un terminale**, perché passano da `xrcopilotlab-bp`, e su Desktop il terminale non c'è. Tutto ciò
+che si fa a parole e su documenti — l'assessment, scrivere un manifest, preparare una suite, capire
+un errore — funziona su entrambe.
+
+Perché i due plugin sono confezionati uno per superficie:
+[§ Claude Code o Claude Desktop](code-o-desktop.md).
 
 ## Claude Desktop — il plugin *assessment*
 
@@ -62,7 +78,7 @@ di prenderlo è questo.
 | Cosa vedi | Cosa è successo |
 |---|---|
 | La pagina delle release dà **404** | Il repository è privato: ti serve l'accesso. Chiedi a chi mantiene il catalogo di aggiungerti all'organizzazione `hevolusinnovation` su GitHub — oppure di mandarti direttamente lo zip |
-| **«All files must be inside the top-level folder»** | Hai caricato il pacchetto sbagliato nel posto sbagliato: quello che comincia per `Xrcopilotlab-` va su *Carica plugin*, i file `xrcopilotlab-*.zip` vanno nella libreria delle **skill**. Vedi [§ Una skill da sola](#una-skill-da-sola) |
+| **«All files must be inside the top-level folder»** | Hai caricato il pacchetto sbagliato nel posto sbagliato: quello che comincia per `Xrcopilotlab-` va su *Carica plugin*, i file `xrcopilotlab-*.zip` vanno nella libreria delle **skill**. Vedi [§ Una skill da sola](#una-skill-da-sola-su-desktop-o-su-code) |
 | Il plugin c'è ma la skill non si attiva | Carica il documento **prima** di chiedere, e dì cosa vuoi («fai l'assessment»). Se serve, nominala: «usa la skill xrcopilotlab-assessment su questo documento» |
 | Hai estratto lo zip e ora non si carica | Riscarica il file originale dalla pagina delle release e caricalo senza aprirlo |
 
@@ -232,23 +248,54 @@ vuole `--env staging`, `--env preview` o `--env prod`, e prima serve
 > causa numero uno del «questo comando non esiste» mesi dopo. `xrcopilotlab-bp version` dice quale
 > sta girando e da dove.
 
-## Una skill da sola
+## Una skill da sola, su Desktop o su Code
 
-Una skill si può aggiungere alle proprie chat **senza plugin**: serve a chi lavora in chat su
-claude.ai e non usa né Claude Desktop né Claude Code.
+Ogni skill si può installare **senza il suo plugin**, e su tutte e due le app. Serve a due casi:
+avere l'assessment dentro Claude Code, o avere le skill dei blueprint su Desktop per scrivere e
+capire un manifest senza aprire un terminale.
 
-1. dalla stessa [pagina delle release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest),
-   scarica il file con il nome della skill — `xrcopilotlab-assessment.zip`,
-   `xrcopilotlab-blueprint.zip`, `xrcopilotlab-blueprint-test.zip`;
-2. su claude.ai vai in **Impostazioni → Capacità → Skill** e caricalo lì.
+Il punto di partenza è lo stesso: dalla
+[pagina delle release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest)
+scarica il file con il nome della skill — `xrcopilotlab-assessment.zip`,
+`xrcopilotlab-blueprint.zip`, `xrcopilotlab-blueprint-test.zip`.
+
+### Su Claude Desktop (e claude.ai)
+
+Vai in **Impostazioni → Capacità → Skill** e carica lo zip. Vale per entrambi: la libreria delle
+skill è quella dell'account, non dell'app.
+
+### Su Claude Code
+
+Le skill personali stanno in una cartella: basta scompattare lo zip lì dentro, e ogni sessione le
+vede.
+
+```bash
+mkdir -p ~/.claude/skills
+unzip -o ~/Downloads/xrcopilotlab-assessment.zip -d ~/.claude/skills
+```
+
+```powershell
+New-Item -ItemType Directory -Force "$HOME\.claude\skills" | Out-Null
+Expand-Archive -Force $HOME\Downloads\xrcopilotlab-assessment.zip -DestinationPath "$HOME\.claude\skills"
+```
+
+Lo zip contiene **una sola cartella di primo livello** con il nome della skill, quindi finisce al
+posto giusto senza spostare niente. Per averla solo in un progetto invece che ovunque, la stessa
+cartella va in `.claude/skills/` di quel progetto.
+
+> Se hai già il plugin `blueprints` installato, **non** scompattare anche le sue skill qui: avresti
+> due copie della stessa skill, una delle quali non si aggiorna più.
+
+### Due cose da sapere
 
 I due pacchetti **non** sono intercambiabili: quello del plugin (`Xrcopilotlab-….zip`) e quello
 della skill (`xrcopilotlab-….zip`) hanno una forma interna diversa, e scambiarli è l'errore che
 capita per primo. La differenza, per chi mantiene: [§ Manutenzione](manutenzione.md#caricare-una-skill-singola-su-claudeai--non-è-lo-stesso-pacchetto-del-plugin).
 
-Attenzione a una cosa: le due skill dei blueprint, caricate da sole, sanno **spiegare e scrivere**
-un manifest, ma non possono applicarlo — applicare richiede lo strumento a riga di comando, che
-esiste solo dentro Claude Code.
+E le due skill dei blueprint, installate da sole **su Desktop**, sanno spiegare e scrivere un
+manifest ma non possono applicarlo né collaudarlo: quello richiede `xrcopilotlab-bp`, che vuole un
+terminale. Su Claude Code invece funzionano per intero, a patto di avere la CLI —
+[§ Solo lo strumento a riga di comando](#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc).
 
 ## A chi chiedere
 
