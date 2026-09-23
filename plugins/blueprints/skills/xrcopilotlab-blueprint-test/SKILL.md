@@ -133,7 +133,7 @@ Prima di lanciare, **dire su quale ambiente e tenant, e quanti casi**, e attende
 distruttivo — ogni caso apre una conversazione nuova, avvia un'istanza di processo, lancia
 un'esecuzione — ma consuma token del tenant, lascia conversazioni e istanze visibili
 nell'interfaccia, e su un tenant di un cliente **non è cosa da fare di propria iniziativa**. In
-produzione vale la regola dei blueprint: solo il tenant di Hevolus.
+produzione vale la regola dei blueprint: solo i tenant a cui chi collauda appartiene.
 
 Cose da sapere sull'esecuzione:
 

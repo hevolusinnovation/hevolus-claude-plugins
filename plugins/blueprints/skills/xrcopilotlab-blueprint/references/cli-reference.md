@@ -79,15 +79,21 @@ esplicito al più implicito: `--company`, poi `tenant.companyId` del manifest, p
 del profilo, e solo alla fine il default dell'ambiente. Nessun altro ambiente ne ha uno, e la
 produzione non deve averlo: lì «quale tenant» è la domanda giusta.
 
-### In produzione si lavora solo sul tenant di Hevolus
+### In produzione si lavora sui tenant a cui appartieni
 
-L'elenco lo filtra il **server**, non la CLI: in produzione l'API restituisce i soli tenant il cui
-nome contiene «hevolus», e gli ambienti dei clienti non escono mai dal server. Una CLI più vecchia,
-o una chiamata fatta a mano, vedrebbero la stessa cosa.
+**Dalla 2.13.0** (issue #1114) l'elenco è quello della **persona**: la CLI chiede alla piattaforma
+l'utente con le sue company — la stessa domanda che l'interfaccia fa dopo il login — e offre
+quelli. Due colleghi con diritti diversi vedono elenchi diversi, come nell'interfaccia.
 
-Il controllo vale anche per `--company` scritto a mano: in produzione un tenant fuori elenco viene
-rifiutato con **3**, e lo è anche quando l'elenco non è leggibile — non poter verificare non è una
-ragione per procedere.
+Prima l'elenco era dell'**ambiente**: una chiave di configurazione uguale per tutti, che in
+produzione lasciava passare i soli tenant il cui nome contiene «hevolus». Il difetto non era la
+severità ma la grana: quella chiave è una sottostringa sola, quindi poteva aprire *tutti* i clienti
+o sostituire quello corrente, mai aggiungerne uno.
+
+Il controllo vale anche per `--company` scritto a mano: in produzione un tenant fuori dal tuo
+elenco viene rifiutato con **3**, e lo è pure quando l'identità non si riesce a stabilire — non
+sapere chi sei non è una ragione per mostrarti di più. Fuori produzione, in quel caso, si ripiega
+sull'elenco dell'ambiente dicendolo.
 
 Provisionare in produzione l'ambiente di un cliente **non si fa da riga di comando**: si fa
 dall'interfaccia. Non è un permesso che manca, è una scelta.

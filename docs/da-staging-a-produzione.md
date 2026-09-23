@@ -32,23 +32,25 @@ Risponde ambiente per ambiente: *accessibile*, *manca il ruolo*, *nessun accesso
 raggiungibile*. Se `prod` non è accessibile, la richiesta dei ruoli si fa a chi amministra la
 sottoscrizione — il modello del messaggio è in [§ L'accesso ad Azure](accesso-azure.md).
 
-### 0.2 In produzione si lavora solo sul tenant di Hevolus
+### 0.2 In produzione si lavora sui tenant a cui appartieni
 
-Questa è la sorpresa che costa di più, e **non è un permesso che manca**: è una protezione scritta
-apposta. In produzione l'elenco dei tenant lo filtra il server, e la CLI **rifiuta con exit 3**
-anche un `--company` scritto a mano che non sia in quell'elenco. Oggi passa il solo tenant di
-Hevolus.
+**Dalla 2.13.0** la riga di comando offre i tenant della **persona** che lancia il comando: chiede
+alla piattaforma l'utente con le sue company, la stessa domanda che l'interfaccia fa dopo il login.
+Due colleghi con diritti diversi vedono elenchi diversi, e un tenant fuori dal proprio viene
+rifiutato con exit **3** anche scrivendolo a mano con `--company`.
 
-Quindi: **un blueprint destinato al tenant di un cliente non si applica in produzione da riga di
-comando.** Le strade, in ordine di preferenza:
+Quindi la domanda da farsi prima di cominciare è una sola: **sei censito nel prodotto su quel
+tenant di produzione?** Se sì, puoi lavorarci. Se no, non è un ruolo Azure che manca e non c'è un
+flag che aggiri: chiedi di essere aggiunto a quel tenant, come si farebbe per usare l'interfaccia.
 
-| | Strada | Chi decide |
-|---|---|---|
-| a | Restare su **staging**, su un tenant di prova e con caselle nostre, finché il giro non è verde | il team |
-| b | **Allargare il filtro** in produzione al tenant del cliente: è una modifica deliberata alla protezione, richiede *App Configuration Data Owner* su prod | chi presidia quella regola — non si fa di lato per sbloccare un apply |
-| c | Costruire l'ambiente **dall'interfaccia** | chi configura il cliente |
+Se non si riesce a stabilire chi sei — nessun accesso ad Azure, o un'utenza che il prodotto non
+conosce — in produzione il comando **si ferma**. Fuori produzione ripiega sull'elenco
+dell'ambiente, dicendolo.
 
-Se il blueprint è per un contesto **di Hevolus**, niente di tutto questo ti riguarda: passa oltre.
+> Fino alla 2.12.1 la regola era un'altra: in produzione passava il solo tenant di Hevolus, per
+> tutti, perché l'elenco veniva da una chiave di configurazione condivisa. Se leggi ancora quella
+> frase da qualche parte, la pagina è vecchia — o lo è il binario, e `xrcopilotlab-bp version` lo
+> dice.
 
 ---
 

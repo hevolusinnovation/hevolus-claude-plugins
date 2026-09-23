@@ -37,7 +37,7 @@ Cosa riportare, in quest'ordine:
    **permessi no**, e sono personali: quel comando li prova con l'utenza corrente e dice su quali
    si può davvero lavorare, invece di far scoprire un errore di ruoli a lavoro cominciato. Senza
    `--env` vale lo sviluppo, cioè il `local.settings.json` del clone. Dire che in produzione si
-   lavora solo sul tenant di Hevolus, e perché.
+   lavora solo sui tenant a cui l'utente appartiene — quelli che gli mostra l'interfaccia — e perché.
 
    Se un ambiente risulta **non accessibile**, non proporlo come se lo fosse: distinguere il ruolo
    mancante — che si chiede a chi amministra la sottoscrizione — dall'accesso ad Azure mai fatto su
@@ -372,10 +372,11 @@ riportare i nomi all'utente e chiedere quale, non indovinarne uno.
 Su **staging** fa eccezione: l'ambiente di prova è uno solo, quindi senza `--company` la CLI ci
 lavora e lo annuncia. Non c'è niente da chiedere all'utente, e non c'è un 6 da aspettarsi.
 
-In **produzione** si lavora sul solo tenant di Hevolus: l'API non elenca gli ambienti dei clienti e
-li rifiuta anche se il GUID viene scritto a mano (**3**). Non è un permesso che manca, è una scelta:
-l'ambiente di un cliente si configura dall'interfaccia. Se qualcuno chiede di applicare un blueprint
-sul tenant di un cliente in produzione, la risposta è questa, non un tentativo.
+In **produzione** si lavora sui tenant a cui l'utente **appartiene** — gli stessi che gli mostra
+l'interfaccia dopo il login. Un tenant fuori da quell'elenco viene rifiutato anche se il GUID è
+scritto a mano (**3**), e lo è pure quando l'identità non si riesce a stabilire: non sapere chi sei
+non è una ragione per mostrarti di più. Se qualcuno dovrebbe esserci e non c'è, la risposta è farlo
+censire su quel tenant nel prodotto — non un ruolo Azure, e non un tentativo.
 
 **Mostrare il piano all'utente e fermarsi.** Non «riassumere che è tutto a posto»: riportare cosa
 verrà creato e il grafo del processo, perché è su quello che la persona deve decidere.
