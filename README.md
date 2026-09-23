@@ -9,6 +9,7 @@ ambiente XRCopilotLab configurato e collaudato.
 |---|---|---|
 | Capire come si realizza la proposta di un cliente | **Claude Desktop** | scarica `Xrcopilotlab-….zip` dalle [release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest) e caricalo su [claude.ai/customize/plugins](https://claude.ai/customize/plugins) |
 | Configurare o collaudare l'ambiente di un cliente | **app Claude, scheda Code** — niente terminale, niente clone | le [due righe](#installare-in-breve) qui sotto, scritte nella casella dei messaggi — ma prima [l'accesso ad Azure](docs/accesso-azure.md), che è il punto contro cui si sbatte per primo |
+| Portare un blueprint collaudato **da staging a produzione** | **app Claude, scheda Code** | i passi, con le due cose che possono fermarti: [§ Da staging a produzione](docs/da-staging-a-produzione.md) |
 | Avere `xrcopilotlab-bp` sul proprio PC, senza Claude Code | **terminale** | scarica il binario dalla release [`bp-v2.11.2`](https://github.com/hevolusinnovation/xrcopilotlab-webapp-dotnet/releases/tag/bp-v2.11.2) — i passi per macOS e Windows: [§ Solo lo strumento a riga di comando](docs/installare.md#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc) |
 | Avere una di queste skill sull'altra app — l'assessment in Claude Code, i blueprint su Desktop — o senza plugin | **Claude Desktop o Claude Code** | scarica `xrcopilotlab-….zip` dalle stesse release: su Desktop si carica in *Impostazioni → Capacità → Skill*, su Code si scompatta in `~/.claude/skills/`. I passi: [§ Una skill da sola](docs/installare.md#una-skill-da-sola-su-desktop-o-su-code) — da Desktop si scrive, non si applica |
 
@@ -18,6 +19,19 @@ richiesta dei ruoli Azure già scritta e cosa fare quando qualcosa non va. È un
 mette su una cartella condivisa, o si pubblica dove si vuole.
 
 I passi per intero, in forma di documento: [§ Installare](docs/installare.md).
+
+## I pacchetti pronti
+
+Tutti sulla **[pagina delle release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest)**, sotto *Assets*. Sono quattro e non sono intercambiabili:
+
+| File | Cos'è | Dove si carica |
+|---|---|---|
+| `Xrcopilotlab-….zip` | il **plugin** per Claude Desktop (assessment) | [claude.ai/customize/plugins](https://claude.ai/customize/plugins) → **Carica plugin** |
+| `xrcopilotlab-assessment.zip` | la **skill** dell'assessment, da sola | *Impostazioni → Capacità → Skill*, oppure scompattata in `~/.claude/skills/` per Claude Code |
+| `xrcopilotlab-blueprint.zip` | la **skill** che scrive e applica un blueprint | idem |
+| `xrcopilotlab-blueprint-test.zip` | la **skill** che collauda un blueprint applicato | idem |
+
+Il **plugin `blueprints` per Claude Code non si scarica**: si installa con le [due righe](#installare-in-breve) e porta con sé le sue due skill e lo strumento a riga di comando. Gli zip delle skill servono a chi le vuole **senza** il plugin — in chat, o su un'altra app. La differenza fra i due formati è reale: scambiarli dà l'errore «All files must be inside the top-level folder».
 
 ## Cosa c'è dentro
 
@@ -79,6 +93,7 @@ Cosa fare quando qualcosa non va: [§ Installare](docs/installare.md#se-qualcosa
 | Se vuoi | Leggi |
 |---|---|
 | Installare e cominciare a usarli | [§ Installare](docs/installare.md) |
+| Portare un blueprint da staging a produzione, passo per passo | [§ Da staging a produzione](docs/da-staging-a-produzione.md) |
 | Avere lo strumento a riga di comando sul proprio PC, senza plugin | [§ Solo lo strumento a riga di comando](docs/installare.md#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc) |
 | Capire perché il plugin non ti fa entrare, e cosa chiedere a chi | [§ L'accesso ad Azure](docs/accesso-azure.md) |
 | Sapere cosa fa ciascuna skill, con che frasi si attiva e cosa produce | [§ Le skill](docs/le-skill.md) |
