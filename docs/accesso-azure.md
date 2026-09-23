@@ -54,12 +54,17 @@ tutto passa da riferimenti a Key Vault dentro App Configuration.
 
 Le risorse su cui vanno assegnati, per ambiente:
 
-| Ambiente | App Configuration | Key Vault |
-|---|---|---|
-| `staging` | `appcs-xrcopilotlab-staging-01` | `kv-xrcopilotlab-stg-01` |
-| `preview` | `appcs-xrcopilotlab-preview-italynorth` | `kv-xrcopilotlab-preview` |
-| `prod` | `appcs-xrcopilotlab-prod-italynorth` | *(da verificare con chi amministra)* |
+| Ambiente | Resource group | App Configuration | Key Vault |
+|---|---|---|---|
+| `staging` | `rg-xrcopilotlab-staging-itn-01` | `appcs-xrcopilotlab-staging-01` | `kv-xrcopilotlab-stg-01` |
+| `prod` | `rg-xrcopilotlab-prod-itn-01` | `appcs-xrcopilotlab-prod-01` | `kv-xrcopilotlab-prod-01` |
 
+> **Verificati contro Azure il 22/09/2026, e i nomi erano sbagliati.** Questa pagina citava per la
+> produzione un `appcs-xrcopilotlab-prod-italynorth` che **non esiste** — non risolve nemmeno in DNS
+> — e un ambiente `preview` che non è un ambiente: `xrcopilotlab-preview.hevolus.it` è un secondo
+> nome host della **produzione**. Chiedere un ruolo su una risorsa inesistente fa perdere un giro a
+> te e a chi amministra.
+>
 > Nella sottoscrizione esiste anche un `kv-xrcopilotlab-staging`, che **non** è quello usato da
 > staging. Se ti viene chiesto su quale vault assegnare un ruolo, è `kv-xrcopilotlab-stg-01`.
 
@@ -96,8 +101,9 @@ az role assignment list \
   --query "[?roleDefinitionName=='Owner' || roleDefinitionName=='User Access Administrator'].principalName" -o tsv
 ```
 
-**I comandi da girare a chi amministra** — per staging, e assegnati sulla **singola risorsa**, non
-sul resource group: così il permesso non si estende in silenzio ad altro che vive lì accanto.
+**I comandi da girare a chi amministra** — assegnati sulla **singola risorsa**, non sul resource
+group: così il permesso non si estende in silenzio ad altro che vive lì accanto. Sotto c'è staging;
+per la produzione cambiano solo le tre righe delle coordinate, e le trovi subito dopo.
 
 ```bash
 UTENTE=nome.cognome@hevolus.it
@@ -113,6 +119,20 @@ az role assignment create --assignee "$UTENTE" --role "Key Vault Secrets User"  
 az role assignment create --assignee "$UTENTE" --role "App Configuration Data Owner"  --scope "$APPCS"
 az role assignment create --assignee "$UTENTE" --role "Key Vault Secrets Officer"     --scope "$KV"
 ```
+
+Per la **produzione**, stessi ruoli, altre coordinate:
+
+```bash
+SUB=/subscriptions/73961d27-722e-4282-be21-bfb36e97c0f0/resourceGroups/rg-xrcopilotlab-prod-itn-01
+APPCS=$SUB/providers/Microsoft.AppConfiguration/configurationStores/appcs-xrcopilotlab-prod-01
+KV=$SUB/providers/Microsoft.KeyVault/vaults/kv-xrcopilotlab-prod-01
+```
+
+> **Su produzione, al 22/09/2026, nessuna persona ha App Configuration Data Reader** — ci sono solo
+> quattro service principal. Sul Key Vault di produzione tre persone hanno *Secrets User*. Quindi
+> oggi la CLI su `prod` non la può usare nessuno, e la richiesta va fatta: non è un difetto del
+> plugin, è un'assegnazione che non c'è mai stata. `xrcopilotlab-bp environments` lo dice in un
+> comando, prima di cominciare.
 
 Le due righe in fondo servono a poche persone: chi scrive i segreti di una connessione. Darle a
 tutti per comodità significa dare a tutti la scrittura sulla configurazione di un ambiente.
