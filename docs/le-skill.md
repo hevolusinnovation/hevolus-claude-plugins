@@ -58,6 +58,9 @@ toccare il tenant.
 | «Applica `blueprints/como-conoscenza-associati.yml` su staging» | `push`, poi `plan`: stampa il piano — quante entità, quali nomi, il grafo — e **si ferma ad aspettare il sì** |
 | «Sì, vai» (detto **dopo** aver visto il piano) | `apply --yes`, poi riporta entità create, `runId`, e la chiave del webhook se ce n'è una: compare una sola volta |
 | «Cancella il blueprint TEST» | Riporta cosa sparirebbe e chiede un sì che nomini quel tag: senza `--confirm TEST` la CLI non procede |
+| «Su quali ambienti posso lavorare?» | `environments`: prova a leggere ogni ambiente con la **tua** utenza e dice *accessibile* · *manca il ruolo* · *nessun accesso ad Azure* · *non raggiungibile*. Non è una stima: è ciò che succederà al primo comando |
+| «Porta STUDIOPOLIS v29 da staging a produzione» | `promote` copia la versione nell'archivio di destinazione — byte per byte, stessa impronta — poi `plan` e **si ferma**: copiare è ripetibile, creare no. I passi per intero: [§ Da staging a produzione](da-staging-a-produzione.md) |
+| «Fammi vedere il manifest della v27 che gira su staging» | `pull`: riscrive su disco il file com'era stato pubblicato, commenti compresi. Due `pull` e un `diff` dicono se due ambienti eseguono lo stesso blueprint |
 | «Cosa sai fare con i blueprint?» · la skill chiesta senza altro | Orientamento: a cosa serve, cosa serve per usarlo, ambienti, blueprint esistenti. Nessuna intervista |
 
 **Il giro dei comandi**, che la skill lancia per te nell'ordine giusto — e che puoi lanciare anche
@@ -176,8 +179,8 @@ processes:
   niente;
 - **il modello si dichiara**: senza `model:` l'agente nasce sul default (`BP015` avvisa), un nome
   fuori catalogo ferma il piano (`BP065`);
-- **in produzione solo il tenant di Hevolus**: l'API rifiuta gli altri anche con il GUID scritto a
-  mano (codice `3`). L'ambiente di un cliente si configura dall'interfaccia.
+- **in produzione solo i tenant a cui appartieni**: l'API li ricava dalla tua utenza, come per
+  l'interfaccia, e rifiuta gli altri anche con il GUID scritto a mano
 
 **Cosa non fa.** Non modifica un singolo agente o processo già esistente (per quello si va dalla
 UI); non crea l'ingresso *push* della posta (`ingress.kind: logicapp`, che vuole una Logic App e
@@ -211,6 +214,7 @@ La divisione del lavoro è netta, ed è ciò che rende il collaudo ripetibile:
 | «Scrivi le domande di test per gli agenti di FINLOGIC» | `test init` dal manifest, poi compila i `TODO` — un caso positivo e uno negativo per agente, uno per orchestratore, uno per processo — partendo dal system message di ciascun agente |
 | «Ecco le domande della demo, traducile in una suite» (con un file `demo-domande-*.md`) | Traduce campo per campo: la domanda **identica** in `message`, l'atteso in `expect.answer`, i numeri con tolleranza in `expect.numbers`, le «risposte sbagliate da riconoscere» in `expect.wrongAnswers` |
 | «Esegui solo i casi dell'agente agenda» | `test run … --only agenda`: un valore combacia con la chiave, con un tag **o con il target** del caso |
+| «Il benvenuto dell'orchestratore non compare, guarda tu» | Apre Chrome con l'estensione **Claude in Chrome** e guarda ciò che vede il cliente: la suite prova l'API, e lo strato che sta in mezzo — chat, form di avvio, coda dei compiti — sa rompersi da solo lasciandola verde. Guarda e non cambia niente |
 | «Cosa è andato male, e di chi è?» | Legge il report, dà un verdetto **pass / parziale / fail** per ogni caso, fa il triage per componente e scrive `giudizio.md` |
 | «Apri le issue» (**dopo** aver visto le bozze) | Le apre in `xrcopilotlab-webapp-dotnet` con la label del componente, una per difetto confermato, e riporta i numeri nel giudizio |
 | «Prepara le domande di prova per il cliente» · «Scrivi la guida del processo per il cliente» | Scrive `demo-domande-<scenario>.md` e `guida-<scenario>.md` nella cartella del cliente dell'assessment, e pubblica la guida anche come pagina web |

@@ -179,7 +179,7 @@ processo, la coda dei compiti — è lo strato che sa rompersi da solo lasciando
 | Cosa vedi | Cosa vuol dire |
 |---|---|
 | `environments` dice «manca il ruolo» su prod | i ruoli si chiedono a chi amministra la sottoscrizione: [§ L'accesso ad Azure](accesso-azure.md) |
-| exit **3** «il tenant non è fra quelli su cui si può intervenire» | è il passo 0.2: in produzione passa solo il tenant di Hevolus |
+| exit **3** «il tenant non è fra quelli su cui si può intervenire» | è il passo 0.2: non sei censito su quel tenant nel prodotto. Non è un ruolo Azure che manca |
 | exit **6** «serve --yes» | non c'è un terminale a cui chiedere: la conferma la dà una persona, a parole |
 | «il segreto X non esiste in produzione» | `promote` li aveva elencati: `secrets set --env prod` prima del `plan` |
 | un nome esiste già | il blueprint non sovrascrive: si decide, non si forza |

@@ -124,13 +124,21 @@ Se qualcosa si blocca qui, salta al [punto 6](#6-quando-qualcosa-non-va).
 
 Due domande a cui rispondi una volta per sessione, e a cui il plugin ti aiuta a rispondere.
 
-**L'ambiente** è dove finisce il lavoro. Sono tre, già dentro la CLI — non devi configurare niente:
+**L'ambiente** è dove finisce il lavoro. Sono due, già dentro la CLI — non devi configurare niente:
 
 | `--env` | Cos'è |
 |---|---|
 | `staging` | L'ambiente di prova. È quello che si usa quasi sempre |
-| `preview` | L'anteprima |
 | `prod` | **La produzione.** Da qui dipendono le demo e chi lavora |
+
+Un terzo, `preview`, c'era fino al 22/09/2026 ed è stato tolto: non era un ambiente, era un secondo
+nome host della produzione. Se lo trovi citato da qualche parte, quella pagina è vecchia.
+
+Su quali dei due puoi lavorare **davvero** dipende dalla tua utenza, e te lo dice un comando:
+
+```
+xrcopilotlab-bp environments
+```
 
 Senza `--env`, e solo dentro un clone del repository di prodotto, si usa l'ambiente di sviluppo.
 
@@ -149,10 +157,13 @@ Senza `--env`, e solo dentro un clone del repository di prodotto, si usa l'ambie
 Prima di ogni comando che scrive qualcosa, vedi sempre una riga che dice dove sei. In produzione
 non è una riga: è un riquadro.
 
-> **In produzione si lavora solo sul tenant di Hevolus.** Gli ambienti dei clienti non compaiono
-> nell'elenco, e non si raggiungono nemmeno scrivendo il loro identificativo. Non è un permesso che
-> ti manca: è una scelta. L'ambiente di un cliente si configura dall'interfaccia di XRCopilotLab,
-> non da qui.
+> **L'elenco è il tuo.** Il plugin chiede a XRCopilotLab a quali tenant appartieni — la stessa cosa
+> che fa l'interfaccia quando entri — e ti propone quelli. Due colleghi con diritti diversi vedono
+> elenchi diversi.
+>
+> In **produzione** un tenant che non è fra i tuoi viene rifiutato anche scrivendone
+> l'identificativo. Se dovresti esserci e non ci sei, non è un permesso di Azure che manca: chiedi
+> di essere aggiunto a quel tenant nel prodotto, come faresti per usarne l'interfaccia.
 
 ---
 
@@ -261,6 +272,11 @@ possa capire cosa sta succedendo, e perché a volte è comodo lanciarli a mano.
 | `apply --tag <TAG>` | Esegue il piano, dopo la conferma |
 | `status` | Elenco dei blueprint e delle esecuzioni sul tenant |
 | `status --run <id>` | Dettaglio di un'esecuzione: chi ha approvato, cosa è stato creato |
+| `environments` | Su quali ambienti la **tua** utenza può davvero lavorare, e cosa manca dove non può |
+| `promote --tag <TAG> --to-env prod` | Copia una versione già pubblicata nell'archivio di un altro ambiente o di un altro cliente. Non crea niente sul tenant: dopo servono `plan` e `apply` |
+| `pull --tag <TAG>` | Riscrive su disco il manifest di una versione pubblicata, com'era stato scritto. Serve a recuperarlo e a confrontare due ambienti |
+| `secrets set --tag <TAG> <nome>` | Salva il valore di un segreto. Nel manifest ci sono solo i nomi |
+| `secrets check <file>` | Elenca i segreti che il file cita e quali mancano nell'ambiente |
 | `rollback --run <id>` | Smonta ciò che quell'esecuzione ha creato |
 | `delete --tag <TAG> --confirm <TAG>` | Cancella il blueprint dall'archivio. Con `--with-entities` smonta prima il tenant |
 | `test init <file>` | Scrive lo scheletro della suite di collaudo dal manifest, in `blueprints/tests/` |
@@ -336,7 +352,7 @@ $env:XRCOPILOTLAB_BP_BIN = "$HOME\Downloads\xrcopilotlab-bp-win-x64.exe"
 Manca `--env`. Dentro un clone del repository di XRCopilotLab l'ambiente si deduce dal
 `local.settings.json`; fuori — cioè nel caso normale — non c'è nulla da cui dedurlo, e la CLI si
 ferma **prima** di collegarsi a qualsiasi cosa invece di scegliere per te. Basta dire a parole dove
-vuoi lavorare («su staging»), o passare `--env staging`, `--env preview`, `--env prod`.
+vuoi lavorare («su staging»), o passare `--env staging` o `--env prod`.
 
 Un profilo in `~/.xrcopilotlab-bp/profiles.json` serve solo per un ambiente che non è fra quei tre:
 non è la strada normale, e non ti serve chiederlo a nessuno.

@@ -161,7 +161,7 @@ si usa il binario x64 in emulazione.
 ### Fuori da un clone, l'ambiente si dice sempre
 
 Chi ha il repository di prodotto ha anche un `local.settings.json` da cui la CLI deduce dove
-lavorare. Tu no: quindi ogni comando che tocca la rete vuole **`--env staging`**, `--env preview` o
+lavorare. Tu no: quindi ogni comando che tocca la rete vuole **`--env staging`** o
 `--env prod`. Non c'è un valore predefinito, e non è una dimenticanza: scegliere per conto proprio
 l'ambiente su cui si crea roba è esattamente ciò che non deve succedere. Alla skill basta dirlo a
 parole («su staging»).
@@ -278,7 +278,7 @@ xrcopilotlab-bp --help
 L'elenco che stampa è anche la risposta alla domanda «questa versione cosa sa fare»: se un comando
 citato da una guida non compare lì, il binario è più vecchio della guida — si riscarica da una
 release più recente. Fuori da un clone del repository di prodotto ogni comando che tocca la rete
-vuole `--env staging`, `--env preview` o `--env prod`, e prima serve
+vuole `--env staging` o `--env prod`, e prima serve
 [l'accesso ad Azure](accesso-azure.md).
 
 > **Se hai anche il plugin, attenzione a una cosa.** Un `xrcopilotlab-bp` installato a mano viene
