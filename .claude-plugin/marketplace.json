@@ -5,13 +5,13 @@
     "name": "Hevolus Innovation — AI Team",
     "url": "https://github.com/hevolusinnovation"
   },
-  "version": "1.15.0",
+  "version": "1.15.1",
   "plugins": [
     {
       "name": "blueprints",
       "displayName": "XRCopilotLab BluePrints",
       "source": "./plugins/blueprints",
-      "version": "2.15.0",
+      "version": "2.15.1",
       "description": "Configura un ambiente XRCopilotLab — topic, profili di knowledge, ruoli, agenti, agent task, processi BPM — da un manifest YAML, proponendo come ripartire i documenti fra i profili e quale modello dare a ciascun agente, mostrando il piano prima di creare qualcosa, e collaudandolo una volta applicato con domande, giudizio delle risposte e triage dei fallimenti.",
       "category": "productivity",
       "tags": [

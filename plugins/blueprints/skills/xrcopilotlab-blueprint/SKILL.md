@@ -75,6 +75,26 @@ Lo schema è in [`references/blueprint.v1.schema.json`](references/blueprint.v1.
 Due esempi commentati: [`references/esempio-agenda.yml`](references/esempio-agenda.yml) (scenario reale)
 e [`references/esempio-minimo.yml`](references/esempio-minimo.yml) (il giro più corto).
 
+## Se la CLI dice che il plugin è indietro
+
+Ogni tanto, in cima all'output di un comando, compare una riga come questa:
+
+```
+xrcopilotlab-bp: c'è la 2.14.0, il plugin chiede la 2.13.0. Aggiornalo con '/plugin update blueprints@hevolus'.
+```
+
+**Non ignorarla e non lasciarla sepolta nell'output**: dilla all'utente a parole, una riga, e
+proponi il comando. Chi legge una risposta lunga quella riga non la vede, e se ne accorge settimane
+dopo — quando un comando del manuale «non esiste», che è il modo peggiore di scoprirlo.
+
+Due cose da sapere mentre lo dici:
+
+- **non puoi aggiornare tu**: `/plugin update` è un comando del client, lo digita la persona. Anche
+  potendo, aggiornare sostituisce le skill mentre le stai seguendo: si fa fra un lavoro e l'altro,
+  non a metà di un `apply`.
+- **non è urgente**, e va detto: ciò che sta girando funziona. Se l'utente è a metà di qualcosa, si
+  finisce e si aggiorna dopo.
+
 ## Con quale identità gira — da chiarire al primo comando che fallisce, o prima
 
 Domanda che arriva sempre, e la risposta breve è: **l'account con cui si usa Claude non c'entra

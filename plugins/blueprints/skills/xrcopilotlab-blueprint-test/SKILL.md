@@ -47,6 +47,26 @@ ambiente). Poi la domanda: quale blueprint, su quale ambiente.
 
 Per i comandi non scrivere a memoria: `xrcopilotlab-bp --help`.
 
+## Se la CLI dice che il plugin è indietro
+
+Ogni tanto, in cima all'output di un comando, compare una riga come questa:
+
+```
+xrcopilotlab-bp: c'è la 2.14.0, il plugin chiede la 2.13.0. Aggiornalo con '/plugin update blueprints@hevolus'.
+```
+
+**Non ignorarla e non lasciarla sepolta nell'output**: dilla all'utente a parole, una riga, e
+proponi il comando. Chi legge una risposta lunga quella riga non la vede, e se ne accorge settimane
+dopo — quando un comando del manuale «non esiste», che è il modo peggiore di scoprirlo.
+
+Due cose da sapere mentre lo dici:
+
+- **non puoi aggiornare tu**: `/plugin update` è un comando del client, lo digita la persona. Anche
+  potendo, aggiornare sostituisce le skill mentre le stai seguendo: si fa fra un lavoro e l'altro,
+  non a metà di un `apply`.
+- **non è urgente**, e va detto: ciò che sta girando funziona. Se l'utente è a metà di qualcosa, si
+  finisce e si aggiorna dopo.
+
 ## 1. Da dove si parte
 
 Tre situazioni, e la prima cosa da fare è capire in quale si è:
