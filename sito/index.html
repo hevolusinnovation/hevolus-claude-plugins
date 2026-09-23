@@ -392,11 +392,17 @@ gh auth login</code></pre>
           prova. Fatto una volta, vale per tutte le volte dopo.</p>
       </li>
       <li>
+        <b>Prima, se vuoi sapere dove puoi lavorare</b>
+        <p>Un comando risponde per ogni ambiente se la <b>tua</b> utenza ci può lavorare davvero, e
+          se no che cosa manca. Non è una stima: è quello che succederà al primo comando vero.</p>
+        <div class="comando"><pre><code>xrcopilotlab-bp environments</code></pre></div>
+      </li>
+      <li>
         <b>Chiedi in italiano</b>
         <p class="nota">«crea un blueprint per lo studio legale Polis» · «applica
           <code>blueprints/studiopolis-agenda.yml</code> su staging» · «collauda il blueprint
           STUDIOPOLIS» · «cosa è andato male, e di chi è?»</p>
-        <p><b>Di' sempre su quale ambiente lavori</b> — «su staging», «su preview». Fuori da un
+        <p><b>Di' sempre su quale ambiente lavori</b> — «su staging», «su produzione». Fuori da un
           clone del repository di prodotto non esiste un ambiente predefinito, ed è voluto:
           scegliere per conto proprio dove creare roba è esattamente ciò che non deve succedere.</p>
       </li>
@@ -504,11 +510,15 @@ gh auth login</code></pre>
     <thead><tr><th>Ambiente</th><th>App Configuration</th><th>Key Vault</th></tr></thead>
     <tbody>
       <tr><td><b>staging</b> — quello che si usa quasi sempre</td><td><code>appcs-xrcopilotlab-staging-01</code></td><td><code>kv-xrcopilotlab-stg-01</code></td></tr>
-      <tr><td><b>preview</b></td><td><code>appcs-xrcopilotlab-preview-italynorth</code></td><td><code>kv-xrcopilotlab-preview</code></td></tr>
-      <tr><td><b>prod</b> — la produzione</td><td><code>appcs-xrcopilotlab-prod-italynorth</code></td><td>da verificare con chi amministra</td></tr>
+      <tr><td><b>prod</b> — la produzione</td><td><code>appcs-xrcopilotlab-prod-01</code></td><td><code>kv-xrcopilotlab-prod-01</code></td></tr>
     </tbody>
   </table>
   </div>
+
+  <p class="nota"><b>Gli ambienti sono due.</b> Un <code>preview</code> compariva qui fino al
+    22/09/2026, con risorse che non esistono: <code>xrcopilotlab-preview.hevolus.it</code> è un
+    secondo nome host della <b>produzione</b>, non un ambiente a sé. Chiedere un ruolo su una
+    risorsa inesistente fa perdere un giro a te e a chi amministra.</p>
 
   <p class="nota">Nella sottoscrizione esiste anche un <code>kv-xrcopilotlab-staging</code>, che
     <b>non</b> è quello usato da staging. Se ti viene chiesto su quale vault assegnare il ruolo, è
@@ -629,9 +639,10 @@ az account set --subscription "Azure AI"</code></pre>
     <li><b>Non creano utenti né licenze.</b> Le persone che metti nei ruoli devono già esistere sul
       tenant: il blueprint le aggiunge ai ruoli, non le inventa. Se un indirizzo non esiste, il
       piano si ferma prima di toccare qualsiasi cosa.</li>
-    <li><b>Non lavorano sui tenant dei clienti in produzione.</b> Lì la riga di comando vede il solo
-      tenant di Hevolus — il filtro lo applica l'API — e gli ambienti dei clienti si configurano
-      dall'interfaccia.</li>
+    <li><b>Non lavorano su un tenant che non è tuo.</b> La riga di comando chiede a XRCopilotLab a
+      quali tenant appartieni — la stessa cosa che fa l'interfaccia quando entri — e ti propone
+      quelli. In produzione, un tenant fuori da quell'elenco viene rifiutato anche scrivendone
+      l'identificativo: se dovresti esserci, chiedi di essere aggiunto a quel tenant nel prodotto.</li>
     <li><b>Non applicano niente dalla chat.</b> Le skill caricate in chat scrivono e spiegano;
       applicare vuol dire lanciare un comando, e i comandi girano solo nella scheda <b>Code</b>.</li>
   </ul>
