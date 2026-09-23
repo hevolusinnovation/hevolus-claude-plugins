@@ -158,6 +158,24 @@ L'avviatore sa chiedere sei binari — **macOS** (Apple Silicon e Intel), **Wind
 ne ha quattro, e Windows ARM e Linux ARM arrivano con la prossima. Su quelle due macchine, per ora,
 si usa il binario x64 in emulazione.
 
+### Aggiornare
+
+**La versione della CLI la decide il plugin**: `version.txt` dice quale usare, e skill e binario si
+muovono insieme — è ciò che evita che una guida citi un comando che la tua copia non ha. Quindi si
+aggiorna il plugin:
+
+```
+/plugin update blueprints@hevolus
+```
+
+Non devi controllare tu: quando esce una CLI più recente di quella richiesta, al comando successivo
+compare una riga che lo dice. Il controllo gira in secondo piano e non può far fallire niente.
+
+Una copia installata **a mano** non la aggiorna nessuno: si riscarica
+([§ Solo lo strumento a riga di comando](#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc)). Uno
+strumento globale `dotnet tool` non è aggiornabile e va tolto con
+`dotnet tool uninstall --global xrcopilotlab-bp`.
+
 ### Fuori da un clone, l'ambiente si dice sempre
 
 Chi ha il repository di prodotto ha anche un `local.settings.json` da cui la CLI deduce dove

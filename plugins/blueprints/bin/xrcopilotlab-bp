@@ -81,6 +81,39 @@ case "$(uname -s)" in
     ;;
 esac
 
+# Dice, una riga sola, se il plugin è indietro rispetto all'ultima CLI pubblicata.
+#
+# Chi usa il plugin non lancerà mai un comando per chiederlo: scopre di essere indietro quando un
+# comando «non esiste», mesi dopo. Ma il controllo non deve costare niente e non deve poter far
+# fallire un comando, quindi: si **legge** la cache (immediato) e si **aggiorna** in background. La
+# notizia arriva quindi al comando successivo, il che va benissimo per una cosa che cambia ogni
+# poche settimane, e non aggiunge un millisecondo né un modo nuovo di rompersi.
+NOTA="${CLAUDE_PLUGIN_DATA:-$HOME/.xrcopilotlab-bp/cache}/ultima-cli"
+
+avviso_aggiornamento() {
+  if [ -s "$NOTA" ]; then
+    ULTIMA="$(tr -d '\r\n' < "$NOTA")"
+
+    if [ -n "$ULTIMA" ] && ! aggiornato "$VERSION" "$ULTIMA"; then
+      echo "xrcopilotlab-bp: c'è la $ULTIMA, il plugin chiede la $VERSION. Aggiornalo con '/plugin update blueprints@hevolus'." >&2
+    fi
+  fi
+
+  # Aggiorna la cache al massimo una volta al giorno, staccato e muto: se gh non c'è, se non sei
+  # autenticato o se GitHub non risponde, non succede niente di visibile.
+  if command -v gh >/dev/null 2>&1 && [ -z "$(find "$NOTA" -mtime -1 2>/dev/null)" ]; then
+    mkdir -p "$(dirname "$NOTA")"
+    (
+      gh release list --repo "$REPO_CATALOGO" --limit 30 2>/dev/null \
+        | awk '{ for (i = 1; i <= NF; i++) if ($i ~ /^bp-v[0-9]/) { sub(/^bp-v/, "", $i); print $i; break } }' \
+        | sort -t. -k1,1n -k2,2n -k3,3n | tail -1 > "$NOTA.tmp" 2>/dev/null \
+        && mv "$NOTA.tmp" "$NOTA" 2>/dev/null
+    ) >/dev/null 2>&1 &
+  fi
+}
+
+avviso_aggiornamento
+
 BIN="$CACHE_DIR/xrcopilotlab-bp-$VERSION-$RID"
 if [ -x "$BIN" ]; then
   exec "$BIN" "$@"

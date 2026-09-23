@@ -52,6 +52,35 @@ if (Test-Path $Tool) {
     [Console]::Error.WriteLine("xrcopilotlab-bp: ignoro lo strumento globale ($Quale), il plugin chiede la $Version. Per imporlo: `$env:XRCOPILOTLAB_BP_BIN = '$Tool'")
 }
 
+# Dice, una riga sola, se il plugin è indietro rispetto all'ultima CLI pubblicata. Gemello della
+# stessa logica nell'avviatore bash: si **legge** la cache (immediato) e si **aggiorna** in
+# background, quindi la notizia arriva al comando successivo. Costa zero e non può far fallire
+# niente: se gh non c'è, o GitHub non risponde, non succede nulla di visibile.
+$Nota = Join-Path $CacheRoot 'ultima-cli'
+
+if (Test-Path $Nota) {
+    $Ultima = (Get-Content $Nota -ErrorAction SilentlyContinue | Select-Object -First 1)
+
+    if ($Ultima) { $Ultima = $Ultima.Trim() }
+
+    if ($Ultima -and -not (Test-Aggiornato $Version $Ultima)) {
+        [Console]::Error.WriteLine("xrcopilotlab-bp: c'è la $Ultima, il plugin chiede la $Version. Aggiornalo con '/plugin update blueprints@hevolus'.")
+    }
+}
+
+$Scaduta = -not (Test-Path $Nota) -or ((Get-Item $Nota).LastWriteTime -lt (Get-Date).AddDays(-1))
+
+if ($Scaduta -and (Get-Command gh -ErrorAction SilentlyContinue)) {
+    New-Item -ItemType Directory -Force (Split-Path $Nota) | Out-Null
+    Start-Job -ScriptBlock {
+        param($Repo, $File)
+        $V = gh release list --repo $Repo --limit 30 2>$null |
+             ForEach-Object { if ($_ -match 'bp-v(\d+\.\d+\.\d+)') { [version]$Matches[1] } } |
+             Sort-Object | Select-Object -Last 1
+        if ($V) { Set-Content -Path $File -Value $V.ToString() }
+    } -ArgumentList $RepoCatalogo, $Nota | Out-Null
+}
+
 # 3. La copia già scaricata.
 $Rid   = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'win-arm64' } else { 'win-x64' }
 $Bin   = Join-Path $CacheDir "xrcopilotlab-bp-$Version-$Rid.exe"

@@ -484,14 +484,52 @@ via mentre esistono vorrebbe dire doverli poi cercare a mano uno per uno.
 
 ## 8. Aggiornare e disinstallare
 
-Il plugin si aggiorna da solo quando esce una versione nuova. Per forzare il controllo:
+**La versione la decide il plugin, non tu.** Il file `version.txt` che il plugin porta con sé dice
+quale CLI usare, e non è un dettaglio: le skill e il binario vengono aggiornati **insieme**, così
+non capita che una guida citi un comando che la tua copia non ha (o il contrario).
+
+Quindi «aggiornare la CLI» vuol dire **aggiornare il plugin**:
+
+```
+/plugin update blueprints@hevolus
+```
+
+Il plugin si aggiorna anche da solo; per forzare il controllo del catalogo:
 
 ```
 /plugin marketplace update hevolus
 ```
 
-Se una versione nuova del plugin porta con sé una CLI nuova, verrà riscaricata al comando
-successivo: te ne accorgi dal messaggio, dura qualche decina di secondi.
+Se la versione nuova porta con sé una CLI nuova, verrà riscaricata al comando successivo: te ne
+accorgi dal messaggio, dura qualche decina di secondi.
+
+**Non devi controllare tu se sei indietro.** Quando esce una CLI più recente di quella che il
+plugin chiede, al comando successivo compare una riga sola:
+
+```
+xrcopilotlab-bp: c'è la 2.14.0, il plugin chiede la 2.13.0. Aggiornalo con '/plugin update blueprints@hevolus'.
+```
+
+Il controllo gira in secondo piano, non rallenta niente e non può far fallire un comando: se
+GitHub non risponde, semplicemente quella riga non compare. Per questo l'avviso arriva **al
+comando dopo** rispetto a quando la versione nuova esce.
+
+### Se hai installato la CLI a mano
+
+Una copia messa in `~/.local/bin` (o indicata con `XRCOPILOTLAB_BP_BIN`) **non** la aggiorna
+nessuno: resta alla versione che hai scaricato. Si rifà scaricando il binario nuovo dalla pagina
+delle release — i passi sono in
+[§ Solo lo strumento a riga di comando](../../../docs/installare.md#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc).
+
+Uno **strumento globale** `dotnet tool` installato tempo fa non è aggiornabile — quel pacchetto non
+è pubblicato su nessun feed — e va tolto, perché è la causa numero uno del «questo comando non
+esiste»:
+
+```
+dotnet tool uninstall --global xrcopilotlab-bp
+```
+
+`xrcopilotlab-bp version` dice sempre quale copia sta girando e da dove viene.
 
 Per toglierlo:
 
