@@ -230,6 +230,33 @@ Dopo ogni modifica va **alzata la versione** in `plugins/assessment/.claude-plug
 l'unico segnale che chi l'ha già installato vede, perché su Desktop non ci sono aggiornamenti
 automatici. Poi si pubblica una release, e chi lo usa riscarica lo zip.
 
+## Come si lavora qui: da pull request
+
+**Dal 23/09/2026 le modifiche a questo catalogo passano da una pull request**, anche quelle di una
+riga e anche quando chi le fa è l'unico manutentore. Prima andavano dritte su `main`: era comodo, e
+per un catalogo a un manutentore solo sembrava perfino ragionevole.
+
+Non lo è, per una ragione che con la revisione c'entra poco: da qui escono **i pacchetti che i
+colleghi installano**. Una skill sbagliata o un `version.txt` che nomina una release inesistente non
+rompe una build — arriva sul computer di un commerciale, e lui non ha modo di capire se il problema
+è suo. Una PR dà un posto dove il *perché* di un cambio sta scritto prima che quel cambio esista, e
+un momento in cui i controlli girano mentre si può ancora cambiare idea.
+
+```bash
+git checkout -b docs/quello-che-stai-facendo
+# … modifiche …
+git commit
+git push -u origin docs/quello-che-stai-facendo
+gh pr create --base main
+```
+
+I controlli girano sulla PR come sul push (`controlli.yml` ascolta entrambi), quindi il verde lo si
+vede prima di mergiare. Dopo il merge, se la modifica cambia ciò che i colleghi scaricano, si
+pubblica la release come al punto qui sotto.
+
+Due cose restano fuori dalla PR, perché non sono modifiche al repository: **i tag** (`v*` e le
+release della CLI) e le assegnazioni di ruolo su Azure.
+
 ## Pubblicare una release
 
 **È così che i pacchetti arrivano ai colleghi.** Nessuno deve clonare il repository né eseguire uno
