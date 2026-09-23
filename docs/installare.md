@@ -171,9 +171,10 @@ aggiorna il plugin:
 Non devi controllare tu: quando esce una CLI più recente di quella richiesta, al comando successivo
 compare una riga che lo dice. Il controllo gira in secondo piano e non può far fallire niente.
 
-Una copia installata **a mano** non la aggiorna nessuno: si riscarica
-([§ Solo lo strumento a riga di comando](#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc)). Uno
-strumento globale `dotnet tool` non è aggiornabile e va tolto con
+Una copia installata **a mano** si aggiorna con `xrcopilotlab-bp update`: scarica l'ultima
+versione, ne verifica l'impronta e la sostituisce (`--check` dice cosa farebbe e si ferma). Sulla
+copia del plugin lo stesso comando non tocca niente e rimanda a `/plugin update`, perché lì binario
+e skill vanno insieme. Uno strumento globale `dotnet tool` non è aggiornabile e va tolto con
 `dotnet tool uninstall --global xrcopilotlab-bp`.
 
 ### Fuori da un clone, l'ambiente si dice sempre

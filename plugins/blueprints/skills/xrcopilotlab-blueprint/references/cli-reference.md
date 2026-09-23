@@ -657,6 +657,32 @@ Emerso il **2026-09-14**: sul tenant di Studio Polis la riga del catalogo del se
 era sparita fra due collaudi, con i quattro collegamenti ancora in piedi; la causa non è stata
 trovata (telemetria di staging non interrogabile), la riparazione è stata `mcp publish`.
 
+## `update [--check]`
+
+Porta all'ultima versione **la copia di cui questo comando è padrone**, che è una sola: quella
+installata a mano. Per le altre dice cosa fare, e non tocca niente.
+
+| Provenienza (la dice `version`) | Cosa fa `update` |
+|---|---|
+| **copia installata a mano** | scarica l'ultima release per la propria piattaforma, **verifica l'impronta SHA-256** e la mette al posto di questa |
+| **cache del plugin** | non la tocca: lì la versione è appuntata **insieme alle skill**, ed è ciò che evita che una guida citi un comando che il binario non ha. Dice di usare `/plugin update blueprints@hevolus` |
+| **strumento globale `dotnet tool`** | dice di toglierlo: quel pacchetto non è pubblicato su nessun feed, quindi «aggiornalo» sarebbe un consiglio impossibile |
+| **build compilata qui** | niente: la versione la decidi tu, ricompilando |
+
+Con `--check` dice cosa farebbe e si ferma: né scarica né sostituisce.
+
+Scarica con `gh`, come fa l'avviatore del plugin — il catalogo è privato, e lì una credenziale per
+leggerlo c'è già; se la release non è ancora rispecchiata prova il repository di prodotto. Senza
+`gh` autenticato il comando non inventa niente: dice che non ha potuto sapere qual è l'ultima
+versione e si ferma.
+
+**La sostituzione è l'unico momento in cui si può controllare cosa si sta per eseguire**, quindi
+l'impronta si verifica prima di rendere eseguibile il file. Il binario precedente viene spostato
+accanto e rimosso solo a sostituzione riuscita: se qualcosa va storto a metà, viene rimesso al suo
+posto — restare senza comando sarebbe il modo peggiore di fallire un aggiornamento. Su Windows un
+eseguibile in esecuzione non si può sovrascrivere, ma si può rinominare, ed è per questo che
+funziona anche lì.
+
 ## `version`
 
 Quale CLI sta girando, e da dove viene.

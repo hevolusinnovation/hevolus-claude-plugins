@@ -516,10 +516,16 @@ comando dopo** rispetto a quando la versione nuova esce.
 
 ### Se hai installato la CLI a mano
 
-Una copia messa in `~/.local/bin` (o indicata con `XRCOPILOTLAB_BP_BIN`) **non** la aggiorna
-nessuno: resta alla versione che hai scaricato. Si rifà scaricando il binario nuovo dalla pagina
-delle release — i passi sono in
-[§ Solo lo strumento a riga di comando](../../../docs/installare.md#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc).
+Una copia messa in `~/.local/bin` (o indicata con `XRCOPILOTLAB_BP_BIN`) si aggiorna da sé, con un
+comando:
+
+```
+xrcopilotlab-bp update
+```
+
+Scarica l'ultima versione per il tuo sistema, **verifica l'impronta** e la mette al posto di quella
+che hai. Con `--check` dice cosa farebbe e si ferma. Se lo lanci sulla copia del plugin non la
+tocca: ti dice di aggiornare il plugin, perché lì binario e skill vanno insieme.
 
 Uno **strumento globale** `dotnet tool` installato tempo fa non è aggiornabile — quel pacchetto non
 è pubblicato su nessun feed — e va tolto, perché è la causa numero uno del «questo comando non
