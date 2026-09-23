@@ -43,7 +43,27 @@ jobs:
             exit 0
           fi
 
-          ALLEGATI="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')"
+          # Gli allegati appena caricati compaiono con un ritardo di qualche decina di secondi, e la
+          # via GraphQL (`gh release view`) li vede dopo la REST. Il 23/09/2026 questo controllo è
+          # fallito dicendo che mancavano TUTTI e sei i binari, mentre erano stati appena
+          # rispecchiati: il push che alza version.txt segue di pochi secondi la release. Si
+          # riprova, e si chiede a entrambe le vie prima di dare qualcosa per mancante.
+          ALLEGATI=""
+
+          for TENTATIVO in 1 2 3 4; do
+            ALLEGATI="$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' 2>/dev/null)"
+
+            if [ -z "$ALLEGATI" ]; then
+              ID="$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$TAG" --jq .id 2>/dev/null)"
+              [ -n "$ID" ] && ALLEGATI="$(gh api "repos/$GITHUB_REPOSITORY/releases/$ID/assets" --jq '.[].name' 2>/dev/null)"
+            fi
+
+            [ -n "$ALLEGATI" ] && break
+
+            echo "Allegati di $TAG non ancora visibili (tentativo $TENTATIVO): attendo."
+            sleep 15
+          done
+
           MANCANTI=""
 
           for RID in osx-arm64 osx-x64 linux-x64 linux-arm64; do
