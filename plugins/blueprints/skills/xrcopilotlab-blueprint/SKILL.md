@@ -411,6 +411,9 @@ Cosa **non** vale come approvazione:
 - il fatto che il piano non abbia errori. Un piano valido è un piano che *si può* applicare, non uno
   che *si deve* applicare.
 
+Se il blueprint è già applicato su quel tenant, il piano **non** riporta collisioni sulle sue entità:
+è un aggiornamento — vedi [§ 6-ter](#6-ter-una-versione-nuova-su-un-blueprint-già-applicato).
+
 Se il piano riporta collisioni, spiegare quale nome è già occupato e le tre strade — rinominare,
 cambiare tag, rimuovere l'entità esistente — senza sceglierne una.
 
@@ -464,6 +467,36 @@ esecuzioni con esito, avviso se lo scheduler avanza mentre le esecuzioni no) e
 processi del blueprint: dove sta il token, eventi, compiti, dati del caso). Un token su un compito
 umano — `verifica:waiting`, `assegna:waiting` — vuol dire che manca il passo di una persona, non che
 qualcosa è rotto. Un blueprint applicato si collauda con la skill `xrcopilotlab-blueprint-test`.
+Per spiegarlo al cliente — il flusso, dove lavora l'AI, come è stato collaudato — la guida non
+tecnica e la sua pagina web le scrive la skill `xrcopilotlab-blueprint-guide`.
+
+## 6-ter. Una versione nuova su un blueprint già applicato
+
+Quando sul tenant c'è già un run **completato** dello stesso blueprint, `plan` e `apply` lo
+riconoscono da soli (#1126): il piano si apre con «Aggiornamento della vN applicata», elenca solo ciò
+che si crea e ciò che si aggiorna, e dice quante entità restano come sono. Non serve nessuna opzione,
+e non serve niente fuori dalla CLI.
+
+Cosa riportare all'utente prima di chiedere il sì, perché è su questo che decide:
+
+- **che cosa si aggiorna e in che cosa** — «AgenteResume: istruzioni», «orchestratore: 9 modifiche»
+  con le righe che il piano elenca. Un aggiornamento cambia una chat in uso: va detto che cosa cambia;
+- **che non si cancella niente**: ciò che la versione nuova non dichiara più è un avviso `BP068` e
+  resta sul tenant;
+- se il piano si ferma con **`BP067`**, la modifica non si può fare sul posto (un'entità tolta a
+  mano, file nuovi su un profilo già indicizzato): riportare il messaggio, non cercare strade intorno.
+
+Se il piano dice che **il tenant è già come la versione lo vuole**, non c'è niente da approvare e il
+comando esce `0`.
+
+**Mai aggiornare a mano** — né dall'API, né con uno script, né avviando l'API in locale: chi usa questa
+skill non è necessariamente uno sviluppatore, e un aggiornamento fatto fuori dalla CLI non lascia
+traccia nel run. L'API locale si usa solo se l'utente lo chiede espressamente. Se la CLI installata
+non riconosce l'aggiornamento (il piano si ferma con `BP060` su entità del blueprint), è una versione
+precedente a #1126: proporre `/plugin update blueprints@hevolus`.
+
+Dopo l'esecuzione le entità passano al run nuovo: è quello da collaudare, e quello che `rollback`
+smonterebbe. Il run di partenza resta come storico (`Superseded`).
 
 ## 6-bis. Portare una versione in un altro ambiente o su un altro tenant
 

@@ -390,7 +390,7 @@ qui: quando il collaudo cambia la tabella di stato, proporre all'utente di aggio
 appena scritto.
 
 Vanno nella cartella del cliente del repository dell'assessment, senza id del tenant, con lo stato
-reale e non quello sperato, e si **mostrano all'utente** prima di darli per finiti. Il triage resta
+reale e non quello sperato, e si **mostrano all'utente** prima di darle per finite. Il triage resta
 nel giudizio: al cliente si dice cosa non funziona e quando sarà corretto, non dove nel codice.
 
 ## 7. Chiudere

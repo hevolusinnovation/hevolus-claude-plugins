@@ -155,7 +155,7 @@ versione, con l'impronta SHA-256 verificata prima di eseguirlo.
 
 L'avviatore sa chiedere sei binari — **macOS** (Apple Silicon e Intel), **Windows** (x64 e ARM) e
 **Linux** (x64 e ARM) — ma li porta la release che li pubblica: l'ultima,
-[`bp-v2.11.2`](https://github.com/hevolusinnovation/xrcopilotlab-webapp-dotnet/releases/tag/bp-v2.11.2),
+[`bp-v2.15.0`](https://github.com/hevolusinnovation/xrcopilotlab-webapp-dotnet/releases/tag/bp-v2.15.0),
 ne ha quattro, e Windows ARM e Linux ARM arrivano con la prossima. Su quelle due macchine, per ora,
 si usa il binario x64 in emulazione.
 
@@ -225,7 +225,7 @@ passare da Claude, chi deve **fissare una versione precisa**, e chi lavora su un
 primo avvio non può raggiungere GitHub.
 
 I binari stanno fra gli allegati della release
-[`bp-v2.11.2`](https://github.com/hevolusinnovation/xrcopilotlab-webapp-dotnet/releases/tag/bp-v2.11.2).
+[`bp-v2.15.0`](https://github.com/hevolusinnovation/xrcopilotlab-webapp-dotnet/releases/tag/bp-v2.15.0).
 Accanto a ciascuno c'è un file `.sha256` che contiene **solo l'impronta**: si confronta, non si dà
 in pasto a `shasum -c`.
 
@@ -241,7 +241,7 @@ Non c'è niente da installare: è **un file solo**, autosufficiente. Non serve .
 ### macOS
 
 ```bash
-gh release download bp-v2.11.2 --repo hevolusinnovation/xrcopilotlab-webapp-dotnet \
+gh release download bp-v2.15.0 --repo hevolusinnovation/xrcopilotlab-webapp-dotnet \
     --pattern 'xrcopilotlab-bp-osx-arm64*' --dir ~/Downloads
 
 # L'impronta si confronta prima di eseguire ciò che si è appena scaricato.
@@ -272,7 +272,7 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 ### Windows (PowerShell)
 
 ```powershell
-gh release download bp-v2.11.2 --repo hevolusinnovation/xrcopilotlab-webapp-dotnet `
+gh release download bp-v2.15.0 --repo hevolusinnovation/xrcopilotlab-webapp-dotnet `
     --pattern 'xrcopilotlab-bp-win-x64.exe*' --dir $HOME\Downloads
 
 $atteso   = (Get-Content $HOME\Downloads\xrcopilotlab-bp-win-x64.exe.sha256).Trim()

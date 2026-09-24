@@ -385,6 +385,50 @@ perché l'API non li mostra due volte — url, `hookId` e chiave dei webhook cre
 
 Con `--resume` riparte da un run esistente: le operazioni già in inventario vengono saltate.
 
+### Una versione nuova su un blueprint già applicato (#1126)
+
+Se sul tenant c'è già un run **completato** dello stesso blueprint, `plan` e `apply` non si fermano
+sulle entità che quel run ha creato: le riconoscono come del blueprint e portano sopra la versione
+nuova.
+
+- **Si crea** ciò che la versione nuova aggiunge: agenti, skill assegnate, server MCP, step.
+- **Si aggiorna sul posto** ciò che il blueprint possiede ed è cambiato, confrontandolo con il
+  **tenant** — non con il manifest precedente, perché fra una versione e l'altra le cose possono
+  essere state ritoccate a mano:
+  - gli **agenti**: istruzioni, descrizione, temperatura, modello. Identità, knowledge e strumenti
+    restano quelli che hanno;
+  - gli **orchestratori**: step, flussi, ciò che ogni step passa al successivo, messaggio di
+    benvenuto. L'id e l'endpoint di chat — quindi i link già dati — restano gli stessi, e gli step
+    che c'erano già tengono la loro posizione nel designer.
+- **Resta com'è** tutto il resto, e il piano lo dice: «N entità del blueprint restano come sono».
+  I profili di knowledge esistenti **non si riattivano** (riaccoderebbe l'indicizzazione di tutti i
+  file) e i processi BPM non si aggiornano sul posto.
+- **Non si cancella niente.** Ciò che la versione nuova non dichiara più è segnalato (`BP068`) e
+  resta. Ciò che non si può fare sul posto ferma il piano (`BP067`).
+
+Un nome occupato da un'entità che il blueprint **non** ha creato resta una collisione (`BP060`),
+come prima.
+
+```
+Piano · como-conoscenza-associati v19 · tag COMO
+  Aggiornamento della v14 applicata (run c4ae6a4d25d1): si crea ciò che manca e si aggiorna ciò che è cambiato.
+  571 entità del blueprint restano come sono.
+
+   1. Crea l'agente «BP-COMO-AgenteSede»
+   2. Crea l'agente «BP-COMO-AgenteMappa» con 1 skill
+   3. Assegna la skill «osm» all'agente «BP-COMO-AgenteMappa»
+   4. Aggiorna l'agente «BP-COMO-AgenteResume»: istruzioni
+   5. Aggiorna l'orchestratore «BP-COMO-Arricchimento report associato»: 9 modifiche
+```
+
+L'approvazione è la stessa di un'applicazione da zero. Se il tenant è già come la versione lo vuole,
+il piano non ha operazioni, non chiede niente e il comando esce `0`.
+
+All'esecuzione le entità del run di partenza **passano al run nuovo**, che da lì in avanti è quello
+da riprendere, collaudare o smontare; il run di partenza resta come storico, nello stato
+`Superseded`, e `rollback` su di lui rimanda al run nuovo. Il run nuovo registra anche che cosa ha
+aggiornato e com'era prima (`status --run <runId>`).
+
 ## `status [--run <runId>] [--watch]`
 
 Senza `--run`, elenca i blueprint pubblicati sul tenant e le ultime esecuzioni. Con `--run`, mostra
@@ -609,7 +653,7 @@ Configuration non è bastato — la connessione aveva i valori dell'apply — e 
 mostrare `AADSTS700016`. Il valore giusto è stato recuperato dalla **versione precedente** del
 segreto in Key Vault, senza ruotare nulla.
 
-## `instances list` · `instances show <id>`
+## `instances list` · `instances show <id>` · `instances cancel`
 
 Le istanze dei processi creati dal blueprint, viste dal motore. Durante un collaudo con ingressi
 veri — una mail passa, la Sorveglianza la consegna al webhook — è il modo per sapere dove sta il
@@ -629,6 +673,22 @@ evento è `AgentTaskDispatched` da più di due minuti lo dice, con il rimando a 
 Emerso il **2026-09-16**: «non vedo l'evento sul calendario» — l'istanza stava su `assegna:waiting`,
 cioè il referente aveva verificato ma non assegnato, e la Registrazione (che scrive) parte dopo
 l'assegnazione. Senza il comando, l'unica risposta era «apri l'istanza e dimmi l'ultimo evento».
+
+### `instances cancel` — annullare le istanze lasciate da un collaudo
+
+```bash
+xrcopilotlab-bp instances cancel 5fcbbcc6 --tag STUDIOPOLIS --env staging --yes                   # una, anche per prefisso
+xrcopilotlab-bp instances cancel --tag STUDIOPOLIS --env staging --running --since 2026-09-24      # in blocco: prima l'elenco
+xrcopilotlab-bp instances cancel --tag STUDIOPOLIS --env staging --running --contains "Collaudo" --yes
+```
+
+Annulla solo istanze dei processi del blueprint, risolti dall'inventario del run: l'id di un'istanza
+di un processo fatto a mano viene rifiutato (**3**). In blocco vuole `--running` e almeno un filtro —
+`--since` (data o data e ora, UTC), `--contains` (sul testo dell'avviso o della riga di designazione),
+`--process` (nome o chiave) — e senza `--yes` stampa l'elenco e si ferma (**6**): non c'è un annulla.
+L'annullamento passa dall'API, che registra `InstanceCancelledByUser` con chi l'ha chiesto, e il motore
+lo esegue in coda. Emerso il **2026-09-24**: un collaudo di Studio Polis aveva lasciato una quarantina
+di istanze ferme ai compiti del referente, chiudibili solo a mano una per una.
 
 ## `mcp check` · `mcp publish <server>` · `mcp test <server> [--tool] [--args]`
 
@@ -656,6 +716,27 @@ del sistema di terze parti — per esempio l'`AADSTS…` di Entra — senza pass
 Emerso il **2026-09-14**: sul tenant di Studio Polis la riga del catalogo del server Microsoft 365
 era sparita fra due collaudi, con i quattro collegamenti ancora in piedi; la causa non è stata
 trovata (telemetria di staging non interrogabile), la riparazione è stata `mcp publish`.
+
+### `mcp orphans [--remove --yes]` — le voci del catalogo rimaste senza server
+
+Il caso opposto: la riga del catalogo c'è, il server nel Builder no. Nell'interfaccia compare come
+un server MCP **che non si collega**, perché punta al gateway di un server cancellato.
+
+```bash
+xrcopilotlab-bp mcp orphans --tag STUDIOPOLIS --env staging                  # sola lettura
+xrcopilotlab-bp mcp orphans --tag STUDIOPOLIS --env staging --remove --yes   # cancella le orfane non usate
+```
+
+Elenca le voci del catalogo con il prefisso `BP-<TAG>-`, dice per ciascuna se il server esiste e
+quali agenti la caricano — in **tutti** i topic del tenant, non solo in quello del blueprint. Non
+serve un run: le orfane sono proprio quelle che nessun run elenca più. `--remove --yes` cancella
+solo le orfane che **nessun agente** carica; se i collegamenti di un agente non si leggono, non
+cancella niente (**3**). Senza `--yes` si ferma con **6**.
+
+Emerso il **2026-09-24**: fino a quel giorno `rollback` lasciava la pubblicazione nel catalogo,
+convinto che se ne andasse col server. L'API cancella solo la definizione, e dopo una trentina di
+versioni di Studio Polis il catalogo era pieno di voci morte. Ora `rollback` la toglie prima del
+server; `orphans` serve per quelle lasciate dai rollback precedenti.
 
 ## `update [--check]`
 
