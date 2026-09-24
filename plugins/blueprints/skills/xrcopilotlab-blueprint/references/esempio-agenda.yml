@@ -354,7 +354,16 @@ blueprint: studiopolis-agenda
 #                stanno PRIMA del contenuto, in una risposta il citato sta sotto.
 #              · un messaggio senza testo utile e con un PDF (le agende settimanali scansionate)
 #                passa con l'oggetto e la nota «aprire la mail».
-version: 29
+# v30 (24/09): dal collaudo della v29 — la rilettura delle designazioni riporta ora, giudice e
+#              numero di ruolo (li passava allo strumento senza mostrarli), e una riga con un nome
+#              solo si chiede invece di sceglierlo; la Sorveglianza passa l'oggetto degli inoltri del
+#              processo telematico, l'unico posto dove spesso sta il numero di ruolo.
+# v31 (24/09): la Sorveglianza scarta la propria conferma di presa in carico e non le risponde mai.
+#              Dal collaudo: una mail dalla casella a sé stessa ricevette la conferma, la conferma
+#              tornò in casella e diventò una pratica «Visione» con una nuova conferma — 26 pratiche
+#              d'eco in 45 minuti, alternate fra civile e penale. In produzione lo stesso anello si
+#              chiude fra le due caselle dello Studio.
+version: 31
 tag: STUDIOPOLIS
 description: Organizer dello Studio — dalla riunione di designazione all'esito dell'udienza, e dalla mail o dal dettato alla pratica e al calendario comune
 
@@ -363,7 +372,9 @@ tenant:
   # Studio, che non esiste ancora qui. Va scritto il suo companyId quando c'è — e va letto prima
   # l'avvertimento in fondo al file: in produzione la CLI lavora solo sui tenant che l'API elenca,
   # e oggi l'elenco è filtrato su «hevolus».
-  companyId: TODO-companyId-di-produzione
+  # Fino alla risposta dello Studio (24/09): tenant di prova di STAGING, strada (a) della nota in
+  # fondo. In produzione diventa il companyId del tenant dello Studio.
+  companyId: 4da69cbc-d935-4050-f410-08d8392ca08f
   topic: Agenda di Studio
 
 # --------------------------------------------------------------------------------------------
@@ -422,7 +433,9 @@ connections:
       # ⚠️ Il tenant è quello dello STUDIO, non più hevolus.it: l'app registrata vive nella loro
       # directory e i permessi sono ristretti alle due agende. Da sostituire con il loro
       # Directory (tenant) ID quando arriva.
-      tokenUrl: https://login.microsoftonline.com/TODO-tenant-id-dello-studio/oauth2/v2.0/token
+      # Fino alla risposta dello Studio: la registrazione di hevolus.it, la stessa della v28.
+      # In produzione: https://login.microsoftonline.com/<tenant-id-dello-studio>/oauth2/v2.0/token
+      tokenUrl: https://login.microsoftonline.com/45bb21a6-d8f8-4218-b74d-f4a5d5c2138e/oauth2/v2.0/token
       clientId: Blueprints:Secrets:STUDIOPOLIS:graph-client-id
       clientSecret: Blueprints:Secrets:STUDIOPOLIS:graph-client-secret
       # .default chiede i permessi applicativi già consentiti: non se ne aggiungono qui.
@@ -602,11 +615,12 @@ mcpServers:
     variables:
       # ⚠️ Indirizzo da confermare con lo Studio. Deve stare sul dominio che è su Microsoft 365:
       # una casella su un dominio ospitato altrove non è raggiungibile da Graph.
-      mailbox: agenda.civile@TODO-dominio-dello-studio
+      # Fino alla risposta dello Studio: la casella di prova. In esercizio: agenda.civile@<dominio>.
+      mailbox: test@hevolus.it
       # I domini di chi lavora nello Studio: la Sorveglianza risponde solo a loro. Sono più di uno
       # perché lo Studio ne ha più di uno, e l'avvocato che scrive dal telefono usa quello che ha
       # configurato: elencarli tutti è la differenza fra ricevere la conferma e non riceverla.
-      dominioInterno: TODO-dominio-dello-studio
+      dominioInterno: hevolus.it
       # «sì» finché si collauda: la risposta di presa in carico avvisa che si è in fase di test e che
       # una mail reinviata è vista come nuova. In esercizio: «no».
       faseDiTest: "sì"
@@ -991,8 +1005,9 @@ mcpServers:
       Posta e calendario dell'agenda del PENALE dello Studio su Microsoft 365.
     connection: graph
     variables:
-      mailbox: agenda.penale@TODO-dominio-dello-studio
-      dominioInterno: TODO-dominio-dello-studio
+      # Fino alla risposta dello Studio: la casella di prova. In esercizio: agenda.penale@<dominio>.
+      mailbox: test@hevolus.it
+      dominioInterno: hevolus.it
       faseDiTest: "sì"
     systemPrompt: >
       Gli strumenti lavorano su UNA sola casella, quella dell'agenda penale dello Studio: non
@@ -1212,6 +1227,14 @@ agents:
       che non riguardano un procedimento. Nel dubbio PASSA: un falso positivo lo
       chiude un referente in dieci secondi, una comunicazione persa è un termine
       perso.
+      Scarti SEMPRE la conferma di presa in carico — il testo che comincia con
+      «Presa in carico:» — anche quando torna in casella come risposta, come
+      inoltro o dall'altra casella dello Studio: è il messaggio che mandi tu, non
+      una comunicazione. Qui il «nel dubbio passa» non vale: aprirla vorrebbe dire
+      una pratica d'eco e una nuova conferma, che torna, e così all'infinito. Se
+      il messaggio è una risposta alla conferma («Re: …») e il testo nuovo in cima
+      non aggiunge niente su un procedimento («ok», «grazie»), lo scarti allo
+      stesso modo.
 
       # Che forma hanno i messaggi
       Sono le forme che lo Studio manda e riceve davvero: riconoscerle è metà del
@@ -1227,7 +1250,10 @@ agents:
       4. **Inoltro di un avviso del processo telematico** — l'oggetto comincia con
          «I:» e contiene «[GIP NOTI …]», «[PM NOTI …]» o simili; nel corpo c'è la
          firma di chi inoltra, poi «-----Messaggio originale-----», poi il testo
-         dell'ufficio giudiziario.
+         dell'ufficio giudiziario. Il numero di ruolo spesso sta SOLO nell'oggetto
+         («[GIP NOTI 2026/4821 BARI]»): passi la riga «Oggetto: <oggetto>» e sotto
+         il testo dell'ufficio. Senza quella riga la pratica arriva al referente
+         senza numero di ruolo.
       5. **Busta di posta certificata** — le regole stanno al punto 4 di «Come leggi».
       6. **Invio di un allegato e basta** — il corpo è vuoto, oppure dice solo «Il
          messaggio è pronto per essere inviato con i seguenti file o collegamenti
@@ -1296,7 +1322,9 @@ agents:
       7. Se il mittente è interno allo Studio — l'indirizzo è del dominio che ti
          viene indicato — chiami rispondi_messaggio con il testo di conferma che ti
          viene indicato. Non rispondi all'autorità, alle PEC, né a mittenti esterni:
-         una risposta automatica a una cancelleria non è gradita.
+         una risposta automatica a una cancelleria non è gradita. E non rispondi
+         MAI a un messaggio che contiene la conferma di presa in carico: due
+         caselle che si confermano a vicenda non si fermano più.
 
       # Quante pratiche, e chi le apre
       Una pratica per ogni udienza, rinvio o scadenza DISTINTO che il messaggio
@@ -1374,6 +1402,14 @@ agents:
       che non riguardano un procedimento. Nel dubbio PASSA: un falso positivo lo
       chiude un referente in dieci secondi, una comunicazione persa è un termine
       perso.
+      Scarti SEMPRE la conferma di presa in carico — il testo che comincia con
+      «Presa in carico:» — anche quando torna in casella come risposta, come
+      inoltro o dall'altra casella dello Studio: è il messaggio che mandi tu, non
+      una comunicazione. Qui il «nel dubbio passa» non vale: aprirla vorrebbe dire
+      una pratica d'eco e una nuova conferma, che torna, e così all'infinito. Se
+      il messaggio è una risposta alla conferma («Re: …») e il testo nuovo in cima
+      non aggiunge niente su un procedimento («ok», «grazie»), lo scarti allo
+      stesso modo.
 
       # Che forma hanno i messaggi
       Sono le forme che lo Studio manda e riceve davvero: riconoscerle è metà del
@@ -1389,7 +1425,10 @@ agents:
       4. **Inoltro di un avviso del processo telematico** — l'oggetto comincia con
          «I:» e contiene «[GIP NOTI …]», «[PM NOTI …]» o simili; nel corpo c'è la
          firma di chi inoltra, poi «-----Messaggio originale-----», poi il testo
-         dell'ufficio giudiziario.
+         dell'ufficio giudiziario. Il numero di ruolo spesso sta SOLO nell'oggetto
+         («[GIP NOTI 2026/4821 BARI]»): passi la riga «Oggetto: <oggetto>» e sotto
+         il testo dell'ufficio. Senza quella riga la pratica arriva al referente
+         senza numero di ruolo.
       5. **Busta di posta certificata** — le regole stanno al punto 4 di «Come leggi».
       6. **Invio di un allegato e basta** — il corpo è vuoto, oppure dice solo «Il
          messaggio è pronto per essere inviato con i seguenti file o collegamenti
@@ -1458,7 +1497,9 @@ agents:
       7. Se il mittente è interno allo Studio — l'indirizzo è del dominio che ti
          viene indicato — chiami rispondi_messaggio con il testo di conferma che ti
          viene indicato. Non rispondi all'autorità, alle PEC, né a mittenti esterni:
-         una risposta automatica a una cancelleria non è gradita.
+         una risposta automatica a una cancelleria non è gradita. E non rispondi
+         MAI a un messaggio che contiene la conferma di presa in carico: due
+         caselle che si confermano a vicenda non si fermano più.
 
       # Quante pratiche, e chi le apre
       Una pratica per ogni udienza, rinvio o scadenza DISTINTO che il messaggio
@@ -2096,13 +2137,19 @@ agents:
       Di norma la persona dice prima il giorno, poi l'autorità, poi le parti, poi
       chi ci va. L'ordine può cambiare: il nome del professionista è quello che
       NON è una parte — di solito lo introduce «ci va», «se ne occupa», «lo segue»,
-      o è semplicemente l'ultimo nome della riga.
+      o è semplicemente l'ultimo nome della riga. Il nome che segue l'autorità
+      («Trib. sez. II De Rosa») è il GIUDICE, non una parte. Se la riga ha un nome
+      solo e nessuna parola che introduca chi ci va («giovedì GUP Minori,
+      Ingargiola»), non sai se è la parte o il professionista: non scegli, lo
+      scrivi «da chiarire» e lo chiedi.
 
       # Come lavori
       1. Rileggi l'elenco all'utente, numerato, una riga per designazione: data in
-         forma esplicita (GG/MM/AAAA), autorità, parti, e in fondo CHI ci va. Dove
-         un dato manca scrivi «non indicato»: non lo inventi, e soprattutto non
-         inventi chi ci va.
+         forma esplicita (GG/MM/AAAA), ora se detta, autorità con il giudice,
+         numero di ruolo o di procedimento se detto, parti, e in fondo CHI ci va.
+         Rileggi TUTTO ciò che passerai allo strumento: un dato che l'utente non
+         vede nella rilettura non lo può correggere. Dove un dato manca scrivi
+         «non indicato»: non lo inventi, e soprattutto non inventi chi ci va.
          Se la riunione è di un dipartimento solo — quasi sempre — dillo in cima:
          «Riunione del civile, 7 designazioni».
       2. I giorni della settimana vanno tradotti in date. Ti viene detto qual è

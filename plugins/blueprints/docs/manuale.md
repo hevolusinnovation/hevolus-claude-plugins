@@ -454,18 +454,34 @@ xrcopilotlab-bp rollback --run <id-esecuzione> --company <id>
 
 ## 7. Cambiare un blueprint già applicato
 
-Il blueprint **crea, non aggiorna**. Riapplicarlo dopo averlo modificato si ferma sui nomi che già
-esistono, ed è voluto: un aggiornamento silenzioso cambierebbe il comportamento di un agente che
-qualcuno sta usando in quel momento.
+Dalla CLI 2.15.0 una **versione nuova si porta sopra quella applicata**, senza smontare niente.
+Si modifica il file, si alza `version:`, si fa `push` e poi `plan`: se sul tenant c'è già un run
+completato dello stesso blueprint, il piano si apre con «Aggiornamento della vN applicata» e elenca
+solo ciò che cambia —
+
+- **si crea** ciò che la versione nuova aggiunge: un agente, una skill assegnata, un passo;
+- **si aggiorna sul posto** ciò che il blueprint ha creato ed è cambiato: le istruzioni, il modello,
+  la temperatura di un agente; i passi e i flussi di un orchestratore. L'orchestratore resta lo
+  stesso, con il suo link di chat;
+- **resta com'è** tutto il resto, e il piano dice quante entità sono: i documenti non si ricaricano
+  e i profili non si reindicizzano.
+
+Poi `apply`, con la stessa approvazione di sempre. Se il tenant è già come la versione lo vuole, il
+piano lo dice e non chiede niente.
+
+Due cose non cambiano: **non si cancella mai niente** — ciò che la versione nuova non dichiara più è
+un avviso (`BP068`) e resta sul tenant — e **un nome occupato da qualcosa che il blueprint non ha
+creato ferma il piano** (`BP060`), come prima. Ciò che non si può fare sul posto, come aggiungere
+file a un profilo già indicizzato, ferma il piano con `BP067` e dice perché.
 
 Quindi, a seconda di cosa devi cambiare:
 
-**Aggiungere persone a un ruolo, correggere l'etichetta di un campo, sistemare un testo.** Si fa
-**dall'interfaccia di XRCopilotLab**. Quello che il blueprint ha creato sono entità normali, e da
-lì in poi si toccano come tutte le altre.
+**Aggiungere persone a un ruolo, correggere l'etichetta di un campo, sistemare un testo.** Si può
+ancora fare **dall'interfaccia di XRCopilotLab**; ma se la stessa cosa sta nel manifest, conviene
+cambiarla lì, altrimenti al prossimo aggiornamento il manifest la riporta com'era.
 
-**Aggiungere un passo, un ramo, un agente.** Si modifica il file, si alza il numero di versione, si
-smonta l'esecuzione precedente e si riapplica. Il plugin ti guida.
+**Aggiungere un passo, un ramo, un agente, cambiare le istruzioni o il modello.** Si modifica il
+file, si alza la versione e si applica: è l'aggiornamento sul posto qui sopra.
 
 **Provare una variante senza disfare quella che c'è.** Si cambia il tag — da `ROSSI` a `ROSSI2` — e
 si applica. Nasce tutto in parallelo con un nome diverso, e le due versioni convivono.
