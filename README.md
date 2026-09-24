@@ -120,19 +120,17 @@ Expand-Archive -Force $HOME\Downloads\xrcopilotlab-blueprint.zip -DestinationPat
 riga che lo dice, con il comando da digitare. `/plugin update` è un comando del client: Claude non
 può lanciarlo al posto tuo.
 
-**Le novità delle sole skill non hanno un avviso.** Una skill nuova o aggiornata, senza una CLI
-nuova, arriva quando il plugin si aggiorna — da sé all'avvio di Claude Code, se l'aggiornamento
-automatico del catalogo funziona, oppure a mano:
+**Dalla 2.19.0 c'è un avviso anche per le skill.** All'apertura di una sessione di Claude Code il
+plugin controlla (una volta al giorno, dalla stessa cache della CLI) se nel catalogo c'è una sua
+versione più recente, e in quel caso mostra una riga sola:
 
 ```
-/plugin marketplace update hevolus
-/plugin update blueprints@hevolus
+xrcopilotlab-bp: c'è il plugin blueprints 2.20.0, questo è il 2.19.0: skill o CLI nuove. Aggiornalo con '/plugin marketplace update hevolus' e '/plugin update blueprints@hevolus', poi riavvia la sessione.
 ```
 
-Poi si riavvia la sessione, perché le skill si caricano all'avvio. Per sapere se ce l'hai:
-`/plugin` mostra la versione installata, da confrontare con la [release più recente](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest)
-— che dice anche che cosa è cambiato. Chi pubblica una versione con skill nuove lo **annuncia al
-team**: è l'unico modo in cui chi non riavvia lo scopre.
+La stessa riga compare in cima all'output dei comandi, e le skill la ripetono a parole. Il riavvio
+serve davvero: le skill si caricano all'apertura della sessione. Chi ha una versione **precedente**
+alla 2.19.0 non ha ancora l'avviso: per lui l'aggiornamento resta a mano, con i due comandi.
 
 I dettagli, compreso il vecchio strumento globale `dotnet tool` da togliere:
 [§ Aggiornare](docs/installare.md#aggiornare) e il [manuale di blueprints](plugins/blueprints/docs/manuale.md#8-aggiornare-e-disinstallare).

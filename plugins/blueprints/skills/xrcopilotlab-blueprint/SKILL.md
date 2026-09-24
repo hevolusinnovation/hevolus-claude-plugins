@@ -75,13 +75,20 @@ Lo schema è in [`references/blueprint.v1.schema.json`](references/blueprint.v1.
 Due esempi commentati: [`references/esempio-agenda.yml`](references/esempio-agenda.yml) (scenario reale)
 e [`references/esempio-minimo.yml`](references/esempio-minimo.yml) (il giro più corto).
 
-## Se la CLI dice che il plugin è indietro
+## Se compare che il plugin è indietro
 
-Ogni tanto, in cima all'output di un comando, compare una riga come questa:
+L'avviso arriva in due posti: **all'apertura della sessione** (un hook del plugin) e **in cima
+all'output di un comando**. Le righe sono due, e dicono cose diverse:
 
 ```
-xrcopilotlab-bp: c'è la 2.14.0, il plugin chiede la 2.13.0. Aggiornalo con '/plugin update blueprints@hevolus'.
+xrcopilotlab-bp: c'è il plugin blueprints 2.19.0, questo è il 2.18.0: skill o CLI nuove. Aggiornalo con '/plugin marketplace update hevolus' e '/plugin update blueprints@hevolus', poi riavvia la sessione.
+xrcopilotlab-bp: c'è la 2.16.0, il plugin chiede la 2.15.0. Aggiornalo con '/plugin update blueprints@hevolus'.
 ```
+
+La prima vuol dire che è uscita una versione del **plugin** — skill nuove o aggiornate, a volte una
+CLI nuova — e ci sono **due comandi e un riavvio**: le skill si caricano all'apertura della
+sessione, quindi senza riavvio si continua a seguire quelle vecchie. La seconda vuol dire che c'è
+una CLI più recente di quella che il plugin chiede.
 
 **Non ignorarla e non lasciarla sepolta nell'output**: dilla all'utente a parole, una riga, e
 proponi il comando. Chi legge una risposta lunga quella riga non la vede, e se ne accorge settimane

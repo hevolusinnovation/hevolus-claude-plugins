@@ -172,10 +172,11 @@ aggiorna il plugin:
 Non devi controllare tu: quando esce una CLI più recente di quella richiesta, al comando successivo
 compare una riga che lo dice. Il controllo gira in secondo piano e non può far fallire niente.
 
-Quell'avviso riguarda **solo la CLI**. Una versione del plugin che porta skill nuove o aggiornate,
-con la stessa CLI, non lo fa comparire: arriva con l'aggiornamento automatico del catalogo all'avvio
-di Claude Code, quando funziona, oppure con `/plugin marketplace update hevolus` seguito da `/plugin
-update blueprints@hevolus`, e un riavvio della sessione. La versione installata si legge in `/plugin`.
+Dalla versione **2.19.0** del plugin c'è anche un avviso per le **skill**: all'apertura di una
+sessione, se nel catalogo c'è una versione più recente del plugin, compare una riga con i due
+comandi — `/plugin marketplace update hevolus` e `/plugin update blueprints@hevolus` — e l'invito a
+riavviare la sessione, perché le skill si caricano all'apertura. Viene da un hook del plugin, che
+legge la stessa cache della CLI. La versione installata si legge in `/plugin`.
 
 Una copia installata **a mano** si aggiorna con `xrcopilotlab-bp update`: scarica l'ultima
 versione, ne verifica l'impronta e la sostituisce (`--check` dice cosa farebbe e si ferma). Sulla

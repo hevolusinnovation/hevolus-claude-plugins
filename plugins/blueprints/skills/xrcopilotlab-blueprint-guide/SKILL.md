@@ -31,6 +31,14 @@ La guida **legge** quello che le altre due hanno prodotto. Se l'ultimo collaudo 
 non lo si rifà da qui: si dice all'utente che lo stato non è aggiornato e si propone
 `xrcopilotlab-blueprint-test`. Una guida con uno stato inventato è peggio di nessuna guida.
 
+## Se all'apertura compare che il plugin è indietro
+
+Una riga come «c'è il plugin blueprints 2.19.0, questo è il 2.18.0: skill o CLI nuove…» arriva
+all'inizio della sessione da un hook del plugin. **Dilla all'utente a parole**, una riga, con i due
+comandi (`/plugin marketplace update hevolus`, `/plugin update blueprints@hevolus`) e il riavvio
+della sessione: la guida si scrive meglio con le skill aggiornate. Non puoi aggiornare tu, e non è
+urgente: se l'utente è a metà di una guida, si finisce e si aggiorna dopo.
+
 ## 0. Se `$ARGS` è vuoto
 
 Orientare e fermarsi: a cosa serve, quali guide esistono già

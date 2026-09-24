@@ -43,7 +43,8 @@ skill](../../docs/le-skill.md). Prima di usarlo serve l'accesso ad Azure:
 | `skills/xrcopilotlab-blueprint/` | La skill di provisioning, con le regole del grafo BPM, la traccia dell'intervista, i tre livelli della knowledge e come si ripartiscono i documenti, la scelta del modello, il ciclo per una fonte HTTP via MCP Builder, il riferimento del manifest e dei comandi, lo schema e due esempi |
 | `skills/xrcopilotlab-blueprint-test/` | La skill di collaudo: scrive le domande per agenti, orchestratori e processi, le esegue con `xrcopilotlab-bp test run`, giudica le risposte, attribuisce ogni fallimento a un componente e ne ricava le domande di prova per il cliente; porta con sé il formato delle suite, il modello di esecuzione del motore BPM, i criteri del giudizio, la tabella del triage e una suite d'esempio |
 | `skills/xrcopilotlab-blueprint-guide/` | La skill della guida per il cliente: racconta il flusso, dove lavora l'AI, come è stato collaudato e perché il manifest conviene, in parole non tecniche e con disegni semplici, e la pubblica come pagina web; porta con sé il vocabolario, i modelli dei disegni e le regole della pagina |
-| `bin/` | Gli avviatori della CLI, che la scaricano al primo uso |
+| `bin/` | Gli avviatori della CLI, che la scaricano al primo uso; dicono anche quando il plugin è indietro |
+| `hooks/hooks.json` | All'apertura di una sessione, una riga se c'è una versione più recente del plugin (skill o CLI nuove), con i comandi per aggiornarlo |
 | `docs/manuale.md` | Il manuale per chi lo usa |
 
 I file sotto `skills/` sono una copia sincronizzata dal repository di prodotto: si modificano là,
