@@ -20,6 +20,7 @@ plugins/blueprints/
 ├── .claude-plugin/plugin.json                     identità e versione del plugin
 ├── skills/xrcopilotlab-blueprint/SKILL.md         scrivere e applicare un manifest, con i suoi references/
 ├── skills/xrcopilotlab-blueprint-test/SKILL.md    collaudare un blueprint applicato, con i suoi references/
+├── skills/xrcopilotlab-blueprint-guide/SKILL.md   la guida non tecnica per il cliente, con i suoi references/
 ├── bin/                                           gli avviatori: finiscono nel PATH quando il plugin è attivo
 └── docs/manuale.md                                il manuale per chi lo usa
 plugins/assessment/
@@ -69,7 +70,7 @@ contengono decisioni.
 
 ### Il plugin blueprints
 
-**Le due skill e i loro riferimenti vivono nel repository di prodotto**
+**Le tre skill e i loro riferimenti vivono nel repository di prodotto**
 [`xrcopilotlab-webapp-dotnet`](https://github.com/hevolusinnovation/xrcopilotlab-webapp-dotnet),
 perché è lì che stanno le regole che descrivono. Qui ce n'è una copia, che si rifà con:
 
@@ -86,6 +87,7 @@ perché è lì che stanno le regole che descrivono. Qui ce n'è una copia, che s
 | `.claude/skills/xrcopilotlab-blueprint-test/` | `plugins/blueprints/skills/xrcopilotlab-blueprint-test/` |
 | `docs/blueprints/testing.md` | `…/xrcopilotlab-blueprint-test/references/testing.md` |
 | `blueprints/tests/studiopolis-agenda.tests.yml` | `…/references/esempio-suite-agenda.tests.yml` |
+| `.claude/skills/xrcopilotlab-blueprint-guide/` | `plugins/blueprints/skills/xrcopilotlab-blueprint-guide/` |
 
 Lo script controlla anche **i file che nessuno sincronizza**: se in `skills/` compare qualcosa che
 non è in `COPIE`, lo elenca ed esce con errore. È il modo in cui un file copiato a mano — che
@@ -210,7 +212,7 @@ un messaggio che non dice quale regola è saltata. Sono tre, e due si violano se
 `build-skill-zip.sh` le controlla **prima** di produrre l'archivio e si ferma dicendo quale non
 torna, così l'errore si vede qui invece che sul browser dopo il caricamento.
 
-La descrizione si corregge **nella sorgente** — nel repository di prodotto per le due skill dei
+La descrizione si corregge **nella sorgente** — nel repository di prodotto per le tre skill dei
 blueprint, qui per l'assessment — tenendo tutte le frasi che la fanno attivare: è il testo con cui
 Claude sceglie la skill fra tutte quelle installate, quindi si tolgono i dettagli del funzionamento,
 non i casi d'uso. Un percorso d'esempio con un segnaposto si riscrive nominando la cartella
@@ -270,7 +272,7 @@ preferisci partire da un tag:
 git tag v1.11.3 && git push origin v1.11.3
 ```
 
-Il workflow verifica le superfici, costruisce lo zip del plugin Desktop e quelli delle tre skill,
+Il workflow verifica le superfici, costruisce lo zip del plugin Desktop e quelli delle quattro skill,
 scrive le note — cosa scaricare, dove si carica, le versioni dentro — e li allega alla release. Se
 la release esiste già, sostituisce gli allegati invece di crearne una seconda.
 

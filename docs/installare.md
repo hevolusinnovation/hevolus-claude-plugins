@@ -43,13 +43,14 @@ Le due righe qui sopra sono la strada **consigliata**, non l'unica: sono i due p
 plugin è confezionato per una superficie sola. Le **skill** che i plugin contengono si installano
 invece su **Claude Desktop oppure Claude Code**, quella che usi — cambia cosa puoi farci.
 
-## Le tre skill, e su quale app si installano
+## Le quattro skill, e su quale app si installano
 
 | Skill | Su **Claude Desktop** | Su **Claude Code** |
 |---|---|---|
 | `xrcopilotlab-assessment` | il plugin `Xrcopilotlab-….zip` — **la strada consigliata** | la skill da sola, scompattata fra le proprie ([§ Una skill da sola](#una-skill-da-sola-su-desktop-o-su-code)) |
 | `xrcopilotlab-blueprint` | la skill da sola: scrive e spiega un manifest, **non lo applica** | il plugin `blueprints@hevolus` — **la strada consigliata** |
 | `xrcopilotlab-blueprint-test` | la skill da sola: prepara le domande di collaudo, **non le esegue** | il plugin `blueprints@hevolus` — **la strada consigliata** |
+| `xrcopilotlab-blueprint-guide` | la skill da sola: scrive la guida per il cliente e la pagina web — **funziona anche qui**, perché non esegue comandi | il plugin `blueprints@hevolus` |
 
 Una regola sola governa tutta la tabella, e non è una preferenza: **applicare e collaudare passano
 da `xrcopilotlab-bp`**, cioè da un comando, e i comandi girano solo nella scheda **Code**. Nella
@@ -171,6 +172,11 @@ aggiorna il plugin:
 Non devi controllare tu: quando esce una CLI più recente di quella richiesta, al comando successivo
 compare una riga che lo dice. Il controllo gira in secondo piano e non può far fallire niente.
 
+Quell'avviso riguarda **solo la CLI**. Una versione del plugin che porta skill nuove o aggiornate,
+con la stessa CLI, non lo fa comparire: arriva con l'aggiornamento automatico del catalogo all'avvio
+di Claude Code, quando funziona, oppure con `/plugin marketplace update hevolus` seguito da `/plugin
+update blueprints@hevolus`, e un riavvio della sessione. La versione installata si legge in `/plugin`.
+
 Una copia installata **a mano** si aggiorna con `xrcopilotlab-bp update`: scarica l'ultima
 versione, ne verifica l'impronta e la sostituisce (`--check` dice cosa farebbe e si ferma). Sulla
 copia del plugin lo stesso comando non tocca niente e rimanda a `/plugin update`, perché lì binario
@@ -195,7 +201,7 @@ Poi basta chiedere, in una cartella di lavoro qualsiasi:
 > risorse Azure di Hevolus, e senza i permessi giusti si ferma al primo comando. Non è qualcosa che
 > si aggira riprovando, e l'account con cui usi Claude non c'entra.
 
-Cosa fanno le due skill, con che frasi si attivano e cosa producono:
+Cosa fanno le tre skill, con che frasi si attivano e cosa producono:
 **[§ Le skill](le-skill.md)** e **[il manuale](../plugins/blueprints/docs/manuale.md)**.
 
 ### Se qualcosa non va
@@ -314,7 +320,7 @@ capire un manifest senza aprire un terminale.
 Il punto di partenza è lo stesso: dalla
 [pagina delle release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest)
 scarica il file con il nome della skill — `xrcopilotlab-assessment.zip`,
-`xrcopilotlab-blueprint.zip`, `xrcopilotlab-blueprint-test.zip`.
+`xrcopilotlab-blueprint.zip`, `xrcopilotlab-blueprint-test.zip`, `xrcopilotlab-blueprint-guide.zip`.
 
 ### Su Claude Desktop (e claude.ai)
 
@@ -349,7 +355,7 @@ I due pacchetti **non** sono intercambiabili: quello del plugin (`Xrcopilotlab-�
 della skill (`xrcopilotlab-….zip`) hanno una forma interna diversa, e scambiarli è l'errore che
 capita per primo. La differenza, per chi mantiene: [§ Manutenzione](manutenzione.md#caricare-una-skill-singola-su-claudeai--non-è-lo-stesso-pacchetto-del-plugin).
 
-E le due skill dei blueprint, installate da sole **su Desktop**, sanno spiegare e scrivere un
+E le skill dei blueprint, installate da sole **su Desktop**, sanno spiegare e scrivere un
 manifest ma non possono applicarlo né collaudarlo: quello richiede `xrcopilotlab-bp`, che vuole un
 terminale. Su Claude Code invece funzionano per intero, a patto di avere la CLI —
 [§ Solo lo strumento a riga di comando](#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc).

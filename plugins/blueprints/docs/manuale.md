@@ -514,6 +514,12 @@ Il controllo gira in secondo piano, non rallenta niente e non può far fallire u
 GitHub non risponde, semplicemente quella riga non compare. Per questo l'avviso arriva **al
 comando dopo** rispetto a quando la versione nuova esce.
 
+**Le skill nuove non hanno un avviso.** Quella riga guarda solo la CLI: una versione del plugin che
+porta una skill nuova — come `xrcopilotlab-blueprint-guide` dalla 2.17.0 — con la stessa CLI non la
+fa comparire. Arriva con l'aggiornamento automatico all'avvio, oppure con i due comandi qui sopra;
+poi si riavvia la sessione, perché le skill si caricano all'avvio. `/plugin` mostra la versione
+installata.
+
 ### Se hai installato la CLI a mano
 
 Una copia messa in `~/.local/bin` (o indicata con `XRCOPILOTLAB_BP_BIN`) si aggiorna da sé, con un
