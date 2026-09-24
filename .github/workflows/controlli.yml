@@ -93,8 +93,7 @@ jobs:
         run: |
           set -euo pipefail
           VERA="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([0-9.]*\)".*/\1/p' plugins/blueprints/.claude-plugin/plugin.json | head -1)"
-          ULTIMA="$(gh release view --repo "$GITHUB_REPOSITORY" --json body --jq .body | awk -F'|' '$2 ~ /^[[:space:]]*blueprints[[:space:]]*$/ { gsub(/[[:space:]]/, "", $4); print $4; exit }')"
-          echo "plugin nel repository: $VERA · ultimo pubblicato: $ULTIMA"
+          echo "plugin nel repository: $VERA"
 
           prova() {  # $1 = come si lancia, $2 = versione finta
             T="$(mktemp -d)"; cp -R plugins/blueprints "$T/plugin"
@@ -108,7 +107,12 @@ jobs:
           for SHELL_ in bash pwsh; do
             OUT="$(prova "$SHELL_" 0.0.1)"
             echo "$OUT" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert "systemMessage" in d and d["hookSpecificOutput"]["hookEventName"]=="SessionStart", d; print(d["systemMessage"])'
-            OUT="$(prova "$SHELL_" "$ULTIMA")"
+            # Il caso «aggiornato» si prova con la versione del repository, non con l'ultima release
+            # letta un momento prima: il 24/09/2026 la release v1.19.0 è uscita mentre questo passo
+            # girava, e PowerShell — che interroga GitHub qualche secondo dopo bash — ha visto una
+            # versione più nuova di quella «aggiornata» del test. Aveva ragione lui. La versione del
+            # repository non è mai più vecchia di una pubblicata, perché si pubblica da qui.
+            OUT="$(prova "$SHELL_" "$VERA")"
             [ -z "$OUT" ] || { echo "::error::$SHELL_: con il plugin aggiornato l'avviso non deve dire niente, ha detto: $OUT"; exit 1; }
             echo "$SHELL_: avviso corretto."
           done
