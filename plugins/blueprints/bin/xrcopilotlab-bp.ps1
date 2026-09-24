@@ -27,6 +27,15 @@ function Stop-WithMessage([string]$Message) {
     exit 70
 }
 
+# Vero se la prima versione è almeno pari alla seconda, confrontando i campi come numeri.
+function Test-Aggiornato([string]$Trovata, [string]$Attesa) {
+    try {
+        return ([version]$Trovata) -ge ([version]$Attesa)
+    } catch {
+        return $false
+    }
+}
+
 # Aggiorna le due note — ultima CLI e ultimo plugin pubblicati — dal catalogo. Gemella della
 # funzione dell'avviatore bash: se gh non c'è o GitHub non risponde, le note restano come sono.
 $AggiornaNote = {
@@ -87,14 +96,6 @@ if ($env:XRCOPILOTLAB_BP_BIN) {
     exit $LASTEXITCODE
 }
 
-# Vero se la prima versione è almeno pari alla seconda, confrontando i campi come numeri.
-function Test-Aggiornato([string]$Trovata, [string]$Attesa) {
-    try {
-        return ([version]$Trovata) -ge ([version]$Attesa)
-    } catch {
-        return $false
-    }
-}
 
 # 2. Lo strumento globale .NET, per chi sviluppa anche sul repository — ma solo se non è più
 #    vecchio della versione che il plugin si aspetta. Prima vinceva sempre, ed era la trappola che
