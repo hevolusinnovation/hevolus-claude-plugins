@@ -23,8 +23,16 @@ CACHE_DIR="${CLAUDE_PLUGIN_DATA:-$HOME/.xrcopilotlab-bp/cache}/bin"
 
 die() { echo "xrcopilotlab-bp: $*" >&2; exit 70; }
 
+# La versione del plugin installato, dal suo manifest. Serve all'avviso sulle skill: la CLI ha un
+# numero suo (version.txt), ma una versione del plugin può portare skill nuove con la stessa CLI.
+PLUGIN_VERSION="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([0-9][0-9.]*\)".*/\1/p' \
+  "$HERE/../.claude-plugin/plugin.json" 2>/dev/null | head -1)"
+DATI="${CLAUDE_PLUGIN_DATA:-$HOME/.xrcopilotlab-bp/cache}"
+NOTA="$DATI/ultima-cli"
+NOTA_PLUGIN="$DATI/ultimo-plugin"
+
 # 1. Un percorso imposto a mano vince su tutto: serve a provare una build locale.
-if [ -n "${XRCOPILOTLAB_BP_BIN:-}" ]; then
+if [ -n "${XRCOPILOTLAB_BP_BIN:-}" ] && [ "${1:-}" != "--avviso-sessione" ]; then
   exec "$XRCOPILOTLAB_BP_BIN" "$@"
 fi
 
@@ -42,6 +50,63 @@ aggiornato() {
     exit 0
   }'
 }
+
+# Aggiorna le due note — ultima CLI e ultimo plugin pubblicati — leggendo il catalogo. Una chiamata
+# a GitHub per ciascuna, al massimo una volta al giorno; se gh non c'è, non sei autenticato o GitHub
+# non risponde, le note restano come sono e nessuno se ne accorge.
+aggiorna_note() {
+  mkdir -p "$DATI" 2>/dev/null || return 0
+  gh release list --repo "$REPO_CATALOGO" --limit 30 2>/dev/null \
+    | awk '{ for (i = 1; i <= NF; i++) if ($i ~ /^bp-v[0-9]/) { sub(/^bp-v/, "", $i); print $i; break } }' \
+    | sort -t. -k1,1n -k2,2n -k3,3n | tail -1 > "$NOTA.tmp" 2>/dev/null \
+    && [ -s "$NOTA.tmp" ] && mv "$NOTA.tmp" "$NOTA" 2>/dev/null
+  # Le note dell'ultima release del catalogo portano la tabella «Versioni»: la riga del plugin
+  # blueprints dice quale versione è stata pubblicata per ultima.
+  gh release view --repo "$REPO_CATALOGO" --json body --jq .body 2>/dev/null \
+    | awk -F'|' '$2 ~ /^[[:space:]]*blueprints[[:space:]]*$/ { gsub(/[[:space:]]/, "", $4); print $4; exit }' \
+    > "$NOTA_PLUGIN.tmp" 2>/dev/null \
+    && [ -s "$NOTA_PLUGIN.tmp" ] && mv "$NOTA_PLUGIN.tmp" "$NOTA_PLUGIN" 2>/dev/null
+  rm -f "$NOTA.tmp" "$NOTA_PLUGIN.tmp" 2>/dev/null
+  return 0
+}
+
+note_scadute() { [ -z "$(find "$NOTA_PLUGIN" -mtime -1 2>/dev/null)" ]; }
+
+# La riga da dire, o niente. Una sola: se il plugin è indietro, aggiornarlo porta anche la CLI, e
+# due righe che dicono la stessa cosa in due modi si smettono di leggere.
+messaggio_aggiornamento() {
+  if [ -s "$NOTA_PLUGIN" ] && [ -n "$PLUGIN_VERSION" ]; then
+    ULTIMO="$(tr -d '\r\n' < "$NOTA_PLUGIN")"
+    if [ -n "$ULTIMO" ] && ! aggiornato "$PLUGIN_VERSION" "$ULTIMO"; then
+      echo "c'è il plugin blueprints $ULTIMO, questo è il $PLUGIN_VERSION: skill o CLI nuove. Aggiornalo con '/plugin marketplace update hevolus' e '/plugin update blueprints@hevolus', poi riavvia la sessione."
+      return 0
+    fi
+  fi
+  if [ -s "$NOTA" ]; then
+    ULTIMA="$(tr -d '\r\n' < "$NOTA")"
+    if [ -n "$ULTIMA" ] && ! aggiornato "$VERSION" "$ULTIMA"; then
+      echo "c'è la $ULTIMA, il plugin chiede la $VERSION. Aggiornalo con '/plugin update blueprints@hevolus'."
+    fi
+  fi
+}
+
+# All'apertura di una sessione di Claude Code (hook SessionStart del plugin): si dice se il plugin è
+# indietro, e basta — niente binario da cercare o scaricare, niente comando da eseguire. Qui le note
+# si aggiornano in primo piano quando sono scadute: il processo dell'hook finisce subito, e un lavoro
+# lasciato in background potrebbe morire con lui. Succede una volta al giorno, e dura un paio di
+# secondi.
+if [ "${1:-}" = "--avviso-sessione" ]; then
+  if command -v gh >/dev/null 2>&1 && note_scadute; then
+    aggiorna_note
+  fi
+  M="$(messaggio_aggiornamento)"
+  if [ -n "$M" ]; then
+    # La riga all'utente (systemMessage) e a Claude (additionalContext), che le skill istruiscono a
+    # ripeterla a parole. Il testo non contiene doppi apici né barre rovesciate: sta in JSON così.
+    printf '{"systemMessage":"xrcopilotlab-bp: %s","hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Il plugin blueprints è indietro. Dillo all\047utente in una riga, con i comandi: %s"}}\n' "$M" "$M"
+  fi
+  exit 0
+fi
 
 # 2. Lo strumento globale .NET, per chi sviluppa anche sul repository — ma solo se non è più
 #    vecchio della versione che il plugin si aspetta.
@@ -88,27 +153,13 @@ esac
 # fallire un comando, quindi: si **legge** la cache (immediato) e si **aggiorna** in background. La
 # notizia arriva quindi al comando successivo, il che va benissimo per una cosa che cambia ogni
 # poche settimane, e non aggiunge un millisecondo né un modo nuovo di rompersi.
-NOTA="${CLAUDE_PLUGIN_DATA:-$HOME/.xrcopilotlab-bp/cache}/ultima-cli"
-
 avviso_aggiornamento() {
-  if [ -s "$NOTA" ]; then
-    ULTIMA="$(tr -d '\r\n' < "$NOTA")"
+  M="$(messaggio_aggiornamento)"
+  [ -n "$M" ] && echo "xrcopilotlab-bp: $M" >&2
 
-    if [ -n "$ULTIMA" ] && ! aggiornato "$VERSION" "$ULTIMA"; then
-      echo "xrcopilotlab-bp: c'è la $ULTIMA, il plugin chiede la $VERSION. Aggiornalo con '/plugin update blueprints@hevolus'." >&2
-    fi
-  fi
-
-  # Aggiorna la cache al massimo una volta al giorno, staccato e muto: se gh non c'è, se non sei
-  # autenticato o se GitHub non risponde, non succede niente di visibile.
-  if command -v gh >/dev/null 2>&1 && [ -z "$(find "$NOTA" -mtime -1 2>/dev/null)" ]; then
-    mkdir -p "$(dirname "$NOTA")"
-    (
-      gh release list --repo "$REPO_CATALOGO" --limit 30 2>/dev/null \
-        | awk '{ for (i = 1; i <= NF; i++) if ($i ~ /^bp-v[0-9]/) { sub(/^bp-v/, "", $i); print $i; break } }' \
-        | sort -t. -k1,1n -k2,2n -k3,3n | tail -1 > "$NOTA.tmp" 2>/dev/null \
-        && mv "$NOTA.tmp" "$NOTA" 2>/dev/null
-    ) >/dev/null 2>&1 &
+  # Durante un comando le note si aggiornano staccate e mute: il comando non aspetta GitHub.
+  if command -v gh >/dev/null 2>&1 && note_scadute; then
+    ( aggiorna_note ) >/dev/null 2>&1 &
   fi
 }
 

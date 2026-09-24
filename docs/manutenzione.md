@@ -22,6 +22,7 @@ plugins/blueprints/
 ├── skills/xrcopilotlab-blueprint-test/SKILL.md    collaudare un blueprint applicato, con i suoi references/
 ├── skills/xrcopilotlab-blueprint-guide/SKILL.md   la guida non tecnica per il cliente, con i suoi references/
 ├── bin/                                           gli avviatori: finiscono nel PATH quando il plugin è attivo
+├── hooks/hooks.json                               l'avviso di inizio sessione: «il plugin è indietro»
 └── docs/manuale.md                                il manuale per chi lo usa
 plugins/assessment/
 ├── .claude-plugin/plugin.json

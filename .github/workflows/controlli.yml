@@ -82,3 +82,33 @@ jobs:
 
           echo "$TAG: allegati completi per tutte le piattaforme che gli avviatori possono chiedere."
 
+
+      - name: Avviso di aggiornamento — bash e PowerShell dicono la stessa cosa
+        # L'hook SessionStart del plugin chiama l'avviatore con --avviso-sessione. Si prova su una
+        # copia del plugin con la versione abbassata di uno: deve uscire un JSON valido con la riga
+        # per l'utente; con la versione vera, niente. Il gemello PowerShell si prova qui perché
+        # nessuno lo esegue su un Mac, e un errore di sintassi arriverebbe dritto a chi usa Windows.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          VERA="$(sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([0-9.]*\)".*/\1/p' plugins/blueprints/.claude-plugin/plugin.json | head -1)"
+          ULTIMA="$(gh release view --repo "$GITHUB_REPOSITORY" --json body --jq .body | awk -F'|' '$2 ~ /^[[:space:]]*blueprints[[:space:]]*$/ { gsub(/[[:space:]]/, "", $4); print $4; exit }')"
+          echo "plugin nel repository: $VERA · ultimo pubblicato: $ULTIMA"
+
+          prova() {  # $1 = come si lancia, $2 = versione finta
+            T="$(mktemp -d)"; cp -R plugins/blueprints "$T/plugin"
+            sed -i "s/\"version\": \"$VERA\"/\"version\": \"$2\"/" "$T/plugin/.claude-plugin/plugin.json"
+            case "$1" in
+              bash) CLAUDE_PLUGIN_DATA="$T/dati" "$T/plugin/bin/xrcopilotlab-bp" --avviso-sessione ;;
+              pwsh) CLAUDE_PLUGIN_DATA="$T/dati" pwsh -NoProfile -File "$T/plugin/bin/xrcopilotlab-bp.ps1" --avviso-sessione ;;
+            esac
+          }
+
+          for SHELL_ in bash pwsh; do
+            OUT="$(prova "$SHELL_" 0.0.1)"
+            echo "$OUT" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert "systemMessage" in d and d["hookSpecificOutput"]["hookEventName"]=="SessionStart", d; print(d["systemMessage"])'
+            OUT="$(prova "$SHELL_" "$ULTIMA")"
+            [ -z "$OUT" ] || { echo "::error::$SHELL_: con il plugin aggiornato l'avviso non deve dire niente, ha detto: $OUT"; exit 1; }
+            echo "$SHELL_: avviso corretto."
+          done

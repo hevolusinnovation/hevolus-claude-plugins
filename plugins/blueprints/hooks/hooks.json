@@ -1,0 +1,16 @@
+{
+  "description": "All'apertura di una sessione dice, una riga sola, se il plugin blueprints ha una versione più recente — skill nuove o CLI nuova — con i comandi per aggiornarlo. Legge una cache aggiornata al massimo una volta al giorno; se GitHub non risponde non dice niente.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/bin/xrcopilotlab-bp\" --avviso-sessione",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

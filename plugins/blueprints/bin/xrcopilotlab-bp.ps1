@@ -14,15 +14,17 @@ $Version = (Get-Content (Join-Path $Here 'version.txt')).Trim()
 $CacheRoot = if ($env:CLAUDE_PLUGIN_DATA) { $env:CLAUDE_PLUGIN_DATA } else { Join-Path $HOME '.xrcopilotlab-bp\cache' }
 $CacheDir  = Join-Path $CacheRoot 'bin'
 
+# La versione del plugin installato, dal suo manifest: una versione del plugin può portare skill
+# nuove con la stessa CLI, e l'avviso deve saperlo.
+$PluginVersion = try {
+    (Get-Content (Join-Path $Here '..\.claude-plugin\plugin.json') -Raw | ConvertFrom-Json).version
+} catch { $null }
+$Nota       = Join-Path $CacheRoot 'ultima-cli'
+$NotaPlugin = Join-Path $CacheRoot 'ultimo-plugin'
+
 function Stop-WithMessage([string]$Message) {
     [Console]::Error.WriteLine("xrcopilotlab-bp: $Message")
     exit 70
-}
-
-# 1. Un percorso imposto a mano vince su tutto.
-if ($env:XRCOPILOTLAB_BP_BIN) {
-    & $env:XRCOPILOTLAB_BP_BIN @args
-    exit $LASTEXITCODE
 }
 
 # Vero se la prima versione è almeno pari alla seconda, confrontando i campi come numeri.
@@ -33,6 +35,67 @@ function Test-Aggiornato([string]$Trovata, [string]$Attesa) {
         return $false
     }
 }
+
+# Aggiorna le due note — ultima CLI e ultimo plugin pubblicati — dal catalogo. Gemella della
+# funzione dell'avviatore bash: se gh non c'è o GitHub non risponde, le note restano come sono.
+$AggiornaNote = {
+    param($Repo, $File, $FilePlugin)
+    try {
+        $V = gh release list --repo $Repo --limit 30 2>$null |
+             ForEach-Object { if ($_ -match 'bp-v(\d+\.\d+\.\d+)') { [version]$Matches[1] } } |
+             Sort-Object | Select-Object -Last 1
+        if ($V) { Set-Content -Path $File -Value $V.ToString() }
+        $Body = gh release view --repo $Repo --json body --jq .body 2>$null
+        $Riga = $Body | Where-Object { $_ -match '^\|\s*blueprints\s*\|[^|]*\|\s*(\d+\.\d+\.\d+)\s*\|' } | Select-Object -First 1
+        if ($Riga -and ($Riga -match '^\|\s*blueprints\s*\|[^|]*\|\s*(\d+\.\d+\.\d+)\s*\|')) {
+            Set-Content -Path $FilePlugin -Value $Matches[1]
+        }
+    } catch { }
+}
+
+function Test-NoteScadute {
+    -not (Test-Path $NotaPlugin) -or ((Get-Item $NotaPlugin).LastWriteTime -lt (Get-Date).AddDays(-1))
+}
+
+# La riga da dire, o niente. Una sola: se il plugin è indietro, aggiornarlo porta anche la CLI.
+function Get-MessaggioAggiornamento {
+    $Ultimo = if (Test-Path $NotaPlugin) { (Get-Content $NotaPlugin -ErrorAction SilentlyContinue | Select-Object -First 1) } else { $null }
+    if ($Ultimo -and $PluginVersion -and -not (Test-Aggiornato $PluginVersion $Ultimo.Trim())) {
+        return "c'è il plugin blueprints $($Ultimo.Trim()), questo è il $($PluginVersion): skill o CLI nuove. Aggiornalo con '/plugin marketplace update hevolus' e '/plugin update blueprints@hevolus', poi riavvia la sessione."
+    }
+    $Ultima = if (Test-Path $Nota) { (Get-Content $Nota -ErrorAction SilentlyContinue | Select-Object -First 1) } else { $null }
+    if ($Ultima -and -not (Test-Aggiornato $Version $Ultima.Trim())) {
+        return "c'è la $($Ultima.Trim()), il plugin chiede la $Version. Aggiornalo con '/plugin update blueprints@hevolus'."
+    }
+    return $null
+}
+
+# All'apertura di una sessione (hook SessionStart): si dice se il plugin è indietro, e basta. Le note
+# scadute si aggiornano in primo piano, perché il processo dell'hook finisce subito.
+if ($args.Count -gt 0 -and $args[0] -eq '--avviso-sessione') {
+    if ((Get-Command gh -ErrorAction SilentlyContinue) -and (Test-NoteScadute)) {
+        New-Item -ItemType Directory -Force $CacheRoot | Out-Null
+        & $AggiornaNote $RepoCatalogo $Nota $NotaPlugin
+    }
+    $M = Get-MessaggioAggiornamento
+    if ($M) {
+        @{
+            systemMessage      = "xrcopilotlab-bp: $M"
+            hookSpecificOutput = @{
+                hookEventName     = 'SessionStart'
+                additionalContext = "Il plugin blueprints è indietro. Dillo all'utente in una riga, con i comandi: $M"
+            }
+        } | ConvertTo-Json -Compress -Depth 4
+    }
+    exit 0
+}
+
+# 1. Un percorso imposto a mano vince su tutto.
+if ($env:XRCOPILOTLAB_BP_BIN) {
+    & $env:XRCOPILOTLAB_BP_BIN @args
+    exit $LASTEXITCODE
+}
+
 
 # 2. Lo strumento globale .NET, per chi sviluppa anche sul repository — ma solo se non è più
 #    vecchio della versione che il plugin si aspetta. Prima vinceva sempre, ed era la trappola che
@@ -56,29 +119,13 @@ if (Test-Path $Tool) {
 # stessa logica nell'avviatore bash: si **legge** la cache (immediato) e si **aggiorna** in
 # background, quindi la notizia arriva al comando successivo. Costa zero e non può far fallire
 # niente: se gh non c'è, o GitHub non risponde, non succede nulla di visibile.
-$Nota = Join-Path $CacheRoot 'ultima-cli'
+$M = Get-MessaggioAggiornamento
+if ($M) { [Console]::Error.WriteLine("xrcopilotlab-bp: $M") }
 
-if (Test-Path $Nota) {
-    $Ultima = (Get-Content $Nota -ErrorAction SilentlyContinue | Select-Object -First 1)
-
-    if ($Ultima) { $Ultima = $Ultima.Trim() }
-
-    if ($Ultima -and -not (Test-Aggiornato $Version $Ultima)) {
-        [Console]::Error.WriteLine("xrcopilotlab-bp: c'è la $Ultima, il plugin chiede la $Version. Aggiornalo con '/plugin update blueprints@hevolus'.")
-    }
-}
-
-$Scaduta = -not (Test-Path $Nota) -or ((Get-Item $Nota).LastWriteTime -lt (Get-Date).AddDays(-1))
-
-if ($Scaduta -and (Get-Command gh -ErrorAction SilentlyContinue)) {
-    New-Item -ItemType Directory -Force (Split-Path $Nota) | Out-Null
-    Start-Job -ScriptBlock {
-        param($Repo, $File)
-        $V = gh release list --repo $Repo --limit 30 2>$null |
-             ForEach-Object { if ($_ -match 'bp-v(\d+\.\d+\.\d+)') { [version]$Matches[1] } } |
-             Sort-Object | Select-Object -Last 1
-        if ($V) { Set-Content -Path $File -Value $V.ToString() }
-    } -ArgumentList $RepoCatalogo, $Nota | Out-Null
+# Durante un comando le note si aggiornano staccate: il comando non aspetta GitHub.
+if ((Get-Command gh -ErrorAction SilentlyContinue) -and (Test-NoteScadute)) {
+    New-Item -ItemType Directory -Force $CacheRoot | Out-Null
+    Start-Job -ScriptBlock $AggiornaNote -ArgumentList $RepoCatalogo, $Nota, $NotaPlugin | Out-Null
 }
 
 # 3. La copia già scaricata.

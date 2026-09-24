@@ -530,11 +530,17 @@ Il controllo gira in secondo piano, non rallenta niente e non può far fallire u
 GitHub non risponde, semplicemente quella riga non compare. Per questo l'avviso arriva **al
 comando dopo** rispetto a quando la versione nuova esce.
 
-**Le skill nuove non hanno un avviso.** Quella riga guarda solo la CLI: una versione del plugin che
-porta una skill nuova — come `xrcopilotlab-blueprint-guide` dalla 2.17.0 — con la stessa CLI non la
-fa comparire. Arriva con l'aggiornamento automatico all'avvio, oppure con i due comandi qui sopra;
-poi si riavvia la sessione, perché le skill si caricano all'avvio. `/plugin` mostra la versione
-installata.
+**Dalla 2.19.0 l'avviso c'è anche per le skill.** All'apertura di una sessione un hook del plugin
+guarda se nel catalogo c'è una versione più recente del plugin — skill nuove, come
+`xrcopilotlab-blueprint-guide` nella 2.17.0 — e in quel caso mostra una riga:
+
+```
+xrcopilotlab-bp: c'è il plugin blueprints 2.20.0, questo è il 2.19.0: skill o CLI nuove. Aggiornalo con '/plugin marketplace update hevolus' e '/plugin update blueprints@hevolus', poi riavvia la sessione.
+```
+
+Stessa cache della CLI, stesso ritmo (una volta al giorno), e se GitHub non risponde non dice
+niente. Il riavvio serve: le skill si caricano all'apertura della sessione. `/plugin` mostra la
+versione installata.
 
 ### Se hai installato la CLI a mano
 

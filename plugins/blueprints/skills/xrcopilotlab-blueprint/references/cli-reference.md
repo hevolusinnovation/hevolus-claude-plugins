@@ -702,6 +702,7 @@ soltanto il passo `McpLoadTools`.
 xrcopilotlab-bp mcp check           --tag STUDIOPOLIS --env staging --company <guid>   # definizione, catalogo, collegamenti
 xrcopilotlab-bp mcp publish m365    --tag STUDIOPOLIS --env staging --company <guid>   # ricrea la riga del catalogo
 xrcopilotlab-bp mcp test    m365    --tag STUDIOPOLIS --env staging --company <guid>   # esercita il testTool e mostra la risposta grezza
+xrcopilotlab-bp mcp test    m365    --tool posta_in_arrivo --args '{"da":"2026-09-24T20:30:00Z"}' --full --tag STUDIOPOLIS   # la risposta intera, non troncata a 1200 caratteri
 xrcopilotlab-bp mcp test    m365    --tool cerca_eventi --args '{"inizio":"2020-01-01T00:00:00Z","fine":"2020-01-02T00:00:00Z"}' --tag STUDIOPOLIS
 ```
 
