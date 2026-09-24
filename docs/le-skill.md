@@ -1,7 +1,7 @@
 # Le skill, una per una
 
 Un plugin è un contenitore: quello che fa davvero il lavoro sono le **skill**, cioè le istruzioni
-che Claude carica quando la richiesta le riguarda. I due plugin ne portano tre, e conoscerle per
+che Claude carica quando la richiesta le riguarda. I due plugin ne portano quattro, e conoscerle per
 nome serve a due cose — sapere **come chiedere** perché si attivino, e sapere **cosa non chiedere**
 perché non lo fanno.
 
@@ -11,18 +11,22 @@ repository di prodotto: [§ Le skill di sviluppo](skill-di-sviluppo.md).
 | Skill | Plugin | Si attiva quando | Produce |
 |---|---|---|---|
 | [`xrcopilotlab-blueprint`](#xrcopilotlab-blueprint--scrivere-e-applicare-un-blueprint) | blueprints | «crea un blueprint», «configura il cliente da zero», «applica il manifest», o si nomina `xrcopilotlab-bp` | il manifest `.yml`, il piano, il tenant configurato |
-| [`xrcopilotlab-blueprint-test`](#xrcopilotlab-blueprint-test--collaudare-un-blueprint-applicato) | blueprints | «collauda il blueprint», «scrivi le domande di test», «vedi se funziona», «prepara le domande per il cliente», o si nomina `test run` | la suite `.tests.yml`, il report, il giudizio, le bozze di issue, le guide per il cliente |
+| [`xrcopilotlab-blueprint-test`](#xrcopilotlab-blueprint-test--collaudare-un-blueprint-applicato) | blueprints | «collauda il blueprint», «scrivi le domande di test», «vedi se funziona», «prepara le domande per il cliente», o si nomina `test run` | la suite `.tests.yml`, il report, il giudizio, le bozze di issue, le domande di prova per il cliente |
+| [`xrcopilotlab-blueprint-guide`](#xrcopilotlab-blueprint-guide--la-guida-per-il-cliente) | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «la pagina da mostrare al cliente» | la guida `guida-<scenario>.md`, non tecnica, con i disegni, e la sua pagina web |
 | [`xrcopilotlab-assessment`](#xrcopilotlab-assessment--dalla-proposta-al-dossier) | assessment (Claude Desktop) | si carica una proposta e si chiede di «valutarla», «fare l'assessment», «tradurla in soluzione» | il dossier tecnico `.md` e `.docx`, con il capitolo per il provisioning |
 
-Le tre skill sono i tre tempi dello stesso lavoro: l'assessment dice **cosa** costruire, il
-blueprint lo **costruisce**, il collaudo dice **se funziona** e a chi tocca ciò che non va.
+Le quattro skill sono i tempi dello stesso lavoro: l'assessment dice **cosa** costruire, il
+blueprint lo **costruisce**, il collaudo dice **se funziona** e a chi tocca ciò che non va, la guida
+lo **racconta al cliente** con le sue parole.
 
 ```
 xrcopilotlab-assessment        xrcopilotlab-blueprint          xrcopilotlab-blueprint-test
   proposta → dossier      →      dossier → manifest → tenant  →   tenant → suite → report → giudizio
   (Claude Desktop)               (Claude Code)                    (Claude Code)
                                                                         ↓
-                                                              issue (dopo un sì) · guide per il cliente
+                                                              issue (dopo un sì) · domande di prova
+                                                                        ↓
+                                                     xrcopilotlab-blueprint-guide: guida per il cliente
 ```
 
 Di solito non serve nominarle: si attivano dalla richiesta. Quando due potrebbero valere — «testa il
@@ -196,7 +200,8 @@ esempi commentati. Manuale passo passo: [`plugins/blueprints/docs/manuale.md`](.
 
 Porta un blueprint applicato da «esiste sul tenant» a «sappiamo come risponde, e sappiamo di chi è
 ogni difetto», e da lì a «il cliente sa cosa provare e cosa aspettarsi». Cinque mosse: **scrivere
-le domande, eseguirle, giudicare, segnalare, scrivere le guide per il cliente**.
+le domande, eseguirle, giudicare, segnalare, scrivere le domande di prova per il cliente**. La
+guida allo scenario è della skill che segue.
 
 La divisione del lavoro è netta, ed è ciò che rende il collaudo ripetibile:
 
@@ -394,6 +399,31 @@ tabella evidenza → componente → verifica (`triage.md`); il modello di segnal
 (`segnalazione.md`); il modello di esecuzione del motore BPM e le otto domande da farsi su ogni
 processo (`bpm.md`); le guide per il cliente (`guida-cliente.md`); il formato completo di suite e
 report con i codici `BT0xx` (`testing.md`); una suite reale (`esempio-suite-agenda.tests.yml`).
+
+### `xrcopilotlab-blueprint-guide` — la guida per il cliente
+
+Porta un blueprint da «funziona, e sappiamo come» a «il cliente capisce che cosa ha, perché gli
+conviene, e che cosa aspettarsi». Il lettore è chi usa il servizio e chi lo compra, quasi mai un
+tecnico: niente orchestratori, topic o server MCP — «la catena di assistenti», «l'archivio dei
+documenti», «un collegamento a un servizio esterno».
+
+La guida racconta cinque cose: che cosa fa per il cliente, in una frase; **il flusso come una
+storia**, con un disegno di pochi riquadri; **dove lavora l'AI e dove decidono le persone** (e che
+cosa l'AI non fa); **come è stato collaudato**, con l'esito vero dell'ultimo giudizio; **perché un
+ambiente descritto in un manifest conviene** — si vede prima di farlo, si ripete, si aggiorna senza
+rifarlo, ha una storia di versioni. I disegni sono Mermaid, con quattro colori fissi (persone, AI,
+archivi, regole fisse); la guida si pubblica anche come **pagina web** da proiettare, con una copia
+HTML che si apre senza account.
+
+**Non esegue test e non tocca il tenant**: legge il manifest, il giudizio e la suite che escono dalla
+skill di collaudo, e il dossier dell'assessment per le criticità dette dal cliente. Se il collaudo è
+vecchio, lo dice e propone di rifarlo.
+
+| Cosa scrivi | Cosa fa la skill |
+|---|---|
+| «Scrivi la guida per il cliente di COMO» | Legge manifest, ultimo giudizio e dossier, scrive `guida-<scenario>.md` nella cartella del cliente e **te la mostra** |
+| «Pubblicala» | Carica `artifact-design`, verifica l'organizzazione, pubblica la pagina e la apre nel browser, con la copia HTML locale |
+| «Aggiorna la guida dopo il collaudo di oggi» | Rifà l'esito, i limiti e le versioni; la storia resta finché il flusso non cambia |
 
 ### `xrcopilotlab-assessment` — dalla proposta al dossier
 

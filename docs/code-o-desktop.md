@@ -88,7 +88,7 @@ collega.
 
 ## La stessa skill su tutte e due?
 
-Si può, ed è quello che succede oggi in una forma minore: le due skill dei blueprint vengono
+Si può, ed è quello che succede oggi in una forma minore: le skill dei blueprint vengono
 pubblicate **anche** come skill singole caricabili su claude.ai, per chi vuole leggerne le regole e
 scrivere un manifest in chat. Ma restano skill di Code, e la differenza va detta a chi le usa così:
 fuori da Claude Code sanno **spiegare e scrivere**, non **applicare**.

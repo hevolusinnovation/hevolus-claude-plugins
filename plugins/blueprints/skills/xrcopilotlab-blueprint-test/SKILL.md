@@ -1,13 +1,16 @@
 ---
 name: xrcopilotlab-blueprint-test
-description: Collauda un blueprint XRCopilotLab applicato su un tenant. Scrive le domande di test per agenti, orchestratori e processi (o parte da una suite in `blueprints/tests/`), le esegue con `xrcopilotlab-bp test run` raccogliendo risposte e log (pipeline, knowledge, skill, eventi dell'istanza), giudica le risposte, attribuisce ogni fallimento a un componente (knowledge graph, skill, motore BPM, webapp, manifest), propone le issue aprendole solo dopo un sì, e scrive le guide per il cliente. Chi non ha i repository per confermare una causa non si ferma: consegna il fallimento a uno sviluppatore, con le evidenze, e prosegue. Usa quando l'utente chiede di "testare un blueprint", "collaudare gli agenti", "scrivere le domande di test", "verificare le risposte e i log", "aprire le issue dei fallimenti", "preparare le domande per il cliente", oppure nomina `test run`, `test init` o una suite `.tests.yml`. NON usare per scrivere o applicare un manifest (quello è xrcopilotlab-blueprint) né per test unitari del codice.
+description: Collauda un blueprint XRCopilotLab applicato su un tenant. Scrive le domande di test per agenti, orchestratori e processi (o parte da una suite in `blueprints/tests/`), le esegue con `xrcopilotlab-bp test run` raccogliendo risposte e log (pipeline, knowledge, skill, eventi dell'istanza), giudica le risposte, attribuisce ogni fallimento a un componente (knowledge graph, skill, motore BPM, webapp, manifest), propone le issue aprendole solo dopo un sì, e scrive le domande di prova per il cliente. Senza i repository per confermare una causa, consegna il fallimento a uno sviluppatore e prosegue. Usa quando l'utente chiede di "testare un blueprint", "collaudare gli agenti", "scrivere le domande di test", "verificare le risposte e i log", "aprire le issue dei fallimenti", "preparare le domande per il cliente", oppure nomina `test run`, `test init` o una suite `.tests.yml`. Non per scrivere un manifest (xrcopilotlab-blueprint), la guida al cliente (xrcopilotlab-blueprint-guide) o test unitari.
 ---
 
 # xrcopilotlab-blueprint-test
 
 Porta un blueprint applicato da «esiste sul tenant» a «sappiamo come risponde, e sappiamo di chi è
 ogni difetto», e da lì a «il cliente sa cosa provare e cosa aspettarsi». Cinque mosse: scrivere le
-domande, eseguirle, giudicare, segnalare, e scrivere le guide per il cliente.
+domande, eseguirle, giudicare, segnalare, e scrivere le domande di prova per il cliente. La **guida
+allo scenario** — il racconto non tecnico, con i disegni e la sua pagina web — la scrive
+[`xrcopilotlab-blueprint-guide`](../xrcopilotlab-blueprint-guide/SKILL.md), a partire dal giudizio
+che esce da qui.
 
 La divisione del lavoro è netta e va rispettata, perché è ciò che rende il collaudo ripetibile:
 
@@ -30,7 +33,7 @@ Riferimenti, da leggere quando si arriva al passo:
 | Attribuire un fallimento | [`references/triage.md`](references/triage.md) — evidenza → componente → repository, e come confermare leggendo il codice |
 | Scrivere la segnalazione | [`references/segnalazione.md`](references/segnalazione.md) — il modello per i tre repository e cosa non va scritto |
 | Non poter verificare (niente cloni, niente repository) | [`references/consegna-dev.md`](references/consegna-dev.md) — come si consegna un fallimento a chi può guardarlo, e perché i test proseguono |
-| Le guide per il cliente | [`references/guida-cliente.md`](references/guida-cliente.md) — le domande di prova (la traduzione inversa della suite) e la guida allo scenario; dove vanno, la struttura che ha retto, le regole |
+| Le domande di prova per il cliente | [`references/guida-cliente.md`](references/guida-cliente.md) — la traduzione inversa della suite; dove vanno, la struttura che ha retto, le regole. La guida allo scenario è di [`xrcopilotlab-blueprint-guide`](../xrcopilotlab-blueprint-guide/SKILL.md) |
 | Guardare ciò che vede il cliente | [`references/browser.md`](references/browser.md) — quando aprire il browser invece della suite, come si collega Claude a Chrome (anche da Claude Desktop), cosa si riporta |
 | Collaudare un processo | [`references/bpm.md`](references/bpm.md) — il modello di esecuzione (token, gateway, work item, soglie) tradotto nel motore, le otto domande da farsi su ogni processo del manifest, come leggere gli eventi di un'istanza, cosa il motore non fa |
 | Formato della suite e del report | [`references/testing.md`](references/testing.md) |
@@ -371,24 +374,20 @@ corpo si propone il caso anche per la suite di regressione della libreria
 Dopo l'apertura, riportare i numeri delle issue nel `giudizio.md` accanto ai casi, e — se il
 repository lo prevede — la label `semver:patch` con la skill `xrcopilotlab-label-semver`.
 
-## 6. Le guide per il cliente
+## 6. Le domande di prova per il cliente
 
 Al termine di un collaudo — e sempre al collaudo finale, quando il manifest è stabile — si
-aggiornano o si scrivono i due documenti di [`references/guida-cliente.md`](references/guida-cliente.md):
+aggiornano o si scrivono **le domande di prova** (`demo-domande-<scenario>.md`), con la traduzione di
+[`references/guida-cliente.md`](references/guida-cliente.md): la tabella di stato in testa presa
+dall'ultimo giudizio (✅ pronta · 🟡 da correggere · ⛔ da non mostrare come funzionante · ⏳ attende
+una fonte), le domande della suite con atteso e risposte sbagliate nella lingua del cliente, la
+scheda di valutazione, e la sezione interna per chi conduce con i difetti aperti e i numeri di issue.
 
-- **le domande di prova** (`demo-domande-<scenario>.md`): la tabella di stato in testa presa
-  dall'ultimo giudizio (✅ pronta · 🟡 da correggere · ⛔ da non mostrare come funzionante · ⏳ attende
-  una fonte), le domande della suite con atteso e risposte sbagliate nella lingua del cliente, la
-  scheda di valutazione, e la sezione interna per chi conduce con i difetti aperti e i numeri di issue;
-- **la guida allo scenario** (`guida-<scenario>.md`), se c'è un processo o un'orchestrazione: i
-  concetti, il diagramma dal grafo, i passi, le criticità del cliente → i meccanismi, gli agenti e
-  cosa non fanno, collaudato e mancante, il vocabolario BPMN e le domande dell'esperto — **e la sua
-  pagina web** (artifact), che è ciò che si proietta e si condivide: si costruisce dal Markdown dopo
-  aver caricato la skill `artifact-design`, con il diagramma in Mermaid, **si apre nel browser
-  dell'utente appena pubblicata** — con Claude in Chrome se connesso, altrimenti `open <url>`, e si affianca una copia HTML locale che si apre
-  senza account. Prima di pubblicare, verificare che la CLI sia
-  nell'organizzazione del cliente (`/status`): un artifact nell'organizzazione sbagliata non si
-  apre da quella giusta e non si sposta.
+**La guida allo scenario** — il documento che racconta al cliente il flusso, dove lavora l'AI, come
+è stato collaudato e perché il manifest gli conviene, con la sua pagina web — **non** si scrive
+qui: quando il collaudo cambia la tabella di stato, proporre all'utente di aggiornarla con
+[`xrcopilotlab-blueprint-guide`](../xrcopilotlab-blueprint-guide/SKILL.md), che legge il giudizio
+appena scritto.
 
 Vanno nella cartella del cliente del repository dell'assessment, senza id del tenant, con lo stato
 reale e non quello sperato, e si **mostrano all'utente** prima di darli per finiti. Il triage resta
@@ -399,7 +398,7 @@ nel giudizio: al cliente si dice cosa non funziona e quando sarà corretto, non 
 Riportare all'utente, in quest'ordine: quanti casi, quanti passati per la CLI, quanti per il
 tuo giudizio; i fallimenti attribuiti, per componente; le segnalazioni aperte con i numeri; i casi
 **consegnati a uno sviluppatore** e se il messaggio è partito o è solo pronto; ciò
-che è rimasto non attribuito e perché; dove stanno report, giudizio e le guide per il cliente. E
+che è rimasto non attribuito e perché; dove stanno report, giudizio e le domande di prova per il cliente, e se la guida allo scenario va aggiornata. E
 ricordare che la suite in `blueprints/tests/` va **committata**: è la regressione del blueprint, e la prossima versione
 della libreria si collauda rilanciandola.
 
@@ -420,12 +419,11 @@ della libreria si collauda rilanciandola.
 - Non marcare `✅` un caso consegnato e non ancora verificato: l'esito è `🔁 in attesa di verifica`.
 - Non scrivere `TODO` in una domanda per «vedere cosa succede»: il validatore lo blocca, e a
   ragione — manderebbe al tenant la parola «TODO».
-- Non scrivere nelle guide per il cliente id di istanze, run, webhook o chiavi, né il triage per
-  componente: quello sta nel giudizio. Nella pagina web nemmeno la sezione «per chi conduce».
-- Non pubblicare un artifact senza aver caricato `artifact-design` e senza aver verificato
-  l'organizzazione della CLI: la pagina nasce nell'organizzazione sbagliata e va rifatta.
-- Non dichiarare «collaudato» nelle guide ciò che ha passato solo una simulazione o una prova a
-  secco: si scrive come è stato provato.
+- Non scrivere nelle domande di prova id di istanze, run, webhook o chiavi, né il triage per
+  componente: quello sta nel giudizio.
+- Non dichiarare «collaudato» nelle domande di prova ciò che ha passato solo una simulazione o una
+  prova a secco: si scrive come è stato provato.
+- Non scrivere qui la guida allo scenario né la sua pagina web: è di `xrcopilotlab-blueprint-guide`.
 - Non copiare nella issue della webapp il dettaglio tecnico: la regola problem-only vale anche
   per le issue che nascono da un collaudo.
 - Non correggere il manifest e la libreria nello stesso giro: prima si sistema ciò che è del
