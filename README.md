@@ -88,11 +88,44 @@ con i passi per macOS e per Windows.
 
 Cosa fare quando qualcosa non va: [§ Installare](docs/installare.md#se-qualcosa-non-va).
 
+## Aggiornare
+
+Il modo dipende da come l'hai installata, e non si mescolano: una skill presa in due modi diversi
+dà due copie, e una delle due resta indietro.
+
+| Come l'hai installata | Come si aggiorna |
+|---|---|
+| Plugin **blueprints** su Claude Code | dentro Claude Code: `/plugin update blueprints@hevolus` — skill e strumento a riga di comando si muovono **insieme**, il binario nuovo si riscarica da sé al comando successivo |
+| Plugin **assessment** su Claude Desktop | scarica lo zip `Xrcopilotlab-….zip` nuovo dalle [release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest) e ricaricalo su [claude.ai/customize/plugins](https://claude.ai/customize/plugins): sostituisce il precedente. Qui non c'è aggiornamento automatico |
+| Una **skill da sola** su Desktop | scarica lo zip `xrcopilotlab-….zip` nuovo e ricaricalo in *Impostazioni → Capacità → Skill* |
+| Una **skill da sola** su Claude Code | togli la cartella vecchia e scompatta lo zip nuovo al suo posto — così non restano file che la versione nuova non ha più (sotto) |
+| Solo lo **strumento a riga di comando** | `xrcopilotlab-bp update` — scarica, verifica l'impronta, sostituisce; con `--check` dice cosa farebbe e si ferma |
+
+Per una skill da sola su Claude Code, per esempio `xrcopilotlab-blueprint`:
+
+```bash
+rm -rf ~/.claude/skills/xrcopilotlab-blueprint
+unzip -o ~/Downloads/xrcopilotlab-blueprint.zip -d ~/.claude/skills
+```
+
+```powershell
+Remove-Item -Recurse -Force "$HOME\.claude\skills\xrcopilotlab-blueprint" -ErrorAction SilentlyContinue
+Expand-Archive -Force $HOME\Downloads\xrcopilotlab-blueprint.zip -DestinationPath "$HOME\.claude\skills"
+```
+
+**Non devi controllare tu se il plugin `blueprints` è indietro**: quando esce una CLI più recente di
+quella che chiede, al comando successivo compare una riga che lo dice, con il comando da digitare.
+`/plugin update` è un comando del client: Claude non può lanciarlo al posto tuo.
+
+I dettagli, compreso il vecchio strumento globale `dotnet tool` da togliere:
+[§ Aggiornare](docs/installare.md#aggiornare) e il [manuale di blueprints](plugins/blueprints/docs/manuale.md#8-aggiornare-e-disinstallare).
+
 ## Dove trovi il resto
 
 | Se vuoi | Leggi |
 |---|---|
 | Installare e cominciare a usarli | [§ Installare](docs/installare.md) |
+| Aggiornare un plugin, una skill o lo strumento a riga di comando | [§ Aggiornare](#aggiornare) |
 | Portare un blueprint da staging a produzione, passo per passo | [§ Da staging a produzione](docs/da-staging-a-produzione.md) |
 | Avere lo strumento a riga di comando sul proprio PC, senza plugin | [§ Solo lo strumento a riga di comando](docs/installare.md#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc) |
 | Capire perché il plugin non ti fa entrare, e cosa chiedere a chi | [§ L'accesso ad Azure](docs/accesso-azure.md) |
