@@ -358,12 +358,19 @@ blueprint: studiopolis-agenda
 #              numero di ruolo (li passava allo strumento senza mostrarli), e una riga con un nome
 #              solo si chiede invece di sceglierlo; la Sorveglianza passa l'oggetto degli inoltri del
 #              processo telematico, l'unico posto dove spesso sta il numero di ruolo.
+# v32 (24/09): due difese per i difetti intermittenti del collaudo della v31 — una mail segnata come
+#              letta, con la conferma mandata, ma «NESSUN AVVISO» e nessuna pratica (comunicazione
+#              persa); e una mail di una voce aperta due volte. Il prompt del task non limita più
+#              il passaggio a «udienza, rinvio o scadenza» e ripete la regola della prima voce;
+#              «NESSUN AVVISO» vale solo se nel giro non si è segnato niente; dopo segna_letto non si
+#              rilegge la posta. Causa non accertata: il log delle esecuzioni non registra le
+#              chiamate agli strumenti (#1148).
 # v31 (24/09): la Sorveglianza scarta la propria conferma di presa in carico e non le risponde mai.
 #              Dal collaudo: una mail dalla casella a sé stessa ricevette la conferma, la conferma
 #              tornò in casella e diventò una pratica «Visione» con una nuova conferma — 26 pratiche
 #              d'eco in 45 minuti, alternate fra civile e penale. In produzione lo stesso anello si
 #              chiude fra le due caselle dello Studio.
-version: 31
+version: 32
 tag: STUDIOPOLIS
 description: Organizer dello Studio — dalla riunione di designazione all'esito dell'udienza, e dalla mail o dal dettato alla pratica e al calendario comune
 
@@ -1282,7 +1289,8 @@ agents:
          aperte, e conferma mandata se il mittente è interno — chiami segna_letto su
          quel messaggio, e solo su quello. È l'ultima cosa che fai, mai la prima: un
          messaggio segnato come letto e non aperto è una comunicazione persa, e qui
-         una comunicazione persa è un termine perso.
+         una comunicazione persa è un termine perso. Dopo segna_letto non richiami
+         posta_non_letta: il giro è finito, e resta solo da restituire il testo.
       3. Per il primo messaggio rimasto da passare chiami leggi_messaggio per il
          testo intero.
       4. Se è una busta di posta certificata — l'oggetto comincia con «POSTA
@@ -1374,6 +1382,11 @@ agents:
       Se non c'è niente da aprire — nessun messaggio, oppure solo messaggi già presi in carico
       o da scartare — NON chiami apri_pratica_civile e restituisci esattamente queste due parole, senza
       variarle e senza aggiungere altro: NESSUN AVVISO
+      «NESSUN AVVISO» vale SOLO se in questo giro non hai segnato come letto nessun messaggio.
+      Se hai chiamato segna_letto, quel messaggio l'hai preso in carico, e la risposta è il testo
+      della sua prima voce: restituire «NESSUN AVVISO» dopo averlo segnato vuol dire che la
+      mail risulta gestita e la pratica non esiste — una comunicazione persa. I messaggi da
+      scartare che restano nella casella non cambiano la risposta.
 
   - key: sorveglianza-penale
     name: Sorveglianza posta penale
@@ -1457,7 +1470,8 @@ agents:
          aperte, e conferma mandata se il mittente è interno — chiami segna_letto su
          quel messaggio, e solo su quello. È l'ultima cosa che fai, mai la prima: un
          messaggio segnato come letto e non aperto è una comunicazione persa, e qui
-         una comunicazione persa è un termine perso.
+         una comunicazione persa è un termine perso. Dopo segna_letto non richiami
+         posta_non_letta: il giro è finito, e resta solo da restituire il testo.
       3. Per il primo messaggio rimasto da passare chiami leggi_messaggio per il
          testo intero.
       4. Se è una busta di posta certificata — l'oggetto comincia con «POSTA
@@ -1549,6 +1563,11 @@ agents:
       Se non c'è niente da aprire — nessun messaggio, oppure solo messaggi già presi in carico
       o da scartare — NON chiami apri_pratica_penale e restituisci esattamente queste due parole, senza
       variarle e senza aggiungere altro: NESSUN AVVISO
+      «NESSUN AVVISO» vale SOLO se in questo giro non hai segnato come letto nessun messaggio.
+      Se hai chiamato segna_letto, quel messaggio l'hai preso in carico, e la risposta è il testo
+      della sua prima voce: restituire «NESSUN AVVISO» dopo averlo segnato vuol dire che la
+      mail risulta gestita e la pratica non esiste — una comunicazione persa. I messaggi da
+      scartare che restano nella casella non cambiano la risposta.
 
   # ------------------------------------------------------------------------------------------
   # Chi scrive sul calendario comune
@@ -2446,9 +2465,12 @@ agentTasks:
       Adesso è {{now}} (UTC).
 
       Cerca con posta_non_letta i messaggi arrivati negli ultimi due minuti. Prendi
-      il primo e apri con apri_pratica_civile una pratica per ogni udienza, rinvio o
-      scadenza che comunica; poi, se il mittente è interno, rispondi; per ultimo
-      chiamalo segna_letto. La finestra è più larga dell'intervallo di proposito:
+      il primo da passare — qualunque comunicazione su un procedimento, anche una
+      da prendere solo in visione — e segui le tue regole: la prima voce la apre il
+      testo che restituisci, le voci successive le apri con apri_pratica_civile;
+      poi, se il mittente è interno, rispondi; per ultimo chiamalo segna_letto, e
+      dopo segna_letto non rileggi la posta: restituisci il testo della prima voce
+      di quel messaggio. La finestra è più larga dell'intervallo di proposito:
       meglio riconsiderare un messaggio che perderlo fra due giri, e il segno di
       lettura dice quali sono già passati.
 
@@ -2491,9 +2513,12 @@ agentTasks:
       Adesso è {{now}} (UTC).
 
       Cerca con posta_non_letta i messaggi arrivati negli ultimi due minuti. Prendi
-      il primo e apri con apri_pratica_penale una pratica per ogni udienza, rinvio o
-      scadenza che comunica; poi, se il mittente è interno, rispondi; per ultimo
-      chiamalo segna_letto. La finestra è più larga dell'intervallo di proposito:
+      il primo da passare — qualunque comunicazione su un procedimento, anche una
+      da prendere solo in visione — e segui le tue regole: la prima voce la apre il
+      testo che restituisci, le voci successive le apri con apri_pratica_penale;
+      poi, se il mittente è interno, rispondi; per ultimo chiamalo segna_letto, e
+      dopo segna_letto non rileggi la posta: restituisci il testo della prima voce
+      di quel messaggio. La finestra è più larga dell'intervallo di proposito:
       meglio riconsiderare un messaggio che perderlo fra due giri, e il segno di
       lettura dice quali sono già passati.
 

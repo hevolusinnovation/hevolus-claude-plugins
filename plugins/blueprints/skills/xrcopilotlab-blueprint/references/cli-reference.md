@@ -399,7 +399,11 @@ nuova.
     restano quelli che hanno;
   - gli **orchestratori**: step, flussi, ciò che ogni step passa al successivo, messaggio di
     benvenuto. L'id e l'endpoint di chat — quindi i link già dati — restano gli stessi, e gli step
-    che c'erano già tengono la loro posizione nel designer.
+    che c'erano già tengono la loro posizione nel designer;
+  - gli **agent task**: prompt e descrizione. Schedulazione, uscite (webhook compreso) e politica di
+    esecuzione restano quelle che hanno. Fino al 24/09/2026 un prompt cambiato veniva **ignorato in
+    silenzio** — né nel piano né fermato da `BP067` — e la v32 di Studio Polis ne avrebbe portato sul
+    tenant solo metà.
 - **Resta com'è** tutto il resto, e il piano lo dice: «N entità del blueprint restano come sono».
   I profili di knowledge esistenti **non si riattivano** (riaccoderebbe l'indicizzazione di tutti i
   file) e i processi BPM non si aggiornano sul posto.

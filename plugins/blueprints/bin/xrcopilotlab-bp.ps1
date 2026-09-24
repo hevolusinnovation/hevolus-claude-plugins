@@ -45,7 +45,13 @@ $AggiornaNote = {
              ForEach-Object { if ($_ -match 'bp-v(\d+\.\d+\.\d+)') { [version]$Matches[1] } } |
              Sort-Object | Select-Object -Last 1
         if ($V) { Set-Content -Path $File -Value $V.ToString() }
-        $Body = gh release view --repo $Repo --json body --jq .body 2>$null
+        # L'ultima vX.Y.Z del catalogo, per nome: non la release marcata «Latest», che può essere il
+        # rispecchiamento di una CLI (bp-v*) senza la tabella «Versioni» (24/09/2026).
+        $Catalogo = gh release list --repo $Repo --limit 30 2>$null |
+             ForEach-Object { if ($_ -match '(?<![\w-])v(\d+\.\d+\.\d+)(?!\S)') { [version]$Matches[1] } } |
+             Sort-Object | Select-Object -Last 1
+        if (-not $Catalogo) { return }
+        $Body = gh release view "v$Catalogo" --repo $Repo --json body --jq .body 2>$null
         $Riga = $Body | Where-Object { $_ -match '^\|\s*blueprints\s*\|[^|]*\|\s*(\d+\.\d+\.\d+)\s*\|' } | Select-Object -First 1
         if ($Riga -and ($Riga -match '^\|\s*blueprints\s*\|[^|]*\|\s*(\d+\.\d+\.\d+)\s*\|')) {
             Set-Content -Path $FilePlugin -Value $Matches[1]

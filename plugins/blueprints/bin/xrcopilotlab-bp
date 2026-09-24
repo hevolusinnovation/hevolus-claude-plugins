@@ -61,8 +61,16 @@ aggiorna_note() {
     | sort -t. -k1,1n -k2,2n -k3,3n | tail -1 > "$NOTA.tmp" 2>/dev/null \
     && [ -s "$NOTA.tmp" ] && mv "$NOTA.tmp" "$NOTA" 2>/dev/null
   # Le note dell'ultima release del catalogo portano la tabella «Versioni»: la riga del plugin
-  # blueprints dice quale versione è stata pubblicata per ultima.
-  gh release view --repo "$REPO_CATALOGO" --json body --jq .body 2>/dev/null \
+  # blueprints dice quale versione è stata pubblicata per ultima. «Ultima» vuol dire la vX.Y.Z più
+  # alta, cercata per nome: non la release che GitHub marca «Latest», che può essere il
+  # rispecchiamento di una CLI (bp-v*) senza quella tabella. Il 24/09/2026 bp-v2.15.1 è diventata
+  # «Latest», e l'avviso di aggiornamento si è spento per tutti senza dire niente.
+  local catalogo
+  catalogo="$(gh release list --repo "$REPO_CATALOGO" --limit 30 2>/dev/null \
+    | awk '{ for (i = 1; i <= NF; i++) if ($i ~ /^v[0-9]+\.[0-9]+\.[0-9]+$/) { sub(/^v/, "", $i); print $i; break } }' \
+    | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)"
+  [ -n "$catalogo" ] || return 0
+  gh release view "v$catalogo" --repo "$REPO_CATALOGO" --json body --jq .body 2>/dev/null \
     | awk -F'|' '$2 ~ /^[[:space:]]*blueprints[[:space:]]*$/ { gsub(/[[:space:]]/, "", $4); print $4; exit }' \
     > "$NOTA_PLUGIN.tmp" 2>/dev/null \
     && [ -s "$NOTA_PLUGIN.tmp" ] && mv "$NOTA_PLUGIN.tmp" "$NOTA_PLUGIN" 2>/dev/null

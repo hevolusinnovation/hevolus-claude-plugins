@@ -461,7 +461,8 @@ solo ciò che cambia —
 
 - **si crea** ciò che la versione nuova aggiunge: un agente, una skill assegnata, un passo;
 - **si aggiorna sul posto** ciò che il blueprint ha creato ed è cambiato: le istruzioni, il modello,
-  la temperatura di un agente; i passi e i flussi di un orchestratore. L'orchestratore resta lo
+  la temperatura di un agente; i passi e i flussi di un orchestratore; dalla CLI 2.15.1 anche il
+  prompt e la descrizione di un agent task, lasciando com'erano la sua pianificazione e le sue uscite. L'orchestratore resta lo
   stesso, con il suo link di chat;
 - **resta com'è** tutto il resto, e il piano dice quante entità sono: i documenti non si ricaricano
   e i profili non si reindicizzano.
