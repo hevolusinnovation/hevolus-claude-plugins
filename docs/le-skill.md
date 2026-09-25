@@ -1,7 +1,7 @@
 # Le skill, una per una
 
 Un plugin è un contenitore: quello che fa davvero il lavoro sono le **skill**, cioè le istruzioni
-che Claude carica quando la richiesta le riguarda. I due plugin ne portano quattro, e conoscerle per
+che Claude carica quando la richiesta le riguarda. I due plugin ne portano cinque, e conoscerle per
 nome serve a due cose — sapere **come chiedere** perché si attivino, e sapere **cosa non chiedere**
 perché non lo fanno.
 
@@ -14,10 +14,12 @@ repository di prodotto: [§ Le skill di sviluppo](skill-di-sviluppo.md).
 | [`xrcopilotlab-blueprint-test`](#xrcopilotlab-blueprint-test--collaudare-un-blueprint-applicato) | blueprints | «collauda il blueprint», «scrivi le domande di test», «vedi se funziona», «prepara le domande per il cliente», o si nomina `test run` | la suite `.tests.yml`, il report, il giudizio, le bozze di issue, le domande di prova per il cliente |
 | [`xrcopilotlab-blueprint-guide`](#xrcopilotlab-blueprint-guide--la-guida-per-il-cliente) | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «la pagina da mostrare al cliente» | la guida `guida-<scenario>.md`, non tecnica, con i disegni, e la sua pagina web |
 | [`xrcopilotlab-assessment`](#xrcopilotlab-assessment--dalla-proposta-al-dossier) | assessment (Claude Desktop) | si carica una proposta e si chiede di «valutarla», «fare l'assessment», «tradurla in soluzione» | il dossier tecnico `.md` e `.docx`, con il capitolo per il provisioning |
+| [`xrcopilotlab-delivery-atlas`](#xrcopilotlab-delivery-atlas--dal-dossier-alla-delivery-atlas) | assessment (Claude Desktop) | «apri la delivery Atlas», «prepara il SOW», «carica il cliente sul CMS», «trasforma l'assessment in delivery» | il piano Atlas, i documenti per cliente in stile Atlas, la delivery nel CMS dopo l'anteprima |
 
-Le quattro skill sono i tempi dello stesso lavoro: l'assessment dice **cosa** costruire, il
+Le cinque skill sono i tempi dello stesso lavoro: l'assessment dice **cosa** costruire, il
 blueprint lo **costruisce**, il collaudo dice **se funziona** e a chi tocca ciò che non va, la guida
-lo **racconta al cliente** con le sue parole.
+lo **racconta al cliente** con le sue parole. In parallelo, dal dossier, la delivery Atlas lo
+**governa** con il cliente: fasi, gate, documenti e stato nell'orchestratore.
 
 ```
 xrcopilotlab-assessment        xrcopilotlab-blueprint          xrcopilotlab-blueprint-test
@@ -480,3 +482,28 @@ Riferimenti che viaggiano con la skill: i vincoli e la filosofia della piattafor
 (`dossier-structure.md`), le vie di accesso verificate alle fonti italiane (`data-sources-italy.md`),
 il generatore Word e il template Office. Manuale: [`plugins/assessment/docs/manuale.md`](../plugins/assessment/docs/manuale.md).
 
+### `xrcopilotlab-delivery-atlas` — dal dossier alla delivery Atlas
+
+Gira su **Claude Desktop**, nello stesso plugin dell'assessment, e ne è il seguito: dal dossier
+ricava le fasi, gli step, i deliverable e le dipendenze del cliente secondo il **metodo Atlas**,
+genera i documenti per cliente **nello stile dei template Atlas** e apre la delivery
+nell'orchestratore, il CMS [delivery.hevolus.it](https://delivery.hevolus.it), tramite il server MCP
+«atlas».
+
+**Come si chiede.**
+
+| Cosa scrivi | Cosa fa la skill |
+|---|---|
+| «Ho finito l'assessment di Molino Verdi, apri la delivery Atlas, avvio lunedì 5 ottobre» | Legge il dossier, propone programma con Fase 1 workshop e Quick Win, genera D1.6, D1.2, D3, Agent Specification ed eval set, mostra l'anteprima delle scritture |
+| «Studio Ferri vuole il secondo agente: SOW e documenti, le scritture le lancio io» | SOW in continuità (S1 variante A), S.0, S.1 per agente, S.2, e l'anteprima senza scrivere |
+| «Questa è la proposta di Ossola, fai l'assessment e prepara tutto per Atlas» | Prima l'assessment fino al dossier, poi la delivery |
+
+**Cosa non fa.** Non inventa persone, email, baseline o punteggi del cliente: restano vuoti o
+diventano azioni. Non mette importi né giorni persona nei documenti: gli investimenti li produce il
+Calculator. Non scrive sul CMS senza un sì sull'anteprima, e non spunta, chiude o invia nulla: la
+delivery nasce, non avanza — per la gestione quotidiana c'è la skill `atlas` dell'orchestratore.
+
+Riferimenti che viaggiano con la skill: il metodo in sintesi (`atlas-metodo.md`), la mappatura
+dossier → Atlas (`mappatura-assessment.md`), quale documento per quale tipo e come compilarlo
+(`documenti.md`), gli strumenti del server e i loro limiti (`mcp-atlas.md`), i template per cliente
+e gli script che li compilano. Manuale: [`plugins/assessment/docs/manuale.md`](../plugins/assessment/docs/manuale.md#dallassessment-alla-delivery-atlas).

@@ -117,6 +117,40 @@ Per un output fortemente personalizzato nei colori e nel layout si usa la skill 
 9. Rileggi i punti in sospeso: se il capitolo è vuoto, probabilmente hai colmato dei buchi con
    ipotesi inventate.
 
+## Dall'assessment alla delivery Atlas
+
+Il dossier dice **cosa** costruire e se è fattibile; la seconda skill del plugin,
+`xrcopilotlab-delivery-atlas`, dice **come lo si consegna** con il metodo Atlas e mette la delivery
+nell'orchestratore, il CMS [delivery.hevolus.it](https://delivery.hevolus.it).
+
+**Come si attiva.** Frasi come «apri la delivery Atlas per Molino Verdi», «prepara SOW e documenti
+per il secondo agente di Studio Ferri», «carica il cliente sul CMS», «trasforma l'assessment in
+delivery». Se c'è solo la proposta, la skill esegue prima l'assessment.
+
+**Cosa fa, in ordine:**
+
+1. legge il dossier (o lo produce) e, se il server è collegato, il CMS in sola lettura: clienti e
+   delivery esistenti, per non creare doppioni;
+2. scrive `piano-delivery.json`: scenari → processi candidati, fonti GO/COND/NO-GO → readiness, agenti
+   → registro, punti in sospeso → azioni del cliente o rischi, taglia S/M/L per processo;
+3. propone il **tipo** — programma con Fase 1 discovery, workshop o diretta, oppure SOW in continuità
+   o stand-alone — e lo fa confermare;
+4. genera i documenti per cliente **nello stile dei template Atlas**: D2 o la sintesi del workshop,
+   la readiness, D3 o S1 con gli importi lasciati al Calculator, la Agent Specification per agente,
+   lo scheletro dell'eval set;
+5. mostra l'**anteprima** delle chiamate MCP e scrive sul CMS solo dopo un sì: cliente, delivery,
+   stakeholder noti, rischi, azioni, documenti. Non spunta step, non chiude, non invia minute.
+
+**Il server MCP «atlas».** Su Claude Desktop si aggiunge come connettore personalizzato, in Claude Code
+con `claude mcp add --transport http --scope user atlas <url>/api/mcp --header "Authorization: Bearer …"`.
+Il token è una credenziale personale: non va in un documento, in una chat né in questo repository.
+Senza server la skill arriva fino all'anteprima e si ferma.
+
+**Limiti del server oggi**, che la skill gestisce da sé: non c'è uno strumento per la scheda Agenti
+né per caricare file (i documenti diventano un'azione «caricare nel CMS», o un link se lo si
+fornisce), e il piano non si modifica dopo la creazione. La specifica proposta dei due strumenti
+mancanti è in `skills/xrcopilotlab-delivery-atlas/references/mcp-atlas.md`.
+
 ## Guida di team
 
 Il capitolo esteso di questa procedura, con gli esempi di linguaggio da evitare e il percorso

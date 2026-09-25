@@ -1,7 +1,7 @@
 {
   "name": "assessment",
-  "version": "0.2.0",
-  "description": "Traduce una proposta di progetto in una soluzione XRCopilotLab: estrae scenari e obiettivi, sceglie fra chat con agenti orchestrati e processo BPM, verifica la fattibilità delle fonti dati e genera il dossier tecnico in Markdown e Word, con il capitolo da cui nasce il blueprint di provisioning.",
+  "version": "0.3.0",
+  "description": "Traduce una proposta di progetto in una soluzione XRCopilotLab: estrae scenari e obiettivi, sceglie fra chat con agenti orchestrati e processo BPM, verifica la fattibilità delle fonti dati e genera il dossier tecnico in Markdown e Word, con il capitolo da cui nasce il blueprint di provisioning. Dal dossier porta poi il cliente alla delivery Atlas: fasi, deliverable e documenti per cliente nello stile dei template Atlas, e la delivery nel CMS delivery.hevolus.it tramite il server MCP «atlas», con anteprima e conferma prima di scrivere.",
   "author": {
     "name": "Giuseppe Zileni - Hevolus Innovation"
   },
@@ -11,7 +11,9 @@
     "agenti",
     "mcp",
     "bpm",
-    "dossier"
+    "dossier",
+    "atlas",
+    "delivery"
   ],
   "displayName": "XRCopilotLab Assessment",
   "repository": "https://github.com/hevolusinnovation/hevolus-claude-plugins"

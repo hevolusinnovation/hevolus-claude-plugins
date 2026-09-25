@@ -22,12 +22,13 @@ I passi per intero, in forma di documento: [§ Installare](docs/installare.md).
 
 ## I pacchetti pronti
 
-Tutti sulla **[pagina delle release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest)**, sotto *Assets*. Sono cinque e non sono intercambiabili:
+Tutti sulla **[pagina delle release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest)**, sotto *Assets*. Sono sei e non sono intercambiabili:
 
 | File | Cos'è | Dove si carica |
 |---|---|---|
-| `Xrcopilotlab-….zip` | il **plugin** per Claude Desktop (assessment) | [claude.ai/customize/plugins](https://claude.ai/customize/plugins) → **Carica plugin** |
+| `Xrcopilotlab-….zip` | il **plugin** per Claude Desktop (assessment e delivery Atlas) | [claude.ai/customize/plugins](https://claude.ai/customize/plugins) → **Carica plugin** |
 | `xrcopilotlab-assessment.zip` | la **skill** dell'assessment, da sola | *Impostazioni → Capacità → Skill*, oppure scompattata in `~/.claude/skills/` per Claude Code |
+| `xrcopilotlab-delivery-atlas.zip` | la **skill** che porta il dossier alla delivery Atlas e al CMS, da sola | idem |
 | `xrcopilotlab-blueprint.zip` | la **skill** che scrive e applica un blueprint | idem |
 | `xrcopilotlab-blueprint-test.zip` | la **skill** che collauda un blueprint applicato | idem |
 | `xrcopilotlab-blueprint-guide.zip` | la **skill** che scrive la guida non tecnica per il cliente | idem |
@@ -38,7 +39,7 @@ Il **plugin `blueprints` per Claude Code non si scarica**: si installa con le [d
 
 | Plugin | Dove gira | Come si installa | Cosa fa |
 |---|---|---|---|
-| **assessment** | Claude Desktop | scaricando uno [zip](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest) | Traduce la proposta di un cliente nella soluzione XRCopilotLab: scenari, agenti orchestrati o processo BPM, fattibilità delle fonti dati, dossier tecnico in Markdown e Word |
+| **assessment** | Claude Desktop | scaricando uno [zip](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest) | Traduce la proposta di un cliente nella soluzione XRCopilotLab: scenari, agenti orchestrati o processo BPM, fattibilità delle fonti dati, dossier tecnico in Markdown e Word; poi la **delivery Atlas**: fasi, documenti per cliente in stile Atlas, delivery nel CMS [delivery.hevolus.it](https://delivery.hevolus.it) |
 | **blueprints** | Claude Code | `/plugin install blueprints@hevolus` | Configura un ambiente da un file — topic, knowledge, ruoli, agenti, agent task, processi BPM — mostrando il piano prima di creare; lo **collauda** una volta applicato, e lo **racconta al cliente** in una guida non tecnica |
 
 I due sono i tempi dello stesso lavoro su due strumenti diversi, e la divisione non è arbitraria:
@@ -150,7 +151,7 @@ I dettagli, compreso il vecchio strumento globale `dotnet tool` da togliere:
 | Le skill che si ottengono clonando il repository di prodotto | [§ Le skill di sviluppo](docs/skill-di-sviluppo.md) |
 | Modificare, sincronizzare o pubblicare qualcosa di questo repository | [§ Manutenzione](docs/manutenzione.md) |
 
-## Le quattro skill
+## Le cinque skill
 
 Un plugin è un contenitore: il lavoro lo fanno le **skill**, cioè le istruzioni che Claude carica
 quando la richiesta le riguarda. Di solito non serve nominarle — si attivano da sole.
@@ -158,6 +159,7 @@ quando la richiesta le riguarda. Di solito non serve nominarle — si attivano d
 | Skill | Plugin | Si attiva quando | Produce |
 |---|---|---|---|
 | `xrcopilotlab-assessment` | assessment | si carica una proposta e si chiede di «valutarla», «fare l'assessment», «tradurla in soluzione» | il dossier tecnico `.md` e `.docx`, con il capitolo per il provisioning |
+| `xrcopilotlab-delivery-atlas` | assessment | «apri la delivery Atlas», «prepara il SOW», «carica il cliente sul CMS» | il piano Atlas, i documenti per cliente in stile Atlas, la delivery nel CMS dopo l'anteprima |
 | `xrcopilotlab-blueprint` | blueprints | «crea un blueprint», «configura il cliente da zero», «applica il manifest» | il manifest `.yml`, il piano, il tenant configurato |
 | `xrcopilotlab-blueprint-test` | blueprints | «collauda il blueprint», «scrivi le domande di test», «vedi se funziona» | la suite `.tests.yml`, il report, il giudizio, le bozze di issue, le domande di prova per il cliente |
 | `xrcopilotlab-blueprint-guide` | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica» | la guida non tecnica `guida-<scenario>.md`, con i disegni, e la sua pagina web |

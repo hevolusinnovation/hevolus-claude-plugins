@@ -30,6 +30,10 @@ plugins/assessment/
 │   ├── references/                                vincoli di piattaforma, struttura del dossier, fonti dati
 │   ├── scripts/md_to_docx_template.py             il generatore Word
 │   └── assets/template.docx                       il template Office
+├── skills/xrcopilotlab-delivery-atlas/SKILL.md    il dossier → la delivery Atlas nel CMS
+│   ├── references/                                metodo Atlas, mappatura, documenti, server MCP «atlas»
+│   ├── scripts/                                   compilazione dei template, Word in stile Atlas, eval set, anteprima MCP
+│   └── assets/templates/                          i template Atlas per cliente e la base di stile
 └── docs/manuale.md
 ```
 
@@ -226,8 +230,11 @@ Non è elencato in `.claude-plugin/marketplace.json` di proposito: il catalogo s
 da lì l'assessment non si usa. Lo dichiara `superfici.json`, e `./verifica-superfici.sh` se ne
 accorge se un giorno qualcuno ce lo aggiunge.
 
-La skill vive in `plugins/assessment/`, con la stessa forma degli altri plugin, e — a differenza
-delle due dei blueprint — **non ha una sorgente altrove**: si modifica qui.
+Le due skill (`xrcopilotlab-assessment` e `xrcopilotlab-delivery-atlas`) vivono in
+`plugins/assessment/`, con la stessa forma degli altri plugin, e — a differenza di quelle dei
+blueprint — **non hanno una sorgente altrove**: si modificano qui. I template Atlas in
+`xrcopilotlab-delivery-atlas/assets/templates/` sono copie di quelli della Libreria del CMS: quando
+il Practice Lead ne pubblica una versione nuova, vanno ricopiati qui e va alzata la versione.
 
 Dopo ogni modifica va **alzata la versione** in `plugins/assessment/.claude-plugin/plugin.json`: è
 l'unico segnale che chi l'ha già installato vede, perché su Desktop non ci sono aggiornamenti
@@ -273,7 +280,7 @@ preferisci partire da un tag:
 git tag v1.11.3 && git push origin v1.11.3
 ```
 
-Il workflow verifica le superfici, costruisce lo zip del plugin Desktop e quelli delle quattro skill,
+Il workflow verifica le superfici, costruisce lo zip del plugin Desktop e quelli delle cinque skill,
 scrive le note — cosa scaricare, dove si carica, le versioni dentro — e li allega alla release. Se
 la release esiste già, sostituisce gli allegati invece di crearne una seconda.
 

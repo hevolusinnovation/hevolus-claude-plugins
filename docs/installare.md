@@ -43,11 +43,12 @@ Le due righe qui sopra sono la strada **consigliata**, non l'unica: sono i due p
 plugin è confezionato per una superficie sola. Le **skill** che i plugin contengono si installano
 invece su **Claude Desktop oppure Claude Code**, quella che usi — cambia cosa puoi farci.
 
-## Le quattro skill, e su quale app si installano
+## Le cinque skill, e su quale app si installano
 
 | Skill | Su **Claude Desktop** | Su **Claude Code** |
 |---|---|---|
 | `xrcopilotlab-assessment` | il plugin `Xrcopilotlab-….zip` — **la strada consigliata** | la skill da sola, scompattata fra le proprie ([§ Una skill da sola](#una-skill-da-sola-su-desktop-o-su-code)) |
+| `xrcopilotlab-delivery-atlas` | il plugin `Xrcopilotlab-….zip`, con il server MCP «atlas» aggiunto come connettore — **la strada consigliata** | la skill da sola, con il server registrato da `claude mcp add` |
 | `xrcopilotlab-blueprint` | la skill da sola: scrive e spiega un manifest, **non lo applica** | il plugin `blueprints@hevolus` — **la strada consigliata** |
 | `xrcopilotlab-blueprint-test` | la skill da sola: prepara le domande di collaudo, **non le esegue** | il plugin `blueprints@hevolus` — **la strada consigliata** |
 | `xrcopilotlab-blueprint-guide` | la skill da sola: scrive la guida per il cliente e la pagina web — **funziona anche qui**, perché non esegue comandi | il plugin `blueprints@hevolus` |

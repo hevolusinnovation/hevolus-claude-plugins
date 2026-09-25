@@ -62,7 +62,7 @@ jobs:
           print("## Da scaricare\n")
           print("| File | A cosa serve | Dove si carica |")
           print("|---|---|---|")
-          print(f"| **`{zip_desktop}`** | Il plugin per **Claude Desktop**: assessment di una proposta e dossier tecnico | [claude.ai/customize/plugins](https://claude.ai/customize/plugins) → **Carica plugin** |")
+          print(f"| **`{zip_desktop}`** | Il plugin per **Claude Desktop**: assessment di una proposta, dossier tecnico e delivery Atlas | [claude.ai/customize/plugins](https://claude.ai/customize/plugins) → **Carica plugin** |")
           for z in sorted(glob.glob("dist/skills/*.zip")):
               nome = os.path.basename(z)
               print(f"| `{nome}` | La singola skill, per chi lavora in chat senza plugin | claude.ai → Impostazioni → Capacità → **Skill** |")
