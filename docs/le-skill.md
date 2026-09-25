@@ -503,6 +503,11 @@ diventano azioni. Non mette importi né giorni persona nei documenti: gli invest
 Calculator. Non scrive sul CMS senza un sì sull'anteprima, e non spunta, chiude o invia nulla: la
 delivery nasce, non avanza — per la gestione quotidiana c'è la skill `atlas` dell'orchestratore.
 
+**Cosa le serve.** Il server MCP «atlas», collegato una volta per postazione con lo script in
+[`mcp/atlas/`](../mcp/atlas/), che installa anche la skill `atlas` se trova il suo `SKILL.md`:
+[§ Il server MCP «atlas»](installare.md#il-server-mcp-atlas--per-la-delivery-atlas). Senza server,
+la skill consegna documenti e anteprima e si ferma prima di scrivere.
+
 Riferimenti che viaggiano con la skill: il metodo in sintesi (`atlas-metodo.md`), la mappatura
 dossier → Atlas (`mappatura-assessment.md`), quale documento per quale tipo e come compilarlo
 (`documenti.md`), gli strumenti del server e i loro limiti (`mcp-atlas.md`), i template per cliente

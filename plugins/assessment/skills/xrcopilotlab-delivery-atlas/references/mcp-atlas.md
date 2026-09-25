@@ -6,9 +6,12 @@ trasporto HTTP con token Bearer nell'intestazione. Gli strumenti compaiono come 
 `lista_clienti`, `crea_delivery`, ecc.). Il token non va mai scritto in file, prompt o risposte.
 
 Se gli strumenti non ci sono: fermati prima delle scritture, consegna documenti e
-`anteprima.md`, e di' all'utente di collegare il server (`claude mcp add --transport http --scope
-user atlas <url>/api/mcp --header "Authorization: Bearer …"` in Claude Code, oppure connettore
-personalizzato in Cowork).
+`anteprima.md`, e di' all'utente di collegare il server: una volta per postazione, con lo script
+`setup-atlas-mcp.sh` (macOS/Linux) o `setup-atlas-mcp.ps1` (Windows) nella cartella `mcp/atlas/`
+del repository `hevolus-claude-plugins`, che configura sia Claude Code sia Claude Desktop e chiede
+il token senza mostrarlo; poi `/mcp` in Claude Code, o riavvio completo di Claude Desktop. A mano,
+in Claude Code: `claude mcp add --transport http --scope user atlas <url>/api/mcp --header
+"Authorization: Bearer …"`; in Cowork, connettore personalizzato.
 
 ## Strumenti (guida v. settembre 2026)
 

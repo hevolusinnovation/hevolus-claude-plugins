@@ -16,6 +16,7 @@ sito/index.html                                    la pagina da girare a chi dev
 .github/workflows/controlli.yml                    i controlli, a ogni push e pull request
 .github/workflows/pacchetti.yml                    costruisce i pacchetti e li allega a una release
 docs/                                              la documentazione, divisa per lettore
+mcp/atlas/                                         lo script che collega il server MCP «atlas» a Claude Code e Desktop
 plugins/blueprints/
 ├── .claude-plugin/plugin.json                     identità e versione del plugin
 ├── skills/xrcopilotlab-blueprint/SKILL.md         scrivere e applicare un manifest, con i suoi references/
@@ -70,6 +71,14 @@ contengono decisioni.
 > Se PowerShell rifiuta di eseguire lo script («l'esecuzione di script è disabilitata»), la strada
 > è `powershell -ExecutionPolicy Bypass -File .\verifica-superfici.ps1`, come fa già
 > `bin/xrcopilotlab-bp.cmd`. Non serve cambiare le impostazioni della macchina.
+
+**L'eccezione: `mcp/atlas/`.** `setup-atlas-mcp.sh` e `setup-atlas-mcp.ps1` sono due
+implementazioni vere, non avviatori: girano sulla postazione di chi usa la delivery Atlas, dove
+Python non è detto che ci sia, e servono una volta sola. Quindi una modifica va fatta **in tutti e
+due**, con le stesse opzioni e gli stessi messaggi, e riportata in `mcp/atlas/README.md` e in
+[§ Il server MCP «atlas»](installare.md#il-server-mcp-atlas--per-la-delivery-atlas). Il token non
+compare mai negli script: lo chiedono, o lo leggono da `ATLAS_TOKEN`. L'URL del server di
+produzione invece sì, come valore predefinito di `--url`.
 
 ## Per chi mantiene il catalogo
 

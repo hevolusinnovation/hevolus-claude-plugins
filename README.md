@@ -35,6 +35,8 @@ Tutti sulla **[pagina delle release](https://github.com/hevolusinnovation/hevolu
 
 Il **plugin `blueprints` per Claude Code non si scarica**: si installa con le [due righe](#installare-in-breve) e porta con sé le sue tre skill e lo strumento a riga di comando. Gli zip delle skill servono a chi le vuole **senza** il plugin — in chat, o su un'altra app. La differenza fra i due formati è reale: scambiarli dà l'errore «All files must be inside the top-level folder».
 
+La delivery Atlas scrive nel CMS attraverso il **server MCP «atlas»**, che non sta in nessun pacchetto: si configura una volta per postazione con lo script in [`mcp/atlas/`](mcp/atlas/) — [§ Il server MCP «atlas»](docs/installare.md#il-server-mcp-atlas--per-la-delivery-atlas).
+
 ## Cosa c'è dentro
 
 | Plugin | Dove gira | Come si installa | Cosa fa |
@@ -144,6 +146,7 @@ I dettagli, compreso il vecchio strumento globale `dotnet tool` da togliere:
 | Aggiornare un plugin, una skill o lo strumento a riga di comando | [§ Aggiornare](#aggiornare) |
 | Portare un blueprint da staging a produzione, passo per passo | [§ Da staging a produzione](docs/da-staging-a-produzione.md) |
 | Avere lo strumento a riga di comando sul proprio PC, senza plugin | [§ Solo lo strumento a riga di comando](docs/installare.md#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc) |
+| Collegare Claude al CMS Atlas, per la delivery | [§ Il server MCP «atlas»](docs/installare.md#il-server-mcp-atlas--per-la-delivery-atlas) · gli script in [`mcp/atlas/`](mcp/atlas/) |
 | Capire perché il plugin non ti fa entrare, e cosa chiedere a chi | [§ L'accesso ad Azure](docs/accesso-azure.md) |
 | Sapere cosa fa ciascuna skill, con che frasi si attiva e cosa produce | [§ Le skill](docs/le-skill.md) |
 | Il manuale passo passo di un plugin | [assessment](plugins/assessment/docs/manuale.md) · [blueprints](plugins/blueprints/docs/manuale.md) |

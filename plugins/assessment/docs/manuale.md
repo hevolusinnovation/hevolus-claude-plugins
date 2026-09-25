@@ -141,8 +141,14 @@ delivery». Se c'è solo la proposta, la skill esegue prima l'assessment.
 5. mostra l'**anteprima** delle chiamate MCP e scrive sul CMS solo dopo un sì: cliente, delivery,
    stakeholder noti, rischi, azioni, documenti. Non spunta step, non chiude, non invia minute.
 
-**Il server MCP «atlas».** Su Claude Desktop si aggiunge come connettore personalizzato, in Claude Code
-con `claude mcp add --transport http --scope user atlas <url>/api/mcp --header "Authorization: Bearer …"`.
+**Il server MCP «atlas».** Si configura una volta per postazione con lo script in
+[`mcp/atlas/`](../../../mcp/atlas/) — `./setup-atlas-mcp.sh` su macOS e Linux,
+`.\setup-atlas-mcp.ps1` su Windows: verifica il token, registra `atlas` in Claude Code a livello
+utente e in Claude Desktop tramite `mcp-remote` (serve Node.js LTS), e installa la skill `atlas`
+dell'orchestratore se trova il suo `SKILL.md` accanto. I passi e le opzioni:
+[§ Il server MCP «atlas»](../../../docs/installare.md#il-server-mcp-atlas--per-la-delivery-atlas).
+A mano, in Claude Code, resta
+`claude mcp add --transport http --scope user atlas <url>/api/mcp --header "Authorization: Bearer …"`.
 Il token è una credenziale personale: non va in un documento, in una chat né in questo repository.
 Senza server la skill arriva fino all'anteprima e si ferma.
 
