@@ -5,6 +5,12 @@ fra chat con agenti orchestrati e processo BPM, verifica la fattibilità delle f
 dossier tecnico in Markdown e Word — compreso il capitolo da cui nasce il blueprint di provisioning.
 Produce la valutazione tecnica, non il pricing.
 
+Dalla 0.3.0 porta una seconda skill, `xrcopilotlab-delivery-atlas`, che parte dal dossier e apre la
+**delivery Atlas**: fasi, step, deliverable, rischi e dipendenze del cliente secondo il metodo Atlas,
+i documenti per cliente (D2, D3 o S1, Agent Specification, eval set) nello stile dei template Atlas,
+e la delivery nel CMS [delivery.hevolus.it](https://delivery.hevolus.it) tramite il server MCP «atlas»,
+sempre con anteprima e conferma prima di scrivere.
+
 Gira su **Claude Desktop**, non su Claude Code.
 
 **Per installarlo non serve questo repository**: si scarica `Xrcopilotlab-<versione>.zip` dalla
@@ -23,10 +29,13 @@ si attiva da sola, anche senza nominare XRCopilotLab.
 |---|---|
 | `skills/xrcopilotlab-assessment/` | La skill, con i vincoli di piattaforma, la struttura del dossier e le vie di accesso verificate alle fonti dati italiane |
 | `skills/.../scripts/` e `assets/` | Il generatore Word e il template Office (font Aptos, frontespizio con segnaposto) |
+| `skills/xrcopilotlab-delivery-atlas/` | La skill della delivery Atlas: metodo, mappatura dossier → Atlas, strumenti MCP del CMS e i loro limiti |
+| `skills/.../assets/templates/` | I template Atlas per cliente (D2, D3, S1, O1) e la base di stile per gli artefatti senza template |
+| `skills/.../scripts/` | Compilazione dei template, generatore Word in stile Atlas, scheletro dell'eval set, anteprima delle chiamate MCP |
 | `docs/manuale.md` | Il manuale per chi lo usa |
 
-A differenza di `blueprints`, questa skill non ha una sorgente in un repository di prodotto: vive
-qui e si modifica qui. Dopo ogni modifica va **alzata la versione** in `.claude-plugin/plugin.json`
+A differenza di `blueprints`, queste skill non hanno una sorgente in un repository di prodotto: vivono
+qui e si modificano qui. Dopo ogni modifica va **alzata la versione** in `.claude-plugin/plugin.json`
 e pubblicata una release: su Desktop non ci sono aggiornamenti automatici, e il numero di versione è
 l'unico segnale che chi l'ha già installata vede. Lo zip lo costruisce la CI — a mano si fa solo per
 provarlo, con `./build-desktop-plugin.sh` dalla radice. Vedi

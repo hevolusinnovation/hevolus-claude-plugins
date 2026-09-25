@@ -317,6 +317,21 @@
         <p class="nota">«fammi l'assessment di questa proposta» · «come la implementiamo su
           XRCopilotLab?» · «è fattibile la parte sui documenti del cliente?»</p>
       </li>
+      <li>
+        <b>Per la delivery Atlas: collega il CMS, una volta</b>
+        <p>La delivery Atlas scrive nel CMS <a href="https://delivery.hevolus.it" target="_blank" rel="noopener">delivery.hevolus.it</a>
+          attraverso il server MCP «atlas». Lo configura uno script, per Claude Code e Claude Desktop
+          insieme: sta nella cartella <a href="https://github.com/hevolusinnovation/hevolus-claude-plugins/tree/main/mcp/atlas" target="_blank" rel="noopener"><code>mcp/atlas</code></a>
+          del repository. Ti serve il <b>token Atlas</b>, personale: lo script lo chiede e non lo mostra.
+          Su Desktop serve anche <a href="https://nodejs.org" target="_blank" rel="noopener">Node.js LTS</a>.</p>
+        <p class="nota">macOS e Linux</p>
+        <div class="comando"><pre><code>chmod +x setup-atlas-mcp.sh
+./setup-atlas-mcp.sh</code></pre></div>
+        <p class="nota">Windows</p>
+        <div class="comando"><pre><code>powershell -ExecutionPolicy Bypass -File .\setup-atlas-mcp.ps1</code></pre></div>
+        <p class="nota">Poi chiudi Claude Desktop del tutto e riaprilo, e prova con «elenca i clienti».
+          Il token non va mai incollato in una chat o in un documento.</p>
+      </li>
     </ol>
   </section>
 
@@ -433,6 +448,10 @@ gh auth login</code></pre>
         <tr>
           <td><code>xrcopilotlab-assessment.zip</code></td>
           <td>Traduce la proposta di un cliente in una soluzione: scenari, fattibilità dei dati, dossier tecnico.</td>
+        </tr>
+        <tr>
+          <td><code>xrcopilotlab-delivery-atlas.zip</code></td>
+          <td>Dal dossier alla delivery Atlas: fasi, documenti per il cliente in stile Atlas, delivery nel CMS.</td>
         </tr>
         <tr>
           <td><code>xrcopilotlab-blueprint.zip</code></td>

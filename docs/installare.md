@@ -6,6 +6,8 @@ programmare, non serve clonare niente e non serve scrivere comandi in un termina
 Un'eccezione sola, e conviene saperla adesso: il **primo accesso ad Azure** — una volta sola, su
 quella macchina — va fatto da un terminale vero, e Claude non può farlo al posto tuo. Il perché e
 come si fa: [§ L'accesso ad Azure](accesso-azure.md). Riguarda solo i blueprint; l'assessment no.
+Per la delivery Atlas c'è in più uno script da lanciare una volta, che collega il CMS a Claude:
+[§ Il server MCP «atlas»](#il-server-mcp-atlas--per-la-delivery-atlas).
 
 > C'è anche in forma di **pagina da aprire**, con i comandi da copiare con un clic e la richiesta
 > dei ruoli Azure già scritta: [`sito/index.html`](../sito/index.html). È la forma da girare a un
@@ -37,17 +39,19 @@ Installa, accedi, e la scheda **Code** è lì in alto.
 |---|---|---|
 | Ho la proposta di un cliente e devo capire come si realizza su XRCopilotLab | app Claude, scheda **Chat**, plugin *assessment* | [§ Claude Desktop](#claude-desktop--il-plugin-assessment) |
 | Devo configurare l'ambiente di un cliente, o collaudarne uno già configurato | app Claude, scheda **Code**, plugin *blueprints* | [§ Claude Code](#claude-code--il-plugin-blueprints) |
+| Devo aprire la delivery Atlas di un cliente nel CMS | lo script `setup-atlas-mcp`, una volta per postazione | [§ Il server MCP «atlas»](#il-server-mcp-atlas--per-la-delivery-atlas) |
 | Voglio una di queste skill sull'altra app, o senza plugin | una **skill** singola, su Desktop o su Code | [§ Una skill da sola](#una-skill-da-sola-su-desktop-o-su-code) |
 
-Le due righe qui sopra sono la strada **consigliata**, non l'unica: sono i due plugin, e ogni
+Le prime due righe sono la strada **consigliata**, non l'unica: sono i due plugin, e ogni
 plugin è confezionato per una superficie sola. Le **skill** che i plugin contengono si installano
 invece su **Claude Desktop oppure Claude Code**, quella che usi — cambia cosa puoi farci.
 
-## Le quattro skill, e su quale app si installano
+## Le cinque skill, e su quale app si installano
 
 | Skill | Su **Claude Desktop** | Su **Claude Code** |
 |---|---|---|
 | `xrcopilotlab-assessment` | il plugin `Xrcopilotlab-….zip` — **la strada consigliata** | la skill da sola, scompattata fra le proprie ([§ Una skill da sola](#una-skill-da-sola-su-desktop-o-su-code)) |
+| `xrcopilotlab-delivery-atlas` | il plugin `Xrcopilotlab-….zip`, con il server MCP «atlas» configurato dallo script ([§ Il server MCP «atlas»](#il-server-mcp-atlas--per-la-delivery-atlas)) — **la strada consigliata** | la skill da sola, con il server registrato dallo stesso script |
 | `xrcopilotlab-blueprint` | la skill da sola: scrive e spiega un manifest, **non lo applica** | il plugin `blueprints@hevolus` — **la strada consigliata** |
 | `xrcopilotlab-blueprint-test` | la skill da sola: prepara le domande di collaudo, **non le esegue** | il plugin `blueprints@hevolus` — **la strada consigliata** |
 | `xrcopilotlab-blueprint-guide` | la skill da sola: scrive la guida per il cliente e la pagina web — **funziona anche qui**, perché non esegue comandi | il plugin `blueprints@hevolus` |
@@ -111,6 +115,61 @@ di prenderlo è questo.
 | **«All files must be inside the top-level folder»** | Hai caricato il pacchetto sbagliato nel posto sbagliato: quello che comincia per `Xrcopilotlab-` va su *Carica plugin*, i file `xrcopilotlab-*.zip` vanno nella libreria delle **skill**. Vedi [§ Una skill da sola](#una-skill-da-sola-su-desktop-o-su-code) |
 | Il plugin c'è ma la skill non si attiva | Carica il documento **prima** di chiedere, e dì cosa vuoi («fai l'assessment»). Se serve, nominala: «usa la skill xrcopilotlab-assessment su questo documento» |
 | Hai estratto lo zip e ora non si carica | Riscarica il file originale dalla pagina delle release e caricalo senza aprirlo |
+
+## Il server MCP «atlas» — per la delivery Atlas
+
+La skill `xrcopilotlab-delivery-atlas` scrive nel CMS [delivery.hevolus.it](https://delivery.hevolus.it)
+attraverso il server MCP «atlas». Senza, arriva fino all'anteprima delle scritture e si ferma. Il
+server si configura **una volta per postazione**, con uno script che fa tutto da solo: sta in
+[`mcp/atlas/`](../mcp/atlas/) di questo repository, in due versioni equivalenti.
+
+Prima serve il **token Atlas**: è personale, lo chiedi a chi amministra il CMS. Non va scritto in
+una chat, in un documento né in un repository — lo script lo chiede e non lo mostra.
+
+**macOS / Linux**
+
+```bash
+chmod +x setup-atlas-mcp.sh
+./setup-atlas-mcp.sh
+```
+
+**Windows**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup-atlas-mcp.ps1
+```
+
+Cosa fa, in ordine:
+
+1. controlla che ci siano Claude Code e Node.js (a Claude Desktop serve `npx mcp-remote`);
+2. chiede il token e verifica che il server lo accetti;
+3. registra `atlas` in **Claude Code** a livello utente, sostituendo una registrazione precedente;
+4. aggiunge `atlas` alla configurazione di **Claude Desktop**, dopo averne fatto una copia di
+   sicurezza e senza toccare gli altri server;
+5. se trova un `SKILL.md` accanto allo script, installa la skill `atlas` dell'orchestratore in
+   `~/.claude/skills/atlas/` — è quella per la gestione quotidiana della delivery.
+
+Poi: in Claude Code apri una sessione nuova e digita `/mcp` — `atlas` deve risultare connesso; in
+Claude Desktop chiudi l'app del tutto, riaprila e prova con «elenca i clienti».
+
+| Opzione (bash / PowerShell) | A cosa serve |
+|---|---|
+| `--solo-code` / `-SoloCode` | configura solo Claude Code |
+| `--solo-desktop` / `-SoloDesktop` | configura solo Claude Desktop |
+| `--skill <file>` / `-Skill <file>` | installa la skill `atlas` da un `SKILL.md` che sta altrove |
+| `--desktop-config <file>` / `-DesktopConfig <file>` | il file di configurazione di Claude Desktop, se non è nel posto solito |
+| `--url <url>` / `-Url <url>` | un server diverso da quello di produzione |
+| `--no-test` / `-NoTest` | salta la verifica del token |
+
+Il token si può passare anche con la variabile d'ambiente `ATLAS_TOKEN`. Resta salvato in chiaro nei
+file di configurazione di Claude: su macOS e Linux lo script li rende leggibili solo dal tuo utente.
+
+| Cosa vedi | Cosa è successo |
+|---|---|
+| «Il server ha rifiutato il token (HTTP 401/403)» | Il token è sbagliato o scaduto: fattene dare uno nuovo e rilancia |
+| «Server non raggiungibile» | Rete, VPN o proxy: lo script configura comunque, verifica poi con `/mcp` |
+| «Node.js/npx non trovati» | Installa [Node.js LTS](https://nodejs.org) e rilancia: serve a Claude Desktop |
+| Su Desktop gli strumenti non compaiono | L'app va chiusa **del tutto** (non solo la finestra) e riaperta |
 
 ## Claude Code — il plugin *blueprints*
 
