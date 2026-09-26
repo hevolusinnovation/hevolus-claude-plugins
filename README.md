@@ -31,7 +31,7 @@ Tutti sulla **[pagina delle release](https://github.com/hevolusinnovation/hevolu
 | `xrcopilotlab-delivery-atlas.zip` | la **skill** che porta il dossier alla delivery Atlas e al CMS, da sola | idem |
 | `xrcopilotlab-blueprint.zip` | la **skill** che scrive e applica un blueprint | idem |
 | `xrcopilotlab-blueprint-test.zip` | la **skill** che collauda un blueprint applicato | idem |
-| `xrcopilotlab-blueprint-guide.zip` | la **skill** che scrive la guida non tecnica per il cliente | idem |
+| `xrcopilotlab-blueprint-guide.zip` | la **skill** che scrive la guida non tecnica per il cliente, a story slides | idem |
 
 Il **plugin `blueprints` per Claude Code non si scarica**: si installa con le [due righe](#installare-in-breve) e porta con sé le sue tre skill e lo strumento a riga di comando. Gli zip delle skill servono a chi le vuole **senza** il plugin — in chat, o su un'altra app. La differenza fra i due formati è reale: scambiarli dà l'errore «All files must be inside the top-level folder».
 
@@ -62,7 +62,7 @@ Claude Desktop · plugin assessment          Claude Code · plugin blueprints
                                                       ↓
                                  issue (dopo un sì) · domande di prova
                                                       ↓
-                         guida per il cliente, non tecnica · pagina web
+                 guida per il cliente a story slides · pagina web · deck per i sales
 ```
 
 ## Installare, in breve
@@ -165,7 +165,7 @@ quando la richiesta le riguarda. Di solito non serve nominarle — si attivano d
 | `xrcopilotlab-delivery-atlas` | assessment | «apri la delivery Atlas», «prepara il SOW», «carica il cliente sul CMS» | il piano Atlas, i documenti per cliente in stile Atlas, la delivery nel CMS dopo l'anteprima |
 | `xrcopilotlab-blueprint` | blueprints | «crea un blueprint», «configura il cliente da zero», «applica il manifest» | il manifest `.yml`, il piano, il tenant configurato |
 | `xrcopilotlab-blueprint-test` | blueprints | «collauda il blueprint», «scrivi le domande di test», «vedi se funziona» | la suite `.tests.yml`, il report, il giudizio, le bozze di issue, le domande di prova per il cliente |
-| `xrcopilotlab-blueprint-guide` | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica» | la guida non tecnica `guida-<scenario>.md`, con i disegni, e la sua pagina web |
+| `xrcopilotlab-blueprint-guide` | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «le slide per i sales» | la guida non tecnica a story slides `guida-<scenario>.md`, con i disegni, e la sua pagina web |
 
 Il dettaglio di ciascuna, con esempi di manifest, di suite e di cosa **non** fanno:
 [§ Le skill](docs/le-skill.md).

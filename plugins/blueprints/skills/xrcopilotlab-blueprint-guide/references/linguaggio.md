@@ -26,7 +26,8 @@ le parole con cui la costruiamo: sono esatte per noi e opache per chi la usa.
 | hallucination | «**inventare un dato**» | |
 | apply, plan | «**vi mostriamo l'elenco di ciò che cambierà, e procediamo dopo il vostro sì**» | |
 | aggiornamento sul posto | «**si aggiorna solo ciò che cambia**» | |
-| suite di collaudo | **le domande di prova** | |
+| suite di collaudo, casi | **domande di esempio**, con una risposta possibile | solo nell'atto «Provatelo voi»; gli esiti non compaiono mai |
+| collaudo, giudizio, «provato», «verde» | *(non compaiono)* | la guida spiega come funziona, non come l'abbiamo verificato |
 | run, inventario, id | *(non compaiono)* | |
 | codici BP0xx, nomi di componenti, issue | *(non compaiono)* | al più «è segnalato ed è in correzione» |
 
@@ -49,9 +50,21 @@ le parole con cui la costruiamo: sono esatte per noi e opache per chi la usa.
 > ✅ Se in base dati c'è l'indirizzo, sotto compare la mappa; se c'è solo il comune, la mappa non si
 > fa — un punto sul paese non direbbe dove sta l'azienda.
 
+> ❌ Abbiamo fatto 47 domande di prova: 40 giuste, 7 da correggere, tutte nello stesso punto.
+
+> ✅ *(Niente: i risultati delle prove non stanno nella guida. Se una sezione non funziona ancora,
+> la chiusura dice che cosa non fa, senza numeri.)*
+
+> ❌ **Domanda:** «Chi è Alfa S.r.l.?» — **Risposta attesa:** scheda con sede, VIES valido, 3 notizie. ✅ superata
+
+> ✅ **Chiedete:** *«Mi dici qualcosa di Alfa S.r.l.?»*
+> **Una risposta possibile:** «Alfa S.r.l., Cantù, associata dal 2019. Partita IVA valida sul
+> registro europeo. Sul web: due notizie nell'ultimo anno, una sull'apertura del nuovo stabilimento.
+> Il sito non è indicato nel gestionale.» — *Notate l'ultima riga: il dato che manca è scritto.*
+
 ## Il tono
 
-- **«Voi» e «noi»**: la guida parla al cliente, e noi siamo chi ha costruito e collaudato.
+- **«Voi» e «noi»**: la guida parla al cliente, e noi siamo chi ha costruito l'ambiente e lo mantiene.
 - **Frasi di una riga o due.** Un paragrafo che richiede di rileggere va spezzato.
 - **Un esempio concreto dopo ogni affermazione astratta.** «Non inventa»: e subito, «se il sito
   non è nel gestionale, la scheda scrive che manca, invece di indovinarlo dal nome».

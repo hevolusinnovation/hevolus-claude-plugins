@@ -54,7 +54,7 @@ invece su **Claude Desktop oppure Claude Code**, quella che usi — cambia cosa 
 | `xrcopilotlab-delivery-atlas` | il plugin `Xrcopilotlab-….zip`, con il server MCP «atlas» configurato dallo script ([§ Il server MCP «atlas»](#il-server-mcp-atlas--per-la-delivery-atlas)) — **la strada consigliata** | la skill da sola, con il server registrato dallo stesso script |
 | `xrcopilotlab-blueprint` | la skill da sola: scrive e spiega un manifest, **non lo applica** | il plugin `blueprints@hevolus` — **la strada consigliata** |
 | `xrcopilotlab-blueprint-test` | la skill da sola: prepara le domande di collaudo, **non le esegue** | il plugin `blueprints@hevolus` — **la strada consigliata** |
-| `xrcopilotlab-blueprint-guide` | la skill da sola: scrive la guida per il cliente e la pagina web — **funziona anche qui**, perché non esegue comandi | il plugin `blueprints@hevolus` |
+| `xrcopilotlab-blueprint-guide` | la skill da sola: scrive la guida per il cliente a story slides e la pagina web — **funziona anche qui**, perché non esegue comandi | il plugin `blueprints@hevolus` |
 
 Una regola sola governa tutta la tabella, e non è una preferenza: **applicare e collaudare passano
 da `xrcopilotlab-bp`**, cioè da un comando, e i comandi girano solo nella scheda **Code**. Nella

@@ -12,7 +12,7 @@ repository di prodotto: [§ Le skill di sviluppo](skill-di-sviluppo.md).
 |---|---|---|---|
 | [`xrcopilotlab-blueprint`](#xrcopilotlab-blueprint--scrivere-e-applicare-un-blueprint) | blueprints | «crea un blueprint», «configura il cliente da zero», «applica il manifest», o si nomina `xrcopilotlab-bp` | il manifest `.yml`, il piano, il tenant configurato |
 | [`xrcopilotlab-blueprint-test`](#xrcopilotlab-blueprint-test--collaudare-un-blueprint-applicato) | blueprints | «collauda il blueprint», «scrivi le domande di test», «vedi se funziona», «prepara le domande per il cliente», o si nomina `test run` | la suite `.tests.yml`, il report, il giudizio, le bozze di issue, le domande di prova per il cliente |
-| [`xrcopilotlab-blueprint-guide`](#xrcopilotlab-blueprint-guide--la-guida-per-il-cliente) | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «la pagina da mostrare al cliente» | la guida `guida-<scenario>.md`, non tecnica, con i disegni, e la sua pagina web |
+| [`xrcopilotlab-blueprint-guide`](#xrcopilotlab-blueprint-guide--la-guida-per-il-cliente) | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «le slide per i sales», «la pagina da mostrare al cliente» | la guida `guida-<scenario>.md`, non tecnica, con i disegni, e la sua pagina web |
 | [`xrcopilotlab-assessment`](#xrcopilotlab-assessment--dalla-proposta-al-dossier) | assessment (Claude Desktop) | si carica una proposta e si chiede di «valutarla», «fare l'assessment», «tradurla in soluzione» | il dossier tecnico `.md` e `.docx`, con il capitolo per il provisioning |
 | [`xrcopilotlab-delivery-atlas`](#xrcopilotlab-delivery-atlas--dal-dossier-alla-delivery-atlas) | assessment (Claude Desktop) | «apri la delivery Atlas», «prepara il SOW», «carica il cliente sul CMS», «trasforma l'assessment in delivery» | il piano Atlas, i documenti per cliente in stile Atlas, la delivery nel CMS dopo l'anteprima |
 
@@ -404,28 +404,31 @@ report con i codici `BT0xx` (`testing.md`); una suite reale (`esempio-suite-agen
 
 ### `xrcopilotlab-blueprint-guide` — la guida per il cliente
 
-Porta un blueprint da «funziona, e sappiamo come» a «il cliente capisce che cosa ha, perché gli
-conviene, e che cosa aspettarsi». Il lettore è chi usa il servizio e chi lo compra, quasi mai un
-tecnico: niente orchestratori, topic o server MCP — «la catena di assistenti», «l'archivio dei
-documenti», «un collegamento a un servizio esterno».
+Porta un blueprint da «funziona, e sappiamo come» a «il cliente capisce che cosa ha, come si usa e
+come è fatto». Il lettore è chi usa il servizio e chi lo compra, quasi mai un tecnico: niente
+orchestratori, topic o server MCP — «la catena di assistenti», «l'archivio dei documenti», «un
+collegamento a un servizio esterno».
 
-La guida racconta cinque cose: che cosa fa per il cliente, in una frase; **il flusso come una
-storia**, con un disegno di pochi riquadri; **dove lavora l'AI e dove decidono le persone** (e che
-cosa l'AI non fa); **come è stato collaudato**, con l'esito vero dell'ultimo giudizio; **perché un
-ambiente descritto in un manifest conviene** — si vede prima di farlo, si ripete, si aggiorna senza
-rifarlo, ha una storia di versioni. I disegni sono Mermaid, con quattro colori fissi (persone, AI,
-archivi, regole fisse); la guida si pubblica anche come **pagina web** da proiettare, con una copia
-HTML che si apre senza account.
+**La guida è scritta a story slides**: una slide per idea, il titolo che dice il messaggio, le note
+per chi presenta sotto ogni slide. Otto atti, da 14 a 22 slide — apertura, il problema con le parole
+del cliente, la giornata tipo un momento per slide, chi fa che cosa (e che cosa l'AI non fa),
+**«Provatelo voi»** con domande di esempio e una risposta possibile, che cosa cambia, **come è fatto
+l'ambiente descritto nel manifest** (il ciclo piano → sì → ambiente → versione nuova, i vantaggi, le
+versioni), la chiusura con il prossimo passo. Dalla stessa sorgente nascono la **pagina web** da
+proiettare, con una copia HTML che si apre senza account, e il **deck per i sales** (tipo Slides,
+.pptx o PDF), slide per slide. I disegni sono Mermaid, con quattro colori fissi (persone, AI,
+archivi, regole fisse).
 
-**Non esegue test e non tocca il tenant**: legge il manifest, il giudizio e la suite che escono dalla
-skill di collaudo, e il dossier dell'assessment per le criticità dette dal cliente. Se il collaudo è
-vecchio, lo dice e propone di rifarlo.
+**Non riporta i risultati del collaudo** — né esiti, né percentuali, né difetti — **non esegue test
+e non tocca il tenant**: legge il manifest, la suite e le domande di prova solo per gli esempi, e il
+dossier dell'assessment per le criticità dette dal cliente.
 
 | Cosa scrivi | Cosa fa la skill |
 |---|---|
-| «Scrivi la guida per il cliente di COMO» | Legge manifest, ultimo giudizio e dossier, scrive `guida-<scenario>.md` nella cartella del cliente e **te la mostra** |
-| «Pubblicala» | Carica `artifact-design`, verifica l'organizzazione, pubblica la pagina e la apre nel browser, con la copia HTML locale |
-| «Aggiorna la guida dopo il collaudo di oggi» | Rifà l'esito, i limiti e le versioni; la storia resta finché il flusso non cambia |
+| «Scrivi la guida per il cliente di COMO» | Legge manifest, suite e dossier, scrive `guida-<scenario>.md` a slide nella cartella del cliente e **te la mostra**, con i titoli letti di fila |
+| «Pubblicala» | Carica `artifact-design`, verifica l'organizzazione, pubblica la pagina a slide e la apre nel browser, con la copia HTML locale |
+| «Fai il deck per i sales» | Crea il deck dal tipo Slides, una slide per slide, con le note del relatore |
+| «Aggiorna la guida alla v33» | Rifà per nome le slide toccate dalla versione nuova; la storia resta finché il flusso non cambia |
 
 ### `xrcopilotlab-assessment` — dalla proposta al dossier
 

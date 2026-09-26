@@ -50,7 +50,7 @@ comincia e si finisce con qualcuno che decide.
 
 ## 2. Dove lavora l'AI — tre corsie
 
-Quando la sezione 3 ha bisogno di un disegno, tre gruppi affiancati con due o tre voci ciascuno:
+Quando la slide «chi fa che cosa» ha bisogno di un disegno invece delle tre colonne, tre gruppi affiancati con due o tre voci ciascuno:
 
 ```mermaid
 flowchart LR
@@ -73,45 +73,38 @@ flowchart LR
   classDef regola  fill:#f3f4f6,stroke:#6b7280,color:#111827
 ```
 
-## 3. L'esito del collaudo — una torta
+## 3. Come nasce e come cambia l'ambiente — un ciclo
 
-I numeri dell'ultimo giudizio, tre fette al massimo, con etichette nella lingua del cliente:
-
-```mermaid
-pie showData
-  title 47 domande di prova
-  "Giuste" : 40
-  "Da correggere (bilanci e dossier)" : 6
-  "Parzialmente giuste" : 1
-```
-
-Accanto, sempre, la tabella di stato per parte dello scenario (✅ pronta · 🟡 in correzione ·
-⛔ non ancora · ⏳ attende un servizio): la torta dà la misura, la tabella dice **dove**.
-
-## 4. Come si fanno le prove — un ciclo
+Per la slide del ciclo, nell'atto «Come è fatto». Il cliente vede che il suo sì sta **prima** di
+ogni modifica, e che una correzione non riparte da zero:
 
 ```mermaid
 flowchart LR
-  A[Scriviamo le domande<br/>e le risposte giuste]:::persona --> B[Le facciamo girare<br/>tutte, in automatico]:::regola
-  B --> C[Una persona legge<br/>ogni risposta]:::persona
-  C --> D[Ciò che non va<br/>si corregge]:::ai
-  D --> B
+  A[Scriviamo il progetto<br/>del vostro ambiente]:::regola --> B[Vi mostriamo l'elenco<br/>di ciò che cambierà]:::regola
+  B --> C([Il vostro sì]):::persona
+  C --> D[L'ambiente viene<br/>creato o aggiornato]:::regola
+  D --> E([Lo usate, e ci dite<br/>che cosa migliorare]):::persona
+  E --> F[Versione nuova:<br/>cambia solo quel pezzo]:::regola
+  F --> B
   classDef persona fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
-  classDef ai      fill:#ede9fe,stroke:#7c3aed,color:#4c1d95
   classDef regola  fill:#f3f4f6,stroke:#6b7280,color:#111827
 ```
 
-## 5. Le versioni — una linea del tempo
+Niente viola qui: il ciclo del progetto non lo fa l'AI.
 
-Cinque o sei tappe scelte fra le versioni del manifest, ciascuna con il suo perché in parole
-semplici. Serve a mostrare che l'ambiente è migliorato molte volte senza ripartire da zero.
+## 4. Le versioni — una linea del tempo
+
+Cinque o sei tappe scelte fra le versioni del manifest, ciascuna con **che cosa è cambiato per il
+cliente** in parole semplici. Serve a mostrare che l'ambiente è migliorato molte volte senza
+ripartire da zero. Il perché di una tappa è una cosa che il cliente ha chiesto o mostrato, mai una
+prova fallita.
 
 ```mermaid
 timeline
   title Il vostro ambiente, versione dopo versione
-  13 settembre : Prima versione collaudata
+  13 settembre : Prima versione
   17 settembre : Anche LinkedIn e Facebook
-  21 settembre : Nessun «no» dove il gestionale non dice niente
+  21 settembre : Dove il gestionale non dice niente, la scheda lo dice
   24 settembre : La mappa della sede : Ricerca sul web più approfondita
 ```
 
@@ -119,6 +112,8 @@ timeline
 
 - **Niente simboli BPMN**, niente nomi di passi del manifest, niente id.
 - **Etichette di due-quattro parole**, con `<br/>` se serve andare a capo.
-- **Un disegno per sezione, al massimo.** La guida non è un catalogo di diagrammi.
+- **Un disegno per slide, e la slide non porta altro** che una riga di didascalia. L'atto «Come è fatto» ne ha due, in due slide
+  (il ciclo e le versioni). La guida non è un catalogo di diagrammi.
+- **Nessun grafico dei risultati di collaudo**: niente torte, barre o percentuali di domande superate.
 - **Verificare che si disegni**: un errore di sintassi Mermaid nella pagina web mostra il codice al
   posto del disegno. Prima di pubblicare, aprire la copia HTML locale e guardarla.
