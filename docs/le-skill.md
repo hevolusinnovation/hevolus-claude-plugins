@@ -409,8 +409,10 @@ come è fatto». Il lettore è chi usa il servizio e chi lo compra, quasi mai un
 orchestratori, topic o server MCP — «la catena di assistenti», «l'archivio dei documenti», «un
 collegamento a un servizio esterno».
 
-**La guida è scritta a story slides**: una slide per idea, il titolo che dice il messaggio, le note
-per chi presenta sotto ogni slide. Otto atti, da 14 a 22 slide — apertura, il problema con le parole
+**La guida è scritta a story slides, su tre livelli**: per ogni slide il titolo che dice il
+messaggio, un corpo che si capisce da solo e un **approfondimento** per chi legge — visibile nella
+guida, nota del relatore nel deck —; le indicazioni di regia stanno in «Per chi presenta», solo nel
+deck. Otto atti, da 14 a 22 slide — apertura, il problema con le parole
 del cliente, la giornata tipo un momento per slide, chi fa che cosa (e che cosa l'AI non fa),
 **«Provatelo voi»** con domande di esempio e una risposta possibile, che cosa cambia, **come è fatto
 l'ambiente descritto nel manifest** (il ciclo piano → sì → ambiente → versione nuova, i vantaggi, le
@@ -427,7 +429,7 @@ dossier dell'assessment per le criticità dette dal cliente.
 |---|---|
 | «Scrivi la guida per il cliente di COMO» | Legge manifest, suite e dossier, scrive `guida-<scenario>.md` a slide nella cartella del cliente e **te la mostra**, con i titoli letti di fila |
 | «Pubblicala» | Carica `artifact-design`, verifica l'organizzazione, pubblica la pagina a slide e la apre nel browser, con la copia HTML locale |
-| «Fai il deck per i sales» | Crea il deck dal tipo Slides, una slide per slide, con le note del relatore |
+| «Fai il deck per i sales» | Crea il deck dal tipo Slides, una slide per slide: l'approfondimento diventa la nota del relatore |
 | «Aggiorna la guida alla v33» | Rifà per nome le slide toccate dalla versione nuova; la storia resta finché il flusso non cambia |
 
 ### `xrcopilotlab-assessment` — dalla proposta al dossier

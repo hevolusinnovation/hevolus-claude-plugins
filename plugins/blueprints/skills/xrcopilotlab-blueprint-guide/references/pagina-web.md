@@ -20,7 +20,9 @@ tipo Slides (SKILL §4): la pagina e il deck hanno le **stesse slide, nello stes
    - in un angolo, discreti, **l'atto e il numero** («La storia · 4 / 18»), e una barra di
      avanzamento sottile in alto; frecce ↑ ↓ e PagSu/PagGiù per passare da una slide all'altra
      (`prefers-reduced-motion` toglie lo scorrimento animato);
-   - **le note per chi presenta non compaiono** nella pagina per il cliente;
+   - **l'approfondimento si vede sempre**, sotto il corpo, in un riquadro più sommesso con la sua
+     etichetta: è ciò che fa della pagina una guida e non un deck muto. Il riquadro della slide si
+     allunga quanto serve; *Per chi presenta* non compare mai;
    - tabelle in contenitori scorrevoli, tema chiaro e scuro, e nessun dato del tenant nel titolo o
      nella descrizione.
 3. **I disegni** vanno in blocchi `<pre class="mermaid">`: gli artifact li rendono da soli, senza
@@ -64,5 +66,5 @@ nell'organizzazione sbagliata non si sposta: si ripubblica.
 Solo ciò che il cliente può vedere: nessun risultato di collaudo, nessun id di istanze, run, webhook o chiavi, nessun triage per
 componente, nessun nome di file interno, nessun codice di rilievo. La parte «per chi conduce la
 sessione» delle domande di prova **non** entra: se serve una pagina anche per chi conduce, è un
-secondo artifact, separato. Le **note per chi presenta** vanno solo nel deck per i sales, dove
-diventano le note del relatore.
+secondo artifact, separato. *Per chi presenta* va solo nel deck per i sales, in coda alla nota del
+relatore.

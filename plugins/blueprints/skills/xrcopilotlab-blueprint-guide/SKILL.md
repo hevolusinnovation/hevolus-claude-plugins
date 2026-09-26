@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-guide
-description: Scrive la guida per il cliente di un blueprint XRCopilotLab in stile story slides — una slide per idea, titolo che dice il messaggio, note per chi presenta — da cui nascono la pagina web e il deck per i sales. NON tecnica: il flusso come una storia, dove lavora l'AI e dove decidono le persone, domande di esempio con le risposte possibili, come si crea e si aggiorna un ambiente scritto in un manifest, con grafici semplici. NON riporta i risultati dei test. Parte da manifest, suite (solo per gli esempi) e dossier di assessment; non esegue test né tocca il tenant. Usa quando l'utente chiede di "scrivere la guida per il cliente", "spiegare il blueprint al cliente", "una guida non tecnica", "la guida allo scenario", "una pagina da mostrare al cliente", "le slide per i sales" o "raccontare come funziona". NON usare per le domande di prova né per il collaudo (xrcopilotlab-blueprint-test), né per scrivere o applicare il manifest (xrcopilotlab-blueprint).
+description: Scrive la guida per il cliente di un blueprint XRCopilotLab in stile story slides — una slide per idea, titolo che dice il messaggio, corpo e approfondimento per chi legge — da cui nascono la pagina web e il deck per i sales. NON tecnica: il flusso come una storia, dove lavora l'AI e dove decidono le persone, domande di esempio con le risposte possibili, come si crea e si aggiorna un ambiente scritto in un manifest, con grafici semplici. NON riporta i risultati dei test. Parte da manifest, suite (solo per gli esempi) e dossier di assessment; non esegue test né tocca il tenant. Usa quando l'utente chiede di "scrivere la guida per il cliente", "spiegare il blueprint al cliente", "una guida non tecnica", "la guida allo scenario", "una pagina da mostrare al cliente", "le slide per i sales" o "raccontare come funziona". NON usare per le domande di prova né per il collaudo (xrcopilotlab-blueprint-test), né per scrivere o applicare il manifest (xrcopilotlab-blueprint).
 ---
 
 # xrcopilotlab-blueprint-guide
@@ -20,8 +20,9 @@ La guida racconta come funziona l'ambiente descritto nel manifest, e nient'altro
    possibile;
 5. **come è fatto il suo ambiente**: un progetto scritto (il manifest), e che cosa gli conviene.
 
-**La guida è scritta come story slides** (§2.0): una slide per idea, il titolo che dice il
-messaggio, le note per chi presenta. Dalla stessa sorgente nascono la pagina web per il cliente e il
+**La guida è scritta come story slides a tre livelli** (§2.0): per ogni slide il titolo che dice
+il messaggio, un corpo che si capisce da solo, e un **approfondimento** per chi legge. Dalla stessa
+sorgente nascono la pagina web per il cliente — che si legge senza nessuno che la presenti — e il
 deck per i sales, che deve poterla presentare così com'è.
 
 **La guida non parla di collaudo.** Niente esiti, numeri di domande superate, percentuali, grafici
@@ -77,25 +78,41 @@ scritta per **chi conduce la demo** (per esempio `guida-bpm-agenda.md` di Studio
 guida per il cliente è un file a parte. Se esiste una guida per il cliente in una forma precedente,
 si riscrive in questa forma, togliendo ciò che riguarda il collaudo.
 
-### 2.0 Il formato: story slides
+### 2.0 Il formato: story slides a tre livelli
 
 La guida si scrive **come una sequenza di slide**, non come un documento: da quella stessa sorgente
-nascono la pagina web per il cliente e **il deck per i sales**, senza riscrivere niente. Chi vende
-deve poter prendere il file e presentarlo slide per slide.
+nascono la pagina web per il cliente e **il deck per i sales**, senza riscrivere niente. Ma resta
+**una guida**: chi la apre da solo, senza nessuno che la presenti, deve capire tutto. Per questo ogni
+slide ha tre livelli, e ciascuno ha un lettore diverso:
 
-Ogni slide ha sempre la stessa forma:
+| Livello | Che cosa porta | Chi lo vede |
+|---|---|---|
+| **Titolo** | il messaggio, in una frase con un verbo | tutti |
+| **Corpo** | ciò che serve per capire la slide: fino a **90 parole** | tutti: è la slide del deck |
+| **Approfondimento** | il perché, il come, l'esempio, il caso limite: da **50 a 150 parole**, scritte per il cliente | la guida lo mostra sotto la slide; nel deck diventa la nota del relatore |
+| *Per chi presenta* | facoltativo: la domanda da fare alla sala, l'obiezione da prevenire, cosa far notare | **solo** il deck, in coda alla nota |
 
 ```markdown
 ---
 
-<!-- slide: giornata-2 · atto: la storia -->
-## Alle 15:05 arriva una PEC, e la pratica è già pronta
+<!-- slide: giornata-pec · atto: la storia -->
+## Lunedì, 15:05: arriva una PEC, e la pratica è già pronta
 
-La referente trova autorità, parti, numero di ruolo, data e ora già proposti.
-Li controlla sul testo originale e sceglie chi ci va.
+La casella dell'agenda si legge ogni minuto, e la PEC si apre fino al messaggio della cancelleria
+che contiene. La referente trova la proposta già compilata:
 
-> **Note per chi presenta:** qui si ferma la sala. Far notare che il testo originale è sempre
-> accanto alla proposta: la persona verifica, non ricopia.
+- autorità, sezione e giudice
+- parti e numero di ruolo
+- data e ora dell'udienza
+
+Li controlla sul testo originale, sceglie il professionista, e l'impegno entra nel calendario comune.
+
+> **Approfondimento.** Una PEC di cancelleria porta spesso quattro date: quella della busta, quella
+> del provvedimento, l'udienza differita e la nuova udienza. La proposta ne sceglie una sola, e il
+> testo originale resta accanto: la referente verifica, non ricopia. Se la data del modulo e quella
+> del testo non coincidono, l'impegno non si scrive: vede i due valori e decide lei.
+
+> **Per chi presenta.** Qui fermarsi: chiedere quante PEC al giorno arrivano oggi in casella.
 ```
 
 Le regole della slide:
@@ -104,12 +121,17 @@ Le regole della slide:
   propone», non «Ruoli». Letti di fila, **i soli titoli raccontano la storia**: è la prova da fare
   prima di consegnare (elencare gli `##` e leggerli come un paragrafo).
 - **Un'idea per slide.** Se servono due «e poi», sono due slide.
-- **Il corpo sta in uno schermo**: al massimo 40 parole di testo, **oppure** tre punti, **oppure**
-  una tabella di cinque righe, **oppure** un disegno, **oppure** uno scambio domanda/risposta. Mai
-  due di queste cose insieme, salvo un disegno con una riga di didascalia.
-- **Le note per chi presenta** (`> **Note per chi presenta:**`) portano ciò che nel documento
-  sarebbe stato un paragrafo: il dettaglio, l'obiezione da prevenire, la domanda da fare alla sala.
-  Stanno sotto il corpo, e nella pagina web per il cliente non si vedono.
+- **Il corpo si capisce senza l'approfondimento.** Fino a 90 parole: una o due frasi, più **uno** fra
+  un elenco di quattro punti al massimo, una tabella di cinque righe, un disegno, uno scambio
+  domanda/risposta. Una slide con una frase sola è una slide povera: dice il messaggio, ma non lo
+  spiega.
+- **L'approfondimento è per il cliente, non per chi presenta.** Parla a «voi», con un esempio
+  concreto o il caso limite: che cosa succede se il dato manca, se due date non tornano, se la
+  persona non risponde. Nessuna indicazione di regia («far notare», «chiedere alla sala»): quella va
+  in *Per chi presenta*. Si scrive in `> **Approfondimento.**`, e c'è su ogni slide di contenuto;
+  copertina e divisoria ne fanno a meno.
+- ***Per chi presenta*** (`> **Per chi presenta.**`) è facoltativo, breve, e nella pagina per il
+  cliente non si vede mai.
 - **Il commento `<!-- slide: … · atto: … -->`** dà a ogni slide un nome stabile e l'atto a cui
   appartiene: serve a riordinare, a tagliare una versione breve e a ritrovare la slide quando si
   aggiorna.
@@ -150,7 +172,7 @@ Il disegno ha **una slide sua**, alla fine della storia, e segue la storia, non 
 ### 2.3 Chi fa che cosa
 
 Sono le slide che il cliente guarda due volte. **Una slide** per le tre colonne, sempre le stesse,
-con due o tre voci ciascuna (le altre vanno nelle note):
+con due o tre voci ciascuna (le altre vanno nell'approfondimento):
 
 | L'AI | Le persone | Regole fisse |
 |---|---|---|
@@ -176,7 +198,7 @@ scelti perché coprono i **modi diversi** di usarlo, non perché sono i più fac
 | **La domanda fuori compito** | la risposta dice che cosa l'assistente non fa, e che cosa fa invece | uno |
 | **La conferma prima di agire**, se lo scenario scrive qualcosa | l'assistente rilegge e aspetta il sì | uno |
 
-Se i tipi utili sono più di cinque, quelli in più diventano note di una slide vicina, non slide
+Se i tipi utili sono più di cinque, quelli in più diventano l'approfondimento di una slide vicina, non slide
 nuove. Per ciascuna slide:
 
 - **il titolo** dice che cosa si vede: «Un rinvio scritto di fretta diventa una pratica completa»;
@@ -186,10 +208,10 @@ nuove. Per ciascuna slide:
 - **una risposta possibile**, scritta per esteso come comparirebbe sullo schermo: costruita dalle
   attese della suite e dal formato che le istruzioni dell'agente prescrivono, **accorciata** a ciò
   che il cliente deve vedere;
-- **nelle note per chi presenta**, che cosa far notare («la data è scritta per esteso; il numero di
-  ruolo c'è perché era nel testo»).
+- **nell'approfondimento**, che cosa notare nella risposta e perché («la data è scritta per esteso;
+  il numero di ruolo c'è perché era nel testo»), e che cosa succede dopo il sì.
 
-Lo scambio domanda/risposta **è** il corpo della slide: niente altro testo accanto.
+Lo scambio domanda/risposta **è** il corpo della slide, con al più la riga di chi chiede.
 
 Due regole che non si derogano:
 
@@ -205,7 +227,7 @@ Il manifest, per il cliente, è **il progetto del suo ambiente**: un documento c
 e come si comporta. È l'atto che risponde a «ma come funziona, dietro?», e si spiega in tre
 slide.
 
-**Che cosa contiene** (può stare nelle note della slide del ciclo, o in una slide sua), in un elenco che il cliente riconosce: gli assistenti con il loro compito, i
+**Che cosa contiene** (può stare nell'approfondimento della slide del ciclo, o in una slide sua), in un elenco che il cliente riconosce: gli assistenti con il loro compito, i
 percorsi delle pratiche con i compiti delle persone e i loro tempi, i lavori programmati (con
 l'orario), i collegamenti ai suoi servizi. Con i numeri veri, presi dal manifest: «quattordici
 assistenti, quattro percorsi di pratica, tre lavori programmati».
@@ -216,7 +238,7 @@ assistenti, quattro percorsi di pratica, tre lavori programmati».
 cambia.
 
 **Che cosa gli conviene** — una slide con i **cinque** vantaggi che contano per quel cliente, detti
-come vantaggi suoi e non come funzioni della CLI; gli altri nelle note:
+come vantaggi suoi e non come funzioni della CLI; gli altri nell'approfondimento:
 
 | Vantaggio | Come si dice al cliente |
 |---|---|
@@ -250,7 +272,8 @@ In sintesi — il dettaglio, con il vocabolario e gli esempi prima/dopo, in
 - **Niente triage**: al cliente si dice *che cosa* il suo ambiente non fa, non *dove* nel codice.
 - **Titoli che raccontano**: ogni `##` è una frase con un verbo, e i titoli letti di fila fanno la
   storia. «Ruoli», «Vantaggi», «Esempi» sono etichette, non titoli.
-- **Ciò che non sta in una slide va nelle note**, non in un paragrafo sotto il corpo.
+- **Ciò che non sta nel corpo va nell'approfondimento**, non si perde: la guida si legge anche senza
+  chi la presenta.
 - **Onestà sul perimetro**: ciò che è fuori dal manifest si scrive nell'atto di chiusura, non si tace; e
   una risposta di esempio non mostra capacità che il manifest non ha.
 - **I nomi degli esempi** sono veri solo se il cliente li ha consegnati per la prova; altrimenti
@@ -268,7 +291,8 @@ In sintesi — il dettaglio, con il vocabolario e gli esempi prima/dopo, in
 3. **Il deck per i sales**, se l'utente lo chiede: si parte con `Artifact` `action: "quickstart"`,
    `intent: "slides"`, e si usa il tipo Slides che indica (si scarica come .pptx o PDF). La
    corrispondenza è uno a uno, senza riscrivere: una slide del Markdown è una slide del deck, il
-   titolo resta il titolo, il corpo il corpo, le note diventano le note del relatore, i disegni si
+   titolo resta il titolo, il corpo il corpo; la nota del relatore è l'approfondimento seguito da
+   *Per chi presenta*; i disegni si
    ridisegnano con i colori di [`references/grafici.md`](references/grafici.md). L'appendice resta
    in coda, dopo la divisoria. Se l'utente chiede la versione breve, si usano i nomi delle slide del
    taglio (§2.1).
@@ -285,7 +309,9 @@ ragione per aggiornarla.
 ## Cosa non fare
 
 - Non riportare risultati di test, in nessuna sezione e in nessun grafico.
-- Non scrivere paragrafi: una slide che richiede di scorrere sono due slide, o una slide con le note.
+- Non lasciare una slide di contenuto senza approfondimento, né un corpo di una frase sola: la guida
+  deve reggersi da sola.
+- Non mettere indicazioni di regia nell'approfondimento: vanno in *Per chi presenta*.
 - Non copiare il grafo del motore nel disegno: il cliente non deve vedere uno switch.
 - Non scrivere una risposta di esempio che il manifest non può produrre, né promettere ciò che è
   fuori perimetro.
