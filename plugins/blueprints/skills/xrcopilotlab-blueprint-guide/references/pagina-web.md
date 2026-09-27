@@ -22,12 +22,16 @@ tipo Slides (SKILL §4): la pagina e il deck hanno le **stesse slide, nello stes
      (`prefers-reduced-motion` toglie lo scorrimento animato);
    - **l'approfondimento si vede sempre**, sotto il corpo, in un riquadro più sommesso con la sua
      etichetta: è ciò che fa della pagina una guida e non un deck muto. Il riquadro della slide si
-     allunga quanto serve; *Per chi presenta* non compare mai;
+     allunga quanto serve; le note per ruolo (Sales, AI Specialist, Da soli) non compaiono mai;
+   - **le slide di demo si riconoscono a colpo d'occhio**: un fondo diverso, l'etichetta «Demo D2» al
+     posto dell'atto, i punti da guardare come una lista numerata. Chi legge la pagina dopo la
+     sessione sa che lì c'è stata una prova dal vivo, e che cosa ha mostrato;
    - tabelle in contenitori scorrevoli, tema chiaro e scuro, e nessun dato del tenant nel titolo o
      nella descrizione.
-3. **I disegni** vanno in blocchi `<pre class="mermaid">`: gli artifact li rendono da soli, senza
-   libreria. Colori e modelli sono quelli di [`grafici.md`](grafici.md), con la legenda di una riga
-   sotto ciascuno.
+3. **Il flusso** — l'unico disegno — la pagina lo disegna dall'elenco del Markdown: un riquadro per
+   passo, colorato per chi lo fa, con la legenda di una riga sotto ([`grafici.md`](grafici.md)).
+   HTML e CSS della pagina, **mai** un blocco Mermaid: se non viene trasformato, il cliente vede il
+   codice.
 4. **La slide «dove lavora l'AI»** merita un trattamento visivo proprio: le tre colonne (AI ·
    persone · regole fisse) come tre riquadri affiancati con i colori dei disegni, così il lettore
    riconosce lo stesso codice in tutta la pagina.
@@ -48,10 +52,9 @@ tipo Slides (SKILL §4): la pagina e il deck hanno le **stesse slide, nello stes
 8. **Ripubblicare lo stesso percorso** aggiorna la stessa pagina: non cambiare nome al file fra una
    versione e l'altra, altrimenti nasce un artifact nuovo e il link già dato al cliente resta vecchio.
 9. **Copia locale** accanto al Markdown (`guida-<scenario>.html`): lo stesso HTML avvolto in un
-   documento completo, con Mermaid caricato da cdnjs per i disegni. Si apre con un doppio clic,
+   documento completo, senza librerie esterne. Si apre con un doppio clic,
    senza account: è la rete di sicurezza per la sala, dove il login può non esserci. **Aprirla e
-   guardarla** prima di consegnarla: un errore di sintassi Mermaid mostra il codice al posto del
-   disegno.
+   guardarla** prima di consegnarla.
 
 ## L'organizzazione conta
 
@@ -66,5 +69,14 @@ nell'organizzazione sbagliata non si sposta: si ripubblica.
 Solo ciò che il cliente può vedere: nessun risultato di collaudo, nessun id di istanze, run, webhook o chiavi, nessun triage per
 componente, nessun nome di file interno, nessun codice di rilievo. La parte «per chi conduce la
 sessione» delle domande di prova **non** entra: se serve una pagina anche per chi conduce, è un
-secondo artifact, separato. *Per chi presenta* va solo nel deck per i sales, in coda alla nota del
-relatore.
+secondo artifact, separato. Le note per ruolo vanno solo nel deck, in coda alla nota del relatore.
+
+## La pagina interna della guida tecnica
+
+Un **artifact separato** da quello del cliente, con un nome che lo dica («Agenda di Studio Polis —
+demo»), mai condiviso con il cliente. Trattamento da documento di lavoro, non da slide: in alto la
+scheda (§0) e l'indice delle demo; ogni demo in una sezione che si apre e si chiude, con i passi come
+lista numerata, i blocchi da copiare con un pulsante «Copia», «Deve comparire» evidenziato, la tabella
+«Se va storto» sempre visibile. Si legge anche sul telefono, che è dove l'AI Specialist la guarda
+mentre lo schermo grande mostra la demo. Stessa copia HTML locale, accanto al Markdown
+(`guida-tecnica-<scenario>.html`).

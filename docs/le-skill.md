@@ -12,7 +12,7 @@ repository di prodotto: [§ Le skill di sviluppo](skill-di-sviluppo.md).
 |---|---|---|---|
 | [`xrcopilotlab-blueprint`](#xrcopilotlab-blueprint--scrivere-e-applicare-un-blueprint) | blueprints | «crea un blueprint», «configura il cliente da zero», «applica il manifest», o si nomina `xrcopilotlab-bp` | il manifest `.yml`, il piano, il tenant configurato |
 | [`xrcopilotlab-blueprint-test`](#xrcopilotlab-blueprint-test--collaudare-un-blueprint-applicato) | blueprints | «collauda il blueprint», «scrivi le domande di test», «vedi se funziona», «prepara le domande per il cliente», o si nomina `test run` | la suite `.tests.yml`, il report, il giudizio, le bozze di issue, le domande di prova per il cliente |
-| [`xrcopilotlab-blueprint-guide`](#xrcopilotlab-blueprint-guide--la-guida-per-il-cliente) | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «le slide per i sales», «la pagina da mostrare al cliente» | la guida `guida-<scenario>.md`, non tecnica, con i disegni, e la sua pagina web |
+| [`xrcopilotlab-blueprint-guide`](#xrcopilotlab-blueprint-guide--la-guida-per-il-cliente) | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «le slide per i sales», «la pagina da mostrare al cliente» | le due guide: per il cliente a slide (pagina e deck) e tecnica per l'AI Specialist (pagina interna) |
 | [`xrcopilotlab-assessment`](#xrcopilotlab-assessment--dalla-proposta-al-dossier) | assessment (Claude Desktop) | si carica una proposta e si chiede di «valutarla», «fare l'assessment», «tradurla in soluzione» | il dossier tecnico `.md` e `.docx`, con il capitolo per il provisioning |
 | [`xrcopilotlab-delivery-atlas`](#xrcopilotlab-delivery-atlas--dal-dossier-alla-delivery-atlas) | assessment (Claude Desktop) | «apri la delivery Atlas», «prepara il SOW», «carica il cliente sul CMS», «trasforma l'assessment in delivery» | il piano Atlas, i documenti per cliente in stile Atlas, la delivery nel CMS dopo l'anteprima |
 
@@ -402,35 +402,31 @@ tabella evidenza → componente → verifica (`triage.md`); il modello di segnal
 processo (`bpm.md`); le guide per il cliente (`guida-cliente.md`); il formato completo di suite e
 report con i codici `BT0xx` (`testing.md`); una suite reale (`esempio-suite-agenda.tests.yml`).
 
-### `xrcopilotlab-blueprint-guide` — la guida per il cliente
+### `xrcopilotlab-blueprint-guide` — le due guide della demo
 
-Porta un blueprint da «funziona, e sappiamo come» a «il cliente capisce che cosa ha, come si usa e
-come è fatto». Il lettore è chi usa il servizio e chi lo compra, quasi mai un tecnico: niente
-orchestratori, topic o server MCP — «la catena di assistenti», «l'archivio dei documenti», «un
-collegamento a un servizio esterno».
+Le demo dal cliente le conducono un **Sales** e un **AI Specialist**, o il solo AI Specialist, e il
+punto difficile è spiegare in modo semplice un processo complesso mentre lo si mostra. La skill
+scrive **due guide agganciate agli stessi punti di demo** (`D1`, `D2`…):
 
-**La guida è scritta a story slides, su tre livelli**: per ogni slide il titolo che dice il
-messaggio, un corpo che si capisce da solo e un **approfondimento** per chi legge — visibile nella
-guida, nota del relatore nel deck —; le indicazioni di regia stanno in «Per chi presenta», solo nel
-deck. Otto atti, da 14 a 22 slide — apertura, il problema con le parole
-del cliente, la giornata tipo un momento per slide, chi fa che cosa (e che cosa l'AI non fa),
-**«Provatelo voi»** con domande di esempio e una risposta possibile, che cosa cambia, **come è fatto
-l'ambiente descritto nel manifest** (il ciclo piano → sì → ambiente → versione nuova, i vantaggi, le
-versioni), la chiusura con il prossimo passo. Dalla stessa sorgente nascono la **pagina web** da
-proiettare, con una copia HTML che si apre senza account, e il **deck per i sales** (tipo Slides,
-.pptx o PDF), slide per slide. I disegni sono Mermaid, con quattro colori fissi (persone, AI,
-archivi, regole fisse).
+- **la guida per il cliente** (`guida-<scenario>.md`), a story slides in linguaggio semplice — titolo
+  che dice il messaggio, corpo, approfondimento — che è il **canovaccio** della sessione. Le slide
+  «Vediamolo» sono le pause per la demo e dicono che cosa guardare; le note per chi presenta sono per
+  ruolo: **Sales**, **AI Specialist**, **Da soli**. Diventa la pagina web per il cliente e il deck
+  (tipo Slides). **Niente risultati di collaudo**;
+- **la guida tecnica per l'AI Specialist** (`guida-tecnica-<scenario>.md`): il flusso in termini di
+  agenti, task, processi e server MCP, il **ponte** fra le parole del cliente e i componenti, la
+  scaletta a due e da soli, la preparazione, e per ogni demo i passi, che cosa deve comparire, il
+  meccanismo, il **piano B** e la pulizia. Usa il giudizio del collaudo per dire che cosa è sicuro
+  mostrare dal vivo. Si pubblica come **pagina interna**, mai al cliente.
 
-**Non riporta i risultati del collaudo** — né esiti, né percentuali, né difetti — **non esegue test
-e non tocca il tenant**: legge il manifest, la suite e le domande di prova solo per gli esempi, e il
-dossier dell'assessment per le criticità dette dal cliente.
+**Non esegue test e non tocca il tenant**: legge manifest, suite, domande di prova, materiali della
+demo, giudizio (solo per la tecnica) e dossier dell'assessment.
 
 | Cosa scrivi | Cosa fa la skill |
 |---|---|
-| «Scrivi la guida per il cliente di COMO» | Legge manifest, suite e dossier, scrive `guida-<scenario>.md` a slide nella cartella del cliente e **te la mostra**, con i titoli letti di fila |
-| «Pubblicala» | Carica `artifact-design`, verifica l'organizzazione, pubblica la pagina a slide e la apre nel browser, con la copia HTML locale |
-| «Fai il deck per i sales» | Crea il deck dal tipo Slides, una slide per slide: l'approfondimento diventa la nota del relatore |
-| «Aggiorna la guida alla v33» | Rifà per nome le slide toccate dalla versione nuova; la storia resta finché il flusso non cambia |
+| «Scrivi le guide della demo di Studio Polis» | Scrive le due guide, ti mostra i titoli delle slide e le demo, poi pubblica la pagina per il cliente, il deck e la pagina interna |
+| «Prepara la demo di domani, la faccio da solo» | Guida tecnica con la scaletta **da soli** in evidenza, e la preparazione del giorno prima |
+| «Aggiorna le guide alla v33» | Rifà per nome le slide e le demo toccate; la tecnica aggiorna anche sicuro/fragile e piano B |
 
 ### `xrcopilotlab-assessment` — dalla proposta al dossier
 
