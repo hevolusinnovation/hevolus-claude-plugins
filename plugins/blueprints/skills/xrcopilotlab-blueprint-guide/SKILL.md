@@ -1,23 +1,34 @@
 ---
 name: xrcopilotlab-blueprint-guide
-description: Scrive la guida per il cliente di un blueprint XRCopilotLab applicato — un documento NON tecnico, per chi non conosce la piattaforma, che racconta il flusso come una storia, spiega dove lavora l'intelligenza artificiale e dove decidono le persone, come è stato collaudato (e con che esito), perché un ambiente descritto in un manifest conviene (si vede prima di farlo, si ripete, si aggiorna senza rifarlo), con grafici semplici; e la pubblica come pagina web da proiettare. Parte da manifest, ultimo giudizio, suite e dossier di assessment; non esegue test né tocca il tenant. Usa quando l'utente chiede di "scrivere la guida per il cliente", "spiegare il blueprint al cliente", "una guida non tecnica", "la guida allo scenario", "una pagina da mostrare al cliente" o "raccontare come funziona". NON usare per le domande di prova né per il collaudo (quello è xrcopilotlab-blueprint-test), né per scrivere o applicare il manifest (xrcopilotlab-blueprint).
+description: Scrive la guida per il cliente di un blueprint XRCopilotLab in stile story slides — una slide per idea, titolo che dice il messaggio, corpo e approfondimento per chi legge — da cui nascono la pagina web e il deck per i sales. NON tecnica: il flusso come una storia, dove lavora l'AI e dove decidono le persone, domande di esempio con le risposte possibili, come si crea e si aggiorna un ambiente scritto in un manifest, con grafici semplici. NON riporta i risultati dei test. Parte da manifest, suite (solo per gli esempi) e dossier di assessment; non esegue test né tocca il tenant. Usa quando l'utente chiede di "scrivere la guida per il cliente", "spiegare il blueprint al cliente", "una guida non tecnica", "la guida allo scenario", "una pagina da mostrare al cliente", "le slide per i sales" o "raccontare come funziona". NON usare per le domande di prova né per il collaudo (xrcopilotlab-blueprint-test), né per scrivere o applicare il manifest (xrcopilotlab-blueprint).
 ---
 
 # xrcopilotlab-blueprint-guide
 
-Porta un blueprint da «funziona, e sappiamo come» a «il cliente capisce che cosa ha, perché gli
-conviene, e che cosa aspettarsi». Il lettore è **chi usa il servizio e chi lo compra**: un
-responsabile d'ufficio, un avvocato, un direttore, quasi mai un tecnico. Se una frase gli chiede di
-sapere che cos'è un orchestratore, un topic o un server MCP, la frase è sbagliata.
+Porta un blueprint da «funziona, e sappiamo come» a «il cliente capisce che cosa ha, come si usa e
+come è fatto». Il lettore è **chi usa il servizio e chi lo compra**: un responsabile d'ufficio, un
+avvocato, un direttore, quasi mai un tecnico. Se una frase gli chiede di sapere che cos'è un
+orchestratore, un topic o un server MCP, la frase è sbagliata.
 
-La guida racconta cinque cose, e nient'altro:
+La guida racconta come funziona l'ambiente descritto nel manifest, e nient'altro:
 
 1. **che cosa fa per lui**, in una frase;
 2. **il flusso**, come una storia con un disegno;
 3. **dove lavora l'intelligenza artificiale e dove decidono le persone** — la domanda che ogni
    cliente fa, anche quando non la dice;
-4. **come lo abbiamo provato**, con l'esito vero;
-5. **perché un ambiente descritto in un progetto** (il manifest) **gli conviene**.
+4. **che cosa può chiedere, e che cosa gli viene risposto** — esempi di domande con una risposta
+   possibile;
+5. **come è fatto il suo ambiente**: un progetto scritto (il manifest), e che cosa gli conviene.
+
+**La guida è scritta come story slides a tre livelli** (§2.0): per ogni slide il titolo che dice
+il messaggio, un corpo che si capisce da solo, e un **approfondimento** per chi legge. Dalla stessa
+sorgente nascono la pagina web per il cliente — che si legge senza nessuno che la presenti — e il
+deck per i sales, che deve poterla presentare così com'è.
+
+**La guida non parla di collaudo.** Niente esiti, numeri di domande superate, percentuali, grafici
+dei risultati, difetti trovati e corretti, «provato con la posta vera». Al cliente interessa come
+funziona il suo ambiente, non come l'abbiamo verificato: quello resta nei documenti di
+[`xrcopilotlab-blueprint-test`](../xrcopilotlab-blueprint-test/SKILL.md) e nelle domande di prova.
 
 ## Chi fa che cosa
 
@@ -25,11 +36,10 @@ La guida racconta cinque cose, e nient'altro:
 |---|---|---|
 | [`xrcopilotlab-blueprint`](../xrcopilotlab-blueprint/SKILL.md) | scrive e applica il manifest | spiegarlo al cliente |
 | [`xrcopilotlab-blueprint-test`](../xrcopilotlab-blueprint-test/SKILL.md) | collauda, giudica, segnala, scrive **le domande di prova** (`demo-domande-<scenario>.md`) | la guida |
-| **Questa skill** | scrive **la guida** (`guida-<scenario>.md`) e la sua **pagina web** | eseguire test, toccare il tenant, aprire issue |
+| **Questa skill** | scrive **la guida** (`guida-<scenario>.md`) e la sua **pagina web** | eseguire test, riportarne gli esiti, toccare il tenant, aprire issue |
 
-La guida **legge** quello che le altre due hanno prodotto. Se l'ultimo collaudo è vecchio o manca,
-non lo si rifà da qui: si dice all'utente che lo stato non è aggiornato e si propone
-`xrcopilotlab-blueprint-test`. Una guida con uno stato inventato è peggio di nessuna guida.
+La guida **legge** il manifest. Dalla suite e dalle domande di prova prende solo **gli esempi**:
+che cosa si chiede e che cosa ci si deve aspettare, mai se la prova è passata.
 
 ## Se all'apertura compare che il plugin è indietro
 
@@ -42,90 +52,193 @@ urgente: se l'utente è a metà di una guida, si finisce e si aggiorna dopo.
 ## 0. Se `$ARGS` è vuoto
 
 Orientare e fermarsi: a cosa serve, quali guide esistono già
-(`../hevolus-assessment/customers/*/guida-*.md`), quali blueprint hanno un collaudo recente
-(`blueprints/tests/reports/<tag>/`). Poi la domanda: per quale cliente e quale scenario.
+(`../hevolus-assessment/customers/*/guida-*.md`), quali manifest ci sono (`blueprints/*.yml`). Poi
+la domanda: per quale cliente e quale scenario.
 
 ## 1. Raccogliere le fonti
 
 | Fonte | Dove | Che cosa se ne prende |
 |---|---|---|
-| Il manifest | `blueprints/<nome>.yml` | il flusso: i passi, chi li fa, cosa passa da uno all'altro; gli agenti e il loro «cosa non fai»; le versioni e il loro perché (i blocchi di commento `vN`) |
-| L'ultimo giudizio | `blueprints/tests/reports/<tag>/<data>/giudizio.md` | l'esito: quante domande, quante giuste, che cosa non va ancora e quando sarà corretto |
-| La suite | `blueprints/tests/<nome>.tests.yml` | due o tre domande vere da citare come esempio, e le risposte sbagliate che il collaudo riconosce |
-| Le domande di prova | `../hevolus-assessment/customers/<cliente>/demo-domande-*.md` | la tabella di stato (✅ 🟡 ⛔ ⏳), da riportare in forma semplice |
+| Il manifest | `blueprints/<nome>.yml` | il flusso: i passi, chi li fa, cosa passa da uno all'altro; gli agenti, le loro istruzioni e il loro «cosa non fai»; i compiti delle persone e i loro tempi; i lavori programmati; le versioni e il loro perché (i blocchi di commento `vN`); ciò che è fuori perimetro (le note in fondo) |
+| La suite | `blueprints/tests/<nome>.tests.yml` | **solo esempi**: le domande che una persona farebbe davvero e ciò che la risposta deve contenere (`expect`), da cui scrivere la risposta possibile |
+| Le domande di prova | `../hevolus-assessment/customers/<cliente>/demo-domande-*.md` | **solo esempi**: le domande già scritte nella lingua del cliente e il loro «Atteso». La tabella di stato **non** si riporta |
 | Il dossier di assessment | `../hevolus-assessment/customers/<cliente>/README.md` | **le criticità che il cliente ha detto con parole sue**: sono loro, non le nostre, a dire che cosa risolve |
 | Il manifest archiviato | `xrcopilotlab-bp pull --tag <TAG>` | se il repository non c'è: la versione applicata, da cui ricostruire il flusso |
+
+Il giudizio del collaudo (`blueprints/tests/reports/`) **non** è una fonte della guida.
 
 Se il repository dell'assessment non c'è, chiedere all'utente dove mettere la guida. **Mai** in
 `blueprints/` del repository di prodotto: contiene nomi e casi del cliente.
 
 ## 2. Scrivere la guida
 
-Il file è `../hevolus-assessment/customers/<cliente>/guida-<scenario>.md`. Se esiste già — le
-guide di Como, FinLogic e Studio Polis sono state scritte prima di questa skill, con una parte per
-esperti — **si riscrive nella forma di qui**, tenendo i contenuti che reggono e portando in
-appendice ciò che è per chi conosce la materia.
+Il file è `../hevolus-assessment/customers/<cliente>/guida-<scenario>.md`. Se esiste già una guida
+scritta per **chi conduce la demo** (per esempio `guida-bpm-agenda.md` di Studio Polis,
+`guida-demo-bilancio-aggregato.md` di FinLogic), non si riscrive: quella resta per chi conduce, e la
+guida per il cliente è un file a parte. Se esiste una guida per il cliente in una forma precedente,
+si riscrive in questa forma, togliendo ciò che riguarda il collaudo.
 
-Le sezioni, in quest'ordine. I titoli sono esempi: si scrivono nella lingua del cliente.
+### 2.0 Il formato: story slides a tre livelli
 
-| # | Sezione | Che cosa contiene | Da dove |
+La guida si scrive **come una sequenza di slide**, non come un documento: da quella stessa sorgente
+nascono la pagina web per il cliente e **il deck per i sales**, senza riscrivere niente. Ma resta
+**una guida**: chi la apre da solo, senza nessuno che la presenti, deve capire tutto. Per questo ogni
+slide ha tre livelli, e ciascuno ha un lettore diverso:
+
+| Livello | Che cosa porta | Chi lo vede |
+|---|---|---|
+| **Titolo** | il messaggio, in una frase con un verbo | tutti |
+| **Corpo** | ciò che serve per capire la slide: fino a **90 parole** | tutti: è la slide del deck |
+| **Approfondimento** | il perché, il come, l'esempio, il caso limite: da **50 a 150 parole**, scritte per il cliente | la guida lo mostra sotto la slide; nel deck diventa la nota del relatore |
+| *Per chi presenta* | facoltativo: la domanda da fare alla sala, l'obiezione da prevenire, cosa far notare | **solo** il deck, in coda alla nota |
+
+```markdown
+---
+
+<!-- slide: giornata-pec · atto: la storia -->
+## Lunedì, 15:05: arriva una PEC, e la pratica è già pronta
+
+La casella dell'agenda si legge ogni minuto, e la PEC si apre fino al messaggio della cancelleria
+che contiene. La referente trova la proposta già compilata:
+
+- autorità, sezione e giudice
+- parti e numero di ruolo
+- data e ora dell'udienza
+
+Li controlla sul testo originale, sceglie il professionista, e l'impegno entra nel calendario comune.
+
+> **Approfondimento.** Una PEC di cancelleria porta spesso quattro date: quella della busta, quella
+> del provvedimento, l'udienza differita e la nuova udienza. La proposta ne sceglie una sola, e il
+> testo originale resta accanto: la referente verifica, non ricopia. Se la data del modulo e quella
+> del testo non coincidono, l'impegno non si scrive: vede i due valori e decide lei.
+
+> **Per chi presenta.** Qui fermarsi: chiedere quante PEC al giorno arrivano oggi in casella.
+```
+
+Le regole della slide:
+
+- **Il titolo è il messaggio**, una frase intera con un verbo: «La referente decide, l'assistente
+  propone», non «Ruoli». Letti di fila, **i soli titoli raccontano la storia**: è la prova da fare
+  prima di consegnare (elencare gli `##` e leggerli come un paragrafo).
+- **Un'idea per slide.** Se servono due «e poi», sono due slide.
+- **Il corpo si capisce senza l'approfondimento.** Fino a 90 parole: una o due frasi, più **uno** fra
+  un elenco di quattro punti al massimo, una tabella di cinque righe, un disegno, uno scambio
+  domanda/risposta. Una slide con una frase sola è una slide povera: dice il messaggio, ma non lo
+  spiega.
+- **L'approfondimento è per il cliente, non per chi presenta.** Parla a «voi», con un esempio
+  concreto o il caso limite: che cosa succede se il dato manca, se due date non tornano, se la
+  persona non risponde. Nessuna indicazione di regia («far notare», «chiedere alla sala»): quella va
+  in *Per chi presenta*. Si scrive in `> **Approfondimento.**`, e c'è su ogni slide di contenuto;
+  copertina e divisoria ne fanno a meno.
+- ***Per chi presenta*** (`> **Per chi presenta.**`) è facoltativo, breve, e nella pagina per il
+  cliente non si vede mai.
+- **Il commento `<!-- slide: … · atto: … -->`** dà a ogni slide un nome stabile e l'atto a cui
+  appartiene: serve a riordinare, a tagliare una versione breve e a ritrovare la slide quando si
+  aggiorna.
+- **`---` separa le slide**, e nient'altro sta fra due separatori.
+
+### 2.1 Gli atti, in quest'ordine
+
+Da 14 a 22 slide in tutto. I titoli delle slide sono esempi: si scrivono nella lingua del cliente.
+
+| Atto | Slide | Che cosa racconta | Da dove |
 |---|---|---|---|
-| 1 | **In una frase** | Che cosa fa per lui, con il suo lessico. «Chiedete di un associato e in due minuti avete una scheda con quello che sa l'associazione e quello che dice il web, con la mappa della sede.» | manifest, descrizione |
-| 2 | **Una giornata tipo** | Il flusso raccontato come una storia, con una persona e un caso veri del suo lavoro (anonimizzati se servono), dall'inizio alla fine. Poi **il disegno** del flusso | manifest |
-| 3 | **Dove lavora l'AI, e dove decidete voi** | La tabella dei tre ruoli: ciò che fa l'AI, ciò che decidono le persone, ciò che fanno regole fisse. Poi **ciò che l'AI non fa**, detto chiaro | manifest (system message, passi umani, passi automatici) |
-| 4 | **Che cosa risolve** | Le criticità del cliente, con le sue parole, e per ciascuna che cosa cambia | dossier di assessment |
-| 5 | **Come lo abbiamo provato** | Il collaudo raccontato: domande vere, risposta attesa scritta prima, risposte sbagliate riconosciute, ripetuto a ogni modifica. **L'esito vero**, con un grafico | giudizio, suite |
-| 6 | **Perché un progetto scritto** | I vantaggi del manifest, detti come vantaggi suoi, con il disegno delle versioni | manifest (versioni), CLI |
-| 7 | **Che cosa non fa ancora** | I limiti di oggi e quando saranno risolti, senza giri di parole | giudizio, domande di prova |
-| 8 | **Le parole che incontrerete** | Un glossario corto, in parole semplici | — |
-| — | *Appendice: per chi vuole i dettagli* | Facoltativa: il vocabolario tecnico e le domande di un esperto. Separata, e dichiarata tale | la guida precedente, se c'era |
+| **Apertura** | 1–2 | La copertina (nome dello scenario, per chi) e **la frase**: che cosa fa per lui, con il suo lessico. «Chiedete di un associato e in due minuti avete la sua scheda, con la mappa della sede.» | manifest, descrizione |
+| **Il problema** | 1–2 | Le criticità del cliente **con le sue parole**, citate: è la slide che fa annuire la sala | dossier di assessment |
+| **La storia** | 4–6 | Una giornata tipo, **un momento per slide** (un'ora, una persona, ciò che vede), poi **il disegno** del flusso in una slide sua | manifest |
+| **Chi fa che cosa** | 2–3 | Le tre colonne AI · persone · regole fisse in una slide; **ciò che l'AI non fa** in un'altra | manifest (istruzioni degli agenti, compiti delle persone, passi automatici) |
+| **Provatelo voi** | 3–5 | **Una domanda di esempio per slide**, con una risposta possibile | suite, domande di prova, istruzioni degli agenti |
+| **Che cosa cambia** | 1–2 | Per ogni criticità della slide «Il problema», che cosa cambia: la stessa lista, ripresa | dossier di assessment |
+| **Come è fatto** | 2–3 | Il progetto scritto: il ciclo in una slide, i vantaggi in una, le versioni in una | manifest (versioni), CLI |
+| **Chiusura** | 1–2 | Che cosa non fa e che cosa serve da voi per partire; **il prossimo passo** («ci indicate le due caselle, e il vostro ambiente si crea in un giorno») | manifest (note, segnaposto, `TODO`) |
+| *Appendice* | a piacere | Dopo una slide divisoria «Per chi vuole i dettagli»: il glossario, e come è costruito per il tecnico del cliente (permessi, credenziali, quanti assistenti e compiti). Si mostra solo se chiesto | manifest |
 
-### 2.1 Una giornata tipo
+**La versione breve** per un primo incontro commerciale è un taglio, non un altro file: apertura,
+problema, due slide di storia con il disegno, una di «chi fa che cosa», un esempio, chiusura. Le
+slide da tenere si dicono con i loro nomi nel messaggio all'utente.
+
+### 2.2 La storia
 
 Non «il sistema riceve la richiesta e la instrada»: **«Lunedì mattina Paola, dell'ufficio
 associati, deve chiamare un'azienda che non conosce. Scrive in chat il nome…»**. Una persona, un
-caso, un'ora del giorno, e ciò che vede sullo schermo passo per passo. I passi che nel manifest sono
+caso, un'ora del giorno, e ciò che vede sullo schermo passo per passo — **un momento per slide**, con
+l'ora nel titolo o in testa al corpo («Venerdì, 9:40»), così la sequenza si legge come un racconto. I passi che nel manifest sono
 tecnici (una riduzione del profilo, uno switch) nella storia non compaiono, oppure compaiono per ciò
 che producono («se l'indirizzo c'è, sotto compare la mappa»).
 
-Il disegno segue la storia, non il grafo del motore: **al massimo otto riquadri**, e ogni riquadro
+Il disegno ha **una slide sua**, alla fine della storia, e segue la storia, non il grafo del motore: **al massimo otto riquadri**, e ogni riquadro
 è qualcosa che il cliente riconosce. Modelli e colori in [`references/grafici.md`](references/grafici.md).
 
-### 2.2 Dove lavora l'AI, e dove decidete voi
+### 2.3 Chi fa che cosa
 
-È la sezione che il cliente legge due volte. Tre colonne, sempre le stesse:
+Sono le slide che il cliente guarda due volte. **Una slide** per le tre colonne, sempre le stesse,
+con due o tre voci ciascuna (le altre vanno nell'approfondimento):
 
 | L'AI | Le persone | Regole fisse |
 |---|---|---|
 | legge, cerca, confronta, riassume, propone | decidono, approvano, correggono | fanno sempre la stessa cosa, senza interpretare |
 | *es.* legge la scheda dell'associato e compone il report | *es.* decide se chiamare l'azienda; approva la pratica | *es.* verifica la partita IVA sul registro europeo; mette il punto sulla mappa |
 
-Poi **che cosa l'AI non fa**, preso dai «cosa NON fai» dei system message e detto in positivo per
-il cliente: non inventa un dato che non trova — lo dice; non dà giudizi sull'azienda; non scrive nei
-vostri sistemi; non manda niente a nessuno senza che una persona abbia detto sì. È qui che si
-spiegano anche i **gap**: «quando un dato non c'è, la scheda lo scrive, invece di riempire il buco».
+Poi, **in una slide sua**, **che cosa l'AI non fa** — qui, e solo qui, fino a cinque punti brevi —, preso dai «cosa NON fai» delle istruzioni degli agenti e detto in
+positivo per il cliente: non inventa un dato che non trova — lo dice; non dà giudizi sull'azienda;
+non scrive nei vostri sistemi; non manda niente a nessuno senza che una persona abbia detto sì. È qui
+che si spiegano anche i **dati mancanti**: «quando un dato non c'è, la scheda lo scrive, invece di
+riempire il buco».
 
-### 2.3 Come lo abbiamo provato
+### 2.4 Provatelo voi: domande ed esempi di risposta
 
-Il collaudo, spiegato a chi non ha mai visto una suite:
+Il cliente capisce un assistente vedendolo rispondere. Da tre a cinque esempi, **uno per slide**,
+scelti perché coprono i **modi diversi** di usarlo, non perché sono i più facili:
 
-1. **abbiamo scritto prima le domande e le risposte giuste** — le stesse che farete voi, sulle
-   vostre aziende vere;
-2. **abbiamo scritto anche le risposte sbagliate da riconoscere** — «l'azienda non esporta»
-   quando il gestionale semplicemente non lo dice;
-3. **le facciamo girare tutte, in automatico, a ogni modifica**, e confrontiamo le risposte;
-4. **una persona legge ogni risposta** e decide se è giusta: la macchina controlla i numeri, il
-   giudizio resta umano;
-5. ciò che non va diventa una segnalazione con una data di correzione.
+| Tipo di esempio | Perché c'è | Quanti |
+|---|---|---|
+| **La domanda di tutti i giorni** | è ciò che farà il novanta per cento delle volte | uno o due |
+| **La domanda scritta male** — di fretta, con abbreviazioni, senza verbo | fa vedere che non serve una formula | uno |
+| **Il dato che manca** | la risposta dice «non indicato» invece di inventarlo | uno |
+| **La domanda fuori compito** | la risposta dice che cosa l'assistente non fa, e che cosa fa invece | uno |
+| **La conferma prima di agire**, se lo scenario scrive qualcosa | l'assistente rilegge e aspetta il sì | uno |
 
-Poi l'esito, con i numeri veri dell'ultimo giudizio («47 domande: 40 giuste, 7 da correggere, tutte
-nello stesso punto») e un grafico semplice. **Lo stato è quello del giudizio, non quello sperato**:
-ciò che è stato provato solo con dati simulati si scrive così.
+Se i tipi utili sono più di cinque, quelli in più diventano l'approfondimento di una slide vicina, non slide
+nuove. Per ciascuna slide:
 
-### 2.4 Perché un progetto scritto
+- **il titolo** dice che cosa si vede: «Un rinvio scritto di fretta diventa una pratica completa»;
+- **chi la fa e dove**, in mezza riga («la referente, in chat, dopo la riunione»);
+- **la domanda**, come la scriverebbe lui — dalla suite o dalle domande di prova, riportata al suo
+  lessico e con nomi inventati;
+- **una risposta possibile**, scritta per esteso come comparirebbe sullo schermo: costruita dalle
+  attese della suite e dal formato che le istruzioni dell'agente prescrivono, **accorciata** a ciò
+  che il cliente deve vedere;
+- **nell'approfondimento**, che cosa notare nella risposta e perché («la data è scritta per esteso;
+  il numero di ruolo c'è perché era nel testo»), e che cosa succede dopo il sì.
+
+Lo scambio domanda/risposta **è** il corpo della slide, con al più la riga di chi chiede.
+
+Due regole che non si derogano:
+
+1. **Una risposta possibile non promette ciò che il manifest non fa.** Ogni dato che vi compare deve
+   poter venire dalle fonti che quell'agente ha davvero; ogni azione deve essere fra quelle che ha.
+   Se la risposta nomina una mappa, nel manifest c'è la mappa.
+2. **Si dice che è un esempio.** Una riga sulla prima slide dell'atto: «le parole cambiano da una volta
+   all'altra, il contenuto no». Nessun esito, nessun «è stata provata».
+
+### 2.5 Come è fatto il vostro ambiente
 
 Il manifest, per il cliente, è **il progetto del suo ambiente**: un documento che dice che cosa c'è
-e come si comporta. Si spiega con i vantaggi che lo riguardano, non con le funzioni della CLI:
+e come si comporta. È l'atto che risponde a «ma come funziona, dietro?», e si spiega in tre
+slide.
+
+**Che cosa contiene** (può stare nell'approfondimento della slide del ciclo, o in una slide sua), in un elenco che il cliente riconosce: gli assistenti con il loro compito, i
+percorsi delle pratiche con i compiti delle persone e i loro tempi, i lavori programmati (con
+l'orario), i collegamenti ai suoi servizi. Con i numeri veri, presi dal manifest: «quattordici
+assistenti, quattro percorsi di pratica, tre lavori programmati».
+
+**Come nasce e come cambia** — una slide, con il disegno del ciclo di [`references/grafici.md`](references/grafici.md)
+§3: si scrive il progetto → vi mostriamo l'elenco di ciò che verrà creato o cambiato → il vostro sì
+→ l'ambiente viene creato → una correzione diventa una versione nuova, che tocca solo ciò che
+cambia.
+
+**Che cosa gli conviene** — una slide con i **cinque** vantaggi che contano per quel cliente, detti
+come vantaggi suoi e non come funzioni della CLI; gli altri nell'approfondimento:
 
 | Vantaggio | Come si dice al cliente |
 |---|---|
@@ -133,14 +246,15 @@ e come si comporta. Si spiega con i vantaggi che lo riguardano, non con le funzi
 | È ripetibile | «Lo stesso ambiente si ricrea uguale, per un'altra sede o in produzione, senza rifarlo a mano» |
 | Si migliora senza rifarlo | «Una correzione tocca solo ciò che cambia: il resto resta com'è, e nessuno si accorge dell'aggiornamento se non per il miglioramento» |
 | Ha una storia | «Ogni versione ha un numero e un perché: sapete sempre che cosa è cambiato e quando» |
-| È collaudato sempre allo stesso modo | «Le stesse domande, a ogni versione: un miglioramento non ne rompe un'altra parte senza che ce ne accorgiamo» |
 | Non contiene segreti | «Le password dei vostri servizi non stanno nel progetto: stanno in una cassaforte, e il progetto le cita per nome» |
+| Non tocca ciò che non è suo | «Se nel vostro ambiente c'è già qualcosa con lo stesso nome, il progetto si ferma invece di sovrascriverlo» |
 | Si toglie per intero | «Se decidete di non usarlo, si smonta tutto ciò che è stato creato, senza lasciare pezzi» |
 
-Il disegno delle **versioni** (dalla prima all'ultima, con una riga di perché ciascuna) è il modo
-più convincente di mostrarlo: fa vedere quante correzioni ci sono state e che nessuna ha richiesto
-di ripartire da zero. Si prende dai blocchi `vN` in testa al manifest, scegliendo le cinque o sei
-che il cliente capisce.
+Il disegno delle **versioni** (grafici §4) chiude l'atto, in una slide sua: cinque o sei tappe prese dai blocchi
+`vN` in testa al manifest, ciascuna con una riga di **che cosa è cambiato per il cliente** — «le PEC
+si aprono fino al messaggio che contengono», «la riunione del venerdì si detta in chat». Il perché
+di una versione si dice come **cosa che il cliente ci ha chiesto o mostrato**, mai come prova fallita
+o difetto trovato.
 
 ## 3. Le regole di scrittura
 
@@ -153,34 +267,54 @@ In sintesi — il dettaglio, con il vocabolario e gli esempi prima/dopo, in
   compaiono affatto: orchestratore, topic, profilo, MCP, token, gateway, inventario, run.
 - **Nessun dato del tenant**: id di istanze, run, webhook, chiavi, indirizzi di API, nomi di file
   interni. Nessun codice `BPxxx`, nessun nome di componente o di repository.
-- **Niente triage**: al cliente si dice *che cosa* non funziona e *quando* sarà corretto, non
-  *dove* nel codice.
-- **Onestà sullo stato**: «provato con dati simulati» non è «funziona»; un limite si scrive nella
-  sezione 7, non si tace.
+- **Nessun risultato di collaudo**: né numeri, né esiti, né difetti, né «provato con…». Nemmeno
+  come rassicurazione.
+- **Niente triage**: al cliente si dice *che cosa* il suo ambiente non fa, non *dove* nel codice.
+- **Titoli che raccontano**: ogni `##` è una frase con un verbo, e i titoli letti di fila fanno la
+  storia. «Ruoli», «Vantaggi», «Esempi» sono etichette, non titoli.
+- **Ciò che non sta nel corpo va nell'approfondimento**, non si perde: la guida si legge anche senza
+  chi la presenta.
+- **Onestà sul perimetro**: ciò che è fuori dal manifest si scrive nell'atto di chiusura, non si tace; e
+  una risposta di esempio non mostra capacità che il manifest non ha.
 - **I nomi degli esempi** sono veri solo se il cliente li ha consegnati per la prova; altrimenti
   inventati, e il documento lo dice.
 
 ## 4. Mostrarla, poi pubblicarla
 
-1. **Il Markdown all'utente**, prima di tutto. Chi conosce il cliente sa se la storia è quella
-   giusta e se una frase suonerà male: è lui a dare il sì.
+1. **Il Markdown all'utente**, prima di tutto, con **l'elenco dei titoli** letti di fila in cima al
+   messaggio: se non raccontano la storia da soli, la guida non è pronta. Chi conosce il cliente sa
+   se la storia è quella giusta, se gli esempi sono quelli che farà davvero e se una frase suonerà
+   male: è lui a dare il sì.
 2. **La pagina web** — un artifact privato da proiettare o condividere, più una copia HTML locale
    che si apre senza account. Come si costruisce, l'organizzazione da verificare prima e l'apertura
    nel browser: [`references/pagina-web.md`](references/pagina-web.md).
-3. **Il commit** nel repository dell'assessment, solo se l'utente lo chiede.
+3. **Il deck per i sales**, se l'utente lo chiede: si parte con `Artifact` `action: "quickstart"`,
+   `intent: "slides"`, e si usa il tipo Slides che indica (si scarica come .pptx o PDF). La
+   corrispondenza è uno a uno, senza riscrivere: una slide del Markdown è una slide del deck, il
+   titolo resta il titolo, il corpo il corpo; la nota del relatore è l'approfondimento seguito da
+   *Per chi presenta*; i disegni si
+   ridisegnano con i colori di [`references/grafici.md`](references/grafici.md). L'appendice resta
+   in coda, dopo la divisoria. Se l'utente chiede la versione breve, si usano i nomi delle slide del
+   taglio (§2.1).
+4. **Il commit** nel repository dell'assessment, solo se l'utente lo chiede.
 
 ## 5. Quando aggiornarla
 
-A ogni collaudo che cambia la tabella di stato, e a ogni versione del manifest che cambia il flusso
-o che il cliente noterebbe. Si aggiornano la sezione 5 (esito), la 7 (limiti), il disegno delle
-versioni; la storia resta finché il flusso non cambia.
+A ogni versione del manifest che cambia il flusso, ciò che un assistente sa fare o ciò che il
+cliente noterebbe. Si aggiornano, per nome, le slide degli esempi che ne sono toccati, quelle della
+chiusura e la slide delle versioni; la storia resta finché il flusso non cambia. Se c'è il deck, si
+aggiorna lo stesso deck, non se ne fa uno nuovo. Un collaudo da solo non è una
+ragione per aggiornarla.
 
 ## Cosa non fare
 
-- Non scrivere la guida senza un giudizio recente: si propone il collaudo, non si inventa lo stato.
+- Non riportare risultati di test, in nessuna sezione e in nessun grafico.
+- Non lasciare una slide di contenuto senza approfondimento, né un corpo di una frase sola: la guida
+  deve reggersi da sola.
+- Non mettere indicazioni di regia nell'approfondimento: vanno in *Per chi presenta*.
 - Non copiare il grafo del motore nel disegno: il cliente non deve vedere uno switch.
-- Non promettere ciò che è fuori perimetro, né presentare come pronto ciò che il giudizio segna
-  🟡 o ⛔.
+- Non scrivere una risposta di esempio che il manifest non può produrre, né promettere ciò che è
+  fuori perimetro.
 - Non mettere nella pagina web la parte interna per chi conduce la sessione, né alcun dato del tenant.
 - Non pubblicare la pagina senza aver caricato `artifact-design` e verificato l'organizzazione.
 - Non fare commit nel repository dell'assessment di propria iniziativa.

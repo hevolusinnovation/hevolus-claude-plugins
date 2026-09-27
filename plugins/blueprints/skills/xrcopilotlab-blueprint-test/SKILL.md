@@ -9,8 +9,8 @@ Porta un blueprint applicato da «esiste sul tenant» a «sappiamo come risponde
 ogni difetto», e da lì a «il cliente sa cosa provare e cosa aspettarsi». Cinque mosse: scrivere le
 domande, eseguirle, giudicare, segnalare, e scrivere le domande di prova per il cliente. La **guida
 allo scenario** — il racconto non tecnico, con i disegni e la sua pagina web — la scrive
-[`xrcopilotlab-blueprint-guide`](../xrcopilotlab-blueprint-guide/SKILL.md), a partire dal giudizio
-che esce da qui.
+[`xrcopilotlab-blueprint-guide`](../xrcopilotlab-blueprint-guide/SKILL.md), dal manifest: dalla
+suite prende solo gli esempi di domande, e gli esiti del collaudo non li riporta.
 
 La divisione del lavoro è netta e va rispettata, perché è ciò che rende il collaudo ripetibile:
 
@@ -390,11 +390,11 @@ dall'ultimo giudizio (✅ pronta · 🟡 da correggere · ⛔ da non mostrare co
 una fonte), le domande della suite con atteso e risposte sbagliate nella lingua del cliente, la
 scheda di valutazione, e la sezione interna per chi conduce con i difetti aperti e i numeri di issue.
 
-**La guida allo scenario** — il documento che racconta al cliente il flusso, dove lavora l'AI, come
-è stato collaudato e perché il manifest gli conviene, con la sua pagina web — **non** si scrive
-qui: quando il collaudo cambia la tabella di stato, proporre all'utente di aggiornarla con
-[`xrcopilotlab-blueprint-guide`](../xrcopilotlab-blueprint-guide/SKILL.md), che legge il giudizio
-appena scritto.
+**La guida allo scenario** — il documento che racconta al cliente il flusso, dove lavora l'AI, le
+domande di esempio e come è fatto il suo ambiente, con la sua pagina web — **non** si scrive qui, e
+non riporta gli esiti del collaudo: un collaudo da solo non la fa aggiornare. Quando una correzione
+nata dal collaudo diventa una versione del manifest che cambia ciò che il cliente vede, proporre
+all'utente di aggiornarla con [`xrcopilotlab-blueprint-guide`](../xrcopilotlab-blueprint-guide/SKILL.md).
 
 Vanno nella cartella del cliente del repository dell'assessment, senza id del tenant, con lo stato
 reale e non quello sperato, e si **mostrano all'utente** prima di darle per finite. Il triage resta

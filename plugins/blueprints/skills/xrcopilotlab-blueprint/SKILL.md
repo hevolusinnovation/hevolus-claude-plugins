@@ -474,8 +474,9 @@ esecuzioni con esito, avviso se lo scheduler avanza mentre le esecuzioni no) e
 processi del blueprint: dove sta il token, eventi, compiti, dati del caso). Un token su un compito
 umano — `verifica:waiting`, `assegna:waiting` — vuol dire che manca il passo di una persona, non che
 qualcosa è rotto. Un blueprint applicato si collauda con la skill `xrcopilotlab-blueprint-test`.
-Per spiegarlo al cliente — il flusso, dove lavora l'AI, come è stato collaudato — la guida non
-tecnica e la sua pagina web le scrive la skill `xrcopilotlab-blueprint-guide`.
+Per spiegarlo al cliente — il flusso, dove lavora l'AI, domande di esempio, come è fatto il suo
+ambiente — la guida non tecnica, a story slides, con la sua pagina web e il deck per i sales, la
+scrive la skill `xrcopilotlab-blueprint-guide`.
 
 ## 6-ter. Una versione nuova su un blueprint già applicato
 

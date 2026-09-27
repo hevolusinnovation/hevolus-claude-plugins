@@ -21,7 +21,7 @@ plugins/blueprints/
 ├── .claude-plugin/plugin.json                     identità e versione del plugin
 ├── skills/xrcopilotlab-blueprint/SKILL.md         scrivere e applicare un manifest, con i suoi references/
 ├── skills/xrcopilotlab-blueprint-test/SKILL.md    collaudare un blueprint applicato, con i suoi references/
-├── skills/xrcopilotlab-blueprint-guide/SKILL.md   la guida non tecnica per il cliente, con i suoi references/
+├── skills/xrcopilotlab-blueprint-guide/SKILL.md   la guida non tecnica per il cliente, a story slides, con i suoi references/
 ├── bin/                                           gli avviatori: finiscono nel PATH quando il plugin è attivo
 ├── hooks/hooks.json                               l'avviso di inizio sessione: «il plugin è indietro»
 └── docs/manuale.md                                il manuale per chi lo usa
@@ -170,7 +170,7 @@ corrispondente di `.claude-plugin/marketplace.json`.
 >
 > La versione del **plugin** (`plugin.json` e `marketplace.json`) è un numero diverso: sale anche
 > quando cambiano solo le skill, senza una CLI nuova. Alzarli insieme «per coerenza» è il modo di
-> rompere il download. Oggi infatti divergono — plugin `2.20.0`, CLI `2.15.1` — ed è corretto così.
+> rompere il download. Oggi infatti divergono — plugin `2.21.0`, CLI `2.15.1` — ed è corretto così.
 
 Che il numero in `version.txt` corrisponda a una release davvero scaricabile lo verifica
 `controlli.yml` a ogni push: la release deve esistere **qui** (cioè essere stata rispecchiata) e

@@ -65,10 +65,10 @@ dall'**ultimo giudizio**: è la prima cosa che l'utente guarda prima di entrare 
 ## La guida allo scenario e la sua pagina web: un'altra skill
 
 Il racconto dello scenario per il cliente — il flusso come una storia, dove lavora l'AI e dove
-decidono le persone, come è stato collaudato, perché il manifest conviene, con disegni semplici e la
-pagina web da proiettare — lo scrive [`xrcopilotlab-blueprint-guide`](../../xrcopilotlab-blueprint-guide/SKILL.md).
-Legge il giudizio e le domande di prova che escono da questa skill: quando un collaudo cambia la
-tabella di stato, va proposto all'utente di aggiornarla.
+decidono le persone, domande di esempio con le risposte possibili, come è fatto il suo ambiente, con
+disegni semplici e la pagina web da proiettare — lo scrive [`xrcopilotlab-blueprint-guide`](../../xrcopilotlab-blueprint-guide/SKILL.md).
+Dalle domande di prova prende solo gli esempi: la tabella di stato e gli esiti del collaudo **non**
+entrano nella guida.
 
 ## Le regole
 

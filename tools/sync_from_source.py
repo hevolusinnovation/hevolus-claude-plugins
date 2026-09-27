@@ -51,7 +51,7 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-test/references/guida-cliente.md", DEST_TEST / "references"),
     ("docs/blueprints/testing.md", DEST_TEST / "references"),
     ("blueprints/tests/studiopolis-agenda.tests.yml", DEST_TEST / "references" / "esempio-suite-agenda.tests.yml"),
-    # La skill della guida per il cliente: legge manifest, giudizio e suite, non esegue niente.
+    # La skill della guida per il cliente, a story slides: legge manifest, suite (per gli esempi) e dossier, non esegue niente.
     (".claude/skills/xrcopilotlab-blueprint-guide/SKILL.md", DEST_GUIDE / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-guide/references/linguaggio.md", DEST_GUIDE / "references"),
     (".claude/skills/xrcopilotlab-blueprint-guide/references/grafici.md", DEST_GUIDE / "references"),
