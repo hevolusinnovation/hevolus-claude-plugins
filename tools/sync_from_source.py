@@ -51,11 +51,12 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-test/references/guida-cliente.md", DEST_TEST / "references"),
     ("docs/blueprints/testing.md", DEST_TEST / "references"),
     ("blueprints/tests/studiopolis-agenda.tests.yml", DEST_TEST / "references" / "esempio-suite-agenda.tests.yml"),
-    # La skill della guida per il cliente, a story slides: legge manifest, suite (per gli esempi) e dossier, non esegue niente.
+    # La skill delle due guide — per il cliente a slide, tecnica per l'AI Specialist: legge manifest, suite, materiali e dossier, non esegue niente.
     (".claude/skills/xrcopilotlab-blueprint-guide/SKILL.md", DEST_GUIDE / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-guide/references/linguaggio.md", DEST_GUIDE / "references"),
     (".claude/skills/xrcopilotlab-blueprint-guide/references/grafici.md", DEST_GUIDE / "references"),
     (".claude/skills/xrcopilotlab-blueprint-guide/references/pagina-web.md", DEST_GUIDE / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-guide/references/guida-tecnica.md", DEST_GUIDE / "references"),
 ]
 
 # I link da riscrivere sui file copiati: file → [(prima, dopo), …].

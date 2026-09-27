@@ -1,34 +1,35 @@
 ---
 name: xrcopilotlab-blueprint-guide
-description: Scrive la guida per il cliente di un blueprint XRCopilotLab in stile story slides — una slide per idea, titolo che dice il messaggio, corpo e approfondimento per chi legge — da cui nascono la pagina web e il deck per i sales. NON tecnica: il flusso come una storia, dove lavora l'AI e dove decidono le persone, domande di esempio con le risposte possibili, come si crea e si aggiorna un ambiente scritto in un manifest, con grafici semplici. NON riporta i risultati dei test. Parte da manifest, suite (solo per gli esempi) e dossier di assessment; non esegue test né tocca il tenant. Usa quando l'utente chiede di "scrivere la guida per il cliente", "spiegare il blueprint al cliente", "una guida non tecnica", "la guida allo scenario", "una pagina da mostrare al cliente", "le slide per i sales" o "raccontare come funziona". NON usare per le domande di prova né per il collaudo (xrcopilotlab-blueprint-test), né per scrivere o applicare il manifest (xrcopilotlab-blueprint).
+description: Scrive le due guide di un blueprint XRCopilotLab applicato, agganciate agli stessi punti di demo. (1) La guida per il cliente, a story slides in linguaggio semplice — titolo-messaggio, corpo, approfondimento, slide di demo, note per Sales e AI Specialist — da cui nascono la pagina web e il deck: è il canovaccio della sessione. (2) La guida tecnica per l'AI Specialist: il flusso in termini di agenti, processi e collegamenti, e per ogni demo preparazione, passi, cosa deve comparire, meccanismo, piano B e pulizia. Quella per il cliente non riporta i risultati dei test; la tecnica li usa per dire che cosa è sicuro mostrare. Non esegue test né tocca il tenant. Usa quando l'utente chiede di "scrivere la guida per il cliente", "la guida tecnica della demo", "preparare la demo dal cliente", "le slide per i sales", "spiegare il blueprint al cliente". NON per le domande di prova né per il collaudo (xrcopilotlab-blueprint-test), né per scrivere o applicare il manifest (xrcopilotlab-blueprint).
 ---
 
 # xrcopilotlab-blueprint-guide
 
 Porta un blueprint da «funziona, e sappiamo come» a «il cliente capisce che cosa ha, come si usa e
-come è fatto». Il lettore è **chi usa il servizio e chi lo compra**: un responsabile d'ufficio, un
-avvocato, un direttore, quasi mai un tecnico. Se una frase gli chiede di sapere che cos'è un
-orchestratore, un topic o un server MCP, la frase è sbagliata.
+come è fatto» — e lo fa **durante una demo dal vivo**, che è il punto difficile: spiegare in modo
+semplice un processo complesso mentre lo si mostra funzionare.
 
-La guida racconta come funziona l'ambiente descritto nel manifest, e nient'altro:
+Le demo dal cliente le conducono **due persone** — un **Sales** e un **AI Specialist** — oppure,
+a volte, il solo AI Specialist. Per questo le guide sono **due**, con due lettori, agganciate agli
+stessi punti di demo:
 
-1. **che cosa fa per lui**, in una frase;
-2. **il flusso**, come una storia con un disegno;
-3. **dove lavora l'intelligenza artificiale e dove decidono le persone** — la domanda che ogni
-   cliente fa, anche quando non la dice;
-4. **che cosa può chiedere, e che cosa gli viene risposto** — esempi di domande con una risposta
-   possibile;
-5. **come è fatto il suo ambiente**: un progetto scritto (il manifest), e che cosa gli conviene.
+| | La guida per il cliente | La guida tecnica |
+|---|---|---|
+| File | `guida-<scenario>.md` | `guida-tecnica-<scenario>.md` |
+| Lettore | il cliente, e chi presenta | l'AI Specialist, prima e durante la demo |
+| Forma | story slides a tre livelli (§2), con le **slide di demo** | un documento per demo, con gli stessi codici `D1`, `D2`… (§3) |
+| Linguaggio | il suo: «pratica», «udienza», «assistente» | il nostro: agenti, agent task, processi, server MCP |
+| Serve a | **canovaccio** della sessione: la storia che si racconta, e dove ci si ferma a mostrare | **eseguire** la demo: che cosa preparare, che cosa cliccare, che cosa deve comparire, come spiegarlo se chiedono, che cosa fare se va storto |
+| Si pubblica | pagina web e deck, **per il cliente** | pagina **interna**, mai condivisa con il cliente |
+| Collaudo | **mai**: niente esiti, niente difetti | sì: che cosa è sicuro mostrare dal vivo e che cosa è fragile |
 
-**La guida è scritta come story slides a tre livelli** (§2.0): per ogni slide il titolo che dice
-il messaggio, un corpo che si capisce da solo, e un **approfondimento** per chi legge. Dalla stessa
-sorgente nascono la pagina web per il cliente — che si legge senza nessuno che la presenti — e il
-deck per i sales, che deve poterla presentare così com'è.
+**Il filo è la guida per il cliente.** La tecnica non racconta una storia sua: segue le stesse slide,
+e a ogni slide di demo dice all'AI Specialist come portarla sullo schermo.
 
-**La guida non parla di collaudo.** Niente esiti, numeri di domande superate, percentuali, grafici
-dei risultati, difetti trovati e corretti, «provato con la posta vera». Al cliente interessa come
-funziona il suo ambiente, non come l'abbiamo verificato: quello resta nei documenti di
-[`xrcopilotlab-blueprint-test`](../xrcopilotlab-blueprint-test/SKILL.md) e nelle domande di prova.
+**La guida per il cliente non parla di collaudo.** Niente esiti, numeri di domande superate,
+percentuali, grafici dei risultati, difetti trovati e corretti, «provato con la posta vera». Al
+cliente interessa come funziona il suo ambiente, non come l'abbiamo verificato. La guida tecnica sì:
+chi fa la demo deve sapere che cosa regge e che cosa no.
 
 ## Chi fa che cosa
 
@@ -36,10 +37,11 @@ funziona il suo ambiente, non come l'abbiamo verificato: quello resta nei docume
 |---|---|---|
 | [`xrcopilotlab-blueprint`](../xrcopilotlab-blueprint/SKILL.md) | scrive e applica il manifest | spiegarlo al cliente |
 | [`xrcopilotlab-blueprint-test`](../xrcopilotlab-blueprint-test/SKILL.md) | collauda, giudica, segnala, scrive **le domande di prova** (`demo-domande-<scenario>.md`) | la guida |
-| **Questa skill** | scrive **la guida** (`guida-<scenario>.md`) e la sua **pagina web** | eseguire test, riportarne gli esiti, toccare il tenant, aprire issue |
+| **Questa skill** | scrive **le due guide** (`guida-<scenario>.md`, `guida-tecnica-<scenario>.md`), la pagina web e il deck della prima, la pagina interna della seconda | eseguire test, toccare il tenant, aprire issue |
 
-La guida **legge** il manifest. Dalla suite e dalle domande di prova prende solo **gli esempi**:
-che cosa si chiede e che cosa ci si deve aspettare, mai se la prova è passata.
+Le guide **leggono**: il manifest, le suite, le domande di prova, i materiali della demo. Non
+eseguono niente: se per la demo serve un dato che nella casella o nel tenant non c'è, la guida
+tecnica lo scrive fra le cose da preparare, e lo prepara una persona (o `xrcopilotlab-blueprint-test`).
 
 ## Se all'apertura compare che il plugin è indietro
 
@@ -51,32 +53,33 @@ urgente: se l'utente è a metà di una guida, si finisce e si aggiorna dopo.
 
 ## 0. Se `$ARGS` è vuoto
 
-Orientare e fermarsi: a cosa serve, quali guide esistono già
+Orientare e fermarsi: a cosa servono le due guide, quali esistono già
 (`../hevolus-assessment/customers/*/guida-*.md`), quali manifest ci sono (`blueprints/*.yml`). Poi
-la domanda: per quale cliente e quale scenario.
+le domande: per quale cliente e quale scenario, e se la sessione la conducono in due o l'AI
+Specialist da solo.
 
 ## 1. Raccogliere le fonti
 
-| Fonte | Dove | Che cosa se ne prende |
-|---|---|---|
-| Il manifest | `blueprints/<nome>.yml` | il flusso: i passi, chi li fa, cosa passa da uno all'altro; gli agenti, le loro istruzioni e il loro «cosa non fai»; i compiti delle persone e i loro tempi; i lavori programmati; le versioni e il loro perché (i blocchi di commento `vN`); ciò che è fuori perimetro (le note in fondo) |
-| La suite | `blueprints/tests/<nome>.tests.yml` | **solo esempi**: le domande che una persona farebbe davvero e ciò che la risposta deve contenere (`expect`), da cui scrivere la risposta possibile |
-| Le domande di prova | `../hevolus-assessment/customers/<cliente>/demo-domande-*.md` | **solo esempi**: le domande già scritte nella lingua del cliente e il loro «Atteso». La tabella di stato **non** si riporta |
-| Il dossier di assessment | `../hevolus-assessment/customers/<cliente>/README.md` | **le criticità che il cliente ha detto con parole sue**: sono loro, non le nostre, a dire che cosa risolve |
-| Il manifest archiviato | `xrcopilotlab-bp pull --tag <TAG>` | se il repository non c'è: la versione applicata, da cui ricostruire il flusso |
-
-Il giudizio del collaudo (`blueprints/tests/reports/`) **non** è una fonte della guida.
+| Fonte | Dove | Per il cliente | Per la tecnica |
+|---|---|---|---|
+| Il manifest | `blueprints/<nome>.yml` | il flusso: i passi, chi li fa, cosa passa da uno all'altro; il «cosa non fai» degli agenti; i compiti e i loro tempi; i lavori programmati; le versioni (i blocchi `vN`); ciò che è fuori perimetro | tutto questo **con i nomi veri**: agenti, agent task e il loro cron, processi e passi, orchestratori, server MCP e i loro tool, ruoli |
+| La suite | `blueprints/tests/<nome>.tests.yml` | **solo esempi**: la domanda e ciò che la risposta deve contenere | gli input pronti da usare in demo, le risposte sbagliate da riconoscere al volo |
+| Le domande di prova | `../hevolus-assessment/customers/<cliente>/demo-domande-*.md` | **solo esempi**, nella lingua del cliente; la tabella di stato **non** si riporta | la tabella di stato: che cosa è pronto, che cosa no |
+| I materiali della demo | `demo-materiali-*.md`, `demo-workflow-*.md`, una guida per chi conduce già scritta | — | le mail da inviare, i dettati da incollare, i percorsi da fare a mano nei processi |
+| L'ultimo giudizio | `blueprints/tests/reports/<tag>/<data>/giudizio.md` | **mai** | che cosa è sicuro mostrare dal vivo, che cosa è fragile, lo stato lasciato sul tenant |
+| Il dossier di assessment | `../hevolus-assessment/customers/<cliente>/README.md` | **le criticità dette dal cliente con parole sue** | le domande tecniche che il cliente ha già fatto |
+| Il manifest archiviato | `xrcopilotlab-bp pull --tag <TAG>` | se il repository non c'è | idem |
 
 Se il repository dell'assessment non c'è, chiedere all'utente dove mettere la guida. **Mai** in
 `blueprints/` del repository di prodotto: contiene nomi e casi del cliente.
 
-## 2. Scrivere la guida
+## 2. La guida per il cliente
 
-Il file è `../hevolus-assessment/customers/<cliente>/guida-<scenario>.md`. Se esiste già una guida
-scritta per **chi conduce la demo** (per esempio `guida-bpm-agenda.md` di Studio Polis,
-`guida-demo-bilancio-aggregato.md` di FinLogic), non si riscrive: quella resta per chi conduce, e la
-guida per il cliente è un file a parte. Se esiste una guida per il cliente in una forma precedente,
-si riscrive in questa forma, togliendo ciò che riguarda il collaudo.
+Il file è `../hevolus-assessment/customers/<cliente>/guida-<scenario>.md`. Se esiste una guida per il
+cliente in una forma precedente, si riscrive in questa forma, togliendo ciò che riguarda il collaudo.
+Se esiste una guida scritta per **chi conduce la demo** (per esempio `guida-bpm-agenda.md` di Studio
+Polis, `guida-demo-bilancio-aggregato.md` di FinLogic), è la **fonte** della guida tecnica (§3): la
+si riprende lì, e il vecchio file non si aggiorna più.
 
 ### 2.0 Il formato: story slides a tre livelli
 
@@ -90,7 +93,7 @@ slide ha tre livelli, e ciascuno ha un lettore diverso:
 | **Titolo** | il messaggio, in una frase con un verbo | tutti |
 | **Corpo** | ciò che serve per capire la slide: fino a **90 parole** | tutti: è la slide del deck |
 | **Approfondimento** | il perché, il come, l'esempio, il caso limite: da **50 a 150 parole**, scritte per il cliente | la guida lo mostra sotto la slide; nel deck diventa la nota del relatore |
-| *Per chi presenta* | facoltativo: la domanda da fare alla sala, l'obiezione da prevenire, cosa far notare | **solo** il deck, in coda alla nota |
+| *Note per chi presenta*, per ruolo | **Sales** — il filo, la domanda alla sala, il passaggio di parola; **AI Specialist** — il dettaglio tecnico da tenere pronto, il rimando alla demo; **Da soli** — come condensare le due parti quando c'è il solo AI Specialist. Tutte facoltative, brevi | **solo** il deck, in coda alla nota |
 
 ```markdown
 ---
@@ -112,7 +115,11 @@ Li controlla sul testo originale, sceglie il professionista, e l'impegno entra n
 > testo originale resta accanto: la referente verifica, non ricopia. Se la data del modulo e quella
 > del testo non coincidono, l'impegno non si scrive: vede i due valori e decide lei.
 
-> **Per chi presenta.** Qui fermarsi: chiedere quante PEC al giorno arrivano oggi in casella.
+> **Sales.** Chiedere quante PEC al giorno arrivano oggi in casella; poi passare la parola: «ve la
+> facciamo vedere».
+
+> **AI Specialist.** Se chiedono come si legge la busta: il tool scompone l'allegato `.eml`. Poi
+> slide `demo-D2`.
 ```
 
 Le regole della slide:
@@ -128,10 +135,15 @@ Le regole della slide:
 - **L'approfondimento è per il cliente, non per chi presenta.** Parla a «voi», con un esempio
   concreto o il caso limite: che cosa succede se il dato manca, se due date non tornano, se la
   persona non risponde. Nessuna indicazione di regia («far notare», «chiedere alla sala»): quella va
-  in *Per chi presenta*. Si scrive in `> **Approfondimento.**`, e c'è su ogni slide di contenuto;
-  copertina e divisoria ne fanno a meno.
-- ***Per chi presenta*** (`> **Per chi presenta.**`) è facoltativo, breve, e nella pagina per il
-  cliente non si vede mai.
+  nelle note per chi presenta. Si scrive in `> **Approfondimento.**`, e c'è su ogni slide di
+  contenuto; copertina e divisoria ne fanno a meno.
+- **Le note per chi presenta sono per ruolo**: `> **Sales.**`, `> **AI Specialist.**`,
+  `> **Da soli.**`. Facoltative e brevi; nella pagina per il cliente non si vedono mai. Il **Sales**
+  tiene il filo della storia e la sala; l'**AI Specialist** entra quando serve il dettaglio o la
+  demo; **Da soli** dice che cosa tagliare o dire in altro modo quando l'AI Specialist fa tutte e due
+  le parti (di solito: meno domande alla sala, la demo annunciata con una frase).
+- **Il termine tecnico non entra nemmeno nelle note del Sales.** Nelle note dell'AI Specialist sì,
+  perché sono per lui: il nome dell'agente, del passo, del tool, e il rimando alla demo.
 - **Il commento `<!-- slide: … · atto: … -->`** dà a ogni slide un nome stabile e l'atto a cui
   appartiene: serve a riordinare, a tagliare una versione breve e a ritrovare la slide quando si
   aggiorna.
@@ -139,7 +151,8 @@ Le regole della slide:
 
 ### 2.1 Gli atti, in quest'ordine
 
-Da 14 a 22 slide in tutto. I titoli delle slide sono esempi: si scrivono nella lingua del cliente.
+Da 14 a 22 slide di contenuto, **più 3–5 slide di demo** (§2.6) messe dove la storia ha appena
+promesso qualcosa. I titoli delle slide sono esempi: si scrivono nella lingua del cliente.
 
 | Atto | Slide | Che cosa racconta | Da dove |
 |---|---|---|---|
@@ -166,8 +179,10 @@ l'ora nel titolo o in testa al corpo («Venerdì, 9:40»), così la sequenza si 
 tecnici (una riduzione del profilo, uno switch) nella storia non compaiono, oppure compaiono per ciò
 che producono («se l'indirizzo c'è, sotto compare la mappa»).
 
-Il disegno ha **una slide sua**, alla fine della storia, e segue la storia, non il grafo del motore: **al massimo otto riquadri**, e ogni riquadro
-è qualcosa che il cliente riconosce. Modelli e colori in [`references/grafici.md`](references/grafici.md).
+Il **flusso** ha una slide sua, alla fine della storia, ed è **l'unico disegno della guida**: segue
+la storia, non il grafo del motore, al massimo otto passi. Nel Markdown si scrive come elenco numerato
+con chi fa ogni passo; la pagina e il deck lo disegnano. Niente Mermaid, niente riquadri con dentro
+frasi: [`references/grafici.md`](references/grafici.md).
 
 ### 2.3 Chi fa che cosa
 
@@ -232,10 +247,9 @@ percorsi delle pratiche con i compiti delle persone e i loro tempi, i lavori pro
 l'orario), i collegamenti ai suoi servizi. Con i numeri veri, presi dal manifest: «quattordici
 assistenti, quattro percorsi di pratica, tre lavori programmati».
 
-**Come nasce e come cambia** — una slide, con il disegno del ciclo di [`references/grafici.md`](references/grafici.md)
-§3: si scrive il progetto → vi mostriamo l'elenco di ciò che verrà creato o cambiato → il vostro sì
-→ l'ambiente viene creato → una correzione diventa una versione nuova, che tocca solo ciò che
-cambia.
+**Come nasce e come cambia** — una slide, con il ciclo come **elenco numerato**: si scrive il
+progetto → vi mostriamo l'elenco di ciò che verrà creato o cambiato → il vostro sì → l'ambiente viene
+creato → una correzione diventa una versione nuova, che tocca solo ciò che cambia.
 
 **Che cosa gli conviene** — una slide con i **cinque** vantaggi che contano per quel cliente, detti
 come vantaggi suoi e non come funzioni della CLI; gli altri nell'approfondimento:
@@ -250,16 +264,100 @@ come vantaggi suoi e non come funzioni della CLI; gli altri nell'approfondimento
 | Non tocca ciò che non è suo | «Se nel vostro ambiente c'è già qualcosa con lo stesso nome, il progetto si ferma invece di sovrascriverlo» |
 | Si toglie per intero | «Se decidete di non usarlo, si smonta tutto ciò che è stato creato, senza lasciare pezzi» |
 
-Il disegno delle **versioni** (grafici §4) chiude l'atto, in una slide sua: cinque o sei tappe prese dai blocchi
+Le **versioni** chiudono l'atto, in una slide sua, come **tabella** data → che cosa è cambiato: cinque o sei tappe prese dai blocchi
 `vN` in testa al manifest, ciascuna con una riga di **che cosa è cambiato per il cliente** — «le PEC
 si aprono fino al messaggio che contengono», «la riunione del venerdì si detta in chat». Il perché
 di una versione si dice come **cosa che il cliente ci ha chiesto o mostrato**, mai come prova fallita
 o difetto trovato.
 
-## 3. Le regole di scrittura
+### 2.6 Le slide di demo
 
-In sintesi — il dettaglio, con il vocabolario e gli esempi prima/dopo, in
-[`references/linguaggio.md`](references/linguaggio.md):
+Il punto difficile di una sessione è il passaggio dalla spiegazione alla prova: se la demo arriva
+senza preavviso il cliente guarda lo schermo senza sapere che cosa cercare, e se la spiegazione dura
+troppo si perde prima di vedere qualcosa. Le **slide di demo** tengono insieme le due cose: la slide
+dice **che cosa state per vedere e che cosa notare**, poi si mostra, poi si torna alle slide.
+
+```markdown
+---
+
+<!-- slide: demo-D2 · atto: la storia · demo: D2 -->
+## Vediamolo: una PEC diventa una pratica, e la pratica un impegno in calendario
+
+Adesso mandiamo una PEC di prova alla casella dell'agenda. In un paio di minuti:
+
+- la mail viene presa in carico, e chi scrive riceve la conferma
+- la referente trova la proposta già compilata, con il testo originale accanto
+- dopo il suo sì, l'udienza compare nel calendario comune
+
+> **Approfondimento.** Guardate che cosa succede quando un dato manca: la proposta lo scrive
+> «non indicato», e la referente lo completa. Nessun passaggio arriva in calendario senza che una
+> persona l'abbia visto.
+
+> **Sales.** «Adesso ve lo facciamo vedere»: annunciare le tre cose, poi passare la parola.
+
+> **AI Specialist.** Guida tecnica §D2. Mail M5 già pronta in bozza.
+
+> **Da soli.** Annunciare le tre cose mentre si invia la mail: il tempo di attesa è quello.
+```
+
+Le regole:
+
+- **Da tre a cinque demo**, numerate `D1`, `D2`… nell'ordine in cui compaiono. Il codice è lo stesso
+  nella guida tecnica: è il gancio fra le due. Il commento della slide lo porta: `demo: D2`.
+- **Si mette dove la storia ha appena promesso qualcosa**: dopo la slide della PEC, la demo della PEC.
+  Mai due demo di fila, mai una demo prima che il cliente sappia che cosa aspettarsi.
+- **Il titolo comincia con «Vediamolo:»** e dice il risultato, non l'azione tecnica: «una PEC
+  diventa una pratica», non «invio del messaggio alla casella».
+- **Il corpo elenca che cosa guardare**, da due a quattro punti, nell'ordine in cui compariranno. È
+  la lista che il cliente tiene a mente mentre guarda.
+- **L'approfondimento dice che cosa notare** — il dettaglio che fa capire il resto — ed è per chi
+  legge la guida dopo, senza la demo.
+- **Le note dell'AI Specialist rimandano alla guida tecnica** (`§D2`), e dicono che cosa deve essere
+  già pronto. Il passo per passo non sta qui.
+- **Ogni demo ha un piano B** nella guida tecnica. Se la demo salta, la slide si legge comunque: è
+  per questo che il corpo dice che cosa si sarebbe visto.
+- **Le domande di prova dell'atto «Provatelo voi» possono diventare demo**: la slide dell'esempio
+  resta, la demo la esegue dal vivo. In quel caso la slide di esempio porta `demo: Dn` nel commento,
+  e non si aggiunge una slide di demo a parte.
+
+## 3. La guida tecnica per l'AI Specialist
+
+Il file è `../hevolus-assessment/customers/<cliente>/guida-tecnica-<scenario>.md`. È un
+**documento**, non slide, ed è **interno**: il cliente non lo vede mai. La struttura completa, con
+un esempio per sezione, è in [`references/guida-tecnica.md`](references/guida-tecnica.md). In breve:
+
+| # | Sezione | Che cosa contiene |
+|---|---|---|
+| 0 | **Scheda** | scenario, versione del manifest, ambiente della demo (tenant, casella, topic, per nome), chi conduce, durata; che cosa è **sicuro** mostrare dal vivo e che cosa è **fragile**, dall'ultimo giudizio |
+| 1 | **Il flusso, in tecnico** | la mappa dei componenti in tabelle — agenti, agent task con il loro orario, processi e passi, orchestratori, server MCP e tool —, senza disegni; e **il ponte**: per ogni parola della guida per il cliente, il componente che c'è dietro («la referente verifica» → passo `verifica` del processo, ruolo *Referente agenda civile*) |
+| 2 | **La scaletta** | la tabella della sessione: slide per slide, chi parla (Sales, AI Specialist), dove cadono le demo, i tempi; e la **scaletta da soli** |
+| 3 | **Preparazione** | il giorno prima e l'ora prima: dati da mettere in casella o sul tenant, compiti da avere già aperti, schede del browser, account, il piano B pronto |
+| 4 | **Le demo `D1`…`Dn`** | per ognuna: la slide in cui cade; che cosa deve capire il cliente; che cosa preparare; **i passi**, con che cosa dice il Sales mentre l'AI Specialist esegue; **che cosa deve comparire**; **sotto il cofano** (il meccanismo, per chi chiede); **se va storto** (sintomo → che cosa fare, piano B); pulizia |
+| 5 | **Domande tecniche** | le domande che un tecnico del cliente fa, con la risposta vera: permessi, dati, dove girano i modelli, che cosa succede se… |
+| 6 | **Limiti e cose da non mostrare** | ciò che non c'è, ciò che è fragile dal vivo, e come dirlo senza girarci intorno |
+| 7 | **Dopo la demo** | pulizia del tenant e della casella, che cosa lasciare al cliente (il link alla guida, le domande di prova) |
+
+Le regole che contano:
+
+- **Segue la guida per il cliente, non la rifà.** Le demo hanno gli stessi codici, le slide si
+  citano per nome (`giornata-pec`). Se la storia cambia, cambia prima la guida per il cliente.
+- **Il linguaggio è tecnico, e preciso**: nomi veri di agenti, passi, tool, ruoli, come stanno sul
+  tenant (`BP-<TAG>-…`). Ma **nessun segreto**: né chiavi, né token, né indirizzi con credenziali;
+  gli id di istanze e run solo se servono a ritrovare qualcosa durante la demo.
+- **Ogni demo si può fare in due modi**: dal vivo e con il piano B (un input simulato incollato in
+  chat, un compito già completato, uno screenshot). Il piano B è scritto, non improvvisato.
+- **«Che cosa deve comparire» è verificabile**: una frase, un campo, un evento in calendario — ciò che
+  l'AI Specialist controlla con gli occhi prima di dire «ecco».
+- **I tempi sono veri**: quanto ci mette la casella (il giro dei task schedulati), quanto un agente,
+  quanto un passo del processo. È l'informazione che serve per riempire l'attesa.
+- **Lo stato del collaudo si usa**, e si cita con la data del giudizio: «fragile dal vivo — due volte
+  su tre al 24/09». Non per il cliente: per decidere che cosa mostrare.
+
+## 4. Le regole di scrittura
+
+Per la **guida per il cliente** — il dettaglio, con il vocabolario e gli esempi prima/dopo, in
+[`references/linguaggio.md`](references/linguaggio.md). Il vocabolario dello stesso file, letto al
+contrario, è il **ponte** della guida tecnica (§3, sezione 1):
 
 - **Frasi corte, parole sue.** Il lessico del cliente, non il nostro: «associato», «pratica»,
   «udienza», non «entità», «istanza», «record».
@@ -279,7 +377,7 @@ In sintesi — il dettaglio, con il vocabolario e gli esempi prima/dopo, in
 - **I nomi degli esempi** sono veri solo se il cliente li ha consegnati per la prova; altrimenti
   inventati, e il documento lo dice.
 
-## 4. Mostrarla, poi pubblicarla
+## 5. Mostrarle, poi pubblicarle
 
 1. **Il Markdown all'utente**, prima di tutto, con **l'elenco dei titoli** letti di fila in cima al
    messaggio: se non raccontano la storia da soli, la guida non è pronta. Chi conosce il cliente sa
@@ -288,31 +386,43 @@ In sintesi — il dettaglio, con il vocabolario e gli esempi prima/dopo, in
 2. **La pagina web** — un artifact privato da proiettare o condividere, più una copia HTML locale
    che si apre senza account. Come si costruisce, l'organizzazione da verificare prima e l'apertura
    nel browser: [`references/pagina-web.md`](references/pagina-web.md).
-3. **Il deck per i sales**, se l'utente lo chiede: si parte con `Artifact` `action: "quickstart"`,
+3. **Il deck**, se l'utente lo chiede: si parte con `Artifact` `action: "quickstart"`,
    `intent: "slides"`, e si usa il tipo Slides che indica (si scarica come .pptx o PDF). La
    corrispondenza è uno a uno, senza riscrivere: una slide del Markdown è una slide del deck, il
-   titolo resta il titolo, il corpo il corpo; la nota del relatore è l'approfondimento seguito da
-   *Per chi presenta*; i disegni si
-   ridisegnano con i colori di [`references/grafici.md`](references/grafici.md). L'appendice resta
+   titolo resta il titolo, il corpo il corpo; la nota del relatore è l'approfondimento seguito dalle
+   note per ruolo (Sales, AI Specialist, Da soli); le slide di demo hanno un aspetto loro, riconoscibile
+   a colpo d'occhio; il flusso si disegna con i colori di
+   [`references/grafici.md`](references/grafici.md). L'appendice resta
    in coda, dopo la divisoria. Se l'utente chiede la versione breve, si usano i nomi delle slide del
    taglio (§2.1).
-4. **Il commit** nel repository dell'assessment, solo se l'utente lo chiede.
+4. **La guida tecnica**: prima il Markdown all'utente, poi una **pagina interna** — un artifact
+   separato, privato, da non condividere con il cliente — più la copia HTML locale
+   (`guida-tecnica-<scenario>.html`). Stesso contratto della pagina per il cliente
+   ([`references/pagina-web.md`](references/pagina-web.md)), trattamento da documento di lavoro: indice
+   delle demo, ogni demo apribile, i passi come elenco da spuntare con la vista.
+5. **Il commit** nel repository dell'assessment, solo se l'utente lo chiede.
 
-## 5. Quando aggiornarla
+## 6. Quando aggiornarle
 
 A ogni versione del manifest che cambia il flusso, ciò che un assistente sa fare o ciò che il
 cliente noterebbe. Si aggiornano, per nome, le slide degli esempi che ne sono toccati, quelle della
 chiusura e la slide delle versioni; la storia resta finché il flusso non cambia. Se c'è il deck, si
 aggiorna lo stesso deck, non se ne fa uno nuovo. Un collaudo da solo non è una
-ragione per aggiornarla.
+ragione per aggiornare la guida per il cliente; lo è per la **guida tecnica**, che cambia la scheda
+(sicuro / fragile), il piano B delle demo toccate e i limiti. Se cambia un passo della demo, cambia
+anche la slide di demo, se ciò che il cliente vedrà è diverso.
 
 ## Cosa non fare
 
-- Non riportare risultati di test, in nessuna sezione e in nessun grafico.
+- Non riportare risultati di test nella guida per il cliente, in nessuna sezione e in nessun grafico.
+- Non mettere la guida tecnica, né un suo pezzo, nella pagina o nel deck per il cliente.
+- Non scrivere una demo senza piano B, né una slide di demo che non dica che cosa guardare.
 - Non lasciare una slide di contenuto senza approfondimento, né un corpo di una frase sola: la guida
   deve reggersi da sola.
-- Non mettere indicazioni di regia nell'approfondimento: vanno in *Per chi presenta*.
+- Non mettere indicazioni di regia nell'approfondimento: vanno nelle note per ruolo.
 - Non copiare il grafo del motore nel disegno: il cliente non deve vedere uno switch.
+- Non usare Mermaid, né riquadri o linee del tempo che ripetono in forma di disegno ciò che una lista
+  dice già: si scrive la lista.
 - Non scrivere una risposta di esempio che il manifest non può produrre, né promettere ciò che è
   fuori perimetro.
 - Non mettere nella pagina web la parte interna per chi conduce la sessione, né alcun dato del tenant.

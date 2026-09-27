@@ -170,7 +170,7 @@ corrispondente di `.claude-plugin/marketplace.json`.
 >
 > La versione del **plugin** (`plugin.json` e `marketplace.json`) è un numero diverso: sale anche
 > quando cambiano solo le skill, senza una CLI nuova. Alzarli insieme «per coerenza» è il modo di
-> rompere il download. Oggi infatti divergono — plugin `2.21.0`, CLI `2.15.1` — ed è corretto così.
+> rompere il download. Oggi infatti divergono — plugin `2.22.0`, CLI `2.15.1` — ed è corretto così.
 
 Che il numero in `version.txt` corrisponda a una release davvero scaricabile lo verifica
 `controlli.yml` a ogni push: la release deve esistere **qui** (cioè essere stata rispecchiata) e
