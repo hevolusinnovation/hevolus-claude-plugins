@@ -31,7 +31,7 @@ Tutti sulla **[pagina delle release](https://github.com/hevolusinnovation/hevolu
 | `xrcopilotlab-delivery-atlas.zip` | la **skill** che porta il dossier alla delivery Atlas e al CMS, da sola | idem |
 | `xrcopilotlab-blueprint.zip` | la **skill** che scrive e applica un blueprint | idem |
 | `xrcopilotlab-blueprint-test.zip` | la **skill** che collauda un blueprint applicato | idem |
-| `xrcopilotlab-blueprint-guide.zip` | la **skill** che scrive le due guide della demo: per il cliente a slide, tecnica per l'AI Specialist | idem |
+| `xrcopilotlab-blueprint-guide.zip` | la **skill** che scrive le due guide della demo — per il cliente a slide, tecnica per l'AI Specialist — e le pubblica come due artifact | idem |
 
 Il **plugin `blueprints` per Claude Code non si scarica**: si installa con le [due righe](#installare-in-breve) e porta con sé le sue tre skill e lo strumento a riga di comando. Gli zip delle skill servono a chi le vuole **senza** il plugin — in chat, o su un'altra app. La differenza fra i due formati è reale: scambiarli dà l'errore «All files must be inside the top-level folder».
 

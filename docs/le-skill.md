@@ -224,7 +224,7 @@ La divisione del lavoro è netta, ed è ciò che rende il collaudo ripetibile:
 | «Il benvenuto dell'orchestratore non compare, guarda tu» | Apre Chrome con l'estensione **Claude in Chrome** e guarda ciò che vede il cliente: la suite prova l'API, e lo strato che sta in mezzo — chat, form di avvio, coda dei compiti — sa rompersi da solo lasciandola verde. Guarda e non cambia niente |
 | «Cosa è andato male, e di chi è?» | Legge il report, dà un verdetto **pass / parziale / fail** per ogni caso, fa il triage per componente e scrive `giudizio.md` |
 | «Apri le issue» (**dopo** aver visto le bozze) | Le apre in `xrcopilotlab-webapp-dotnet` con la label del componente, una per difetto confermato, e riporta i numeri nel giudizio |
-| «Prepara le domande di prova per il cliente» · «Scrivi la guida del processo per il cliente» | Scrive `demo-domande-<scenario>.md` e `guida-<scenario>.md` nella cartella del cliente dell'assessment, e pubblica la guida anche come pagina web |
+| «Prepara le domande di prova per il cliente» · «Scrivi la guida del processo per il cliente» | Pubblica le domande di prova come artifact interno «<Scenario> — domande di prova», con la sorgente dentro; la guida la scrive `xrcopilotlab-blueprint-guide` |
 | «Come si collauda un blueprint?» · la skill chiesta senza altro | Orientamento: a cosa serve, cosa serve, quali suite esistono, quali blueprint hanno un run. Poi la domanda: quale blueprint, su quale ambiente |
 
 **I tre comandi** della CLI dietro la skill:
@@ -371,18 +371,19 @@ skill le mostra — titolo, repository, una riga ciascuna — e chiede **quali**
 le bozze mostrate, non per quelle che scriverà dopo.
 
 **Le guide per il cliente.** Al termine di un collaudo — e sempre a quello finale — la skill
-traduce suite e giudizio in due documenti che il cliente può leggere, nella cartella del cliente del
-repository dell'assessment:
+traduce suite e giudizio in documenti leggibili fuori dal team. Non serve il repository
+dell'assessment: si pubblicano come **artifact** su claude.ai, ciascuno con la sua sorgente Markdown
+fra i file, così una sessione dopo lo rilegge e lo ripubblica allo stesso link:
 
-- **le domande di prova** (`demo-domande-<scenario>.md`): la tabella di stato in testa
+- **le domande di prova** (artifact interno «<Scenario> — domande di prova», sorgente
+  `demo-domande.md`): la tabella di stato in testa
   (✅ pronta · 🟡 da correggere · ⛔ da non mostrare come funzionante · ⏳ attende una fonte), le
   domande della suite **identiche** in blocchi di codice, l'atteso e le risposte sbagliate nella
   lingua del cliente («ha inventato un orario», non «suspect: KnowledgeGraph»), una scheda di
   valutazione, e una sezione interna per chi conduce con i difetti aperti;
-- **la guida allo scenario** (`guida-<scenario>.md`), se c'è un processo o un'orchestrazione: i
-  concetti, il diagramma dal grafo, i passi, le criticità del cliente → i meccanismi, gli agenti e
-  cosa non fanno, collaudato e mancante — **e la sua pagina web**, che è ciò che si proietta e si
-  condivide, aperta nel browser appena pubblicata.
+- **la guida allo scenario** non la scrive questa skill ma `xrcopilotlab-blueprint-guide`, qui
+  sotto: quando un collaudo porta a una versione che cambia ciò che il cliente vede, la skill propone
+  di aggiornarla.
 
 Nelle guide non entrano id di istanze, run, webhook o chiavi, né il triage per componente: al
 cliente si dice cosa non funziona e quando sarà corretto, non dove nel codice. E «collaudato» si
@@ -406,21 +407,27 @@ report con i codici `BT0xx` (`testing.md`); una suite reale (`esempio-suite-agen
 
 Le demo dal cliente le conducono un **Sales** e un **AI Specialist**, o il solo AI Specialist, e il
 punto difficile è spiegare in modo semplice un processo complesso mentre lo si mostra. La skill
-scrive **due guide agganciate agli stessi punti di demo** (`D1`, `D2`…):
+scrive **due guide agganciate agli stessi punti di demo** (`D1`, `D2`…), e le consegna come **due
+artifact** su claude.ai — non serve avere il repository dell'assessment. Ogni artifact porta dentro
+la sua sorgente Markdown: chi riprende la guida la ritrova in `/artifacts`, la rilegge e la
+ripubblica allo stesso link, che il cliente ha già:
 
-- **la guida per il cliente** (`guida-<scenario>.md`), a story slides in linguaggio semplice — titolo
+- **la guida per il cliente** (artifact «<Scenario> — guida», sorgente `guida.md`), a story slides in linguaggio semplice — titolo
   che dice il messaggio, corpo, approfondimento — che è il **canovaccio** della sessione. Le slide
   «Vediamolo» sono le pause per la demo e dicono che cosa guardare; le note per chi presenta sono per
   ruolo: **Sales**, **AI Specialist**, **Da soli**. Diventa la pagina web per il cliente e il deck
   (tipo Slides). **Niente risultati di collaudo**;
-- **la guida tecnica per l'AI Specialist** (`guida-tecnica-<scenario>.md`): il flusso in termini di
+- **la guida tecnica per l'AI Specialist** (artifact «<Scenario> — demo (interna)», sorgente
+  `guida-tecnica.md`): il flusso in termini di
   agenti, task, processi e server MCP, il **ponte** fra le parole del cliente e i componenti, la
   scaletta a due e da soli, la preparazione, e per ogni demo i passi, che cosa deve comparire, il
   meccanismo, il **piano B** e la pulizia. Usa il giudizio del collaudo per dire che cosa è sicuro
   mostrare dal vivo. Si pubblica come **pagina interna**, mai al cliente.
 
-**Non esegue test e non tocca il tenant**: legge manifest, suite, domande di prova, materiali della
-demo, giudizio (solo per la tecnica) e dossier dell'assessment.
+**Non esegue test e non tocca il tenant**: legge manifest (senza repository, con
+`xrcopilotlab-bp pull`), suite, l'artifact delle domande di prova, materiali della demo, giudizio
+(solo per la tecnica) e dossier dell'assessment; ciò che non ha lo chiede, e se non arriva lo
+dichiara. Se il repository dell'assessment c'è, ci salva una copia, e fa il commit solo se richiesto.
 
 | Cosa scrivi | Cosa fa la skill |
 |---|---|

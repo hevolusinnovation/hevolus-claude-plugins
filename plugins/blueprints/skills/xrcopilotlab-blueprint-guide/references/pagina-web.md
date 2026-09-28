@@ -42,18 +42,24 @@ tipo Slides (SKILL §4): la pagina e il deck hanno le **stesse slide, nello stes
 6. **Titolo** = il nome dello scenario nella lingua del cliente («Conoscenza degli associati»),
    non un'etichetta generica; la spiegazione va nella `description` del publish. Icona coerente con
    il dominio e **stabile** fra le ripubblicazioni.
-7. **Pubblicare con `Artifact`** dalla cartella di lavoro della sessione, poi **aprire subito la
+7. **Pubblicare con `Artifact`** dalla cartella di lavoro della sessione, **con la sorgente fra i
+   `files`** — `{"guida.md": "<percorso nello scratchpad>"}` per la pagina del cliente,
+   `{"guida-tecnica.md": …}` per quella interna — così chi viene dopo la rilegge con
+   `action: "read"`, `path: "guida.md"` senza bisogno di un repository. Poi **aprire subito la
    pagina nel browser dell'utente** — è un passo obbligatorio. Prima strada: gli strumenti **Claude
    in Chrome** (`tabs_context_mcp`, poi `navigate` sull'URL), che la aprono nella sessione Chrome
    dove l'utente è già loggato. Se l'estensione non è connessa: `open <url>` su macOS, `xdg-open` su
    Linux, `start` su Windows. Così se compare «Page not found» il problema dell'organizzazione emerge
    adesso, non in sala. Dire anche come si riapre: `ctrl+]` riapre l'ultimo artifact della sessione,
    `/artifacts` li elenca.
-8. **Ripubblicare lo stesso percorso** aggiorna la stessa pagina: non cambiare nome al file fra una
-   versione e l'altra, altrimenti nasce un artifact nuovo e il link già dato al cliente resta vecchio.
-9. **Copia locale** accanto al Markdown (`guida-<scenario>.html`): lo stesso HTML avvolto in un
-   documento completo, senza librerie esterne. Si apre con un doppio clic,
-   senza account: è la rete di sicurezza per la sala, dove il login può non esserci. **Aprirla e
+8. **Aggiornare, non ricreare.** Nella stessa sessione basta ripubblicare lo stesso percorso; in una
+   sessione nuova si trova l'artifact con `action: "list"`, lo si legge (`action: "read"`, con
+   `path` per la sorgente) e si ripubblica passando il suo `url`. Un publish senza `url` crea un
+   artifact nuovo, e il link già dato al cliente resta vecchio.
+9. **Copia per la sala**: lo stesso HTML avvolto in un documento completo, senza librerie esterne,
+   che si apre con un doppio clic e senza account — la rete di sicurezza dove il login può non
+   esserci. Si offre all'utente come file da scaricare (o si salva dove dice lui, di norma la
+   cartella Download); nel repository dell'assessment, se c'è, accanto al Markdown. **Aprirla e
    guardarla** prima di consegnarla.
 
 ## L'organizzazione conta
@@ -74,9 +80,8 @@ secondo artifact, separato. Le note per ruolo vanno solo nel deck, in coda alla 
 ## La pagina interna della guida tecnica
 
 Un **artifact separato** da quello del cliente, con un nome che lo dica («Agenda di Studio Polis —
-demo»), mai condiviso con il cliente. Trattamento da documento di lavoro, non da slide: in alto la
+demo (interna)»), con `guida-tecnica.md` fra i `files`, mai condiviso con il cliente. Trattamento da documento di lavoro, non da slide: in alto la
 scheda (§0) e l'indice delle demo; ogni demo in una sezione che si apre e si chiude, con i passi come
 lista numerata, i blocchi da copiare con un pulsante «Copia», «Deve comparire» evidenziato, la tabella
 «Se va storto» sempre visibile. Si legge anche sul telefono, che è dove l'AI Specialist la guarda
-mentre lo schermo grande mostra la demo. Stessa copia HTML locale, accanto al Markdown
-(`guida-tecnica-<scenario>.html`).
+mentre lo schermo grande mostra la demo. Stessa copia per la sala, offerta come file da scaricare.
