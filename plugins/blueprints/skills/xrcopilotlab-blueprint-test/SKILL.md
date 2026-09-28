@@ -147,8 +147,8 @@ punti a un'entità che esiste, che le skill e i file attesi siano dichiarati, ch
 non girarli all'utente.
 
 Poi **mostrare la suite all'utente** — le domande, non il file — e chiedere se sono quelle
-giuste. Il modo giusto di mostrarle è già il documento per il cliente: **le domande di prova**
-(`demo-domande-<scenario>.md`, nella cartella del cliente nell'assessment), scritte dalla suite con
+giuste. Il modo giusto di mostrarle è già il documento per la sessione: **le domande di prova**
+(l'artifact «<Scenario> — domande di prova», con la sorgente `demo-domande.md`), scritte dalla suite con
 la traduzione di [`references/guida-cliente.md`](references/guida-cliente.md). Nasce qui, con una
 tabella di stato vuota, e si aggiorna a ogni collaudo. Una domanda scritta bene ma sul problema sbagliato produce un report inutile, e l'unico
 che sa quale sia il problema giusto è chi conosce il cliente.
@@ -384,7 +384,7 @@ repository lo prevede — la label `semver:patch` con la skill `xrcopilotlab-lab
 ## 6. Le domande di prova per il cliente
 
 Al termine di un collaudo — e sempre al collaudo finale, quando il manifest è stabile — si
-aggiornano o si scrivono **le domande di prova** (`demo-domande-<scenario>.md`), con la traduzione di
+aggiornano o si scrivono **le domande di prova** (l'artifact «<Scenario> — domande di prova»), con la traduzione di
 [`references/guida-cliente.md`](references/guida-cliente.md): la tabella di stato in testa presa
 dall'ultimo giudizio (✅ pronta · 🟡 da correggere · ⛔ da non mostrare come funzionante · ⏳ attende
 una fonte), le domande della suite con atteso e risposte sbagliate nella lingua del cliente, la
@@ -396,8 +396,12 @@ non riporta gli esiti del collaudo: un collaudo da solo non la fa aggiornare. Qu
 nata dal collaudo diventa una versione del manifest che cambia ciò che il cliente vede, proporre
 all'utente di aggiornarla con [`xrcopilotlab-blueprint-guide`](../xrcopilotlab-blueprint-guide/SKILL.md).
 
-Vanno nella cartella del cliente del repository dell'assessment, senza id del tenant, con lo stato
-reale e non quello sperato, e si **mostrano all'utente** prima di darle per finite. Il triage resta
+Si pubblicano come **artifact**, non come file in un repository — chi le usa, un Sales o un AI
+Specialist dal plugin, spesso non ne ha uno: la pagina e, fra i suoi `files`, la sorgente
+`demo-domande.md`, così la prossima sessione la rilegge (`Artifact` `action: "read"`, `path`) e la
+ripubblica allo stesso `url`. Come, in [`references/guida-cliente.md`](references/guida-cliente.md).
+Senza id del tenant, con lo stato reale e non quello sperato, e si **mostrano all'utente** prima di
+darle per finite. Il triage resta
 nel giudizio: al cliente si dice cosa non funziona e quando sarà corretto, non dove nel codice.
 
 ## 7. Chiudere
@@ -405,11 +409,14 @@ nel giudizio: al cliente si dice cosa non funziona e quando sarà corretto, non 
 Riportare all'utente, in quest'ordine: quanti casi, quanti passati per la CLI, quanti per il
 tuo giudizio; i fallimenti attribuiti, per componente; le segnalazioni aperte con i numeri; i casi
 **consegnati a uno sviluppatore** e se il messaggio è partito o è solo pronto; ciò
-che è rimasto non attribuito e perché; dove stanno report, giudizio e le domande di prova per il cliente, e se la guida allo scenario va aggiornata. E
+che è rimasto non attribuito e perché; dove stanno report e giudizio, **il link** all'artifact delle domande di prova, e se la guida allo scenario va aggiornata. E
 ricordare che la suite in `blueprints/tests/` va **committata**: è la regressione del blueprint, e la prossima versione
 della libreria si collauda rilanciandola.
 
 ## Cosa non fare
+
+- Non lasciare le domande di prova solo in un file locale o in un repository: sono un artifact, con la
+  sorgente dentro, e un aggiornamento va allo stesso `url`.
 
 - Non chiamare l'API a mano (`curl`, `.Client`): tutto passa da `xrcopilotlab-bp test`. Se
   manca un'evidenza, si estende la CLI, non si aggira.

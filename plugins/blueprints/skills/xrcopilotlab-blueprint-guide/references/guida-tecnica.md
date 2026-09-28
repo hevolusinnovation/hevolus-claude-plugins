@@ -5,7 +5,8 @@ la tiene aperta durante la sessione accanto alle slide, e la usa quando qualcosa
 il cliente non la vede, e può contenere tutto ciò che serve a chi fa la demo — nomi veri dei
 componenti, stato del collaudo, fragilità — **tranne i segreti**.
 
-Il file è `../hevolus-assessment/customers/<cliente>/guida-tecnica-<scenario>.md`. Se c'era una
+La sorgente è `guida-tecnica.md`, pubblicata con l'artifact interno «<Scenario> — demo (interna)»
+(SKILL, «Dove vivono le guide»); nel repository dell'assessment, se c'è, ne sta solo una copia. Se c'era una
 guida scritta per chi conduce la demo (un canovaccio, i materiali, i percorsi del processo), è la sua
 fonte principale: si riprende ciò che regge e lo si mette in questa forma.
 

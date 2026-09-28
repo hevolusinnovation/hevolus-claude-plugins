@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-guide
-description: Scrive le due guide di un blueprint XRCopilotLab applicato, agganciate agli stessi punti di demo. (1) La guida per il cliente, a story slides in linguaggio semplice — titolo-messaggio, corpo, approfondimento, slide di demo, note per Sales e AI Specialist — da cui nascono la pagina web e il deck: è il canovaccio della sessione. (2) La guida tecnica per l'AI Specialist: il flusso in termini di agenti, processi e collegamenti, e per ogni demo preparazione, passi, cosa deve comparire, meccanismo, piano B e pulizia. Quella per il cliente non riporta i risultati dei test; la tecnica li usa per dire che cosa è sicuro mostrare. Non esegue test né tocca il tenant. Usa quando l'utente chiede di "scrivere la guida per il cliente", "la guida tecnica della demo", "preparare la demo dal cliente", "le slide per i sales", "spiegare il blueprint al cliente". NON per le domande di prova né per il collaudo (xrcopilotlab-blueprint-test), né per scrivere o applicare il manifest (xrcopilotlab-blueprint).
+description: Scrive le due guide di un blueprint XRCopilotLab applicato, agganciate agli stessi punti di demo. (1) La guida per il cliente, a story slides in linguaggio semplice — titolo-messaggio, corpo, approfondimento, slide di demo, note per Sales e AI Specialist — da cui nascono la pagina web e il deck: è il canovaccio della sessione. (2) La guida tecnica per l'AI Specialist: il flusso in termini di agenti, processi e collegamenti, e per ogni demo preparazione, passi, cosa deve comparire, meccanismo, piano B e pulizia. Le due guide si consegnano come due artifact su claude.ai, ciascuno con la sua sorgente Markdown dentro: non serve avere il repository dell'assessment. Quella per il cliente non riporta i risultati dei test; la tecnica li usa per dire che cosa è sicuro mostrare. Non esegue test né tocca il tenant. Usa quando l'utente chiede di "scrivere la guida per il cliente", "la guida tecnica della demo", "preparare la demo dal cliente", "le slide per i sales", "spiegare il blueprint al cliente". NON per le domande di prova né per il collaudo (xrcopilotlab-blueprint-test), né per scrivere o applicare il manifest (xrcopilotlab-blueprint).
 ---
 
 # xrcopilotlab-blueprint-guide
@@ -15,12 +15,12 @@ stessi punti di demo:
 
 | | La guida per il cliente | La guida tecnica |
 |---|---|---|
-| File | `guida-<scenario>.md` | `guida-tecnica-<scenario>.md` |
+| Dove vive | **artifact** «<Scenario> — guida», con la sorgente `guida.md` | **artifact** «<Scenario> — demo (interna)», con la sorgente `guida-tecnica.md` |
 | Lettore | il cliente, e chi presenta | l'AI Specialist, prima e durante la demo |
 | Forma | story slides a tre livelli (§2), con le **slide di demo** | un documento per demo, con gli stessi codici `D1`, `D2`… (§3) |
 | Linguaggio | il suo: «pratica», «udienza», «assistente» | il nostro: agenti, agent task, processi, server MCP |
 | Serve a | **canovaccio** della sessione: la storia che si racconta, e dove ci si ferma a mostrare | **eseguire** la demo: che cosa preparare, che cosa cliccare, che cosa deve comparire, come spiegarlo se chiedono, che cosa fare se va storto |
-| Si pubblica | pagina web e deck, **per il cliente** | pagina **interna**, mai condivisa con il cliente |
+| Si condivide | la pagina e il deck, **con il cliente** | con chi conduce la demo, **mai** con il cliente |
 | Collaudo | **mai**: niente esiti, niente difetti | sì: che cosa è sicuro mostrare dal vivo e che cosa è fragile |
 
 **Il filo è la guida per il cliente.** La tecnica non racconta una storia sua: segue le stesse slide,
@@ -31,13 +31,39 @@ percentuali, grafici dei risultati, difetti trovati e corretti, «provato con la
 cliente interessa come funziona il suo ambiente, non come l'abbiamo verificato. La guida tecnica sì:
 chi fa la demo deve sapere che cosa regge e che cosa no.
 
+## Dove vivono le guide: due artifact, non un repository
+
+Chi usa questa skill spesso **non ha repository**: un Sales, un AI Specialist che lavora dal plugin.
+Per questo il risultato sono **due artifact** su claude.ai, non due file:
+
+| Artifact | Titolo | Pagina | Sorgente pubblicata con la pagina |
+|---|---|---|---|
+| Per il cliente | «<Scenario> — guida» (es. «Conoscenza degli associati — guida») | story slides che si scorrono (§5) | `guida.md` |
+| Interno | «<Scenario> — demo (interna)» | documento di lavoro per l'AI Specialist | `guida-tecnica.md` |
+
+- **La sorgente sta dentro l'artifact.** Il Markdown si scrive nella cartella di lavoro della sessione
+  (lo scratchpad) e si pubblica insieme alla pagina come file di supporto (`files`). Chi riprende la
+  guida in un'altra sessione, o un collega, non cerca un file: trova l'artifact con
+  `Artifact` `action: "list"`, legge la sorgente con `action: "read"` e `path: "guida.md"`, la
+  modifica e ripubblica **allo stesso `url`** — il link già dato al cliente non cambia.
+- **Due artifact separati, sempre.** Quello interno contiene nomi dei componenti, stato del collaudo e
+  fragilità: non è una sezione nascosta della pagina per il cliente, perché chi riceve un link vede
+  tutto ciò che il link contiene.
+- **Privati alla nascita.** Condividerli è una scelta dell'utente, dalla pagina: il cliente riceve solo
+  il primo.
+- **Il repository dell'assessment è facoltativo.** Se c'è (`../hevolus-assessment/customers/<cliente>/`)
+  e l'utente lo vuole, si salva anche lì una copia dei due Markdown (`guida-<scenario>.md`,
+  `guida-tecnica-<scenario>.md`); il commit solo se lo chiede. La copia non sostituisce l'artifact:
+  il riferimento resta l'artifact.
+- **Mai** in `blueprints/` del repository di prodotto: contiene nomi e casi del cliente.
+
 ## Chi fa che cosa
 
 | Chi | Fa | Non fa |
 |---|---|---|
 | [`xrcopilotlab-blueprint`](../xrcopilotlab-blueprint/SKILL.md) | scrive e applica il manifest | spiegarlo al cliente |
-| [`xrcopilotlab-blueprint-test`](../xrcopilotlab-blueprint-test/SKILL.md) | collauda, giudica, segnala, scrive **le domande di prova** (`demo-domande-<scenario>.md`) | la guida |
-| **Questa skill** | scrive **le due guide** (`guida-<scenario>.md`, `guida-tecnica-<scenario>.md`), la pagina web e il deck della prima, la pagina interna della seconda | eseguire test, toccare il tenant, aprire issue |
+| [`xrcopilotlab-blueprint-test`](../xrcopilotlab-blueprint-test/SKILL.md) | collauda, giudica, segnala, scrive **le domande di prova** (l'artifact «<Scenario> — domande di prova») | la guida |
+| **Questa skill** | scrive **le due guide** e le pubblica come **due artifact** (la pagina per il cliente, la pagina interna), più il deck della prima se richiesto | eseguire test, toccare il tenant, aprire issue |
 
 Le guide **leggono**: il manifest, le suite, le domande di prova, i materiali della demo. Non
 eseguono niente: se per la demo serve un dato che nella casella o nel tenant non c'è, la guida
@@ -53,8 +79,10 @@ urgente: se l'utente è a metà di una guida, si finisce e si aggiorna dopo.
 
 ## 0. Se `$ARGS` è vuoto
 
-Orientare e fermarsi: a cosa servono le due guide, quali esistono già
-(`../hevolus-assessment/customers/*/guida-*.md`), quali manifest ci sono (`blueprints/*.yml`). Poi
+Orientare e fermarsi: a cosa servono le due guide, quali esistono già (`Artifact`
+`action: "list"`: i titoli «… — guida» e «… — demo (interna)»; e, se c'è il repository,
+`../hevolus-assessment/customers/*/guida-*.md`), quali blueprint ci sono (`blueprints/*.yml`; senza repository si chiede il tag e si scarica il
+manifest con `xrcopilotlab-bp pull --tag <TAG>`). Poi
 le domande: per quale cliente e quale scenario, e se la sessione la conducono in due o l'AI
 Specialist da solo.
 
@@ -64,19 +92,26 @@ Specialist da solo.
 |---|---|---|---|
 | Il manifest | `blueprints/<nome>.yml` | il flusso: i passi, chi li fa, cosa passa da uno all'altro; il «cosa non fai» degli agenti; i compiti e i loro tempi; i lavori programmati; le versioni (i blocchi `vN`); ciò che è fuori perimetro | tutto questo **con i nomi veri**: agenti, agent task e il loro cron, processi e passi, orchestratori, server MCP e i loro tool, ruoli |
 | La suite | `blueprints/tests/<nome>.tests.yml` | **solo esempi**: la domanda e ciò che la risposta deve contenere | gli input pronti da usare in demo, le risposte sbagliate da riconoscere al volo |
-| Le domande di prova | `../hevolus-assessment/customers/<cliente>/demo-domande-*.md` | **solo esempi**, nella lingua del cliente; la tabella di stato **non** si riporta | la tabella di stato: che cosa è pronto, che cosa no |
+| Le domande di prova | l'artifact «<Scenario> — domande di prova» (`path: "demo-domande.md"`), o `../hevolus-assessment/customers/<cliente>/demo-domande-*.md` | **solo esempi**, nella lingua del cliente; la tabella di stato **non** si riporta | la tabella di stato: che cosa è pronto, che cosa no |
 | I materiali della demo | `demo-materiali-*.md`, `demo-workflow-*.md`, una guida per chi conduce già scritta | — | le mail da inviare, i dettati da incollare, i percorsi da fare a mano nei processi |
 | L'ultimo giudizio | `blueprints/tests/reports/<tag>/<data>/giudizio.md` | **mai** | che cosa è sicuro mostrare dal vivo, che cosa è fragile, lo stato lasciato sul tenant |
 | Il dossier di assessment | `../hevolus-assessment/customers/<cliente>/README.md` | **le criticità dette dal cliente con parole sue** | le domande tecniche che il cliente ha già fatto |
 | Il manifest archiviato | `xrcopilotlab-bp pull --tag <TAG>` | se il repository non c'è | idem |
+| Le guide già pubblicate | `Artifact` `action: "read"`, `path: "guida.md"` / `"guida-tecnica.md"` | la versione da cui ripartire | idem |
 
-Se il repository dell'assessment non c'è, chiedere all'utente dove mettere la guida. **Mai** in
-`blueprints/` del repository di prodotto: contiene nomi e casi del cliente.
+**Senza repository** il manifest si prende con `pull`, e il resto lo fornisce l'utente: le domande di
+prova sono un artifact (lo stato del collaudo è nella loro tabella in testa), l'ultimo giudizio lo ha
+chi ha fatto il collaudo, il dossier chi ha fatto l'assessment. Si
+chiede una volta, elencando che cosa manca; se una fonte non arriva si scrive lo stesso, e lo si
+dichiara: nella guida tecnica la scheda dice «non collaudato» invece di «sicuro», e gli esempi del
+cliente vengono dalle istruzioni degli agenti invece che dalla suite.
 
 ## 2. La guida per il cliente
 
-Il file è `../hevolus-assessment/customers/<cliente>/guida-<scenario>.md`. Se esiste una guida per il
-cliente in una forma precedente, si riscrive in questa forma, togliendo ciò che riguarda il collaudo.
+La sorgente è `guida.md`, pubblicata con l'artifact per il cliente. Se esiste una guida per il
+cliente in una forma precedente — un artifact, o un file nel repository dell'assessment — si riscrive
+in questa forma, togliendo ciò che riguarda il collaudo; se era già un artifact, si ripubblica allo
+stesso `url`.
 Se esiste una guida scritta per **chi conduce la demo** (per esempio `guida-bpm-agenda.md` di Studio
 Polis, `guida-demo-bilancio-aggregato.md` di FinLogic), è la **fonte** della guida tecnica (§3): la
 si riprende lì, e il vecchio file non si aggiorna più.
@@ -322,7 +357,7 @@ Le regole:
 
 ## 3. La guida tecnica per l'AI Specialist
 
-Il file è `../hevolus-assessment/customers/<cliente>/guida-tecnica-<scenario>.md`. È un
+La sorgente è `guida-tecnica.md`, pubblicata con l'artifact interno. È un
 **documento**, non slide, ed è **interno**: il cliente non lo vede mai. La struttura completa, con
 un esempio per sezione, è in [`references/guida-tecnica.md`](references/guida-tecnica.md). In breve:
 
@@ -383,9 +418,10 @@ contrario, è il **ponte** della guida tecnica (§3, sezione 1):
    messaggio: se non raccontano la storia da soli, la guida non è pronta. Chi conosce il cliente sa
    se la storia è quella giusta, se gli esempi sono quelli che farà davvero e se una frase suonerà
    male: è lui a dare il sì.
-2. **La pagina web** — un artifact privato da proiettare o condividere, più una copia HTML locale
-   che si apre senza account. Come si costruisce, l'organizzazione da verificare prima e l'apertura
-   nel browser: [`references/pagina-web.md`](references/pagina-web.md).
+2. **L'artifact per il cliente** — la pagina da proiettare o condividere, con `guida.md` fra i
+   `files`. Come si costruisce, l'organizzazione da verificare prima e l'apertura nel browser:
+   [`references/pagina-web.md`](references/pagina-web.md). La copia HTML per la sala, da aprire senza
+   account, si offre come file da scaricare, non si lascia nello scratchpad.
 3. **Il deck**, se l'utente lo chiede: si parte con `Artifact` `action: "quickstart"`,
    `intent: "slides"`, e si usa il tipo Slides che indica (si scarica come .pptx o PDF). La
    corrispondenza è uno a uno, senza riscrivere: una slide del Markdown è una slide del deck, il
@@ -395,14 +431,21 @@ contrario, è il **ponte** della guida tecnica (§3, sezione 1):
    [`references/grafici.md`](references/grafici.md). L'appendice resta
    in coda, dopo la divisoria. Se l'utente chiede la versione breve, si usano i nomi delle slide del
    taglio (§2.1).
-4. **La guida tecnica**: prima il Markdown all'utente, poi una **pagina interna** — un artifact
-   separato, privato, da non condividere con il cliente — più la copia HTML locale
-   (`guida-tecnica-<scenario>.html`). Stesso contratto della pagina per il cliente
+4. **L'artifact interno**: prima il Markdown all'utente, poi la pagina — un artifact separato,
+   privato, da non condividere con il cliente — con `guida-tecnica.md` fra i `files`. Stesso
+   contratto della pagina per il cliente
    ([`references/pagina-web.md`](references/pagina-web.md)), trattamento da documento di lavoro: indice
    delle demo, ogni demo apribile, i passi come elenco da spuntare con la vista.
-5. **Il commit** nel repository dell'assessment, solo se l'utente lo chiede.
+5. **Nel messaggio finale**, i due link, ciascuno con chi lo deve ricevere («questo al cliente»,
+   «questo solo a chi conduce»), e come si ritrovano (`/artifacts`, o la galleria su claude.ai).
+6. **La copia nel repository dell'assessment**, solo se c'è e l'utente la vuole; il commit solo se lo
+   chiede.
 
 ## 6. Quando aggiornarle
+
+Si aggiorna **l'artifact**, non se ne crea uno nuovo: si legge la sorgente dall'artifact
+(`action: "read"`, `path`), si modifica, si ripubblica allo stesso `url` insieme alla pagina. Se la
+guida esiste anche nel repository, la copia si riallinea dopo.
 
 A ogni versione del manifest che cambia il flusso, ciò che un assistente sa fare o ciò che il
 cliente noterebbe. Si aggiornano, per nome, le slide degli esempi che ne sono toccati, quelle della
@@ -427,4 +470,10 @@ anche la slide di demo, se ciò che il cliente vedrà è diverso.
   fuori perimetro.
 - Non mettere nella pagina web la parte interna per chi conduce la sessione, né alcun dato del tenant.
 - Non pubblicare la pagina senza aver caricato `artifact-design` e verificato l'organizzazione.
-- Non fare commit nel repository dell'assessment di propria iniziativa.
+- Non mettere le due guide nello stesso artifact, né la tecnica in una parte nascosta della pagina per
+  il cliente.
+- Non pubblicare una pagina senza la sua sorgente Markdown: senza, chi viene dopo non la può
+  aggiornare.
+- Non ripubblicare a un `url` nuovo una guida che esiste già: il link del cliente resterebbe vecchio.
+- Non dare per scontato che l'utente abbia un repository, né fare commit nel repository
+  dell'assessment di propria iniziativa.

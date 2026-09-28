@@ -7,20 +7,36 @@ questa skill scrive il primo:
 
 | Documento | A cosa serve | Quando si scrive |
 |---|---|---|
-| **Le domande di prova** — `demo-domande-<scenario>.md` | Il copione della sessione con il cliente: cosa incollare in chat, cosa aspettarsi, cosa riconoscere come sbagliato, cosa dimostra ogni domanda | Appena la suite è scritta e validata (§1 della skill): serve a **concordare** le domande con l'utente prima di eseguirle, e si aggiorna dopo ogni collaudo |
-| **La guida allo scenario** — `guida-<scenario>.md` | Il racconto non tecnico dello scenario, con la sua pagina web | La scrive [`xrcopilotlab-blueprint-guide`](../../xrcopilotlab-blueprint-guide/SKILL.md), non questa skill |
+| **Le domande di prova** — artifact «<Scenario> — domande di prova», sorgente `demo-domande.md` | Il copione della sessione con il cliente: cosa incollare in chat, cosa aspettarsi, cosa riconoscere come sbagliato, cosa dimostra ogni domanda | Appena la suite è scritta e validata (§1 della skill): serve a **concordare** le domande con l'utente prima di eseguirle, e si aggiorna dopo ogni collaudo |
+| **La guida allo scenario** — artifact «<Scenario> — guida», più «<Scenario> — demo (interna)» | Il racconto non tecnico dello scenario, con la sua pagina web | La scrive [`xrcopilotlab-blueprint-guide`](../../xrcopilotlab-blueprint-guide/SKILL.md), non questa skill |
 
-Gli esempi da imitare: `hevolus-assessment/customers/studiopolis/demo-domande-agenda.md`;
+Gli esempi da imitare, nel repository dell'assessment per chi ce l'ha: `customers/studiopolis/demo-domande-agenda.md`;
 `customers/confindustria-como/demo-domande.md`;
 `customers/finlogic/demo-domande-orchestratore.md`.
 
-## Dove vanno
+## Dove vanno: un artifact
 
-Nella cartella del cliente nel repository dell'assessment (`../hevolus-assessment/customers/<cliente>/`),
-accanto al README dell'assessment: è lì che vivono i documenti che il cliente vede, ed è un
-repository diverso da quello del prodotto per una ragione — contengono nomi, casi e giudizi del
-cliente. Se quella cartella non esiste, chiedere all'utente dove metterli; **non** in
-`blueprints/` del repository di prodotto.
+Chi usa le domande di prova — il Sales, l'AI Specialist, spesso dal plugin — di norma **non ha il
+repository dell'assessment**. Quindi vivono in un **artifact** su claude.ai:
+
+- **Titolo** «<Scenario> — domande di prova» (es. «Conoscenza degli associati — domande di prova»),
+  icona stabile fra le ripubblicazioni.
+- **La sorgente dentro**: il Markdown si scrive nello scratchpad della sessione e si pubblica fra i
+  `files` della pagina come `demo-domande.md`. Una sessione dopo lo ritrova con `Artifact`
+  `action: "list"`, lo legge con `action: "read"`, `path: "demo-domande.md"`, e ripubblica **allo
+  stesso `url`**: il link dato a chi conduce non cambia.
+- **È un artifact interno**: contiene la tabella di stato e la sezione per chi conduce. Si condivide
+  con chi fa la sessione, non con il cliente. Se il cliente vuole provare da sé, si ricava a parte una
+  versione senza la tabella di stato e senza la sezione interna, e la decide l'utente.
+- **La pagina**: prima caricare `artifact-design`; trattamento da documento di lavoro — la tabella di
+  stato in alto, un capitolo per agente o orchestratore apribile, le domande in blocchi con un
+  pulsante «Copia». Prima di pubblicare, l'organizzazione Hevolus (`/status`); dopo, aprirla nel
+  browser dell'utente, come per la guida ([`pagina-web.md` di blueprint-guide](../../xrcopilotlab-blueprint-guide/references/pagina-web.md)).
+- **È la fonte dello stato per la guida tecnica**: `xrcopilotlab-blueprint-guide` legge da qui la
+  tabella di stato quando il giudizio, che vive nel repository di prodotto, non è a portata.
+- **Il repository dell'assessment è facoltativo**: se c'è e l'utente lo vuole, se ne salva una copia
+  in `customers/<cliente>/demo-domande-<scenario>.md`; commit solo su richiesta. **Mai** in
+  `blueprints/` del repository di prodotto: contiene nomi e casi del cliente.
 
 ## Le domande di prova: la traduzione inversa della suite
 
