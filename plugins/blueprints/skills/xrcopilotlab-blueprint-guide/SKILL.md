@@ -64,6 +64,7 @@ Per questo il risultato sono **due artifact** su claude.ai, non due file:
 | [`xrcopilotlab-blueprint`](../xrcopilotlab-blueprint/SKILL.md) | scrive e applica il manifest | spiegarlo al cliente |
 | [`xrcopilotlab-blueprint-test`](../xrcopilotlab-blueprint-test/SKILL.md) | collauda, giudica, segnala, scrive **le domande di prova** (l'artifact «<Scenario> — domande di prova») | la guida |
 | **Questa skill** | scrive **le due guide** e le pubblica come **due artifact** (la pagina per il cliente, la pagina interna), più il deck della prima se richiesto | eseguire test, toccare il tenant, aprire issue |
+| [`xrcopilotlab-blueprint-demo`](../xrcopilotlab-blueprint-demo/SKILL.md) | il **brief per l'agenzia di marketing**: gli scenari vendibili ad altri clienti, anonimi | la guida di un cliente |
 
 Le guide **leggono**: il manifest, le suite, le domande di prova, i materiali della demo. Non
 eseguono niente: se per la demo serve un dato che nella casella o nel tenant non c'è, la guida

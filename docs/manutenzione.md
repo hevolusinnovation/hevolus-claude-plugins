@@ -22,6 +22,7 @@ plugins/blueprints/
 ├── skills/xrcopilotlab-blueprint/SKILL.md         scrivere e applicare un manifest, con i suoi references/
 ├── skills/xrcopilotlab-blueprint-test/SKILL.md    collaudare un blueprint applicato, con i suoi references/
 ├── skills/xrcopilotlab-blueprint-guide/SKILL.md   la guida non tecnica per il cliente, a story slides, con i suoi references/
+├── skills/xrcopilotlab-blueprint-demo/SKILL.md    il brief per l'agenzia di marketing, con i suoi references/
 ├── bin/                                           gli avviatori: finiscono nel PATH quando il plugin è attivo
 ├── hooks/hooks.json                               l'avviso di inizio sessione: «il plugin è indietro»
 └── docs/manuale.md                                il manuale per chi lo usa
@@ -84,7 +85,7 @@ produzione invece sì, come valore predefinito di `--url`.
 
 ### Il plugin blueprints
 
-**Le tre skill e i loro riferimenti vivono nel repository di prodotto**
+**Le quattro skill e i loro riferimenti vivono nel repository di prodotto**
 [`xrcopilotlab-webapp-dotnet`](https://github.com/hevolusinnovation/xrcopilotlab-webapp-dotnet),
 perché è lì che stanno le regole che descrivono. Qui ce n'è una copia, che si rifà con:
 
@@ -102,6 +103,7 @@ perché è lì che stanno le regole che descrivono. Qui ce n'è una copia, che s
 | `docs/blueprints/testing.md` | `…/xrcopilotlab-blueprint-test/references/testing.md` |
 | `blueprints/tests/studiopolis-agenda.tests.yml` | `…/references/esempio-suite-agenda.tests.yml` |
 | `.claude/skills/xrcopilotlab-blueprint-guide/` | `plugins/blueprints/skills/xrcopilotlab-blueprint-guide/` |
+| `.claude/skills/xrcopilotlab-blueprint-demo/` | `plugins/blueprints/skills/xrcopilotlab-blueprint-demo/` |
 
 Lo script controlla anche **i file che nessuno sincronizza**: se in `skills/` compare qualcosa che
 non è in `COPIE`, lo elenca ed esce con errore. È il modo in cui un file copiato a mano — che
@@ -170,7 +172,7 @@ corrispondente di `.claude-plugin/marketplace.json`.
 >
 > La versione del **plugin** (`plugin.json` e `marketplace.json`) è un numero diverso: sale anche
 > quando cambiano solo le skill, senza una CLI nuova. Alzarli insieme «per coerenza» è il modo di
-> rompere il download. Oggi infatti divergono — plugin `2.23.0`, CLI `2.15.1` — ed è corretto così.
+> rompere il download. Oggi infatti divergono — plugin `2.24.0`, CLI `2.15.1` — ed è corretto così.
 
 Che il numero in `version.txt` corrisponda a una release davvero scaricabile lo verifica
 `controlli.yml` a ogni push: la release deve esistere **qui** (cioè essere stata rispecchiata) e
@@ -226,7 +228,7 @@ un messaggio che non dice quale regola è saltata. Sono tre, e due si violano se
 `build-skill-zip.sh` le controlla **prima** di produrre l'archivio e si ferma dicendo quale non
 torna, così l'errore si vede qui invece che sul browser dopo il caricamento.
 
-La descrizione si corregge **nella sorgente** — nel repository di prodotto per le tre skill dei
+La descrizione si corregge **nella sorgente** — nel repository di prodotto per le quattro skill dei
 blueprint, qui per l'assessment — tenendo tutte le frasi che la fanno attivare: è il testo con cui
 Claude sceglie la skill fra tutte quelle installate, quindi si tolgono i dettagli del funzionamento,
 non i casi d'uso. Un percorso d'esempio con un segnaposto si riscrive nominando la cartella

@@ -13,12 +13,13 @@ repository di prodotto: [§ Le skill di sviluppo](skill-di-sviluppo.md).
 | [`xrcopilotlab-blueprint`](#xrcopilotlab-blueprint--scrivere-e-applicare-un-blueprint) | blueprints | «crea un blueprint», «configura il cliente da zero», «applica il manifest», o si nomina `xrcopilotlab-bp` | il manifest `.yml`, il piano, il tenant configurato |
 | [`xrcopilotlab-blueprint-test`](#xrcopilotlab-blueprint-test--collaudare-un-blueprint-applicato) | blueprints | «collauda il blueprint», «scrivi le domande di test», «vedi se funziona», «prepara le domande per il cliente», o si nomina `test run` | la suite `.tests.yml`, il report, il giudizio, le bozze di issue, le domande di prova per il cliente |
 | [`xrcopilotlab-blueprint-guide`](#xrcopilotlab-blueprint-guide--la-guida-per-il-cliente) | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «le slide per i sales», «la pagina da mostrare al cliente» | le due guide: per il cliente a slide (pagina e deck) e tecnica per l'AI Specialist (pagina interna) |
+| [`xrcopilotlab-blueprint-demo`](#xrcopilotlab-blueprint-demo--il-brief-per-lagenzia) | blueprints | «il brief per l'agenzia», «gli scenari per i sales», «cosa possiamo vendere da questo blueprint o assessment» | il brief per l'agenzia di marketing: gli scenari vendibili, anonimi e senza tecnicismi, come artifact «DEMO-» con il PDF |
 | [`xrcopilotlab-assessment`](#xrcopilotlab-assessment--dalla-proposta-al-dossier) | assessment (Claude Desktop) | si carica una proposta e si chiede di «valutarla», «fare l'assessment», «tradurla in soluzione» | il dossier tecnico `.md` e `.docx`, con il capitolo per il provisioning |
 | [`xrcopilotlab-delivery-atlas`](#xrcopilotlab-delivery-atlas--dal-dossier-alla-delivery-atlas) | assessment (Claude Desktop) | «apri la delivery Atlas», «prepara il SOW», «carica il cliente sul CMS», «trasforma l'assessment in delivery» | il piano Atlas, i documenti per cliente in stile Atlas, la delivery nel CMS dopo l'anteprima |
 
-Le cinque skill sono i tempi dello stesso lavoro: l'assessment dice **cosa** costruire, il
+Le sei skill sono i tempi dello stesso lavoro: l'assessment dice **cosa** costruire, il
 blueprint lo **costruisce**, il collaudo dice **se funziona** e a chi tocca ciò che non va, la guida
-lo **racconta al cliente** con le sue parole. In parallelo, dal dossier, la delivery Atlas lo
+lo **racconta al cliente** con le sue parole, il brief lo **porta sul mercato** attraverso l'agenzia. In parallelo, dal dossier, la delivery Atlas lo
 **governa** con il cliente: fasi, gate, documenti e stato nell'orchestratore.
 
 ```
@@ -29,6 +30,7 @@ xrcopilotlab-assessment        xrcopilotlab-blueprint          xrcopilotlab-blue
                                                               issue (dopo un sì) · domande di prova
                                                                         ↓
                                                      xrcopilotlab-blueprint-guide: guida per il cliente
+                                                     xrcopilotlab-blueprint-demo: brief per l'agenzia
 ```
 
 Di solito non serve nominarle: si attivano dalla richiesta. Quando due potrebbero valere — «testa il
@@ -434,6 +436,27 @@ dichiara. Se il repository dell'assessment c'è, ci salva una copia, e fa il com
 | «Scrivi le guide della demo di Studio Polis» | Scrive le due guide, ti mostra i titoli delle slide e le demo, poi pubblica la pagina per il cliente, il deck e la pagina interna |
 | «Prepara la demo di domani, la faccio da solo» | Guida tecnica con la scaletta **da soli** in evidenza, e la preparazione del giorno prima |
 | «Aggiorna le guide alla v33» | Rifà per nome le slide e le demo toccate; la tecnica aggiorna anche sicuro/fragile e piano B |
+
+### `xrcopilotlab-blueprint-demo` — il brief per l'agenzia
+
+Le altre skill vanno dal cliente al blueprint; questa fa la strada opposta, **dal blueprint al
+mercato**. Parte da un manifest o da un dossier di assessment e scrive il brief da cui l'agenzia di
+marketing produce post, visual, landing e brochure: gli scenari di processo che si possono vendere,
+con quelli già realizzati, in lingua da sales e senza tecnicismi.
+
+| Chiedi | Succede |
+|---|---|
+| «Il brief per l'agenzia da questo blueprint» · «gli scenari per i sales da questo assessment» | Ricava lo scenario d'origine e da tre a sei scenari derivati (altro settore, altro processo, altra funzione), più quelli già realizzati. Per ognuno: per chi, il problema, com'è dopo, come funziona, dove decide la persona, il messaggio, i fatti citabili, **che cosa non dire** e lo stato |
+| — | Chiede **in quale cartella salvare il PDF**, lo genera e pubblica l'artifact «DEMO-<famiglia>» con il pulsante «Scarica il PDF» |
+
+Che cosa **non** fa:
+
+- non promette ciò che non esiste: lo stato di ogni scenario si prova contro un registro di capacità
+  già viste funzionare in un ambiente vero, e ciò che richiede sviluppo resta fuori (lo elenca a te);
+- non nomina clienti, persone, città o dati reali: prima di pubblicare controlla nomi e parole
+  tecniche, e si ferma se ne trova;
+- non scrive post, slogan, immagini: sono il lavoro dell'agenzia;
+- su Claude Desktop scrive il brief ma non il PDF, che vuole un terminale.
 
 ### `xrcopilotlab-assessment` — dalla proposta al dossier
 

@@ -55,6 +55,7 @@ invece su **Claude Desktop oppure Claude Code**, quella che usi — cambia cosa 
 | `xrcopilotlab-blueprint` | la skill da sola: scrive e spiega un manifest, **non lo applica** | il plugin `blueprints@hevolus` — **la strada consigliata** |
 | `xrcopilotlab-blueprint-test` | la skill da sola: prepara le domande di collaudo, **non le esegue** | il plugin `blueprints@hevolus` — **la strada consigliata** |
 | `xrcopilotlab-blueprint-guide` | la skill da sola: scrive la guida per il cliente a story slides e la pagina web — **funziona anche qui**, perché non esegue comandi | il plugin `blueprints@hevolus` |
+| `xrcopilotlab-blueprint-demo` | la skill da sola: scrive il brief per l'agenzia e lo pubblica — **funziona anche qui**, ma senza il PDF, che vuole un terminale | il plugin `blueprints@hevolus` |
 
 Una regola sola governa tutta la tabella, e non è una preferenza: **applicare e collaudare passano
 da `xrcopilotlab-bp`**, cioè da un comando, e i comandi girano solo nella scheda **Code**. Nella
@@ -261,7 +262,7 @@ Poi basta chiedere, in una cartella di lavoro qualsiasi:
 > risorse Azure di Hevolus, e senza i permessi giusti si ferma al primo comando. Non è qualcosa che
 > si aggira riprovando, e l'account con cui usi Claude non c'entra.
 
-Cosa fanno le tre skill, con che frasi si attivano e cosa producono:
+Cosa fanno le quattro skill del plugin `blueprints`, con che frasi si attivano e cosa producono:
 **[§ Le skill](le-skill.md)** e **[il manuale](../plugins/blueprints/docs/manuale.md)**.
 
 ### Se qualcosa non va
@@ -380,7 +381,8 @@ capire un manifest senza aprire un terminale.
 Il punto di partenza è lo stesso: dalla
 [pagina delle release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest)
 scarica il file con il nome della skill — `xrcopilotlab-assessment.zip`,
-`xrcopilotlab-blueprint.zip`, `xrcopilotlab-blueprint-test.zip`, `xrcopilotlab-blueprint-guide.zip`.
+`xrcopilotlab-blueprint.zip`, `xrcopilotlab-blueprint-test.zip`, `xrcopilotlab-blueprint-guide.zip`,
+`xrcopilotlab-blueprint-demo.zip`.
 
 ### Su Claude Desktop (e claude.ai)
 

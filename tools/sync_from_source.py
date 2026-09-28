@@ -19,6 +19,7 @@ from comune import RADICE, ferma, leggi_testo, prepara_console, scrivi_testo
 DEST = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint"
 DEST_TEST = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-test"
 DEST_GUIDE = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-guide"
+DEST_DEMO = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-demo"
 
 # Ogni riga: dove sta nel repository di prodotto → dove va nel plugin.
 # Un riferimento nuovo in una skill va aggiunto QUI: se non compare, la copia nel plugin non esiste
@@ -57,6 +58,15 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-guide/references/grafici.md", DEST_GUIDE / "references"),
     (".claude/skills/xrcopilotlab-blueprint-guide/references/pagina-web.md", DEST_GUIDE / "references"),
     (".claude/skills/xrcopilotlab-blueprint-guide/references/guida-tecnica.md", DEST_GUIDE / "references"),
+    # Il brief per l'agenzia di marketing: scenari vendibili, anonimi, in lingua da sales. Legge, non esegue.
+    (".claude/skills/xrcopilotlab-blueprint-demo/SKILL.md", DEST_DEMO / "SKILL.md"),
+    (".claude/skills/xrcopilotlab-blueprint-demo/references/fonti.md", DEST_DEMO / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-demo/references/scenari.md", DEST_DEMO / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-demo/references/scenari-esistenti.md", DEST_DEMO / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-demo/references/linguaggio-sales.md", DEST_DEMO / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-demo/references/riservatezza.md", DEST_DEMO / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-demo/references/brief.md", DEST_DEMO / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-demo/references/brief-template.html", DEST_DEMO / "references"),
 ]
 
 # I link da riscrivere sui file copiati: file → [(prima, dopo), …].
@@ -181,7 +191,7 @@ def cerca_orfani(copiati):
     la skill non cita qualcosa che nella sorgente è cambiato mesi prima.
     """
     orfani = []
-    for dest in (DEST, DEST_TEST):
+    for dest in (DEST, DEST_TEST, DEST_GUIDE, DEST_DEMO):
         for p in sorted(dest.rglob("*")):
             if p.is_file() and p.name != ".DS_Store" and p.resolve() not in copiati:
                 orfani.append(p.relative_to(RADICE))
