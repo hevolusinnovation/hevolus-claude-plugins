@@ -1,0 +1,263 @@
+<title>DEMO-Agenda e scadenze</title>
+<!--
+  Modello del brief per l'agenzia (xrcopilotlab-blueprint-demo).
+  Si copia, si cambia il <title> e il contenuto, e si ripetono i blocchi marcati REPEAT.
+  Non cambiare palette, caratteri e struttura: tutti i brief devono avere la stessa forma.
+  Stati ammessi (data-stato): realizzato · pronto · configura
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,650&display=swap">
+<style>
+  :root {
+    --ground: #f4f5f2;
+    --surface: #ffffff;
+    --ink: #1c2320;
+    --muted: #5d6963;
+    --rule: #d9ded9;
+    --accent: #2b3a67;
+    --accent-soft: #e7eaf3;
+    --ok: #2e6b45;     --ok-soft: #e3f0e7;
+    --ready: #2a5da8;  --ready-soft: #e4ecf8;
+    --build: #8f5b00;  --build-soft: #f7ecd9;
+    --no: #9b2c2c;     --no-soft: #f6e4e2;
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+    --sans: "Source Sans 3", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #131715; --surface: #1b201e; --ink: #e5e9e6; --muted: #9ba6a0; --rule: #2d3531;
+      --accent: #a9b8ea; --accent-soft: #232a40;
+      --ok: #8fcfa4; --ok-soft: #1d3326; --ready: #9dbdf0; --ready-soft: #1d2a40;
+      --build: #e5b467; --build-soft: #3a2d15; --no: #f0a39b; --no-soft: #3d2220;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #131715; --surface: #1b201e; --ink: #e5e9e6; --muted: #9ba6a0; --rule: #2d3531;
+    --accent: #a9b8ea; --accent-soft: #232a40;
+    --ok: #8fcfa4; --ok-soft: #1d3326; --ready: #9dbdf0; --ready-soft: #1d2a40;
+    --build: #e5b467; --build-soft: #3a2d15; --no: #f0a39b; --no-soft: #3d2220;
+  }
+  body { background: var(--ground); color: var(--ink); font: 400 16px/1.55 var(--sans); padding-inline: 20px; padding-block: 40px 72px; }
+  .page { max-width: 900px; margin: 0 auto; display: grid; gap: 56px; }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 650; text-wrap: balance; margin: 0; }
+  h1 { font-size: clamp(2rem, 5vw, 2.9rem); line-height: 1.1; letter-spacing: -0.01em; }
+  h2 { font-size: 1.55rem; line-height: 1.2; }
+  h3 { font-size: 1.3rem; line-height: 1.25; }
+  p { margin: 0; max-width: 68ch; }
+  .eyebrow { font: 600 0.78rem/1 var(--sans); letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+  header { display: grid; gap: 14px; border-bottom: 1px solid var(--rule); padding-bottom: 28px; }
+  header .lede { font-size: 1.15rem; color: var(--muted); }
+  section { display: grid; gap: 18px; }
+  .howto { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+  .howto div { display: grid; gap: 6px; }
+  .howto strong { font-weight: 700; }
+  .promise { background: var(--accent-soft); border-radius: 6px; padding: 26px 28px; display: grid; gap: 16px; }
+  .promise blockquote { margin: 0; font: 500 1.45rem/1.3 var(--serif); color: var(--accent); max-width: 40ch; }
+  .promise ul { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; }
+  .filters { display: flex; flex-wrap: wrap; gap: 8px; }
+  .filters button { font: 600 0.9rem/1 var(--sans); padding: 8px 14px; border-radius: 999px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); cursor: pointer; }
+  .filters button[aria-pressed="true"] { background: var(--ink); color: var(--ground); border-color: var(--ink); }
+  .filters button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.97rem; }
+  th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font: 600 0.78rem/1.2 var(--sans); letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+  tr:last-child td { border-bottom: 0; }
+  td a { color: var(--ink); text-decoration-color: var(--rule); text-underline-offset: 3px; }
+  .tag { display: inline-block; font: 600 0.8rem/1 var(--sans); padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+  .tag[data-stato="realizzato"] { background: var(--ok-soft); color: var(--ok); }
+  .tag[data-stato="pronto"] { background: var(--ready-soft); color: var(--ready); }
+  .tag[data-stato="configura"] { background: var(--build-soft); color: var(--build); }
+  .axis { font: 600 0.8rem/1 var(--sans); color: var(--muted); }
+  .group-title { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); padding-bottom: 10px; }
+  .cards { display: grid; gap: 22px; }
+  .card { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; padding: 26px 28px; display: grid; gap: 18px; scroll-margin-top: 16px; }
+  .card-head { display: grid; gap: 10px; }
+  .card-meta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .card dl { margin: 0; display: grid; grid-template-columns: 11.5rem 1fr; gap: 12px 22px; }
+  .card dt { font: 600 0.8rem/1.45 var(--sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+  .card dd { margin: 0; max-width: 64ch; }
+  .card ol, .card ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; }
+  .who { color: var(--muted); font-size: 0.85rem; font-weight: 600; }
+  .message { font: 500 1.12rem/1.4 var(--serif); color: var(--accent); }
+  .dont li::marker { content: "✕  "; color: var(--no); font-weight: 700; }
+  .dont li { color: var(--ink); }
+  .words td:first-child { font-weight: 600; }
+  .words td:last-child { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--no); }
+  .never { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
+  .never li::marker { content: "✕  "; color: var(--no); font-weight: 700; }
+  .download { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .download button, .download a { font: 600 0.95rem/1 var(--sans); padding: 10px 16px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--ground); cursor: pointer; text-decoration: none; }
+  .download button:focus-visible, .download a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .download .note { color: var(--muted); font-size: 0.9rem; }
+  footer { color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--rule); padding-top: 18px; }
+  @media (max-width: 640px) {
+    body { padding-inline: 16px; padding-block: 28px 56px; }
+    .card { padding: 20px 18px; }
+    .card dl { grid-template-columns: 1fr; gap: 4px; }
+    .card dd { margin-bottom: 10px; }
+    .promise { padding: 20px; }
+  }
+  @media print {
+    :root { color-scheme: light; }
+    body { background: #fff; padding: 0; font-size: 11pt; }
+    .page, .page > section, .cards { display: block; max-width: none; }
+    .page > * + * { margin-top: 26px; }
+    .cards > .card + .card { margin-top: 14px; }
+    .group-title, h2, h3 { break-after: avoid; }
+    .group-title { margin-bottom: 12px; }
+    .filters, .download { display: none !important; }
+    .card, .promise, tr { break-inside: avoid; }
+    .card { border-color: #ccc; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+
+<div class="page">
+
+  <!-- 1. Testata -->
+  <header>
+    <span class="eyebrow">Brief per l'agenzia · 28 settembre 2026</span>
+    <h1>DEMO-Agenda e scadenze</h1>
+    <p class="lede">Scenari di processo nati da un ambiente realizzato per uno studio legale associato, e quelli che se ne possono ricavare per altri settori.</p>
+    <!-- Il PDF si pubblica accanto alla pagina con lo stesso nome del file HTML (brief-<famiglia>.pdf). -->
+    <div class="download" data-pdf="brief-agenda-e-scadenze.pdf">
+      <button type="button" id="pdf-save" hidden>Scarica il PDF</button>
+      <a id="pdf-link" href="brief-agenda-e-scadenze.pdf" hidden>Scarica il PDF</a>
+      <span class="note" id="pdf-note" role="status"></span>
+    </div>
+  </header>
+
+  <!-- 2. Come usare questo brief -->
+  <section aria-labelledby="howto-t">
+    <h2 id="howto-t">Come usare questo brief</h2>
+    <div class="howto">
+      <div><strong>Per chi è</strong><p>Per chi scrive post, visual, landing e brochure. Non serve sapere nulla di tecnologia.</p></div>
+      <div><strong>Come è fatto</strong><p>Ogni scheda sta in piedi da sola: un problema, com'è dopo, il messaggio da far arrivare.</p></div>
+      <div><strong>Che cosa è vincolante</strong><p>«Da non dire» e «Da non promettere mai». Tutto il resto si può riscrivere con le vostre parole.</p></div>
+    </div>
+  </section>
+
+  <!-- 3. La promessa comune -->
+  <section class="promise" aria-label="La promessa comune">
+    <span class="eyebrow">La promessa comune</span>
+    <blockquote>L'assistente prepara il lavoro, la persona decide.</blockquote>
+    <ul>
+      <li>Nessuno ricopia più da una mail a un'agenda o a un modulo.</li>
+      <li>Quando un dato manca, l'assistente lo dice invece di inventarlo.</li>
+      <li>Ogni passaggio resta scritto, con il nome di chi l'ha fatto.</li>
+    </ul>
+  </section>
+
+  <!-- 4. Gli scenari in un colpo d'occhio -->
+  <section aria-labelledby="overview-t">
+    <h2 id="overview-t">Gli scenari in un colpo d'occhio</h2>
+    <div class="filters" role="group" aria-label="Filtra per stato">
+      <button type="button" id="f-tutti" data-filter="tutti" aria-pressed="true">Tutti</button>
+      <button type="button" id="f-realizzato" data-filter="realizzato" aria-pressed="false">Realizzati per un cliente</button>
+      <button type="button" id="f-pronto" data-filter="pronto" aria-pressed="false">Pronti da installare</button>
+      <button type="button" id="f-configura" data-filter="configura" aria-pressed="false">Si configurano</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Scenario</th><th>Per chi</th><th>Stato</th></tr></thead>
+        <tbody>
+          <!-- REPEAT: una riga per scenario, stesso data-stato della scheda -->
+          <tr data-stato="realizzato"><td><a href="#s-origine">La comunicazione arriva, la pratica è già pronta</a></td><td>Studi legali</td><td><span class="tag" data-stato="realizzato">Realizzato per un cliente</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 5. Le schede: un gruppo per origine, uno per i derivati, uno per i già realizzati -->
+  <section aria-labelledby="cards-t">
+    <div class="group-title"><h2 id="cards-t">Lo scenario d'origine</h2></div>
+    <div class="cards">
+      <!-- REPEAT: una scheda per scenario -->
+      <article class="card" id="s-origine" data-stato="realizzato">
+        <div class="card-head">
+          <div class="card-meta"><span class="tag" data-stato="realizzato">Realizzato per un cliente</span><span class="axis">Origine</span></div>
+          <h3>La comunicazione arriva, la pratica è già pronta</h3>
+        </div>
+        <dl>
+          <dt>Per chi</dt><dd>Studi legali associati, da 20 professionisti in su. Decide il socio che coordina l'organizzazione; lo usano la segreteria dell'agenda e gli avvocati.</dd>
+          <dt>Il problema di oggi</dt><dd>…</dd>
+          <dt>Com'è dopo</dt><dd>…</dd>
+          <dt>Come funziona</dt><dd><ol><li><span class="who">Posta</span> · …</li><li><span class="who">Assistente</span> · …</li><li><span class="who">Persona</span> · …</li></ol></dd>
+          <dt>Dove decide la persona</dt><dd>…</dd>
+          <dt>Il messaggio</dt><dd class="message">…</dd>
+          <dt>Fatti citabili</dt><dd><ul><li>…</li></ul></dd>
+          <dt>Da non dire</dt><dd><ul class="dont"><li>«…»</li></ul></dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <!-- 6. Le parole -->
+  <section aria-labelledby="words-t">
+    <h2 id="words-t">Le parole</h2>
+    <div class="table-wrap">
+      <table class="words">
+        <thead><tr><th>Si dice</th><th>Non si dice</th></tr></thead>
+        <tbody>
+          <!-- REPEAT -->
+          <tr><td>un assistente con un compito solo</td><td>agente, bot, copilota</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 7. Da non promettere mai -->
+  <section aria-labelledby="never-t">
+    <h2 id="never-t">Da non promettere mai</h2>
+    <ul class="never">
+      <li>Che sostituisce persone o uffici.</li>
+    </ul>
+  </section>
+
+  <footer>Materiale interno di Hevolus per l'agenzia. I clienti citati sono descritti per tipo e non per nome; i numeri sono fatti di funzionamento, non risultati promessi.</footer>
+</div>
+
+<script>
+  (function () {
+    var buttons = document.querySelectorAll('.filters button');
+    var items = document.querySelectorAll('tbody tr[data-stato], .card[data-stato]');
+    function apply(filter) {
+      buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b.dataset.filter === filter)); });
+      items.forEach(function (el) { el.hidden = filter !== 'tutti' && el.dataset.stato !== filter; });
+      document.querySelectorAll('.cards').forEach(function (group) {
+        var section = group.closest('section');
+        var visible = group.querySelectorAll('.card:not([hidden])').length;
+        if (section) section.hidden = visible === 0;
+      });
+    }
+    buttons.forEach(function (b) { b.addEventListener('click', function () { apply(b.dataset.filter); }); });
+
+    // Scarica il PDF: dentro l'artifact passa dalla capacità «downloads» (un link semplice lì non
+    // funziona); nella copia locale, aperta con un doppio clic, basta il link al file accanto.
+    var box = document.querySelector('.download');
+    if (!box) return;
+    var file = box.dataset.pdf, btn = document.getElementById('pdf-save'), link = document.getElementById('pdf-link'), note = document.getElementById('pdf-note');
+    if (!window.claude || typeof window.claude.use !== 'function') { link.hidden = false; return; }
+    window.claude.use('downloads').then(function (downloads) {
+      if (!downloads) return;
+      btn.hidden = false;
+      btn.addEventListener('click', function () {
+        note.textContent = '';
+        fetch(file).then(function (r) { if (!r.ok) throw new Error('missing'); return r.blob(); })
+          .then(function (blob) { return downloads.save({ filename: file, data: blob }); })
+          .then(function () { note.textContent = 'PDF scaricato.'; })
+          .catch(function (err) {
+            var code = err && err.code;
+            if (code === 'declined') return;
+            if (code === 'rate_limited') { note.textContent = 'C\u2019è già una richiesta aperta: riprovate fra poco.'; return; }
+            if (code === 'unavailable' || code === 'not_granted' || code === 'capability_disabled' || code === 'capability_removed') { btn.hidden = true; return; }
+            note.textContent = 'Il PDF non è disponibile in questa pagina.';
+          });
+      });
+    });
+  })();
+</script>

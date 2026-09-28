@@ -183,7 +183,7 @@ corrisponde. Oltre alle tre della issue, il repository ne porta una dozzina, per
 | Comandi, CI/CD, PR | `xrcopilotlab-commands`, `-cicd`, `-pr-template` | Build, run e test in locale; workflow, mappa degli ambienti e tabella sintomo → verifica; il template della PR compilato dal diff, con la sezione «Configurazione Azure / Deploy» obbligatoria |
 | Debug e analisi | `xrcopilotlab-trace-skill-flow`, `-generate-docs` | Perché una skill dell'agente non parte: intent → routing → handler → completion; documentazione tecnica con i diagrammi, o il manuale utente |
 | Sprint e release | `xrcopilotlab-version-bump`, `-label-semver`, `-sprint-milestone`, `-milestone-report`, `xrcopilot-release-notes`, `-release-email`, `-wiki-update` | Il prossimo numero di versione derivato dalle issue chiuse e dalle label `semver:*`, le label stesse, le milestone di sprint e i loro report di stato (pulse, checkpoint, recap), e le note di rilascio con la mail e l'aggiornamento del wiki |
-| Provisioning, collaudo e guida | `xrcopilotlab-blueprint`, `-blueprint-test`, `-blueprint-guide` | Le stesse tre del plugin: nel repository sono la **sorgente**, qui una copia sincronizzata |
+| Provisioning, collaudo, guida e brief | `xrcopilotlab-blueprint`, `-blueprint-test`, `-blueprint-guide`, `-blueprint-demo` | Le stesse quattro del plugin: nel repository sono la **sorgente**, qui una copia sincronizzata |
 
 L'indice completo, con «cosa fa» e «quando usarla» per ciascuna, è in `.claude/skills/README.md`
 del repository di prodotto.
