@@ -20,6 +20,7 @@ DEST = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint"
 DEST_TEST = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-test"
 DEST_GUIDE = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-guide"
 DEST_DEMO = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-demo"
+DEST_HOWTO = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-howto"
 
 # Ogni riga: dove sta nel repository di prodotto → dove va nel plugin.
 # Un riferimento nuovo in una skill va aggiunto QUI: se non compare, la copia nel plugin non esiste
@@ -67,6 +68,9 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-demo/references/riservatezza.md", DEST_DEMO / "references"),
     (".claude/skills/xrcopilotlab-blueprint-demo/references/brief.md", DEST_DEMO / "references"),
     (".claude/skills/xrcopilotlab-blueprint-demo/references/brief-template.html", DEST_DEMO / "references"),
+    # La guida d'uso del percorso intero, dall'installazione alla demo: pubblica un artifact, non esegue.
+    (".claude/skills/xrcopilotlab-blueprint-howto/SKILL.md", DEST_HOWTO / "SKILL.md"),
+    (".claude/skills/xrcopilotlab-blueprint-howto/references/percorso.html", DEST_HOWTO / "references"),
 ]
 
 # I link da riscrivere sui file copiati: file → [(prima, dopo), …].
