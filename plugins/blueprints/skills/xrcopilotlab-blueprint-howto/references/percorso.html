@@ -1,0 +1,771 @@
+<title>Dall'intervista alla demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..100,500..800&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F2F5F7; --sheet:#FFFFFF; --ink:#14213A; --ink-2:#4A5873; --rule:#D5DDE6; --rule-2:#E6ECF2;
+  --accent:#1D4F91; --accent-soft:#E3ECF8;
+  --desk:#A8640F; --desk-soft:#FBF0DF; --code:#0B6E66; --code-soft:#DDF2EF;
+  --ok:#1E7B3A; --warn:#9A6400; --stop:#B3261E;
+  --code-bg:#EEF2F7;
+  --display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --paper:#0D1420; --sheet:#141D2C; --ink:#DCE5EF; --ink-2:#9AA9BE; --rule:#2A3749; --rule-2:#1E2939;
+    --accent:#8DB2E8; --accent-soft:#1B2B44;
+    --desk:#E3A955; --desk-soft:#33260F; --code:#5FC7BB; --code-soft:#0F2E2B;
+    --ok:#6CCB86; --warn:#E3B14F; --stop:#F08A80; --code-bg:#101826;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#0D1420; --sheet:#141D2C; --ink:#DCE5EF; --ink-2:#9AA9BE; --rule:#2A3749; --rule-2:#1E2939;
+  --accent:#8DB2E8; --accent-soft:#1B2B44;
+  --desk:#E3A955; --desk-soft:#33260F; --code:#5FC7BB; --code-soft:#0F2E2B;
+  --ok:#6CCB86; --warn:#E3B14F; --stop:#F08A80; --code-bg:#101826;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:16px/1.6 var(--body);margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:0 80px}
+a{color:var(--accent)}
+a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+code,kbd,pre{font-family:var(--mono);font-size:.88em}
+p code,li code,td code{background:var(--code-bg);padding:.05em .35em;border-radius:4px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;line-height:1.15;margin:0}
+
+/* testata */
+header.top{padding-block:48px 28px;border-bottom:1px solid var(--rule);margin-bottom:32px}
+.eyebrow{font:600 12px/1 var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+header.top h1{font-size:clamp(34px,6vw,60px);font-weight:800;font-stretch:72%;letter-spacing:-.01em;margin:12px 0 14px}
+.lede{max-width:64ch;font-size:18px;color:var(--ink-2);margin:0}
+.chain{margin-top:26px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font:500 13px/1 var(--mono)}
+.chain span.n{padding:7px 10px;border-radius:6px;border:1px solid var(--rule);background:var(--sheet)}
+.chain span.n.d{border-color:var(--desk);color:var(--desk)}
+.chain span.n.c{border-color:var(--code);color:var(--code)}
+.chain span.n.b{border-style:dashed}
+.chain i{font-style:normal;color:var(--ink-2)}
+
+/* layout */
+.layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:48px;align-items:start}
+nav.rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 20px)}
+nav.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.rail a{display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:baseline;padding:8px 10px;border-radius:6px;text-decoration:none;color:var(--ink-2);font-size:14px;line-height:1.3}
+nav.rail a b{font:700 15px/1 var(--display);font-stretch:80%;color:var(--ink-2)}
+nav.rail a small{display:block;font-size:11px;letter-spacing:.06em;text-transform:uppercase;margin-top:3px}
+nav.rail a small.d{color:var(--desk)} nav.rail a small.c{color:var(--code)}
+nav.rail a:hover{background:var(--rule-2);color:var(--ink)}
+nav.rail a.on{background:var(--sheet);color:var(--ink);box-shadow:inset 3px 0 0 var(--accent)}
+nav.rail a.on b{color:var(--accent)}
+.legend{margin-top:18px;font-size:12px;color:var(--ink-2);display:grid;gap:6px;padding-left:10px}
+.legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.legend .d::before{background:var(--desk)} .legend .c::before{background:var(--code)}
+
+main{min-width:0}
+section.stage{padding-block:8px 44px;border-bottom:1px solid var(--rule);margin-bottom:40px;scroll-margin-top:20px}
+section.stage:last-of-type{border-bottom:0}
+.stage-head{display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:end;margin-bottom:18px}
+.stage-no{grid-row:span 2;font:800 64px/0.8 var(--display);font-stretch:62%;color:var(--accent);opacity:.9}
+.stage-head h2{font-size:clamp(24px,3.4vw,34px);font-weight:750;font-stretch:80%}
+.where{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:600 11px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border-radius:4px}
+.chip.d{background:var(--desk-soft);color:var(--desk)}
+.chip.c{background:var(--code-soft);color:var(--code)}
+.chip.s{background:var(--accent-soft);color:var(--accent);font-family:var(--mono);text-transform:none;letter-spacing:0;font-weight:500}
+.prose{max-width:68ch}
+.prose p{margin:0 0 14px}
+h3{font-size:19px;font-weight:700;font-stretch:88%;margin:28px 0 10px}
+h3 .k{font:600 11px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);display:block;margin-bottom:6px;font-stretch:100%}
+
+/* griglia porti/ottieni */
+.io{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:18px 0 6px}
+.io > div{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:14px 16px}
+.io h4{margin:0 0 8px;font:600 11px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2)}
+.io ul{margin:0;padding-left:18px} .io li{margin:3px 0}
+
+/* frasi da scrivere */
+.says{display:grid;gap:8px;margin:10px 0 4px}
+.say{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start;background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:10px 10px 10px 14px}
+.say q{quotes:"«" "»";font-weight:500}
+.say .then{grid-column:1/-1;font-size:14px;color:var(--ink-2);border-top:1px dashed var(--rule);padding-top:6px}
+button.copy{font:500 12px/1 var(--body);background:transparent;color:var(--accent);border:1px solid var(--rule);border-radius:5px;padding:6px 8px;cursor:pointer;white-space:nowrap}
+button.copy:hover{background:var(--accent-soft)}
+button.copy.done{color:var(--ok);border-color:var(--ok)}
+
+/* codice */
+.code{position:relative;margin:12px 0 16px}
+.code pre{margin:0;background:var(--code-bg);border:1px solid var(--rule);border-radius:8px;padding:14px 16px;overflow-x:auto;line-height:1.55}
+.code button.copy{position:absolute;top:8px;right:8px;background:var(--sheet)}
+.code .cap{font-size:12px;color:var(--ink-2);margin:0 0 6px}
+pre .c{color:var(--ink-2)}
+
+/* tabelle */
+.tbl{overflow-x:auto;margin:12px 0 18px;border:1px solid var(--rule);border-radius:8px;background:var(--sheet)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--rule-2);vertical-align:top}
+th{font:600 11px/1.2 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);background:var(--rule-2)}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* domande tipiche */
+details{border-top:1px solid var(--rule);padding:4px 0}
+details:last-of-type{border-bottom:1px solid var(--rule)}
+summary{cursor:pointer;padding:10px 4px;font-weight:600;list-style:none;display:flex;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"+";font:500 18px/1.1 var(--mono);color:var(--accent);width:14px;flex:none}
+details[open] summary::before{content:"–"}
+details > div{padding:0 4px 12px 28px;max-width:66ch}
+details > div p{margin:0 0 8px}
+
+/* avvertenze */
+.note{border-left:3px solid var(--warn);background:var(--sheet);padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;max-width:68ch}
+.note.stop{border-color:var(--stop)}
+.note b{display:block;font:600 11px/1 var(--body);letter-spacing:.1em;text-transform:uppercase;color:var(--warn);margin-bottom:6px}
+.note.stop b{color:var(--stop)}
+.note p{margin:0}
+
+/* il giro del collaudo */
+.loop{margin:20px 0 10px;display:grid;gap:10px;counter-reset:lp}
+.lp{display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:start}
+.lp .dot{counter-increment:lp;width:44px;height:44px;border-radius:50%;border:2px solid var(--accent);display:grid;place-items:center;font:800 18px/1 var(--display);color:var(--accent);background:var(--paper)}
+.lp .dot::before{content:counter(lp)}
+.lp .card{background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:12px 16px}
+.lp .card h4{margin:0 0 4px;font:700 16px/1.3 var(--display);font-stretch:88%}
+.lp .card p{margin:0;font-size:15px}
+.lp .card code{font-size:.85em}
+.branches{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.br{border-radius:6px;padding:10px 12px;font-size:14px;border:1px solid var(--rule)}
+.br strong{display:block;font-size:13px;margin-bottom:3px}
+.br.m{background:var(--accent-soft)} .br.x{background:var(--desk-soft)} .br.u{background:var(--rule-2)}
+.back{margin:4px 0 0 56px;font:500 13px/1.4 var(--mono);color:var(--accent);border:1px dashed var(--accent);border-radius:8px;padding:10px 14px}
+.exit{margin-left:56px;background:var(--code-soft);border:1px solid var(--code);border-radius:8px;padding:12px 16px}
+.exit h4{margin:0 0 4px;font:700 16px/1.3 var(--display);color:var(--code)}
+.exit p{margin:0;font-size:15px}
+
+.status{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.status span{font-size:13px;padding:5px 9px;border-radius:5px;background:var(--sheet);border:1px solid var(--rule)}
+
+.checklist{list-style:none;padding:0;margin:12px 0;display:grid;gap:6px;max-width:70ch}
+.checklist li{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;background:var(--sheet);border:1px solid var(--rule);border-radius:8px;padding:10px 12px}
+.checklist input{margin-top:4px;width:16px;height:16px;accent-color:var(--accent)}
+.checklist label{cursor:pointer}
+
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-size:13px;color:var(--ink-2)}
+
+@media (max-width:900px){
+  .layout{grid-template-columns:minmax(0,1fr);gap:0}
+  nav.rail{position:static;margin-bottom:28px}
+  nav.rail ol{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .legend{display:none}
+}
+@media (max-width:620px){
+  .wrap{padding-inline:16px}
+  .io,.branches{grid-template-columns:minmax(0,1fr)}
+  nav.rail ol{grid-template-columns:minmax(0,1fr)}
+  .stage-no{font-size:48px}
+  .back,.exit{margin-left:0}
+}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">AI Team Hevolus · come si usano le skill XRCopilotLab</div>
+  <h1>Dall'intervista alla demo</h1>
+  <p class="lede">Il percorso intero, nell'ordine in cui lo farai: dall'installazione all'assessment
+  dell'intervista con il cliente, dalla prima versione del manifest al collaudo che la porta a una
+  versione stabile, fino alle guide e al brief che servono prima di presentarsi dal cliente.</p>
+  <div class="chain" aria-label="La catena delle skill">
+    <span class="n b">installazione</span><i>→</i>
+    <span class="n d">assessment</span><i>→</i>
+    <span class="n c">blueprint v1</span><i>→</i>
+    <span class="n c">blueprint-test ↺</span><i>→</i>
+    <span class="n c">blueprint-guide</span><i>→</i>
+    <span class="n c">blueprint-demo</span><i>→</i>
+    <span class="n b">demo dal cliente</span>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="rail" aria-label="Tappe">
+  <ol>
+    <li><a href="#installare"><b>1</b><span>Installare<small>Desktop · Code</small></span></a></li>
+    <li><a href="#assessment"><b>2</b><span>Assessment<small class="d">Claude Desktop</small></span></a></li>
+    <li><a href="#blueprint"><b>3</b><span>Il primo manifest<small class="c">Claude Code</small></span></a></li>
+    <li><a href="#collaudo"><b>4</b><span>Collaudo fino ai verdi<small class="c">Claude Code</small></span></a></li>
+    <li><a href="#guide"><b>5</b><span>Le due guide<small class="c">Code o Desktop</small></span></a></li>
+    <li><a href="#brief"><b>6</b><span>Il brief per l'agenzia<small class="c">Code o Desktop</small></span></a></li>
+    <li><a href="#prima-della-demo"><b>7</b><span>Prima della demo<small>checklist</small></span></a></li>
+    <li><a href="#riferimenti"><b>·</b><span>Comandi ed errori<small>appendice</small></span></a></li>
+  </ol>
+  <div class="legend"><span class="d">scheda Chat · Claude Desktop</span><span class="c">scheda Code · Claude Code</span></div>
+</nav>
+
+<main>
+
+<!-- 1 · INSTALLARE -->
+<section class="stage" id="installare">
+  <div class="stage-head">
+    <div class="stage-no">1</div>
+    <h2>Installare, una volta per macchina</h2>
+    <div class="where"><span class="chip d">Claude Desktop</span><span class="chip c">Claude Code</span></div>
+  </div>
+  <div class="prose">
+    <p>Si usa una sola app, l'<strong>app Claude</strong>, con due schede. Nella <strong>Chat</strong>
+    si caricano documenti: lì gira l'assessment. Nella scheda <strong>Code</strong> Claude può eseguire
+    comandi sul tuo computer: lì girano i blueprint, perché applicare e collaudare passano dallo
+    strumento a riga di comando <code>xrcopilotlab-bp</code>, e nella Chat non c'è niente che possa
+    eseguirlo. Non è una questione di permessi.</p>
+    <p>Installer: <a href="https://claude.ai/api/desktop/darwin/universal/dmg/latest/redirect">macOS</a> ·
+    <a href="https://claude.ai/api/desktop/win32/x64/setup/latest/redirect">Windows x64</a> ·
+    <a href="https://claude.ai/api/desktop/win32/arm64/setup/latest/redirect">Windows ARM64</a>.</p>
+  </div>
+
+  <h3><span class="k">Claude Desktop</span>Il plugin dell'assessment</h3>
+  <div class="prose">
+    <p>Dalla <a href="https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest">pagina
+    delle release del catalogo</a>, sotto <em>Assets</em>, scarica il file che comincia per
+    <code>Xrcopilotlab-</code> e finisce per <code>.zip</code>. Poi
+    <a href="https://claude.ai/customize/plugins">claude.ai/customize/plugins</a> → <strong>Carica
+    plugin</strong> → l'anteprima deve dire <em>XRCopilotLab Assessment</em>.</p>
+  </div>
+  <div class="note stop"><b>Non aprire lo zip</b><p>Va caricato così com'è. Estratto e ricompresso cambia
+  forma e il caricamento fallisce. E i due formati non si scambiano: <code>Xrcopilotlab-….zip</code>
+  (il plugin) va in <em>Carica plugin</em>, i file <code>xrcopilotlab-….zip</code> (una skill) vanno in
+  <em>Impostazioni → Capacità → Skill</em>. Scambiarli dà «All files must be inside the top-level folder».</p></div>
+
+  <h3><span class="k">Claude Code</span>Il plugin <code>blueprints</code>, in due righe</h3>
+  <div class="prose"><p>Si scrivono nella casella dei messaggi della scheda Code, <strong>non in un
+  terminale</strong>: sono comandi di Claude. La prima registra il catalogo, e si dà una volta sola.</p></div>
+  <div class="code"><button class="copy" type="button" data-copy="c-install">Copia</button>
+<pre id="c-install">/plugin marketplace add hevolusinnovation/hevolus-claude-plugins
+/plugin install blueprints@hevolus</pre></div>
+  <div class="prose">
+    <p>Il plugin porta tutte le skill dei blueprint — compresa questa pagina — e scarica da solo la CLI
+    al primo uso, con l'impronta verificata. Non serve clonare il repository di prodotto, né .NET.
+    Servono <code>git</code> e un accesso GitHub all'organizzazione <code>hevolusinnovation</code>
+    (<code>gh auth login</code>, se Claude ti dice che non sei autenticato).</p>
+  </div>
+
+  <h3><span class="k">Claude Code</span>L'accesso ad Azure: il punto contro cui si sbatte per primo</h3>
+  <div class="prose">
+    <p>La CLI non parla con Claude: parla con Azure. Conta solo il tuo account <strong><code>hevolus.it</code></strong>
+    — non quello con cui usi Claude, e nemmeno quello con cui entri in XRCopilotLab, che è un'identità
+    B2C di un'altra directory. Servono ruoli sul piano dati, che chiedi a chi amministra la
+    sottoscrizione <em>Azure AI</em> indicando l'ambiente:</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Per fare</th><th>Ruoli sull'App Configuration e sul Key Vault dell'ambiente</th></tr></thead>
+    <tbody>
+      <tr><td><code>validate</code> — controllare un manifest</td><td>nessuno: non tocca la rete</td></tr>
+      <tr><td><code>push</code> · <code>plan</code> · <code>apply</code> · <code>test run</code> · <code>status</code></td><td><strong>App Configuration Data Reader</strong> · <strong>Key Vault Secrets User</strong></td></tr>
+      <tr><td>in più, <code>secrets set</code></td><td><strong>App Configuration Data Owner</strong> · <strong>Key Vault Secrets Officer</strong></td></tr>
+    </tbody></table></div>
+  <div class="note"><b>Il primo accesso lo fai tu, non Claude</b><p>Una volta per macchina, dal
+  <strong>tuo</strong> terminale: <code>az login --tenant hevolus.it</code>, oppure un comando qualsiasi
+  come <code>xrcopilotlab-bp status</code>, che apre il browser. Senza un terminale vero quel ramo è spento
+  di proposito, altrimenti il comando resterebbe appeso a una pagina che nessuno vede. Dopo, il token
+  resta in cache e i comandi che lancia Claude funzionano.</p></div>
+
+  <h3><span class="k">Verifica</span>La prima frase da scrivere</h3>
+  <div class="says">
+    <div class="say"><q>Su quali ambienti posso lavorare?</q><button class="copy" type="button">Copia</button>
+      <div class="then">Claude lancia <code>xrcopilotlab-bp environments</code>, che prova ogni ambiente con la tua utenza e dice <em>accessibile</em> · <em>manca il ruolo</em> · <em>nessun accesso ad Azure</em> · <em>non raggiungibile</em>. Non è una stima: è ciò che succederà al primo comando.</div></div>
+  </div>
+
+  <h3><span class="k">Facoltativo</span>Una skill da sola, sull'altra app</h3>
+  <div class="prose"><p>Ogni skill esiste anche come zip (<code>xrcopilotlab-assessment.zip</code>,
+  <code>xrcopilotlab-blueprint.zip</code>, <code>-blueprint-test</code>, <code>-blueprint-guide</code>,
+  <code>-blueprint-demo</code>, <code>-blueprint-howto</code>) nella stessa pagina delle release. Su Desktop
+  si carica in <em>Impostazioni → Capacità → Skill</em>; su Code si scompatta in <code>~/.claude/skills/</code>.
+  Da Desktop le skill dei blueprint <strong>scrivono e spiegano</strong> un manifest o una suite, ma non
+  li applicano né li eseguono. Chi ha già il plugin <code>blueprints</code> non scompatti anche le sue skill:
+  avrebbe due copie, una delle quali smette di aggiornarsi.</p></div>
+
+  <h3><span class="k">Nel tempo</span>Aggiornare</h3>
+  <div class="prose"><p>All'apertura di una sessione, se nel catalogo c'è una versione più recente, compare
+  una riga con i comandi. Si digitano fra un lavoro e l'altro (non a metà di un <code>apply</code>), poi si
+  <strong>riavvia la sessione</strong>: le skill si caricano all'apertura.</p></div>
+  <div class="code"><button class="copy" type="button" data-copy="c-update">Copia</button>
+<pre id="c-update">/plugin marketplace update hevolus
+/plugin update blueprints@hevolus</pre></div>
+  <div class="prose"><p>Il plugin dell'assessment su Desktop non si aggiorna da solo: si riscarica lo zip e
+  lo si ricarica allo stesso modo, e sostituisce il precedente.</p></div>
+</section>
+
+<!-- 2 · ASSESSMENT -->
+<section class="stage" id="assessment">
+  <div class="stage-head">
+    <div class="stage-no">2</div>
+    <h2>Dall'intervista al dossier</h2>
+    <div class="where"><span class="chip d">Claude Desktop · Chat</span><span class="chip s">xrcopilotlab-assessment</span></div>
+  </div>
+  <div class="prose">
+    <p>Traduce ciò che il cliente ha raccontato — l'intervista, la proposta — in una soluzione di agenti
+    e processi su XRCopilotLab, e ne valuta la fattibilità. Il risultato è il <strong>dossier
+    tecnico</strong>: lo porti all'incontro, lo passi a chi prepara l'offerta, e lo consegni alla tappa
+    successiva. Non serve nominare la skill: si attiva quando carichi il documento e chiedi di valutarlo.</p>
+  </div>
+  <div class="io">
+    <div><h4>Cosa porti in chat</h4><ul>
+      <li>la trascrizione o il verbale dell'intervista, e la proposta se c'è (PDF o Word)</li>
+      <li>ciò che sai dei sistemi del cliente: gestionale, posta, dove stanno i documenti</li>
+      <li>i vincoli: un dato che non può uscire, una scadenza, un requisito di settore</li></ul></div>
+    <div><h4>Cosa ottieni</h4><ul>
+      <li>il dossier in <code>.md</code> e <code>.docx</code> sul template Office</li>
+      <li>per ogni fonte un esito 🟢 GO · 🟡 CONDIZIONALE · 🔴 NO-GO, con il fallback</li>
+      <li>i <strong>punti in sospeso</strong>: domande da riportare al cliente</li>
+      <li>il capitolo <strong>«Elementi per il provisioning»</strong>, da cui parte la tappa 3</li></ul></div>
+  </div>
+
+  <h3><span class="k">Cosa scrivere</span>Frasi che la attivano</h3>
+  <div class="says">
+    <div class="say"><q>Ecco la trascrizione dell'intervista con lo studio e la loro proposta: fai l'assessment</q><button class="copy" type="button">Copia</button>
+      <div class="then">Le fasi in ordine: scenari e obiettivi, soluzione (chat con agenti o processo BPM), fattibilità delle fonti, punti in sospeso, dossier, elementi per il provisioning.</div></div>
+    <div class="say"><q>Come lo implementiamo su XRCopilotLab? Traducilo in architettura</q><button class="copy" type="button">Copia</button></div>
+    <div class="say"><q>Quanto è fattibile la parte che legge la loro casella PEC?</q><button class="copy" type="button">Copia</button>
+      <div class="then">Discovery sulla singola fonte: domande al cliente, verifiche tecniche, test, esito. Senza test eseguito l'esito resta CONDIZIONALE.</div></div>
+    <div class="say"><q>Il cliente ha un suo template Word, usa quello</q><button class="copy" type="button">Copia</button></div>
+  </div>
+
+  <h3><span class="k">La scelta che costa di più</span>Chat o processo</h3>
+  <div class="prose"><p>Se il cliente descrive «una domanda e una risposta», la soluzione è una
+  <strong>chat con agenti orchestrati</strong>. Se descrive «chi fa cosa e in che ordine», è un
+  <strong>processo BPM</strong>, con passi umani, assistiti e automatici, corsie sui ruoli, moduli e
+  bivi. Nell'intervista, fai raccontare il lavoro com'è oggi, passo per passo: è da lì che si decide.</p></div>
+
+  <h3><span class="k">Domande tipiche</span></h3>
+  <details><summary>Nel dossier non ci sono prezzi: è un errore?</summary><div><p>No. Il dossier dice se si
+  può fare, con che componenti e con che effort tecnico. Ciò che esce dal perimetro base è marcato
+  <em>opzionale</em>; quanto costa lo decide chi cura l'offerta.</p></div></details>
+  <details><summary>Il cliente vuole scadenze che avanzano da sole: si può promettere?</summary><div><p>No,
+  non come funzione pronta. Il motore dei processi non ha timer che agiscono da soli, non riunisce i
+  rami paralleli, e gli agenti non leggono gli allegati. L'assessment li scrive come componenti da
+  costruire, con la loro stima. Lo stesso vale per ciò che serve dalla licenza Processi, da verificare
+  per prima.</p></div></details>
+  <details><summary>L'intervista non chiarisce un punto: la skill lo deduce?</summary><div><p>No: lo mette
+  fra i punti in sospeso, come domanda aperta. È il materiale per la seconda chiamata con il cliente.
+  Un'ipotesi inventata qui diventa un agente sbagliato due tappe dopo.</p></div></details>
+  <details><summary>Come passo il dossier alla tappa successiva?</summary><div><p>Salva il <code>.md</code>
+  nella cartella dove lavorerai con Claude Code (per esempio <code>~/Clienti/&lt;cliente&gt;/</code>).
+  La skill del blueprint legge il capitolo «Elementi per il provisioning» e chiede solo ciò che manca.</p></div></details>
+</section>
+
+<!-- 3 · BLUEPRINT -->
+<section class="stage" id="blueprint">
+  <div class="stage-head">
+    <div class="stage-no">3</div>
+    <h2>Dal dossier alla prima versione del manifest</h2>
+    <div class="where"><span class="chip c">Claude Code</span><span class="chip s">xrcopilotlab-blueprint</span></div>
+  </div>
+  <div class="prose">
+    <p>Il <strong>manifest</strong> è un file YAML che descrive l'ambiente del cliente: topic e documenti,
+    ruoli con le persone, agenti con le loro istruzioni e il loro modello, agent task, connessioni,
+    server MCP, orchestratori, processi. La skill lo scrive con te, lo valida, ti mostra il piano e lo
+    applica al tenant <strong>solo dopo il tuo sì</strong>. Di norma si lavora su
+    <strong>staging</strong>.</p>
+  </div>
+  <div class="io">
+    <div><h4>Cosa porti</h4><ul>
+      <li>il dossier dell'assessment (oppure: un'intervista da zero, una domanda per volta)</li>
+      <li>la cartella con i documenti del cliente, se ci sono</li>
+      <li>le email dei membri dei ruoli: devono essere <strong>già utenti del tenant</strong></li>
+      <li>i valori dei segreti, da inserire tu nel tuo terminale — mai in chat</li></ul></div>
+    <div><h4>Cosa ottieni</h4><ul>
+      <li><code>blueprints/&lt;tag&gt;-&lt;scenario&gt;.yml</code>, <code>version: 1</code></li>
+      <li>il disegno del processo e il piano, da leggere prima del sì</li>
+      <li>il tenant configurato, con un <code>runId</code> che ricorda cosa è stato creato</li>
+      <li>la chiave del webhook, se il processo ne ha uno: compare <strong>una sola volta</strong></li></ul></div>
+  </div>
+
+  <h3><span class="k">Cosa scrivere</span>Nell'ordine in cui succede</h3>
+  <div class="says">
+    <div class="say"><q>Ecco il dossier dell'assessment dello studio, prepara il blueprint</q><button class="copy" type="button">Copia</button>
+      <div class="then">Legge il capitolo per il provisioning, traduce, chiede solo ciò che manca (membri dei ruoli, nomi dei segreti, tag). Scrive il file, lo valida, ti mostra il disegno del processo.</div></div>
+    <div class="say"><q>Ho i documenti in ~/Clienti/studio/documenti: a quali agenti li collego?</q><button class="copy" type="button">Copia</button>
+      <div class="then"><code>suggest</code>: propone un profilo di knowledge per agente e una fascia di modello, e dice quali file il nome non basta a distinguere.</div></div>
+    <div class="say"><q>Applica blueprints/studio-agenda.yml su staging</q><button class="copy" type="button">Copia</button>
+      <div class="then"><code>push</code>, poi <code>plan</code>: ti chiede il tenant da un elenco di nomi, stampa il piano — quante entità, quali nomi, il grafo — e <strong>si ferma</strong>.</div></div>
+    <div class="say"><q>Sì, vai</q><button class="copy" type="button">Copia</button>
+      <div class="then">Detto <strong>dopo</strong> aver letto il piano. <code>apply --yes</code> registra la tua approvazione con nome e ora; poi riporta entità create, <code>runId</code> ed eventuale chiave del webhook.</div></div>
+  </div>
+
+  <h3><span class="k">Il giro dei comandi</span>Che la skill lancia per te</h3>
+  <div class="code"><button class="copy" type="button" data-copy="c-bp">Copia</button>
+<pre id="c-bp">xrcopilotlab-bp validate blueprints/&lt;file&gt;.yml --graph          <span class="c"># offline: rilievi + disegno del processo</span>
+xrcopilotlab-bp suggest  blueprints/&lt;file&gt;.yml --files &lt;cartella&gt; <span class="c"># documenti → profili, modello per agente</span>
+xrcopilotlab-bp secrets set --env staging --tag &lt;TAG&gt; &lt;nome&gt;       <span class="c"># nel TUO terminale</span>
+xrcopilotlab-bp push     blueprints/&lt;file&gt;.yml --env staging       <span class="c"># pubblica la versione</span>
+xrcopilotlab-bp plan     --tag &lt;TAG&gt; --env staging                 <span class="c"># preflight + piano, non crea niente</span>
+xrcopilotlab-bp apply    --tag &lt;TAG&gt; --env staging --yes           <span class="c"># solo dopo il sì sul piano</span></pre></div>
+
+  <h3><span class="k">Le regole che spiegano perché si ferma</span></h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Regola</th><th>In pratica</th></tr></thead>
+    <tbody>
+      <tr><td>Prefisso <code>BP-&lt;TAG&gt;-</code></td><td>Nel manifest i nomi si scrivono <strong>senza</strong>: lo aggiunge il planner. Scritto a mano diventa <code>BP-TAG-BP-TAG-…</code></td></tr>
+      <tr><td>Un nome occupato ferma il piano (<code>BP060</code>)</td><td>Il blueprint non sovrascrive mai ciò che non ha creato. Tre strade, la scelta è tua: rinominare, cambiare tag, togliere l'entità esistente</td></tr>
+      <tr><td>Nessuna creazione senza un sì</td><td>Senza terminale interattivo la CLI esce con <code>6</code>: la skill ti chiede, non aggiunge il flag da sola</td></tr>
+      <tr><td>Segreti per nome</td><td>Nel manifest c'è <code>Blueprints:Secrets:&lt;TAG&gt;:&lt;nome&gt;</code>; il valore va in Key Vault con <code>secrets set</code>, dal tuo terminale</td></tr>
+      <tr><td>Un profilo di knowledge per agente</td><td>Il topic è il magazzino dei file, il profilo li rende interrogabili. Un agente senza profilo non vede niente</td></tr>
+      <tr><td>Il modello si dichiara</td><td>Senza <code>model:</code> l'agente nasce sul default (<code>BP015</code> avvisa); un nome fuori catalogo ferma il piano (<code>BP065</code>)</td></tr>
+    </tbody></table></div>
+
+  <h3><span class="k">Domande tipiche</span></h3>
+  <details><summary>«Non è detto su quale ambiente lavorare»</summary><div><p>Fuori da un clone del repository
+  di prodotto non c'è un ambiente predefinito, di proposito. Dillo a parole: «su staging».</p></div></details>
+  <details><summary>Un membro di ruolo «non esiste», ma ha un account Hevolus</summary><div><p>Gli indirizzi nel
+  manifest sono <strong>utenti del prodotto</strong> (B2C), non identità Azure. Un collega che non è mai
+  entrato in quel tenant non è valido; un <code>@gmail.com</code> registrato con Google sì. La domanda giusta
+  è: «è già un utente di quel tenant?»</p></div></details>
+  <details><summary>Posso applicare direttamente in produzione?</summary><div><p>In produzione si lavora solo sui
+  tenant a cui appartieni, e si arriva con <code>promote</code> da una versione già collaudata su staging:
+  copia il manifest byte per byte, poi <code>plan</code> e si ferma. Prima si collauda (tappa 4).</p></div></details>
+  <details><summary>Voglio vedere il manifest che gira adesso su staging</summary><div><p>«Fammi vedere il manifest
+  della v3 su staging» → <code>pull</code> lo riscrive su disco com'era stato pubblicato, commenti compresi.
+  Funziona anche senza il repository.</p></div></details>
+  <details><summary>Cosa non fa</summary><div><p>Non modifica a mano un singolo agente esistente (per quello c'è
+  l'interfaccia), non crea persone né skill del catalogo, non crea l'ingresso <em>push</em> della posta, non
+  cancella mai ciò che una versione nuova non dichiara più.</p></div></details>
+</section>
+
+<!-- 4 · COLLAUDO -->
+<section class="stage" id="collaudo">
+  <div class="stage-head">
+    <div class="stage-no">4</div>
+    <h2>Il collaudo, un giro alla volta, fino ai verdi</h2>
+    <div class="where"><span class="chip c">Claude Code</span><span class="chip s">xrcopilotlab-blueprint-test</span></div>
+  </div>
+  <div class="prose">
+    <p>La v1 applicata dice che l'ambiente <em>esiste</em>. Il collaudo dice <em>come risponde</em>, e di
+    chi è ogni difetto. Non è un passo ma un <strong>giro</strong>: domande, esecuzione, giudizio, triage,
+    correzione, di nuovo — finché la suite intera passa su una versione che non cambi più.</p>
+    <p>Il lavoro è diviso in tre, ed è ciò che rende il giro ripetibile: la <strong>CLI</strong> esegue e
+    raccoglie le evidenze (risposte, passi della pipeline, documenti consultati, skill, eventi dei
+    processi) ma non giudica; la <strong>skill</strong> scrive le domande, giudica, fa il triage e scrive
+    le bozze di segnalazione; <strong>tu</strong> scegli ambiente e tenant, confermi le domande e approvi
+    le segnalazioni.</p>
+  </div>
+
+  <div class="loop" aria-label="Il giro del collaudo">
+    <div class="lp"><div class="dot" aria-hidden="true"></div><div class="card">
+      <h4>Le domande</h4>
+      <p>«Collauda il blueprint STUDIO su staging». Se non c'è una suite, <code>test init</code> ne scrive lo
+      scheletro dal manifest — un caso positivo e uno negativo per agente, uno per orchestratore, uno per
+      processo — e la skill compila domande e risposte attese dalle istruzioni degli agenti. Poi
+      <code>test validate</code>. Le domande che il cliente farà davvero (dall'intervista, dalla demo) hanno la
+      precedenza: portale.</p></div></div>
+    <div class="lp"><div class="dot" aria-hidden="true"></div><div class="card">
+      <h4>Tu le rileggi</h4>
+      <p>La skill ti mostra le domande — non il file — come bozza delle <em>domande di prova</em>. Una domanda
+      scritta bene sul problema sbagliato produce un report inutile, e chi conosce il cliente sei tu.</p></div></div>
+    <div class="lp"><div class="dot" aria-hidden="true"></div><div class="card">
+      <h4>L'esecuzione, dopo un sì</h4>
+      <p>Ti dice ambiente, tenant e quanti casi, e aspetta. Ogni caso apre una conversazione nuova; un caso di
+      processo avvia un'<strong>istanza vera</strong>, che resta fra i compiti di chi ha il ruolo. Il report va in
+      <code>blueprints/tests/reports/&lt;tag&gt;/&lt;data&gt;/</code>.</p></div></div>
+    <div class="lp"><div class="dot" aria-hidden="true"></div><div class="card">
+      <h4>Il giudizio</h4>
+      <p>Per ogni caso un verdetto <strong>pass · parziale · fail</strong>, con il perché, in <code>giudizio.md</code>.
+      Quattro criteri, in ordine: numeri esatti (con il segno), nessuna invenzione, completezza, forma. Un caso
+      può essere verde per la CLI e fail per il giudizio, o il contrario: in quel caso si corregge l'attesa.</p></div></div>
+    <div class="lp"><div class="dot" aria-hidden="true"></div><div class="card">
+      <h4>Il triage: di chi è ogni fallimento</h4>
+      <p>Un fallimento si attribuisce a un componente solo con un'evidenza di quel componente. L'assenza di una
+      cosa è un indizio, non una prova.</p>
+      <div class="branches">
+        <div class="br m"><strong>È il manifest</strong>istruzioni, divisione dei documenti, attesa scritta male. Si corregge il file, niente issue.</div>
+        <div class="br x"><strong>È un componente</strong>knowledge graph, skill, motore dei processi, webapp. Bozza di segnalazione → la issue si apre <strong>solo dopo il tuo sì</strong>.</div>
+        <div class="br u"><strong>Non si sa</strong>si scrive così, con le ipotesi. Senza i repository per verificare, si consegna a uno sviluppatore: il caso resta 🔁.</div>
+      </div></div></div>
+    <div class="lp"><div class="dot" aria-hidden="true"></div><div class="card">
+      <h4>La correzione diventa una versione</h4>
+      <p>Si alza <code>version:</code>, poi <code>push</code> e <code>plan</code>: il piano si apre con
+      «Aggiornamento della vN applicata» ed elenca solo ciò che cambia — istruzioni, modello, passi — senza
+      smontare niente. Sì, <code>apply</code>. Poi si rilanciano <strong>solo</strong> i casi toccati:
+      <code>--only &lt;agente o caso&gt;</code>.</p></div></div>
+    <div class="back">↺ si torna al passo 3 finché restano fail. Una regola: mai correggere manifest e libreria nello stesso giro — prima il manifest, ciò che resta è ciò che si segnala.</div>
+    <div class="exit">
+      <h4>Il collaudo finale: la versione stabile</h4>
+      <p>Quando i giri parziali sono verdi, si rilancia la <strong>suite intera</strong> sulla versione che non
+      cambierà più. Il giudizio finale va nella tabella di stato delle domande di prova; la suite, se lavori in un
+      repository, si committa: è la regressione del blueprint. I difetti di componente ancora aperti non si nascondono:
+      diventano ⛔ «da non mostrare come funzionante» o 🔁, con il numero di issue.</p></div>
+  </div>
+
+  <h3><span class="k">Esempio</span>Com'è fatto un caso</h3>
+  <div class="code"><p class="cap"><code>blueprints/tests/studio-agenda.tests.yml</code> — un estratto</p><button class="copy" type="button" data-copy="c-suite">Copia</button>
+<pre id="c-suite">blueprint: studio-agenda
+tag: STUDIO
+version: 3
+defaults:
+  language: it
+  userId: collaudo@hevolus.it        <span class="c"># membro del ruolo di avvio: senza, i processi escono 403</span>
+cases:
+  - key: agenda-avviso-completo
+    kind: agent
+    target: agenda                   <span class="c"># la chiave dell'agente nel manifest</span>
+    message: |
+      TRIBUNALE DI BARI — R.G. n. 4127/2025 — udienza il 14 ottobre 2026 alle 9:30, aula 3.
+    expect:
+      answer: Riporta data, ora, aula e numero di ruolo; non propone termini.   <span class="c"># la giudica la skill</span>
+      contains: ["14 ottobre 2026", "9:30", "4127/2025"]                     <span class="c"># li verifica la CLI</span>
+      notContains: ["scadenza"]
+      wrongAnswers:
+        - pattern: "(?i)ho registrato"
+          means: L'agente ha scritto in calendario, ma quel passo è del referente.
+          suspect: Manifest
+    tags: [agent, agenda]</pre></div>
+
+  <h3><span class="k">Esempio</span>Un giro vero, in quattro righe</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Versione</th><th>Cosa è emerso</th><th>Cosa si è fatto</th></tr></thead>
+    <tbody>
+      <tr><td class="num">v2 → v4</td><td>Le risposte delle FAQ arrivavano riassunte, non testuali</td><td>Triage: comportamento noto del recupero documenti, quindi è il manifest. Le FAQ passano nelle istruzioni dell'agente</td></tr>
+      <tr><td class="num">v4</td><td>Un caso della normativa torna indietro (regressione)</td><td>Triage: istruzioni dello smistamento. Si correggono, v5 sul posto</td></tr>
+      <tr><td class="num">v5</td><td>—</td><td>Rilanciati con <code>--only</code> i soli casi dello smistamento, uno due volte</td></tr>
+      <tr><td class="num">v5</td><td>12 pass, 1 parziale (una chat di confronto fuori perimetro)</td><td>Versione stabile. Tempi misurati annotati per la demo</td></tr>
+    </tbody></table></div>
+
+  <h3><span class="k">Cosa scrivere</span></h3>
+  <div class="says">
+    <div class="say"><q>Collauda il blueprint STUDIO su staging</q><button class="copy" type="button">Copia</button></div>
+    <div class="say"><q>Ecco le domande che il cliente ha fatto all'intervista, aggiungile alla suite</q><button class="copy" type="button">Copia</button>
+      <div class="then">Traduce campo per campo: la domanda <strong>identica</strong>, l'atteso in prosa, i numeri con la loro tolleranza, le risposte sbagliate da riconoscere.</div></div>
+    <div class="say"><q>Cosa è andato male, e di chi è?</q><button class="copy" type="button">Copia</button></div>
+    <div class="say"><q>Correggi le istruzioni dell'agente agenda, porta la v4 su staging e rilancia solo i suoi casi</q><button class="copy" type="button">Copia</button>
+      <div class="then">Qui il lavoro passa alla skill del blueprint per la versione nuova, e torna al collaudo per il <code>--only</code>.</div></div>
+    <div class="say"><q>Apri le issue</q><button class="copy" type="button">Copia</button>
+      <div class="then">Detto <strong>dopo</strong> aver visto le bozze. Si aprono nel repository della webapp con la label del componente; un sì vale per le bozze mostrate, non per quelle future.</div></div>
+    <div class="say"><q>Il benvenuto dell'orchestratore non compare, guarda tu</q><button class="copy" type="button">Copia</button>
+      <div class="then">Apre Chrome con l'estensione Claude in Chrome e guarda ciò che vede il cliente, senza cambiare niente. Prima la suite, poi il browser.</div></div>
+    <div class="say"><q>Prepara le domande di prova per il cliente</q><button class="copy" type="button">Copia</button>
+      <div class="then">Pubblica l'artifact interno «&lt;Scenario&gt; — domande di prova», con la tabella di stato in testa.</div></div>
+  </div>
+  <div class="status" aria-label="Stati delle domande di prova">
+    <span>✅ pronta</span><span>🟡 da correggere</span><span>⛔ da non mostrare come funzionante</span><span>⏳ attende una fonte</span><span>🔁 in attesa di verifica</span>
+  </div>
+
+  <h3><span class="k">Domande tipiche</span></h3>
+  <details><summary>Il comando esce con 7: si è rotto qualcosa?</summary><div><p>No: <code>7</code> vuol dire «almeno un
+  caso non è passato». È l'esito del collaudo, non un errore della CLI. <code>2</code> è una suite non valida,
+  <code>3</code> vuol dire che sul tenant non c'è nessun run di quel tag.</p></div></details>
+  <details><summary>Il caso è Failed ma la risposta è giusta</summary><div><p>Succede con un <code>contains</code>
+  che il modello ha riformulato in modo legittimo. Il giudizio lo dà pass, e si corregge l'attesa nella suite:
+  è la suite a sbagliare, non l'agente.</p></div></details>
+  <details><summary>I casi di processo escono con 403</summary><div><p>Manca <code>defaults.userId</code>: l'email di un
+  membro del ruolo di avvio, per conto del quale si parla.</p></div></details>
+  <details><summary>La casella di posta del cliente non è ancora pronta</summary><div><p>Non si aspetta: la logica
+  dell'agente si collauda con le <strong>letture simulate</strong> — il contenuto che darebbe lo strumento, incollato
+  nel messaggio, tag <code>simulata</code>. I casi sulla fonte vera vanno in una suite a parte; quelli che
+  <em>scrivono</em> fuori dal tenant in una terza, lanciata solo con un sì. E un'attività programmata su una fonte
+  rotta si sospende: «metti in pausa la sorveglianza della posta».</p></div></details>
+  <details><summary>Non ho i repository del prodotto: posso collaudare?</summary><div><p>Sì, fino in fondo. Senza i
+  repository la skill non può confermare di chi è un difetto di componente: prepara una consegna per uno
+  sviluppatore, te la mostra, e il caso resta 🔁 invece di ✅ o ⛔. La suite si finisce lo stesso.</p></div></details>
+  <details><summary>Posso collaudare sul tenant del cliente?</summary><div><p>Solo se lo indichi tu, e mai in produzione su
+  un tenant che non sia quello di Hevolus. Il collaudo consuma token e lascia conversazioni e istanze visibili
+  nell'interfaccia: sul tenant di un cliente non si lancia di propria iniziativa.</p></div></details>
+</section>
+
+<!-- 5 · GUIDE -->
+<section class="stage" id="guide">
+  <div class="stage-head">
+    <div class="stage-no">5</div>
+    <h2>Le due guide della demo</h2>
+    <div class="where"><span class="chip c">Claude Code</span><span class="chip d">anche Desktop</span><span class="chip s">xrcopilotlab-blueprint-guide</span></div>
+  </div>
+  <div class="prose">
+    <p>La demo la conducono un <strong>Sales</strong> e un <strong>AI Specialist</strong>, o l'AI Specialist da solo.
+    Il punto difficile è spiegare in modo semplice un processo complesso mentre lo si mostra. La skill scrive
+    <strong>due guide agganciate agli stessi punti di demo</strong> (D1, D2…) e le pubblica come due artifact
+    separati. Non esegue test e non tocca il tenant: legge.</p>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th></th><th>Per il cliente</th><th>Tecnica, interna</th></tr></thead>
+    <tbody>
+      <tr><td>Artifact</td><td>«&lt;Scenario&gt; — guida»</td><td>«&lt;Scenario&gt; — demo (interna)»</td></tr>
+      <tr><td>Forma</td><td>story slides: titolo-messaggio, corpo, approfondimento, slide «Vediamolo»; diventa anche il deck</td><td>per ogni demo: preparazione, passi, cosa deve comparire, piano B, pulizia</td></tr>
+      <tr><td>Linguaggio</td><td>il suo: «pratica», «udienza», «assistente»</td><td>il nostro: agenti, agent task, processi, server MCP</td></tr>
+      <tr><td>Collaudo</td><td><strong>mai</strong>: niente esiti né difetti</td><td>sì: che cosa è sicuro mostrare dal vivo e che cosa è fragile</td></tr>
+      <tr><td>A chi</td><td>al cliente, dopo il tuo ok</td><td>a chi conduce, <strong>mai</strong> al cliente</td></tr>
+    </tbody></table></div>
+  <div class="io">
+    <div><h4>Cosa porti</h4><ul>
+      <li>il manifest della versione stabile (senza repository: <code>pull</code>)</li>
+      <li>la suite e l'artifact delle domande di prova</li>
+      <li>l'ultimo giudizio, per la guida tecnica</li>
+      <li>il dossier, per le parole del cliente</li></ul></div>
+    <div><h4>Cosa ottieni</h4><ul>
+      <li>prima i titoli delle slide, da leggere di fila: devono raccontare la storia da soli</li>
+      <li>i due artifact, con la sorgente Markdown dentro</li>
+      <li>il deck, se lo chiedi (si scarica come .pptx o PDF)</li></ul></div>
+  </div>
+  <div class="says">
+    <div class="say"><q>Scrivi le guide della demo dello studio</q><button class="copy" type="button">Copia</button></div>
+    <div class="say"><q>Prepara la demo di giovedì, la faccio da solo</q><button class="copy" type="button">Copia</button>
+      <div class="then">Guida tecnica con la scaletta «da soli» in evidenza e la preparazione del giorno prima.</div></div>
+    <div class="say"><q>Aggiorna le guide alla v6</q><button class="copy" type="button">Copia</button>
+      <div class="then">Rifà per nome le slide e le demo toccate e ripubblica <strong>allo stesso link</strong>, che il cliente ha già.</div></div>
+  </div>
+  <details><summary>Il collaudo è cambiato: devo aggiornare la guida per il cliente?</summary><div><p>Solo se è cambiata
+  una versione che il cliente <em>vede</em>. Un collaudo da solo aggiorna la guida tecnica (sicuro/fragile, piano B),
+  non quella del cliente.</p></div></details>
+</section>
+
+<!-- 6 · BRIEF -->
+<section class="stage" id="brief">
+  <div class="stage-head">
+    <div class="stage-no">6</div>
+    <h2>Il brief per l'agenzia</h2>
+    <div class="where"><span class="chip c">Claude Code</span><span class="chip d">anche Desktop, senza PDF</span><span class="chip s">xrcopilotlab-blueprint-demo</span></div>
+  </div>
+  <div class="prose">
+    <p>Le tappe precedenti vanno dal cliente al blueprint; questa fa la strada opposta, <strong>dal blueprint al
+    mercato</strong>. Da un manifest o da un dossier ricava gli scenari che si possono proporre ad altri clienti —
+    lo scenario d'origine, da tre a sei derivati, quelli già realizzati — in lingua da sales, senza tecnicismi e
+    senza nomi di clienti. Il lettore è l'agenzia di marketing, non il cliente della demo: serve ai sales che
+    arrivano all'incontro sapendo che cosa altro proporre.</p>
+  </div>
+  <div class="says">
+    <div class="say"><q>Il brief per l'agenzia da questo blueprint</q><button class="copy" type="button">Copia</button>
+      <div class="then">Per ogni scenario: per chi, il problema, com'è dopo, come funziona, dove decide la persona, il messaggio, i fatti citabili, <strong>che cosa non dire</strong> e lo stato (realizzato · pronto da installare · si configura).</div></div>
+    <div class="say"><q>Gli scenari per i sales da questo assessment, concentrati sugli studi professionali</q><button class="copy" type="button">Copia</button></div>
+  </div>
+  <div class="note"><b>Due cose che fa sempre</b><p>Ti chiede <strong>in quale cartella salvare il PDF</strong> e
+  pubblica l'artifact «DEMO-&lt;famiglia&gt;» con il pulsante per scaricarlo. E si ferma se trova un nome di cliente,
+  di persona o una parola tecnica: il brief esce da Hevolus verso un terzo. Non scrive post né immagini, e ciò
+  che richiederebbe sviluppo lo elenca a te invece di metterlo nel brief.</p></div>
+</section>
+
+<!-- 7 · PRIMA DELLA DEMO -->
+<section class="stage" id="prima-della-demo">
+  <div class="stage-head">
+    <div class="stage-no">7</div>
+    <h2>Prima di presentarsi dal cliente</h2>
+    <div class="where"><span class="chip c">Claude Code</span></div>
+  </div>
+  <div class="prose"><p>Le spunte restano solo nel tuo browser: servono a te, il giorno prima.</p></div>
+  <ul class="checklist" id="checklist">
+    <li><input type="checkbox" id="ck-1"><label for="ck-1">L'ultimo giudizio è sulla <strong>versione applicata</strong>, e la suite intera è stata rilanciata su quella</label></li>
+    <li><input type="checkbox" id="ck-2"><label for="ck-2">Le domande di prova hanno lo stato aggiornato: si mostra solo ciò che è ✅</label></li>
+    <li><input type="checkbox" id="ck-3"><label for="ck-3">Ogni demo della guida tecnica ha il suo <strong>piano B</strong>, e la preparazione è fatta (mail da inviare, dati da incollare)</label></li>
+    <li><input type="checkbox" id="ck-4"><label for="ck-4">Le istanze di collaudo rimaste aperte non confondono chi guarda la coda dei compiti</label></li>
+    <li><input type="checkbox" id="ck-5"><label for="ck-5">Le attività programmate sospese durante il collaudo sono state riprese, se la demo le usa</label></li>
+    <li><input type="checkbox" id="ck-6"><label for="ck-6"><code>/status</code> mostra l'organizzazione Hevolus, e i link delle guide si aprono da un'altra finestra</label></li>
+    <li><input type="checkbox" id="ck-7"><label for="ck-7">La copia per la sala della guida (il file che si apre senza account) è sul computer che proietta</label></li>
+    <li><input type="checkbox" id="ck-8"><label for="ck-8">Al cliente va solo la guida «— guida»; la «— demo (interna)» e le domande di prova restano a chi conduce</label></li>
+  </ul>
+</section>
+
+<!-- APPENDICE -->
+<section class="stage" id="riferimenti">
+  <div class="stage-head">
+    <div class="stage-no">·</div>
+    <h2>Comandi, uscite, errori frequenti</h2>
+    <div class="where"><span class="chip c">Claude Code</span></div>
+  </div>
+  <div class="prose"><p>Di norma i comandi li lancia la skill. L'elenco sempre aggiornato per la versione installata è
+  <code>xrcopilotlab-bp --help</code>; fuori da un clone ogni comando che tocca la rete vuole <code>--env staging</code>
+  o <code>--env prod</code>.</p></div>
+
+  <div class="tbl"><table>
+    <thead><tr><th>Uscita</th><th><code>validate</code> · <code>plan</code> · <code>apply</code></th><th><code>test run</code></th></tr></thead>
+    <tbody>
+      <tr><td class="num">0</td><td>fatto</td><td>tutti i casi passati</td></tr>
+      <tr><td class="num">2</td><td>il file ha errori</td><td>suite non valida</td></tr>
+      <tr><td class="num">3</td><td>piano bloccato: nomi occupati, persone o skill inesistenti</td><td>nessun run del tag sul tenant</td></tr>
+      <tr><td class="num">4</td><td>esecuzione fallita a metà: si riprende con <code>--resume</code> o si smonta con <code>rollback</code></td><td>—</td></tr>
+      <tr><td class="num">6</td><td>piano valido ma non approvato</td><td>—</td></tr>
+      <tr><td class="num">7</td><td>—</td><td>almeno un caso non passato: è l'esito</td></tr>
+    </tbody></table></div>
+
+  <div class="tbl"><table>
+    <thead><tr><th>Cosa vedi</th><th>Cosa è successo</th></tr></thead>
+    <tbody>
+      <tr><td><code>/plugin marketplace add</code> dà 404</td><td>Git non è autenticato su GitHub, o non hai accesso a <code>hevolusinnovation</code>: <code>gh auth login</code>, poi chiedi di essere aggiunto</td></tr>
+      <tr><td>«App Configuration non leggibile» · «Key Vault … non è leggibile»</td><td>Mancano i ruoli Azure della tappa 1: il messaggio nomina risorsa e ruolo da chiedere</td></tr>
+      <tr><td>Errore di autenticazione ad Azure</td><td>Il primo accesso non è stato fatto su questa macchina: dal tuo terminale, non da Claude</td></tr>
+      <tr><td>Un comando del manuale «non esiste»</td><td>Gira una copia vecchia installata a mano. <code>xrcopilotlab-bp version</code> dice quale e da dove</td></tr>
+      <tr><td>Il piano si ferma su un nome esistente</td><td>Non è un guasto (<code>BP060</code>): rinomina, cambia tag o togli l'entità</td></tr>
+      <tr><td>Un'attività programmata sbaglia a ogni giro</td><td>La fonte non è pronta: «metti in pausa …», poi <code>schedule resume</code></td></tr>
+      <tr><td>Una pratica non va avanti</td><td>«Dove sta la pratica?» → <code>instances list --running</code>: <code>…:waiting</code> è un compito che aspetta una persona</td></tr>
+    </tbody></table></div>
+
+  <h3><span class="k">Chi fa che cosa</span>E che cosa chiedere a chi</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Skill</th><th>Fa</th><th>Non fa</th></tr></thead>
+    <tbody>
+      <tr><td><code>xrcopilotlab-assessment</code></td><td>dall'intervista e dalla proposta, il dossier</td><td>l'offerta economica, il manifest</td></tr>
+      <tr><td><code>xrcopilotlab-blueprint</code></td><td>scrive, applica, aggiorna sul posto, porta in produzione il manifest</td><td>il collaudo, le guide</td></tr>
+      <tr><td><code>xrcopilotlab-blueprint-test</code></td><td>domande, esecuzione, giudizio, triage, issue dopo un sì, domande di prova</td><td>scrivere il manifest, la guida al cliente</td></tr>
+      <tr><td><code>xrcopilotlab-blueprint-guide</code></td><td>le due guide della demo, e il deck</td><td>eseguire test, toccare il tenant</td></tr>
+      <tr><td><code>xrcopilotlab-blueprint-demo</code></td><td>il brief per l'agenzia di marketing</td><td>post, immagini, la guida di un cliente</td></tr>
+      <tr><td><code>xrcopilotlab-blueprint-howto</code></td><td>questa pagina</td><td>nessuna delle cose qui sopra</td></tr>
+    </tbody></table></div>
+
+  <footer>Pagina interna dell'AI Team Hevolus, pubblicata dalla skill <code>xrcopilotlab-blueprint-howto</code>.
+  I dettagli di ogni tappa sono nel manuale del plugin e in <em>Le skill</em> del catalogo
+  <code>hevolus-claude-plugins</code>. Se qualcosa non torna, scrivi all'AI Team che cosa stavi facendo e il messaggio
+  d'errore per intero.</footer>
+</section>
+
+</main>
+</div>
+</div>
+
+<script>
+(function(){
+  function copyText(text, btn){
+    function ok(){ btn.textContent = "Copiato"; btn.classList.add("done"); setTimeout(function(){ btn.textContent = "Copia"; btn.classList.remove("done"); }, 1600); }
+    function fallback(node){
+      try{ var r = document.createRange(); r.selectNodeContents(node); var s = getSelection(); s.removeAllRanges(); s.addRange(r); btn.textContent = "Selezionato"; }catch(e){}
+    }
+    try{
+      navigator.clipboard.writeText(text).then(ok, function(){ fallback(btn._node); });
+    }catch(e){ fallback(btn._node); }
+  }
+  document.querySelectorAll("button.copy").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      var node;
+      if(btn.dataset.copy){ node = document.getElementById(btn.dataset.copy); }
+      else { node = btn.parentElement.querySelector("q"); }
+      if(!node) return;
+      btn._node = node;
+      var text = node.innerText.replace(/\s+#.*$/gm, function(m){ return btn.dataset.copy === "c-bp" ? "" : m; });
+      copyText(text.trim(), btn);
+    });
+  });
+
+  // tappa attiva nella colonna
+  var links = {};
+  document.querySelectorAll("nav.rail a").forEach(function(a){ links[a.getAttribute("href").slice(1)] = a; });
+  if("IntersectionObserver" in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          Object.keys(links).forEach(function(k){ links[k].classList.remove("on"); });
+          var a = links[e.target.id]; if(a) a.classList.add("on");
+        }
+      });
+    }, {rootMargin:"-30% 0px -60% 0px"});
+    document.querySelectorAll("section.stage").forEach(function(s){ io.observe(s); });
+  }
+
+  // checklist: comodità per chi legge, solo nel suo browser
+  var KEY = "howto-checklist";
+  var saved = {};
+  try{ saved = JSON.parse(localStorage.getItem(KEY) || "{}") || {}; }catch(e){ saved = {}; }
+  document.querySelectorAll("#checklist input").forEach(function(cb){
+    if(saved[cb.id]) cb.checked = true;
+    cb.addEventListener("change", function(){
+      saved[cb.id] = cb.checked;
+      try{ localStorage.setItem(KEY, JSON.stringify(saved)); }catch(e){}
+    });
+  });
+})();
+</script>

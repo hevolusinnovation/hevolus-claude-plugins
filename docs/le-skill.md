@@ -14,6 +14,7 @@ repository di prodotto: [§ Le skill di sviluppo](skill-di-sviluppo.md).
 | [`xrcopilotlab-blueprint-test`](#xrcopilotlab-blueprint-test--collaudare-un-blueprint-applicato) | blueprints | «collauda il blueprint», «scrivi le domande di test», «vedi se funziona», «prepara le domande per il cliente», o si nomina `test run` | la suite `.tests.yml`, il report, il giudizio, le bozze di issue, le domande di prova per il cliente |
 | [`xrcopilotlab-blueprint-guide`](#xrcopilotlab-blueprint-guide--la-guida-per-il-cliente) | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «le slide per i sales», «la pagina da mostrare al cliente» | le due guide: per il cliente a slide (pagina e deck) e tecnica per l'AI Specialist (pagina interna) |
 | [`xrcopilotlab-blueprint-demo`](#xrcopilotlab-blueprint-demo--il-brief-per-lagenzia) | blueprints | «il brief per l'agenzia», «gli scenari per i sales», «cosa possiamo vendere da questo blueprint o assessment» | il brief per l'agenzia di marketing: gli scenari vendibili, anonimi e senza tecnicismi, come artifact «DEMO-» con il PDF |
+| [`xrcopilotlab-blueprint-howto`](#xrcopilotlab-blueprint-howto--il-percorso-in-una-pagina) | blueprints | «come si usano le skill dei blueprint», «da dove comincio», «spiegami il flusso dall'assessment alla demo» | l'artifact «Dall'intervista alla demo», da girare a chi comincia |
 | [`xrcopilotlab-assessment`](#xrcopilotlab-assessment--dalla-proposta-al-dossier) | assessment (Claude Desktop) | si carica una proposta e si chiede di «valutarla», «fare l'assessment», «tradurla in soluzione» | il dossier tecnico `.md` e `.docx`, con il capitolo per il provisioning |
 | [`xrcopilotlab-delivery-atlas`](#xrcopilotlab-delivery-atlas--dal-dossier-alla-delivery-atlas) | assessment (Claude Desktop) | «apri la delivery Atlas», «prepara il SOW», «carica il cliente sul CMS», «trasforma l'assessment in delivery» | il piano Atlas, i documenti per cliente in stile Atlas, la delivery nel CMS dopo l'anteprima |
 
@@ -457,6 +458,23 @@ Che cosa **non** fa:
   tecniche, e si ferma se ne trova;
 - non scrive post, slogan, immagini: sono il lavoro dell'agenzia;
 - su Claude Desktop scrive il brief ma non il PDF, che vuole un terminale.
+
+### `xrcopilotlab-blueprint-howto` — il percorso in una pagina
+
+Le altre skill si orientano ciascuna sul proprio pezzo; questa racconta la **catena**: pubblica (o
+aggiorna allo stesso link) l'artifact interno «Dall'intervista alla demo», con le tappe nell'ordine
+in cui si fanno — installazione su Desktop e su Code, assessment dall'intervista al cliente, prima
+versione del manifest, il giro del collaudo fino ai casi tutti verdi, le due guide, il brief — e per
+ciascuna dove si lavora, cosa portare, le frasi da scrivere, cosa si ottiene, le domande tipiche e
+gli errori frequenti. È la pagina da girare a chi entra nel team.
+
+| Chiedi | Succede |
+|---|---|
+| «Come si usano le skill dei blueprint?» · «da dove comincio?» · la skill senza altro | Confronta i fatti della pagina con le skill installate, corregge ciò che è invecchiato, la ripubblica allo stesso link e la apre |
+| «Qual è la skill che viene dopo il collaudo?» | Risponde in due righe e offre il link |
+
+Non esegue nessuna delle skill che descrive, non tocca il tenant e non contiene numeri di versione:
+invecchierebbero il giorno dopo.
 
 ### `xrcopilotlab-assessment` — dalla proposta al dossier
 
