@@ -6,7 +6,8 @@ task e processi BPM pubblicati. Mostra il piano e chiede conferma prima di crear
 E, una volta applicato, lo **collauda**: domande agli agenti, agli orchestratori e ai processi,
 report, giudizio delle risposte, e l'attribuzione di ogni difetto al componente che lo causa.
 
-**Manuale d'uso: [docs/manuale.md](docs/manuale.md).**
+**Manuale d'uso: [docs/manuale.md](docs/manuale.md).** Ogni comando della CLI, con tutte le opzioni:
+[docs/cli.md](docs/cli.md).
 
 ```
 /plugin marketplace add hevolusinnovation/hevolus-claude-plugins
@@ -50,6 +51,7 @@ skill](../../docs/le-skill.md). Prima di usarlo serve l'accesso ad Azure:
 | `bin/` | Gli avviatori della CLI, che la scaricano al primo uso; dicono anche quando il plugin è indietro |
 | `hooks/hooks.json` | All'apertura di una sessione, una riga se c'è una versione più recente del plugin (skill o CLI nuove), con i comandi per aggiornarlo |
 | `docs/manuale.md` | Il manuale per chi lo usa |
+| `docs/cli.md` | La guida completa alla CLI `xrcopilotlab-bp`: ogni comando, ogni opzione, conferme e codici di uscita |
 
 I file sotto `skills/` sono una copia sincronizzata dal repository di prodotto: si modificano là,
 non qui. Vedi [§ Manutenzione](../../docs/manutenzione.md).

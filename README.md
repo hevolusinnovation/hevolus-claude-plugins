@@ -152,6 +152,7 @@ I dettagli, compreso il vecchio strumento globale `dotnet tool` da togliere:
 | Capire perché il plugin non ti fa entrare, e cosa chiedere a chi | [§ L'accesso ad Azure](docs/accesso-azure.md) |
 | Sapere cosa fa ciascuna skill, con che frasi si attiva e cosa produce | [§ Le skill](docs/le-skill.md) |
 | Il manuale passo passo di un plugin | [assessment](plugins/assessment/docs/manuale.md) · [blueprints](plugins/blueprints/docs/manuale.md) |
+| Ogni comando di `xrcopilotlab-bp`, con tutte le opzioni, le conferme e i codici di uscita | [§ Guida completa alla CLI](plugins/blueprints/docs/cli.md) |
 | Capire perché una cosa sta su Desktop e un'altra su Code | [§ Claude Code o Claude Desktop](docs/code-o-desktop.md) |
 | Le skill che si ottengono clonando il repository di prodotto | [§ Le skill di sviluppo](docs/skill-di-sviluppo.md) |
 | Modificare, sincronizzare o pubblicare qualcosa di questo repository | [§ Manutenzione](docs/manutenzione.md) |

@@ -263,6 +263,10 @@ che nessuno ha fatto.
 Normalmente non li scrivi tu: li esegue il plugin mentre lavorate insieme. Sono qui perché tu
 possa capire cosa sta succedendo, e perché a volte è comodo lanciarli a mano.
 
+> **Tutte le opzioni di ogni comando** — con i valori predefiniti, cosa scrive e dove, quale
+> conferma chiede, i numeri con cui esce e gli esempi — sono nella
+> **[Guida completa alla CLI](cli.md)**. Qui sotto c'è solo il colpo d'occhio.
+
 | Comando | Cosa fa |
 |---|---|
 | `suggest <file>` | Propone come dividere i documenti fra i profili e quale modello dare a ciascun agente. `--files <cartella>` indica dove sono i documenti. Non scrive niente |
@@ -450,6 +454,9 @@ xrcopilotlab-bp rollback --run <id-esecuzione> --company <id>
 | `4` | L'esecuzione è fallita a metà |
 | `6` | Il piano va bene ma nessuno l'ha approvato |
 
+Gli altri (`1`, `5`, `7`, `70`) e che cosa fare per ciascuno: [§ Codici di uscita](cli.md#7-codici-di-uscita)
+della guida alla CLI.
+
 ---
 
 ## 7. Cambiare un blueprint già applicato
@@ -611,5 +618,6 @@ campo, non le deduce.
 
 ## Se ti serve una mano
 
-Il riferimento completo di ogni campo del file e di ogni opzione dei comandi è dentro il plugin,
-accanto alla skill, in `references/`. Per tutto il resto, il canale è il team AI di Hevolus.
+Ogni comando e ogni opzione: [Guida completa alla CLI](cli.md). Il riferimento di ogni campo del
+file è dentro il plugin, accanto alla skill, in `references/`. Per tutto il resto, il canale è il
+team AI di Hevolus.

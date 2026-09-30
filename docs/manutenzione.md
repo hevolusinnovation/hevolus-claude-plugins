@@ -26,7 +26,8 @@ plugins/blueprints/
 ├── skills/xrcopilotlab-blueprint-howto/SKILL.md   la guida d'uso del percorso intero, con la pagina in references/
 ├── bin/                                           gli avviatori: finiscono nel PATH quando il plugin è attivo
 ├── hooks/hooks.json                               l'avviso di inizio sessione: «il plugin è indietro»
-└── docs/manuale.md                                il manuale per chi lo usa
+├── docs/manuale.md                                il manuale per chi lo usa
+└── docs/cli.md                                    la guida completa alla CLI: ogni comando e ogni opzione
 plugins/assessment/
 ├── .claude-plugin/plugin.json
 ├── skills/xrcopilotlab-assessment/SKILL.md        la proposta → il dossier tecnico
@@ -147,6 +148,15 @@ ha installato lo strumento globale, quello **vince sempre** sulla copia del plug
 vecchio di mesi e anche dopo un `/plugin update`. Il sintomo è un comando che «non esiste» pur
 essendo nel manuale. Da vedere si vede con `xrcopilotlab-bp version`, che stampa numero, percorso e
 origine del binario che sta girando; la cura è `dotnet tool uninstall --global xrcopilotlab-bp`.
+
+### La guida alla CLI si aggiorna a mano
+
+`plugins/blueprints/docs/cli.md` **non** è una copia sincronizzata: è scritta qui, leggendo il
+codice della CLI (`XRCopilotLab.BluePrints.Cli/Program.cs`, `Cli/`, `Commands/`), e segna con
+«dopo la 2.x» ciò che non è ancora nella versione di `version.txt`. Quando si alza `version.txt`, si
+rilegge la guida e si tolgono i segni delle funzioni che quella versione porta; quando la CLI
+guadagna un comando o un'opzione, si aggiunge. Il riferimento sincronizzato per le skill resta
+`…/xrcopilotlab-blueprint/references/cli-reference.md`.
 
 ### Pubblicare una versione nuova della CLI
 
