@@ -260,6 +260,12 @@ Sei errori che si fanno se non si sta attenti:
    come compare nella UI) o `topicId` ne riusano uno esistente. Se l'utente vuole aggiungere agenti
    a un topic che ha già, è `existingTopic`: chiediglielo invece di crearne uno nuovo con un nome
    simile.
+7-bis. **Un server MCP che il tenant ha già si cita, non si ricrea.** `web-search`, un server
+   registrato a mano, uno di un altro blueprint: `mcpServers` con `kind: existing` e il **nome
+   esatto del catalogo** (niente prefisso, niente tool, niente URL), e l'agente lo mette in `mcp:`.
+   La CLI lo collega all'agente; se il server non c'è il piano si ferma con `BP069`, che elenca
+   ciò che il catalogo contiene. Non scrivere più «da collegare dalla UI» in una `description`:
+   era il ripiego di quando questa forma non esisteva (fino al 29/09/2026).
 8. **Il topic non è il RAG.** Il topic è il repository dei file; il **profilo** è ciò che li
    indicizza e che si collega all'agente. Un agente su un topic pieno di file ma senza profilo non
    vede niente. I profili si dichiarano in `knowledge:` e sono **knowledge graph per default**; il
@@ -307,8 +313,9 @@ lavoro del passo.
 
 ### Quando serve una fonte esterna che non è ancora collegata
 
-Un agente che deve leggere da un sistema esterno ha bisogno di un **server MCP**, e la domanda da
-farsi è una sola: quella fonte è **HTTP interrogabile**?
+Un agente che deve leggere da un sistema esterno ha bisogno di un **server MCP**. Prima domanda:
+il tenant **ce l'ha già** nel catalogo? Allora è `kind: existing` (regola 7-bis) e non si costruisce
+niente. Altrimenti la domanda da farsi è una sola: quella fonte è **HTTP interrogabile**?
 
 Se sì, non si scrive un servizio: si costruisce con **MCP Builder**, e il manifest lo **dichiara** —
 una `connections` con provider, baseUrl e autenticazione, e un `mcpServers` con `kind: builder` e i
@@ -537,6 +544,32 @@ interpretazioni se due ambienti stanno eseguendo davvero lo stesso blueprint.
 
 In **produzione** vale la solita protezione: un tenant che l'API non elenca viene rifiutato con
 **3** anche come destinazione di una copia. L'archivio non è una porta di servizio.
+
+## 6-quater. Dal tenant al manifest: leggere ciò che esiste
+
+Quando l'ambiente c'è già — costruito a mano dall'interfaccia, o applicato da un blueprint — e serve il
+suo manifest: per riusarlo su un altro cliente, per partire da un esempio che funziona invece che da
+una pagina bianca, per vedere quanto del tenant un manifest sa dire (#1173).
+
+1. **Chiedere l'ambito, prima di leggere**: un orchestratore, un topic, ciò che ha creato un blueprint
+   (`blueprint <TAG>`), o il tenant intero (solo se ha un topic). E il tag del manifest.
+2. **Chiedere dei dati personali**: il manifest va a un altro cliente (segnaposto, il default) o resta
+   allo stesso (`--keep-people`)?
+3. **Leggere**, solo letture:
+   ```bash
+   xrcopilotlab-bp export --scope topic "Agenda di Studio" --tag STUDIOPOLIS --env staging --company <guid> --out export-studiopolis
+   ```
+4. **Spiegare il rapporto** (`export-report.md`) prima del manifest: i segreti da impostare (per nome,
+   `secrets.txt`), le chiavi che si rigenerano e chi fuori dalla piattaforma le usa, i requisiti della
+   destinazione, ciò che il manifest non sa dire, le dipendenze entrate da sé. È lì che si capisce
+   se il manifest è pronto o se va completato.
+5. **Poi il percorso di sempre**: completare ciò che il rapporto chiede, `validate`, `secrets set`,
+   `push`, piano, sì, apply.
+
+Due cose da dire sempre: i nomi escono **senza** `BP-<TAG>-` e l'apply li rimette — un agente fatto a
+mano diventa `BP-<TAG>-<nome>`; e riapplicare l'export sullo stesso tenant da cui viene **crea delle
+copie**, non aggiorna le entità fatte a mano (il collegamento a entità esistenti non c'è ancora). Per
+un blueprint già applicato l'aggiornamento sul posto resta la strada (§6-ter).
 
 ## 7. Cancellare un blueprint
 

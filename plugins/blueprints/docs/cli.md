@@ -10,15 +10,9 @@ quando ti serve lanciarne uno da solo. Il percorso per chi comincia è nel
 Tutto quello che segue è ricavato dal codice della CLI, non dalla memoria di chi l'ha scritta. Se un
 comando si comporta in modo diverso da come è scritto qui, ha ragione il comando: segnalalo al team.
 
-> **Le versioni in questa guida.** Il plugin porta la CLI **2.15.1**. Le cose che non sono ancora
-> lì sono segnate, invece di essere nascoste:
->
-> - **«dopo la 2.15.1»** — già nel ramo principale del prodotto, arriveranno con la prossima CLI;
-> - **«in attesa di merge (PR #1195)»** — scritte e provate, ma non ancora nel ramo principale:
->   arriveranno quando quella pull request sarà unita, e poi con la CLI successiva.
->
-> Il riepilogo completo è in fondo, al [§ 11](#11-le-versioni-cosa-cè-nella-2151-e-cosa-arriva-dopo).
-> Per sapere quale versione hai davvero: `xrcopilotlab-bp version`.
+> **Le versioni in questa guida.** Il plugin porta la CLI **2.16.0**, e tutto ciò che qui è descritto
+> c'è. Con una CLI più vecchia può mancare qualcosa: il [§ 11](#11-le-versioni-cosa-cè-nella-2160) elenca cosa è arrivato con la
+> 2.16.0. Per sapere quale versione hai davvero: `xrcopilotlab-bp version`.
 
 ---
 
@@ -34,7 +28,7 @@ comando si comporta in modo diverso da come è scritto qui, ha ragione il comand
 8. [Codici dei rilievi `BPxxx`](#8-codici-dei-rilievi-bpxxx)
 9. [Quando qualcosa non va](#9-quando-qualcosa-non-va)
 10. [Dove finisce ciò che la CLI scrive](#10-dove-finisce-ciò-che-la-cli-scrive)
-11. [Le versioni: cosa c'è nella 2.15.1 e cosa arriva dopo](#11-le-versioni-cosa-cè-nella-2151-e-cosa-arriva-dopo)
+11. [Le versioni: cosa c'è nella 2.16.0](#11-le-versioni-cosa-cè-nella-2160)
 
 Elenco dei comandi, per saltare subito dove serve:
 
@@ -74,8 +68,8 @@ si ferma al primo posto in cui la trova:
 | 3 | la copia già scaricata, in `${CLAUDE_PLUGIN_DATA}/bin/` (fuori da Claude Code: `~/.xrcopilotlab-bp/cache/bin/`) | se esiste il file `xrcopilotlab-bp-<versione>-<piattaforma>` |
 | 4 | l'allegato della release `bp-v<versione>` | la prima volta: lo scarica (~52 MB) prima dal catalogo dei plugin, poi dal repository di prodotto come riserva |
 
-La **versione** la decide il file `plugins/blueprints/bin/version.txt`, che oggi dice `2.15.1`: la
-release cercata è quindi `bp-v2.15.1`. Il download passa da `gh` se sei autenticato, altrimenti da
+La **versione** la decide il file `plugins/blueprints/bin/version.txt`, che oggi dice `2.16.0`: la
+release cercata è quindi `bp-v2.16.0`. Il download passa da `gh` se sei autenticato, altrimenti da
 un token in `GH_TOKEN` o `GITHUB_TOKEN`. Dopo il download l'avviatore **confronta l'impronta
 SHA-256** con quella pubblicata accanto al binario, e se non corrisponde non lo esegue.
 
@@ -109,7 +103,7 @@ Con il plugin, **aggiornare la CLI vuol dire aggiornare il plugin**: binario e s
 ```
 
 Quando esce una CLI più recente, al comando successivo l'avviatore scrive una riga sola, per esempio
-`c'è la 2.16.0, il plugin chiede la 2.15.1. Aggiornalo con '/plugin update blueprints@hevolus'`. Il
+`c'è la 2.17.0, il plugin chiede la 2.16.0. Aggiornalo con '/plugin update blueprints@hevolus'`. Il
 controllo gira in secondo piano al massimo una volta al giorno e non può far fallire un comando.
 
 Una copia **installata a mano** (senza plugin) si aggiorna con [`update`](#update).
@@ -244,7 +238,7 @@ Le regole, nell'ordine in cui la CLI le applica:
    avviso; se l'elenco non si riesce a leggere, la CLI ripiega su quello dell'ambiente (uguale per
    tutti) e lo dice.
 
-> **In attesa di merge (PR #1195).** Il tenant `default` è la partizione del catalogo dei modelli,
+> Il tenant `default` è la partizione del catalogo dei modelli,
 > non un tenant: ogni comando lo rifiuta con 1 (vedi [`catalog`](#catalog-list--publish--install)).
 
 ### I profili scritti a mano
@@ -330,13 +324,12 @@ xrcopilotlab-bp <comando> [<sottocomando>] [argomenti] [opzioni]
 
 - **Il sottocomando viene subito dopo il comando**: `schedule list --tag X`, non
   `schedule --tag X list`. I comandi con sottocomando sono `secrets`, `test`, `schedule`, `mcp`,
-  `connections`, `instances`, `knowledge` e (in attesa di merge) `catalog`.
+  `connections`, `instances`, `knowledge` e `catalog`.
 - **Opzioni con un valore**: `--tag COMO` oppure `--tag=COMO`, è lo stesso. Un valore che comincia
   con `--` non si può passare nella prima forma: usa la seconda.
 - **Interruttori senza valore**: `--yes`, `--overwrite`, `--graph`, `--no-graph`, `--watch`,
-  `--running`, `--remove`, `--full`, `--check`, `--with-entities`, `--with-files`, `--skip-external`
-  (dopo la 2.15.1 anche `--pending`; in attesa di merge anche `--keep-people` e
-  `--documents-reviewed`). Non si mangiano mai l'argomento che li segue: `push --overwrite file.yml`
+  `--running`, `--remove`, `--full`, `--check`, `--with-entities`, `--with-files`, `--skip-external`,
+  `--pending`, `--keep-people` e `--documents-reviewed`. Non si mangiano mai l'argomento che li segue: `push --overwrite file.yml`
   funziona.
 - **Nomi delle opzioni senza distinzione fra maiuscole e minuscole.** I **tag** invece sono sempre in
   maiuscolo (`^[A-Z0-9]{2,20}$`).
@@ -358,8 +351,8 @@ differenza conta quando la CLI la lancia un assistente (niente terminale):
 | `rollback` | chiede `[s/N]` | **non fa niente ed esce con 0** («Annullato.») | `--yes` |
 | `delete` | chiede di **scrivere il tag** | si ferma con **6** | `--confirm <TAG>`; `--yes` **non vale** |
 | `promote` | chiede solo se la destinazione è la produzione | verso la produzione si ferma con **6**; altrove copia | `--yes` |
-| `catalog publish`, `catalog install` *(in attesa di merge)* | chiede sempre | in produzione si ferma con **6**; altrove procede | `--yes` |
-| `knowledge reingest` *(dopo la 2.15.1)* | chiede `[s/N]` | si ferma con **6** | `--yes` |
+| `catalog publish`, `catalog install` | chiede sempre | in produzione si ferma con **6**; altrove procede | `--yes` |
+| `knowledge reingest` | chiede `[s/N]` | si ferma con **6** | `--yes` |
 | `instances cancel` | stampa l'elenco e si ferma con **6** — non chiede | idem | `--yes` |
 | `mcp orphans --remove` | stampa l'elenco e si ferma con **6** — non chiede | idem | `--yes` |
 | `schedule pause`/`resume`, `mcp publish`, `connections refresh`, `secrets set` | nessuna conferma: sono reversibili o sostituiscono un valore | idem | — |
@@ -608,22 +601,21 @@ xrcopilotlab-bp secrets set --tag <TAG> <nome> [--from-env <VARIABILE>] [--env <
 | `--tag <TAG>` | tag del blueprint | obbligatorio | il blueprint a cui il segreto appartiene |
 | `--from-env <VARIABILE>` | nome di una variabile d'ambiente | nessuno | legge il valore da quella variabile invece di chiederlo: per gli usi senza terminale |
 | `--env <nome>` | ambiente | sviluppo, se sei in un clone | dove scrivere |
-| `--company <id>` | tenant | *(in attesa di merge)* scelto da elenco | il tenant a cui il segreto appartiene |
+| `--company <id>` | tenant | scelto da elenco | il tenant a cui il segreto appartiene |
 
-**Cosa fa, nella 2.15.1.**
+**Cosa fa.**
 
 1. Chiede `Valore per Blueprints:Secrets:<TAG>:<nome>:` e lo legge **senza eco** (con l'ingresso
    rediretto, lo legge da lì). Un valore vuoto ferma il comando.
 2. Scrive il valore in Key Vault — il vault dell'ambiente: `kv-xrcopilotlab-stg-01` o
    `kv-xrcopilotlab-prod-01`, oppure il `keyVaultUri` di un profilo.
-3. Crea in App Configuration la chiave `Blueprints:Secrets:<TAG>:<nome>` come **riferimento** a quel
-   segreto (non come valore), con l'etichetta del profilo se c'è.
+3. Crea in App Configuration la chiave `Blueprints:Secrets:<companyId>:<TAG>:<nome>` (vedi sotto) come
+   **riferimento** a quel segreto (non come valore), con l'etichetta del profilo se c'è.
 4. Aggiorna la chiave **`Sentinel`**: le API ricaricano la configurazione — riferimenti compresi —
    solo quando cambia, entro cinque minuti. Un'API avviata in locale va invece riavviata.
 
-> **In attesa di merge (PR #1195): i segreti diventano del tenant.** Il comando chiede anche il
-> tenant (con le regole del [§ 3](#--company-il-tenant)) e la chiave scritta in App Configuration
-> diventa `Blueprints:Secrets:<companyId>:<TAG>:<nome>`. Il manifest continua a scrivere
+> **I segreti sono del tenant.** Il comando chiede anche il tenant (con le regole del
+> [§ 3](#--company-il-tenant)) e la chiave scritta in App Configuration è `Blueprints:Secrets:<companyId>:<TAG>:<nome>`. Il manifest continua a scrivere
 > `Blueprints:Secrets:<TAG>:<nome>`: il tenant lo aggiunge la CLI. Serve perché due tenant che
 > installano lo stesso modello con lo stesso tag non si sovrascrivano le credenziali. In lettura si
 > cerca prima la chiave del tenant, poi quella senza tenant dei blueprint applicati prima della
@@ -666,7 +658,7 @@ xrcopilotlab-bp secrets check <file.yml> [--env <nome>] [--company <id>]
 | Argomento / opzione | Valore | Default | Significato |
 |---|---|---|---|
 | `<file.yml>` | percorso | obbligatorio | il manifest |
-| `--env`, `--company` | | | l'ambiente; il tenant *(in attesa di merge: usato per cercare la chiave del tenant; qui il tenant si prende da `--company`, dal manifest, dal profilo o dal predefinito, **senza** elenco)* |
+| `--env`, `--company` | | | l'ambiente; il tenant (usato per cercare la chiave del tenant; qui si prende da `--company`, dal manifest, dal profilo o dal predefinito, **senza** elenco) |
 
 **Cosa fa.** Raccoglie ogni riferimento `Blueprints:Secrets:…` del manifest, lo cerca fra le chiavi
 di App Configuration, stampa `presente` o `assente` per ciascuno e, per gli assenti, il comando
@@ -706,7 +698,7 @@ xrcopilotlab-bp push <file.yml> [--overwrite] [--env <nome>] [--company <id>]
 5. Scrive il **manifest interpretato** nel container Cosmos `blueprints` (partizione = tenant), con
    tag, versione, impronta SHA-256 e percorso del blob.
 6. Archivia accanto, in `files/`, i **documenti di knowledge** dichiarati nel manifest e trovati sul
-   disco (dopo la 2.15.1 anche quelli di `agents[].files`): è ciò che permette a un collega di
+   disco (e quelli di `agents[].files`): è ciò che permette a un collega di
    applicare la stessa versione senza avere la tua cartella.
 7. Stampa identificativo, versione, tag, tenant, blob, SHA-256, quanti file ha archiviato e il
    comando `plan` da lanciare dopo.
@@ -760,8 +752,6 @@ diff /tmp/como-staging.yml /tmp/como-prod.yml
 
 ### `export`
 
-> **Dopo la 2.15.1.** Non c'è nella CLI del plugin.
-
 La direzione opposta di `apply`: scrive come manifest qualcosa che **esiste sul tenant**. Sul tenant
 fa solo letture. Due forme.
 
@@ -792,8 +782,6 @@ xrcopilotlab-bp export "BP-COMO-Arricchimento report associato" --env staging --
 ```
 
 #### `export --scope …` — un tenant intero o una sua parte
-
-> **In attesa di merge (PR #1195).**
 
 ```
 xrcopilotlab-bp export --scope <ambito> [<oggetto>] --tag <TAG> [--out <cartella>] [--keep-people] [--overwrite] [--env] [--company]
@@ -893,9 +881,6 @@ xrcopilotlab-bp promote --env staging --tag LEGAL --from-company <cliente-A> --t
 
 ### `catalog list | publish | install`
 
-> **In attesa di merge (PR #1195).** Non c'è nella CLI del plugin e non è ancora nel ramo
-> principale del prodotto.
-
 Il **catalogo** dei blueprint pronti, curati da Hevolus e installabili da qualunque tenant. Vive
 nello stesso archivio, nella partizione `default`, che non è un tenant: nessun altro comando ci lavora.
 
@@ -989,7 +974,7 @@ xrcopilotlab-bp plan --tag <TAG> [--version <n>] [--no-graph] [--env] [--company
 
 1. Trova la versione nell'archivio del tenant (se non c'è: «Pubblicarlo con push», 1).
 2. **Preflight**: legge dal tenant i nomi occupati, le skill a catalogo, gli utenti, i modelli, gli
-   endpoint AI, i topic, i segreti presenti — e (dopo la 2.15.1) i server MCP del catalogo per
+   endpoint AI, i topic, i segreti presenti — e i server MCP del catalogo per
    `kind: existing`.
 3. Se sul tenant c'è un **run completato dello stesso blueprint**, il piano diventa un
    **aggiornamento** (vedi [`apply`](#una-versione-nuova-sopra-una-già-applicata)): le entità di
@@ -1075,7 +1060,7 @@ portano la versione nuova **sopra** quella applicata (#1126), dopo la stessa app
 - **si aggiorna sul posto** ciò che il blueprint ha creato ed è cambiato, confrontandolo con il
   **tenant** (non con il file precedente): degli agenti istruzioni, descrizione, temperatura e
   modello; degli orchestratori step, flussi, passaggi di dati e messaggio di benvenuto (id e link di
-  chat restano gli stessi); degli agent task, dalla 2.15.1, prompt e descrizione (pianificazione e
+  chat restano gli stessi); degli agent task prompt e descrizione (pianificazione e
   uscite restano come sono);
 - **resta com'è** tutto il resto, e il piano dice quante entità sono: i profili non si
   reindicizzano, i processi BPM non si aggiornano sul posto;
@@ -1335,7 +1320,7 @@ xrcopilotlab-bp test validate <suite.yml> [--manifest <file.yml>]
 | `<suite.yml>` | obbligatorio | la suite |
 | `--manifest <file.yml>` | quello accanto alla cartella della suite (`tests/x.tests.yml` → `x.yml`) | il manifest contro cui verificare i riferimenti; senza, i riferimenti non si verificano e il comando lo dice |
 
-I rilievi hanno codici `BT0xx` (dopo la 2.15.1 anche `BT023`, per `expect.pausesAt`). **Esce:** 0 ·
+I rilievi hanno codici `BT0xx` (tra cui `BT023`, per `expect.pausesAt`). **Esce:** 0 ·
 2 errori.
 
 ```bash
@@ -1490,7 +1475,7 @@ xrcopilotlab-bp mcp test    m365    --tag STUDIOPOLIS --env staging --tool posta
 xrcopilotlab-bp mcp orphans         --tag STUDIOPOLIS --env staging --remove --yes
 ```
 
-> **Dopo la 2.15.1.** Un server dichiarato `kind: existing` (#1194) non è creato dal blueprint: è un
+> Un server dichiarato `kind: existing` (#1194) non è creato dal blueprint: è un
 > server già nel catalogo del tenant, che il blueprint collega agli agenti. Il preflight lo cerca per
 > `mcpId` o per nome, e se non lo trova — o il nome non basta — il piano si ferma con **`BP069`**.
 
@@ -1585,8 +1570,6 @@ xrcopilotlab-bp instances cancel --tag STUDIOPOLIS --env staging --running --con
 ---
 
 ### `knowledge list | reingest`
-
-> **Dopo la 2.15.1.** Non c'è nella CLI del plugin.
 
 I **profili di knowledge** che il blueprint ha creato, lo stato di indicizzazione dei loro file, e la
 richiesta di reindicizzarli — quando la libreria della knowledge cambia il modo di leggere un file e
@@ -1725,7 +1708,7 @@ risponderà male o non verrà applicato.
 | `BP014` | Il nome porta già il prefisso `BP-<TAG>-`: nel file va scritto senza |
 | `BP015` | Avviso: l'agente non dichiara `model` e nascerà sul modello predefinito |
 | `BP016` | Una descrizione è più lunga di quanto il database accetti: l'apply si fermerebbe sul tenant |
-| `BP017` | *(dopo la 2.15.1)* Lo stesso nome di file è dichiarato con due tipi o due percorsi fra `agents[].files` e `knowledge[].files`: il secondo caricamento sovrascriverebbe il primo. Dai al file dell'agente un `name` suo |
+| `BP017` | Lo stesso nome di file è dichiarato con due tipi o due percorsi fra `agents[].files` e `knowledge[].files`: il secondo caricamento sovrascriverebbe il primo. Dai al file dell'agente un `name` suo |
 | **Riferimenti fra sezioni** | |
 | `BP020` | Un riferimento punta a una chiave che non esiste |
 | `BP021` | Un agent task deve puntare a un agente **oppure** a un orchestratore |
@@ -1764,7 +1747,7 @@ risponderà male o non verrà applicato.
 | `BP066` | L'endpoint AI citato non esiste fra quelli della company |
 | `BP067` | In un aggiornamento, una modifica non si può fare sul posto (entità sparita dal tenant, file nuovi su un profilo già indicizzato) |
 | `BP068` | Avviso: un'entità del blueprint che la versione nuova non dichiara più; resta sul tenant |
-| `BP069` | *(dopo la 2.15.1)* Un server MCP `kind: existing` non è nel catalogo del tenant, o il nome non basta a trovarlo |
+| `BP069` | Un server MCP `kind: existing` non è nel catalogo del tenant, o il nome non basta a trovarlo |
 | `BP070` | Sezione dichiarata ma non ancora applicata |
 | **Cancellazione** | |
 | `BP080` | Il blueprint ha ancora entità vive sul tenant: l'archivio non si cancella |
@@ -1777,7 +1760,7 @@ risponderà male o non verrà applicato.
 | `BP093` | Il cablaggio dei dati fra i passi non torna: gli agenti si parlerebbero solo attraverso il testo |
 | `BP094` | Lo step di avvio non serve: il planner lo toglie |
 | `BP095` | L'ingresso dell'orchestrazione non è uno solo |
-| **Catalogo dei modelli** — *in attesa di merge (PR #1195)* | |
+| **Catalogo dei modelli** | |
 | `BP100` | Il modello nomina un tenant |
 | `BP101` | Il modello contiene un indirizzo email |
 | `BP102` | `role:<chiave>` nomina un ruolo che il modello non dichiara |
@@ -1859,12 +1842,12 @@ Due cause possibili:
   origine. Una copia indicata con `XRCOPILOTLAB_BP_BIN` vince sempre; uno strumento globale
   `dotnet tool` vince se non è più vecchio del plugin. Toglilo con
   `dotnet tool uninstall --global xrcopilotlab-bp`.
-- **La funzione è arrivata dopo la tua versione.** Guarda i segni «dopo la 2.15.1» e «in attesa di
-  merge» in questa guida, o `xrcopilotlab-bp help`.
+- **La funzione è arrivata dopo la tua versione.** Controlla con `xrcopilotlab-bp version` quale hai e con
+  `xrcopilotlab-bp help` quali comandi ha: il [§ 11](#11-le-versioni-cosa-cè-nella-2160) dice cosa è arrivato con la 2.16.0.
 
 E ricorda che quasi tutti i comandi **ignorano in silenzio** un'opzione scritta male ([§ 4](#4-come-si-scrive-un-comando)).
 
-### «c'è la 2.x, il plugin chiede la 2.15.1»
+### «c'è la 2.x, il plugin chiede la 2.16.0»
 
 È l'avviso dell'avviatore: c'è una CLI più recente. `/plugin marketplace update hevolus`, poi
 `/plugin update blueprints@hevolus`, poi riavvia la sessione. Non è urgente: ciò che stai usando
@@ -1908,39 +1891,31 @@ xrcopilotlab-bp rollback --env staging --run <runId>
 | **Il tuo disco** | manifest scaricati o esportati, suite di collaudo, report | `pull`, `export`, `test init`, `test run` |
 
 Il manifest non contiene mai il valore di un segreto: solo il suo nome, nella forma
-`Blueprints:Secrets:<TAG>:<nome>`. La chiave vera in App Configuration è quella stessa oggi, e
-diventerà `Blueprints:Secrets:<companyId>:<TAG>:<nome>` quando arriverà la regola dei segreti per
-tenant (in attesa di merge).
+`Blueprints:Secrets:<TAG>:<nome>`. La chiave vera in App Configuration porta anche il tenant:
+`Blueprints:Secrets:<companyId>:<TAG>:<nome>` (quelle dei blueprint applicati prima della regola
+restano valide in lettura).
 
 ---
 
-## 11. Le versioni: cosa c'è nella 2.15.1 e cosa arriva dopo
+## 11. Le versioni: cosa c'è nella 2.16.0
 
-La CLI del plugin è la **2.15.1** (release `bp-v2.15.1`, 24/09/2026). Tutto ciò che questa guida non
-segna è lì.
+La CLI del plugin è la **2.16.0** (release `bp-v2.16.0`, 01/10/2026). Tutto ciò che questa guida
+descrive è lì.
 
-### Dopo la 2.15.1 — già nel ramo principale del prodotto
+### Cosa è arrivato con la 2.16.0, rispetto alla 2.15.1
 
 | Novità | Dove se ne parla |
 |---|---|
 | `export <orchestratore>`: un orchestratore del tenant scritto come manifest (#580) | [`export`](#export) |
+| `export --scope orchestrator \| topic \| blueprint \| tenant`, con `--keep-people`: un tenant intero o una sua parte in un manifest, con rapporto e segreti (#1173) | [`export`](#export) |
+| `catalog list`, `catalog publish` (con `--check` e `--documents-reviewed`), `catalog install` (con `--tag`, `--topic`, `--existing-topic`, `--members`), e i rilievi `BP100`–`BP105` (#1185) | [`catalog`](#catalog-list--publish--install) |
+| I segreti appartengono al tenant: `secrets set` chiede il tenant e scrive `Blueprints:Secrets:<companyId>:<TAG>:<nome>`; `secrets check`, `pipeline`, `promote` e l'apply leggono prima quella chiave e poi quella vecchia; il rilievo `BP103` | [`secrets set`](#secrets-set) |
+| Il tenant `default` (la partizione del catalogo) è rifiutato da ogni comando | [§ 3](#--company-il-tenant) |
 | `knowledge list` e `knowledge reingest`, con `--only` e `--pending` | [`knowledge`](#knowledge-list--reingest) |
 | `mcpServers` con `kind: existing`: collegare agli agenti un server MCP già nel catalogo del tenant (#1194), e il rilievo `BP069` | [`mcp`](#mcp-check--orphans--publish--test), [§ 8](#8-codici-dei-rilievi-bpxxx) |
 | `agents[].files`: collegare un foglio direttamente a un agente, per la skill spreadsheet; `push` li archivia con la versione, e il rilievo `BP017` | [`push`](#push), [§ 8](#8-codici-dei-rilievi-bpxxx) |
 | Collaudo: `expect.pausesAt`, per gli orchestratori conversazionali che chiudono ogni giro con una domanda, e il rilievo `BT023` | [`test validate`](#test-validate) |
 | Orchestratori: un gruppo parallelo porta sul tenant il suo `inputMapping` e i suoi metadati | — |
 
-### In attesa di merge — PR #1195, non ancora nel ramo principale
-
-Sono state unite nella catena di pull request #1183 → #1186, ma quelle PR avevano come base un altro
-branch, e il loro contenuto non è mai arrivato in `main`. Lo recupera la PR #1195, ancora aperta.
-
-| Novità | Dove se ne parla |
-|---|---|
-| `catalog list`, `catalog publish` (con `--check` e `--documents-reviewed`), `catalog install` (con `--tag`, `--topic`, `--existing-topic`, `--members`), e i rilievi `BP100`–`BP105` (#1185) | [`catalog`](#catalog-list--publish--install) |
-| `export --scope orchestrator \| topic \| blueprint \| tenant`, con `--keep-people`: un tenant intero o una sua parte in un manifest, con rapporto e segreti (#1173) | [`export`](#export) |
-| I segreti appartengono al tenant: `secrets set` chiede il tenant e scrive `Blueprints:Secrets:<companyId>:<TAG>:<nome>`; `secrets check`, `pipeline`, `promote` e l'apply leggono prima quella chiave e poi quella vecchia; il rilievo `BP103` | [`secrets set`](#secrets-set) |
-| Il tenant `default` (la partizione del catalogo) è rifiutato da ogni comando | [§ 3](#--company-il-tenant) |
-
-Quando una di queste arriva nella CLI del plugin, il segno sparisce da questa guida e `version.txt`
-sale di numero.
+Con una CLI più vecchia (`xrcopilotlab-bp version`) queste cose non ci sono: si aggiorna con
+`/plugin update blueprints@hevolus`, o con [`update`](#update) per una copia installata a mano.

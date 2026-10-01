@@ -51,6 +51,10 @@
           "type": "string",
           "description": "Nome del topic da CREARE (senza prefisso: lo aggiunge il planner)."
         },
+        "description": {
+          "type": "string",
+          "description": "Descrizione del topic da CREARE. Ignorata quando si riusa un topic esistente."
+        },
         "topicId": {
           "type": "string",
           "description": "Id di un topic già esistente, quando il nome è ambiguo. Alternativa a existingTopic."
@@ -145,7 +149,7 @@
     },
     "mcpServers": {
       "type": "array",
-      "description": "Server MCP. Verificati ma non ancora creati (milestone 2).",
+      "description": "Server MCP: costruiti con l'MCP Builder (builder), registrati nel catalogo (external), oppure già nel catalogo del tenant e soltanto collegati agli agenti (existing).",
       "items": {
         "type": "object",
         "required": [
@@ -161,11 +165,17 @@
           "kind": {
             "enum": [
               "builder",
-              "external"
+              "external",
+              "existing"
             ]
           },
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Nome senza prefisso. Per kind=existing è il nome esatto nel catalogo del tenant, e il prefisso BP-<TAG>- non si aggiunge."
+          },
+          "mcpId": {
+            "type": "string",
+            "description": "kind=existing: id del server nel catalogo del tenant. Serve solo se più server hanno lo stesso nome; se c'è, vince sul nome."
           },
           "description": {
             "type": "string"
@@ -428,11 +438,20 @@
           "description": {
             "type": "string"
           },
+          "type": {
+            "type": "string",
+            "enum": [
+              "base",
+              "smart"
+            ],
+            "description": "Tipo di agente. Assente significa smart (Q&A), il default sia della UI che del provisioning esistente."
+          },
           "systemMessage": {
             "type": "string"
           },
           "model": {
-            "type": "string"
+            "type": "string",
+            "description": "Modello del suo endpoint di chat implicito, quando chatEndpoints è assente o vuoto."
           },
           "temperature": {
             "type": "number",
@@ -441,18 +460,105 @@
           },
           "maxTokens": {
             "type": "integer",
-            "minimum": 1
+            "minimum": 1,
+            "description": "Deprecato: sostituito da verbosityLevel, ignorato a runtime dal 2026-04. Mantenuto per compatibilità con manifest più vecchi."
           },
           "language": {
             "type": "string",
             "examples": [
               "it",
               "en"
-            ]
+            ],
+            "description": "Lingua dell'agente, e del suo endpoint di chat implicito quando chatEndpoints è assente o vuoto."
+          },
+          "verbosityLevel": {
+            "type": "string",
+            "enum": [
+              "veryConcise",
+              "concise",
+              "verbose",
+              "noLimit"
+            ],
+            "description": "Controlla la lunghezza della risposta. Assente significa concise."
+          },
+          "minRankingScore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "minWordsValidation": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "searchTopK": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 30,
+            "description": "Chunk RAG recuperati per profilo. Assente = default (3)."
+          },
+          "reasoningEffort": {
+            "type": "string",
+            "enum": [
+              "minimal",
+              "low",
+              "medium",
+              "high"
+            ],
+            "description": "Solo sui modelli che lo supportano. Assente = decide il modello."
+          },
+          "disableHistory": {
+            "type": "boolean"
+          },
+          "enableGroundednessDetection": {
+            "type": "boolean"
+          },
+          "enablePermanentMemory": {
+            "type": "boolean"
           },
           "endpoint": {
             "type": "string",
             "description": "Nome di un endpoint AI della company a cui collegare l'agente, come compare nella configurazione del tenant. Serve quando la company ne ha uno proprio (tipicamente Anthropic): senza, l'agente parla con gli endpoint condivisi qualunque modello dichiari. Deve esistere gia: il blueprint lo collega, non lo crea."
+          },
+          "chatEndpoints": {
+            "type": "array",
+            "description": "Endpoint di chat dell'agente (non va confuso con endpoint, l'endpoint AI del tenant). Assente o vuoto significa un endpoint implicito, costruito da model e language. Con uno o più elementi, se ne crea uno per ciascuno — sempre inattivi.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "model": {
+                  "type": "string"
+                },
+                "language": {
+                  "type": "string",
+                  "examples": [
+                    "it",
+                    "en"
+                  ]
+                },
+                "welcomeMessage": {
+                  "type": "string"
+                },
+                "enableSuggestions": {
+                  "type": "boolean"
+                },
+                "suggestionMode": {
+                  "type": "string",
+                  "enum": [
+                    "automatic",
+                    "manual",
+                    "manualAutomatic"
+                  ]
+                },
+                "manualSuggestions": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 6
+                }
+              }
+            }
           },
           "skills": {
             "type": "array",
@@ -474,6 +580,36 @@
               "type": "string"
             },
             "description": "Chiavi di knowledge[]: i profili che l'agente interroga."
+          },
+          "files": {
+            "type": "array",
+            "description": "File collegati direttamente all'agente, per le skill che li leggono (spreadsheet). Il tipo di default è reference.",
+            "items": {
+              "type": "object",
+              "required": [
+                "path"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "description": "Percorso relativo alla cartella del manifest. Il push lo archivia con la versione."
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Nome nel topic. Se assente vale il nome del file. Un nome ha un solo tipo nel topic."
+                },
+                "fileType": {
+                  "enum": [
+                    "original",
+                    "reference",
+                    "target",
+                    "template"
+                  ],
+                  "description": "Assente = reference: è il tipo che la skill spreadsheet legge."
+                }
+              }
+            }
           }
         }
       }

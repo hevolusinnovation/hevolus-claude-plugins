@@ -38,6 +38,7 @@ COPIE = [
     ("docs/blueprints/manifest-reference.md", DEST / "references"),
     ("docs/blueprints/cli-reference.md", DEST / "references"),
     ("docs/blueprints/microsoft365-setup.md", DEST / "references"),
+    ("docs/blueprints/catalogo.md", DEST / "references"),
     ("src/XRCopilotLab/XRCopilotLab.BluePrints/Schema/blueprint.v1.schema.json", DEST / "references"),
     ("blueprints/studiopolis-agenda.yml", DEST / "references" / "esempio-agenda.yml"),
     ("blueprints/test-agenda.yml", DEST / "references" / "esempio-minimo.yml"),

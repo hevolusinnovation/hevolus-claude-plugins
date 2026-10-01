@@ -10,7 +10,8 @@ Due regole valgono ovunque nel file:
   errore segnalato (`BP014`), perché produrrebbe `BP-TEST-BP-TEST-…`.
 - **I segreti si citano, non si scrivono.** Ogni campo che conterrebbe una credenziale porta il
   **nome di una chiave** di App Configuration (`Blueprints:Secrets:<TAG>:<nome>`), creata con
-  `xrcopilotlab-bp secrets set`.
+  `xrcopilotlab-bp secrets set`. `<TAG>` è il tag del manifest: un valore in chiaro, o la chiave di
+  un altro tag, è un errore (`BP047`) — chi applica leggerebbe la credenziale di un altro blueprint.
 
 ## Intestazione
 
@@ -157,12 +158,43 @@ agents:
     language: it          # lingua dell'endpoint di default
     # endpoint: Anthropic Studio Polis   # solo se la company ha un endpoint AI proprio
     skills: []            # SkillId già a catalogo, es. legal-research
-    mcp: []               # chiavi di mcpServers (milestone 2)
+    mcp: []               # chiavi di mcpServers, anche quelli kind: existing
     knowledge: []         # chiavi di knowledge[]: i profili che l'agente interroga
+    files: []             # file collegati all'agente, per le skill che li leggono (vedi sotto)
 ```
 
 Un agente **senza `knowledge`** non ha accesso ai documenti, per quanti file ci siano nel topic:
 vede i profili, non il repository.
+
+### `files`: un foglio per una skill
+
+```yaml
+agents:
+  - key: elenco
+    name: AgenteElenco
+    skills: [spreadsheet]
+    files:
+      - path: ../dati/associati.xlsx
+        name: associati-tabella.xlsx   # nome nel topic; assente = nome del file
+        # fileType: reference          # ASSENTE = reference: è il tipo che spreadsheet legge
+```
+
+Alcune skill lavorano sui file **dell'agente**, non su un profilo: `spreadsheet` carica in DuckDB i
+fogli di tipo `reference` collegati all'agente e ci fa filtri, conteggi e aggregazioni con numeri
+verificati. È la strada per le domande che attraversano tutte le righe — «tutte le aziende della
+filiera tessile» — dove un profilo, che cerca, può perderne una parte.
+
+L'apply carica il file nel topic con il suo tipo e lo collega all'agente (`AgentsFiles`), dopo che
+l'agente esiste: vale quindi anche su un agente che un aggiornamento sul posto non ricrea. Il `push`
+archivia il file con la versione, come quelli dei profili.
+
+**Un nome di file nel topic ha un tipo solo.** Se lo stesso foglio serve a un profilo (`original`) e
+a una skill (`reference`), va dichiarato due volte con due `name` diversi: con lo stesso nome il
+validatore si ferma con `BP017`, perché il secondo caricamento cambierebbe il tipo del primo.
+
+Il rollback toglie il collegamento insieme all'agente; il file resta nel topic, come quelli dei
+profili. Un aggiornamento sul posto collega i file nuovi e **non ricarica** quelli già collegati: per
+cambiare il contenuto di un foglio si cambia il suo `name`.
 
 **Il modello va dichiarato.** Vive sull'endpoint di default dell'agente e il nome deve essere a
 catalogo: il preflight lo verifica e rifiuta con `BP065` un nome che non c'è, elencando i
@@ -189,6 +221,35 @@ in fattura.
 Si scrive il nome come compare nella configurazione del tenant, **senza prefisso**: l'endpoint non è
 del blueprint, che lo collega e basta. Il preflight rifiuta con `BP066` un nome che la company non
 ha, elencando quelli che ha; il rollback scollega l'agente e lascia l'endpoint dov'è.
+
+### Tipo, comportamento della risposta e endpoint di chat
+
+```yaml
+agents:
+  - key: agenda
+    name: Agenda
+    type: base                     # base | smart (Q&A). Assente = smart
+    verbosityLevel: concise        # veryConcise | concise | verbose | noLimit. Assente = concise
+    minRankingScore: 1.2           # solo smart
+    minWordsValidation: 0          # solo smart
+    searchTopK: 5                  # solo smart — chunk RAG per profilo. Assente = default (3)
+    reasoningEffort: medium        # minimal | low | medium | high — solo sui modelli che lo supportano
+    disableHistory: false
+    enableGroundednessDetection: false
+    enablePermanentMemory: false
+    chatEndpoints:                 # uno o più endpoint di chat, sempre creati inattivi
+      - model: gpt-5.4-mini
+        language: it
+        welcomeMessage: Come posso aiutarti?
+        enableSuggestions: true
+        suggestionMode: manual     # automatic | manual | manualAutomatic
+        manualSuggestions: [Quali eventi oggi?]
+```
+
+`chatEndpoints` assente o vuoto significa **un** endpoint implicito, costruito da `model` e
+`language` di primo livello — il comportamento storico. Con uno o più elementi se ne crea uno per
+ciascuno: un agente importato con due endpoint nel tenant sorgente ne ha due anche in destinazione.
+Sempre inattivi: l'attivazione, come quella dell'agente, resta una scelta di chi importa.
 
 ## `agentTasks`
 
@@ -471,8 +532,35 @@ mcpServers:
     kind: external
     name: Normattiva
     url: https://.../mcp
-    auth: { kind: CustomHeaders, header: X-API-Key, secret: Blueprints:Secrets:LEGAL:mcp-apikey }
+    auth: { kind: CustomHeaders, header: X-API-Key, secret: Blueprints:Secrets:TEST:mcp-apikey }
+
+  - key: web-search
+    kind: existing                         # già nel catalogo del tenant: solo collegato
+    name: Web Search                       # il nome ESATTO del catalogo, senza prefisso
+    # mcpId: 8f1c…                         # solo se più server hanno lo stesso nome
 ```
+
+#### `kind: existing` — un server che è già sul tenant
+
+Serve per i server che il tenant ha già nel suo catalogo MCP e che il blueprint deve solo collegare
+agli agenti: un server condiviso come `web-search`, uno registrato a mano, uno creato da un altro
+blueprint. Si scrivono chiave, `kind: existing` e il **nome esatto del catalogo**; gli agenti lo
+citano in `mcp:` come qualunque altro server.
+
+- **Il nome non riceve il prefisso** `BP-<TAG>-`: il server non l'ha creato il blueprint, e con il
+  prefisso si cercherebbe un server che non esiste.
+- **Il blueprint non lo crea, non lo pubblica e non lo mette in inventario**: né `rollback` né
+  `delete` possono toccarlo. Del blueprint è solo il **collegamento** agente → server, che il
+  rollback toglie insieme all'agente.
+- **Non si configura**: `connection`, `tools`, `variables`, `testTool`, `url`, `auth` e
+  `timeoutSeconds` appartengono a chi lo ha registrato, e su un `existing` sono un errore (`BP043`).
+  `systemPrompt` e `promptMode` restano ammessi: sono istruzioni per gli agenti del blueprint, e
+  vengono dal manifest, non dal server.
+- **Il preflight lo cerca nel catalogo**, per `mcpId` se c'è e altrimenti per nome (senza badare
+  alle maiuscole). Se non c'è, se il nome è ambiguo o se il catalogo non si è potuto leggere, il
+  piano si ferma con `BP069`, e il messaggio elenca i server che il catalogo contiene.
+- **Un collegamento che esiste già** — fatto a mano dalla UI prima che il manifest lo dichiarasse —
+  non viene rifatto: finisce in inventario come `Adopted`, e il rollback lo lascia dov'è.
 
 #### `systemPrompt` e `promptMode` — le istruzioni d'uso del server
 
@@ -663,7 +751,7 @@ variante a polling: quella il blueprint la crea per intero, questa no.
 | `BP010`–`BP016` | Chiavi e nomi: mancanti, duplicati, già prefissati; modello dell'agente non dichiarato (`BP015`); descrizione più larga della colonna SQL che la riceve — 500 caratteri per topic, profilo e agente, 1000 per orchestratore, ruolo e agent task (`BP016`, errore: l'apply si fermerebbe sul tenant a entità già create) |
 | `BP020`–`BP023` | Riferimenti fra sezioni e alternative esclusive |
 | `BP030`–`BP033` | Processi: specifica non valida, ruolo, agent task o sotto-processo sconosciuto |
-| `BP040`–`BP045` | Connessioni e server MCP; connessione verso il webhook di un processo (`BP045`) |
+| `BP040`–`BP047` | Connessioni e server MCP; connessione verso il webhook di un processo (`BP045`); segreto scritto in chiaro o di un altro tag (`BP047`) |
 | `BP024`–`BP029` | Agent task: trigger, schedulazione, code di uscita; file di knowledge inutilizzabile (`BP027`); partizionamento dei profili (`BP028`); cron più fitto della quota giornaliera (`BP029`) |
 | `BP050`–`BP052` | Risorse esterne, ed equivalenti nativi |
 | `BP060`–`BP065` | Preflight: collisione di nome, skill, utente, segreto o topic mancante; modello fuori catalogo (`BP065`) |

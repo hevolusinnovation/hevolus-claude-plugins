@@ -241,15 +241,22 @@ agente senza documenti né strumenti può essere il passo più difficile della c
 dichiarano la fascia — un `codex`, un `fast-non-reasoning`, le famiglie non GPT — non vengono
 proposti per esclusione.
 
-## `secrets set --tag <TAG> <nome>`
+## `secrets set --company <tenant> --tag <TAG> <nome>`
 
-Salva un segreto in Key Vault e ne registra il riferimento in App Configuration come
-`Blueprints:Secrets:<TAG>:<nome>`.
+Salva un segreto in Key Vault e ne registra il riferimento in App Configuration. Il manifest lo cita
+come `Blueprints:Secrets:<TAG>:<nome>`; la chiave vera porta anche il **tenant** —
+`Blueprints:Secrets:<companyId>:<TAG>:<nome>` — perché un segreto appartiene a un tenant, e due
+tenant che installano lo stesso modello del catalogo con lo stesso tag non devono scriversi addosso
+(#1185).
 
 ```bash
-xrcopilotlab-bp secrets set --tag STUDIOPOLIS graph-client-secret
+xrcopilotlab-bp secrets set --company <tenant> --tag STUDIOPOLIS graph-client-secret
 # Valore per Blueprints:Secrets:STUDIOPOLIS:graph-client-secret: ●●●●●●●●
 ```
+
+Quando legge un segreto, la CLI cerca prima la chiave del tenant, poi quella senza tenant dei
+blueprint applicati prima della regola: questi continuano a funzionare senza riapplicarli. Un
+segreto impostato di nuovo va nella chiave del tenant, che da lì in poi vince.
 
 Il valore si digita **senza eco**, non compare a video, non entra nel manifest e non finisce nei
 log. Per gli usi non interattivi: `--from-env NOME_VARIABILE`.
@@ -293,6 +300,98 @@ percorsi scritti nel manifest sono quelli della macchina che fece il push, e van
 di ripubblicare da quel file.
 
 Se la versione è arrivata lì per copia, stampa anche da dove.
+
+## `export <orchestratore> [--tag <TAG>] [--out <file>]`
+
+La direzione opposta di `apply`: scrive come manifest un orchestratore che **esiste sul tenant**,
+indicato per id o per nome, con gli agenti che i suoi step usano, il loro topic e i loro profili di
+knowledge (#580). Sul tenant fa solo letture.
+
+Il manifest lo costruisce lo stesso esportatore dell'export dall'editor dell'orchestratore, quindi
+vale la stessa regola: **non esce niente che appartenga alla company d'origine**. Credenziali delle
+action (auth, header e query string dei webhook, qualunque chiave che nomini una credenziale),
+destinatari delle approvazioni, connessioni, server MCP ed endpoint AI assegnati agli agenti
+restano fuori, e ogni omissione è un avviso stampato. Anche uno script JavaScript oltre 8 KB viene
+segnalato: può contenere dati della company.
+
+Il tag viene dal nome, se l'orchestratore l'ha creato un blueprint (`BP-<TAG>-…`); altrimenti si
+indica con `--tag`. Con il tag, i nomi e le chiavi che portano il prefisso `BP-<TAG>-` lo perdono,
+perché lo rimette il planner al `push`: senza, un blueprint esportato e ripubblicato diventerebbe
+`BP-TAG-BP-TAG-…`. Un nome senza quel prefisso non è del blueprint e resta com'è.
+
+Senza `--out` il file prende il nome `<blueprint>.yml` nella cartella corrente; un file che esiste
+già non viene sovrascritto senza `--overwrite`. Il file si scrive comunque, e poi si valida: con
+errori bloccanti esce **2** e li stampa. Il caso tipico è un'approvazione, che vuole i destinatari
+(`BP091`) — il file è un punto di partenza da rivedere, non un blueprint pronto.
+
+Due adattamenti che l'esportatore fa, e dice:
+
+- un orchestratore che **torna al suo primo step** (una conversazione) non avrebbe ingresso per il
+  manifest, che parte dall'unico step senza flussi entranti: l'ingresso viene duplicato in
+  `<step>-entry`, e i cicli restano sull'originale;
+- uno step con output strutturato che sul tenant **ha perso lo schema** riceve uno schema
+  ricostruito dalle chiavi del suo `outputMapping`, da controllare.
+
+## `export --scope <ambito> [<oggetto>] --tag <TAG> [--out <cartella>] [--keep-people] [--overwrite]`
+
+La lettura di un **tenant intero, o di una sua parte**, in un manifest (#1173). Sul tenant fa solo
+letture. Scrive una cartella con tre file:
+
+| File | Che cosa contiene |
+|---|---|
+| `manifest.yml` | il manifest, già validato |
+| `export-report.md` | il rapporto: ciò che il manifest non porta e che va completato prima di applicarlo |
+| `secrets.txt` | i riferimenti ai segreti, uno per riga, con il comando `secrets set` già scritto |
+
+**L'ambito si dichiara prima di leggere**, e non si allarga in silenzio:
+
+| Ambito | Da dove parte |
+|---|---|
+| `orchestrator <id\|nome>` | l'orchestratore, nel topic dei suoi agenti |
+| `topic <id\|nome>` | agenti, profili e agent task del topic, e gli orchestratori fatti solo dei suoi agenti |
+| `blueprint <TAG>` | ciò che l'inventario dell'ultimo run completato dice creato dal blueprint; il tag del manifest è quello, e le **chiavi** sono quelle del manifest originale |
+| `tenant` | tutto: possibile solo se il tenant ha **un topic solo**, perché un manifest ne descrive uno |
+
+Ciò da cui le entità dell'ambito dipendono entra da sé — i profili e i server MCP di un agente, la
+connessione di un server MCP, il processo che un agent task avvia, i ruoli e gli agent task di un
+processo, gli agenti di un orchestratore — e il rapporto dice chi l'ha fatto entrare. Un ambito che
+non si può rispettare (un orchestratore con agenti in topic diversi, un tenant con più topic) esce
+**1** con il motivo.
+
+**Il manifest è un modello, non una fotocopia.** I nomi escono senza `BP-<TAG>-`, che l'apply rimette;
+le chiavi sono slug dei nomi, o quelle dell'inventario con `--scope blueprint`; i riferimenti fra
+sezioni passano per le chiavi, mai per gli id del tenant. Un'entità fatta a mano, senza prefisso,
+all'apply lo riceve: riapplicare l'export sullo stesso tenant ne creerebbe una copia, e collegare le
+chiavi a entità che esistono già è un passo che ancora non c'è.
+
+**Nessun valore segreto esce.** L'API restituisce alcune credenziali in chiaro — le chiavi degli
+endpoint AI di un agente, gli header di un'uscita webhook — e l'export le ferma:
+
+- l'autenticazione di una connessione diventa riferimenti `Blueprints:Secrets:<TAG>:<chiave>-…`; dei
+  suoi campi l'API restituisce **solo il tipo**, quindi `tokenUrl`, `scope`, nome utente e nome
+  dell'header restano da completare, e il rapporto lo dice;
+- un header con un nome da credenziale (`Authorization`, `*key*`, `*token*`…) diventa un riferimento;
+- le chiavi che la piattaforma genera — webhook dei processi, chiavi sviluppatore — si **rigenerano**
+  all'import: un'uscita verso il webhook di un processo diventa `processes.<chiave>.webhook`, una
+  connessione verso un processo diventa `process: <chiave>`.
+
+**I dati personali** — membri dei ruoli, owner dei processi, destinatari delle email — escono come
+segnaposto `persona-N@segnaposto.invalid`, perché il manifest può finire a un altro cliente. Con
+`--keep-people` restano gli indirizzi: per promuovere sullo stesso cliente. Il rapporto elenca ogni
+campo in entrambi i casi.
+
+**Ciò che il manifest non sa dire** è elencato entità per entità, mai perso in silenzio: i documenti
+dei profili (non vengono scaricati), le impostazioni dell'agente senza un campo nel manifest, la
+politica di approvazione e l'avvio da webhook di un agent task, alcuni campi delle uscite, la
+disposizione del diagramma dei processi, le variabili dei server MCP (già sostituite nei template), le
+opzioni dei provider di connessione diversi dal webhook.
+
+Senza `--out` la cartella è `export-<tag>`; se contiene già un manifest non si sovrascrive senza
+`--overwrite`. Dopo aver scritto i file il comando valida: con errori bloccanti esce **2**.
+
+Provato su staging con `--scope blueprint STUDIOPOLIS` contro `blueprints/studiopolis-agenda.yml`:
+stesse chiavi in tutte le sezioni; ruoli, agenti, agent task e processi identici, a meno dei dati
+personali; le differenze che restano sono quelle che il rapporto dichiara.
 
 ## `promote --tag <TAG> [--version <n>] [--from-env <e>] [--to-env <e>] [--from-company <guid>] [--to-company <guid>]`
 
@@ -348,6 +447,41 @@ la produzione, la copia stessa chiede conferma — senza terminale si ferma con 
 Il tenant di destinazione passa dallo stesso filtro di tutti gli altri comandi: in produzione un
 tenant che l'API non elenca viene rifiutato con `3`, perché l'archivio non diventi la porta di
 servizio di quella protezione.
+
+## `catalog list` · `catalog publish <modello.yml>` · `catalog install <modello>`
+
+Il **catalogo** dei blueprint pronti, curati da Hevolus e installabili da qualunque tenant (#1185).
+Vive nello stesso archivio dei tenant, nella partizione `default`; perché e come si scrive un
+modello: [`catalogo.md`](catalogo.md).
+
+```bash
+xrcopilotlab-bp catalog list --env staging [--company <tenant>]
+xrcopilotlab-bp catalog publish blueprints/catalogo/legal-agenda.yml --env staging [--documents-reviewed]
+xrcopilotlab-bp catalog install legal-agenda --env staging --company <tenant> \
+    [--version <n>] [--tag <TAG>] [--topic <nome> | --existing-topic <nome>] \
+    [--members "referente=a@studio.it,b@studio.it;segreteria=c@studio.it"]
+```
+
+- **`list`** — l'ultima versione di ogni modello, con che cosa crea. Con `--company`, anche che
+  cosa ha installato quel tenant e se nel catalogo c'è una versione più nuova.
+- **`publish`** — controlla che il file sia un **modello** (`BP100`–`BP104`: nessun tenant, nessuna
+  persona né email, segreti senza tenant, documenti rivisti) e che, installato per finta, sia un
+  manifest valido; poi lo scrive nel catalogo. In produzione chiede conferma. Con `--check` si ferma
+  al controllo, senza rete e senza scrivere: è il modo di provare una bozza. È riservato a Hevolus:
+  scrive nella partizione che ogni tenant legge.
+- **`install`** — copia una versione del modello nell'archivio del tenant con le scelte di chi
+  installa: tag (default quello del modello), topic, persone di ogni ruolo. Le persone si danno con
+  `--members` o, al terminale, rispondendo a una domanda per ruolo; un ruolo a cui il modello
+  indirizza dei passi non può restare vuoto (`BP105`). Una seconda installazione dello stesso modello
+  riparte dalle scelte della prima: è così che si **aggiorna** — la versione nuova arriva con lo
+  stesso tag e il piano la applica sul posto (#1126).
+
+Come `promote`, **`install` non crea niente sul tenant**: dopo servono `secrets set` per le
+credenziali che il comando elenca, poi `plan` e `apply` con la loro approvazione. Il tag scelto non
+può essere già di un altro blueprint del tenant. La copia ricorda da dove viene (`promotedFrom`
+con `catalogVersion`), ed è da lì che `catalog list --company` sa dire se c'è di più nuovo.
+
+`default` non è un tenant: ogni altro comando lo rifiuta con `1`.
 
 ## `plan --tag <TAG> [--version <n>]`
 
@@ -656,6 +790,48 @@ Emerso il **2026-09-14**: i due segreti Graph di Studio Polis erano scambiati fi
 Configuration non è bastato — la connessione aveva i valori dell'apply — e `mcp test` continuava a
 mostrare `AADSTS700016`. Il valore giusto è stato recuperato dalla **versione precedente** del
 segreto in Key Vault, senza ruotare nulla.
+
+## `knowledge list [<profilo>]` · `knowledge reingest <profilo>`
+
+I profili di knowledge che il blueprint ha creato, lo stato di indicizzazione dei loro file, e la
+richiesta di **reindicizzarli**: servono quando la libreria della knowledge graph cambia il modo di
+leggere un file, e ciò che era già indicizzato va rifatto.
+
+```bash
+xrcopilotlab-bp knowledge list                        --tag COMO --env staging --company <guid>
+xrcopilotlab-bp knowledge reingest bilanci            --tag COMO --env staging --company <guid>
+xrcopilotlab-bp knowledge reingest bilanci --only "00020970133_GLASSFER SRL_2019.xlsx" --tag COMO --env staging --company <guid>
+```
+
+`reingest` **non indicizza da sé**: per ogni file chiede alla piattaforma la stessa cosa del pulsante
+dell'interfaccia (`POST knowledgegraph/reingest`), che toglie il file dal grafo e lo rimette in coda.
+Lo esegue il worker di AsyncOperations che legge quella coda, con la **sua** libreria: su `--env
+staging` quello di staging, su `--env locale` quello avviato sulla macchina (vedi sotto). Finché il
+worker non ha rifatto un file, quel file manca dalle risposte degli agenti che usano il profilo.
+Prima di partire mostra quanti file e chiede conferma; senza terminale serve `--yes`. L'avanzamento
+si legge con `knowledge list`. Con `--pending` chiede solo i file che non risultano `completed`: è
+la ripresa di una reindicizzazione rimasta a metà (un worker fermato, messaggi finiti in dead letter),
+senza rifare i file già a posto.
+
+Perché non indicizza da sé: una CLI con la propria libreria metterebbe nel database dati prodotti da
+una versione che non è quella in esercizio — chi legge con la X, chi ha scritto con la Y — e nessuno
+se ne accorgerebbe. Passando dalla piattaforma, i dati li scrive sempre il worker dell'ambiente.
+
+**Con Api e AsyncOperations in locale.** Il `local.settings.json` punta App Configuration di
+**staging** (database, Cosmos, storage: i dati sono quelli di staging) ma il Service Bus di **dev**
+(`sb-xrcopilotlab-dev-swedencentral`), e le variabili d'ambiente vincono su App Configuration. Le code
+locali sono quindi separate da quelle di staging: una reindicizzazione chiesta con `--env locale` la
+esegue l'AsyncOperations della macchina, con la libreria locale, e scrive nei dati di staging. Il
+Durable usa Azurite con un task hub suo (`XRCopilotLabLocalHub`). Due cautele:
+
+- AsyncOperations in locale va avviato **solo con le funzioni che servono** (`func host start
+  --functions …`): i timer, come lo scheduler degli agent task, leggono il database di staging e
+  rieseguirebbero in locale i lavori programmati di staging, in doppio.
+- Il namespace di dev è condiviso: un collega con il suo AsyncOperations acceso nello stesso momento
+  prende una parte dei messaggi.
+
+Emerso il **2026-09-27**: la libreria 3.10.2 salva per intero il conto economico dei 548 bilanci di
+Confindustria Como, che la 3.10.1 riduceva a una riga, e il worker di staging era ancora sulla 3.10.1.
 
 ## `instances list` · `instances show <id>` · `instances cancel`
 
