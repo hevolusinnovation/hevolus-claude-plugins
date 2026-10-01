@@ -378,8 +378,8 @@ corregge ha già il test di regressione. Se il difetto è di retrieval su un fil
 corpo si propone il caso anche per la suite di regressione della libreria
 (`AssessmentRegressionTests`, variabile `KG_ASSESSMENT_DATA`, nel clone della knowledge graph).
 
-Dopo l'apertura, riportare i numeri delle issue nel `giudizio.md` accanto ai casi, e — se il
-repository lo prevede — la label `semver:patch` con la skill `xrcopilotlab-label-semver`.
+Dopo l'apertura, riportare i numeri delle issue nel `giudizio.md` accanto ai casi. Nessuna label di
+versione: in quale release entra una issue lo decide Marcello Marchetti (`mamarche`).
 
 ## 6. Le domande di prova per il cliente
 

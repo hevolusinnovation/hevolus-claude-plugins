@@ -370,7 +370,18 @@ blueprint: studiopolis-agenda
 #              tornò in casella e diventò una pratica «Visione» con una nuova conferma — 26 pratiche
 #              d'eco in 45 minuti, alternate fra civile e penale. In produzione lo stesso anello si
 #              chiude fra le due caselle dello Studio.
-version: 32
+# v33 (29/09): la Sorveglianza delle due caselle passa da un giro al minuto a uno all'ora
+#              (`0 * * * *`): 1440 esecuzioni al giorno per casella — 12.500 in cinque giorni, quasi
+#              tutte «NESSUN AVVISO» — diventano 24. Con un messaggio per giro la finestra non può
+#              restare di due minuti: sale a ventiquattro ore, e si passa il messaggio più VECCHIO,
+#              così uno arrivato nella stessa ora di un altro aspetta il giro dopo invece di uscire
+#              dalla finestra. Il doppione lo evita il segno di lettura (v29), non la finestra. Quota
+#              da 2000 a 50. Limite: posta_non_letta restituisce i 25 non letti più recenti, e i
+#              messaggi scartati restano non letti; se in 24 ore se ne accumulano più di 25, il più
+#              vecchio non compare nell'elenco e può uscire dalla finestra senza essere passato.
+#              ⚠️ L'aggiornamento sul posto NON porta la schedulazione sul tenant (#1126: resta
+#              quella che c'è): il cron va cambiato a parte.
+version: 33
 tag: STUDIOPOLIS
 description: Organizer dello Studio — dalla riunione di designazione all'esito dell'udienza, e dalla mail o dal dettato alla pratica e al calendario comune
 
@@ -1285,13 +1296,15 @@ agents:
          è più larga dell'intervallo di proposito — meglio riconsiderare un
          messaggio che perderlo fra due giri — e a non riconsiderarlo per davvero
          pensa il segno di lettura, non la finestra.
-      2. Lavori il PRIMO messaggio rimasto. Quando hai finito con lui — pratiche
+      2. Lavori il messaggio rimasto PIÙ VECCHIO: posta_non_letta li dà dal più
+         recente, quindi è l'ultimo dell'elenco. A ogni giro ne passa uno, e gli altri
+         aspettano il giro dopo nell'ordine in cui sono arrivati. Quando hai finito con lui — pratiche
          aperte, e conferma mandata se il mittente è interno — chiami segna_letto su
          quel messaggio, e solo su quello. È l'ultima cosa che fai, mai la prima: un
          messaggio segnato come letto e non aperto è una comunicazione persa, e qui
          una comunicazione persa è un termine perso. Dopo segna_letto non richiami
          posta_non_letta: il giro è finito, e resta solo da restituire il testo.
-      3. Per il primo messaggio rimasto da passare chiami leggi_messaggio per il
+      3. Per il messaggio più vecchio rimasto da passare chiami leggi_messaggio per il
          testo intero.
       4. Se è una busta di posta certificata — l'oggetto comincia con «POSTA
          CERTIFICATA:», oppure ha allegati daticert.xml o postacert.eml — chiami
@@ -1466,13 +1479,15 @@ agents:
          è più larga dell'intervallo di proposito — meglio riconsiderare un
          messaggio che perderlo fra due giri — e a non riconsiderarlo per davvero
          pensa il segno di lettura, non la finestra.
-      2. Lavori il PRIMO messaggio rimasto. Quando hai finito con lui — pratiche
+      2. Lavori il messaggio rimasto PIÙ VECCHIO: posta_non_letta li dà dal più
+         recente, quindi è l'ultimo dell'elenco. A ogni giro ne passa uno, e gli altri
+         aspettano il giro dopo nell'ordine in cui sono arrivati. Quando hai finito con lui — pratiche
          aperte, e conferma mandata se il mittente è interno — chiami segna_letto su
          quel messaggio, e solo su quello. È l'ultima cosa che fai, mai la prima: un
          messaggio segnato come letto e non aperto è una comunicazione persa, e qui
          una comunicazione persa è un termine perso. Dopo segna_letto non richiami
          posta_non_letta: il giro è finito, e resta solo da restituire il testo.
-      3. Per il primo messaggio rimasto da passare chiami leggi_messaggio per il
+      3. Per il messaggio più vecchio rimasto da passare chiami leggi_messaggio per il
          testo intero.
       4. Se è una busta di posta certificata — l'oggetto comincia con «POSTA
          CERTIFICATA:», oppure ha allegati daticert.xml o postacert.eml — chiami
@@ -2432,8 +2447,8 @@ agentTasks:
   # ------------------------------------------------------------------------------------------
   # L'ingresso: nessuno incolla più il testo di un avviso
   # ------------------------------------------------------------------------------------------
-  # Ogni minuto il sorvegliante guarda la casella. L'ingresso ha DUE vie, e la differenza fra le
-  # due è il motivo per cui ci sono entrambe:
+  # Ogni ora il sorvegliante guarda la casella (fino alla v32 ogni minuto). L'ingresso ha DUE
+  # vie, e la differenza fra le due è il motivo per cui ci sono entrambe:
   #
   #   · l'**output action webhook** consegna il testo che l'agente restituisce, SEMPRE, a ogni
   #     giro, senza che nessuno debba deciderlo. È deterministica. Apre la pratica della PRIMA
@@ -2455,24 +2470,26 @@ agentTasks:
   # non dipende da nessuno. È il baratto giusto in questo verso, e ora si paga due volte —
   # una per casella.
   #
-  # La latenza è l'intervallo del cron. Per reagire nell'attimo servirebbe il push: issue #991.
+  # La latenza è l'intervallo del cron: dalla v33 fino a un'ora, di più se nella stessa ora arrivano
+  # più messaggi, perché ne passa uno per giro. Per reagire nell'attimo servirebbe il push: issue #991.
 
   - key: sorveglianza-posta-civile
     name: Sorveglianza posta civile
-    description: Ogni minuto cerca avvisi nuovi e avvia la presa in carico
+    description: Ogni ora cerca avvisi nuovi e avvia la presa in carico
     agent: sorveglianza-civile
     prompt: |
       Adesso è {{now}} (UTC).
 
-      Cerca con posta_non_letta i messaggi arrivati negli ultimi due minuti. Prendi
-      il primo da passare — qualunque comunicazione su un procedimento, anche una
-      da prendere solo in visione — e segui le tue regole: la prima voce la apre il
+      Cerca con posta_non_letta i messaggi arrivati nelle ultime ventiquattro ore.
+      Prendi il più vecchio da passare — qualunque comunicazione su un procedimento,
+      anche una da prendere solo in visione — e segui le tue regole: la prima voce la apre il
       testo che restituisci, le voci successive le apri con apri_pratica_civile;
       poi, se il mittente è interno, rispondi; per ultimo chiamalo segna_letto, e
       dopo segna_letto non rileggi la posta: restituisci il testo della prima voce
-      di quel messaggio. La finestra è più larga dell'intervallo di proposito:
-      meglio riconsiderare un messaggio che perderlo fra due giri, e il segno di
-      lettura dice quali sono già passati.
+      di quel messaggio. La finestra è molto più larga dell'intervallo di proposito:
+      a ogni giro passa un messaggio solo, e uno arrivato nella stessa ora di un
+      altro aspetta il giro dopo senza uscire dalla finestra; il segno di lettura
+      dice quali sono già passati.
 
       Mittenti interni: gli indirizzi dei domini dello Studio che ti sono indicati
       negli strumenti. A loro, e solo a loro,
@@ -2485,13 +2502,13 @@ agentTasks:
       oggi è: sì.
     trigger: scheduled
     schedule:
-      cron: "* * * * *"
+      cron: "0 * * * *"
       timeZone: Europe/Rome
-    # Un giro al minuto sono 1440 esecuzioni al giorno: senza questa riga la piattaforma si ferma
-    # alla centesima, poco prima delle due di notte, e la casella resta senza sorveglianza fino a
-    # mezzanotte UTC.
+    # Un giro all'ora sono 24 esecuzioni al giorno, dentro la quota di default (100). La quota resta
+    # dichiarata — 50, il doppio dei giri — perché chi riporterà il cron al minuto (v8–v32: 1440
+    # giri) trovi qui la riga da alzare, invece di scoprirla alle due di notte (v9).
     executionPolicy:
-      maxDailyExecutions: 2000
+      maxDailyExecutions: 50
     outputActions:
       - type: webhook
         url: processes.presa-in-carico-civile.webhook
@@ -2507,20 +2524,21 @@ agentTasks:
 
   - key: sorveglianza-posta-penale
     name: Sorveglianza posta penale
-    description: Ogni minuto cerca avvisi nuovi e avvia la presa in carico
+    description: Ogni ora cerca avvisi nuovi e avvia la presa in carico
     agent: sorveglianza-penale
     prompt: |
       Adesso è {{now}} (UTC).
 
-      Cerca con posta_non_letta i messaggi arrivati negli ultimi due minuti. Prendi
-      il primo da passare — qualunque comunicazione su un procedimento, anche una
-      da prendere solo in visione — e segui le tue regole: la prima voce la apre il
+      Cerca con posta_non_letta i messaggi arrivati nelle ultime ventiquattro ore.
+      Prendi il più vecchio da passare — qualunque comunicazione su un procedimento,
+      anche una da prendere solo in visione — e segui le tue regole: la prima voce la apre il
       testo che restituisci, le voci successive le apri con apri_pratica_penale;
       poi, se il mittente è interno, rispondi; per ultimo chiamalo segna_letto, e
       dopo segna_letto non rileggi la posta: restituisci il testo della prima voce
-      di quel messaggio. La finestra è più larga dell'intervallo di proposito:
-      meglio riconsiderare un messaggio che perderlo fra due giri, e il segno di
-      lettura dice quali sono già passati.
+      di quel messaggio. La finestra è molto più larga dell'intervallo di proposito:
+      a ogni giro passa un messaggio solo, e uno arrivato nella stessa ora di un
+      altro aspetta il giro dopo senza uscire dalla finestra; il segno di lettura
+      dice quali sono già passati.
 
       Mittenti interni: gli indirizzi dei domini dello Studio che ti sono indicati
       negli strumenti. A loro, e solo a loro,
@@ -2533,13 +2551,13 @@ agentTasks:
       oggi è: sì.
     trigger: scheduled
     schedule:
-      cron: "* * * * *"
+      cron: "0 * * * *"
       timeZone: Europe/Rome
-    # Un giro al minuto sono 1440 esecuzioni al giorno: senza questa riga la piattaforma si ferma
-    # alla centesima, poco prima delle due di notte, e la casella resta senza sorveglianza fino a
-    # mezzanotte UTC.
+    # Un giro all'ora sono 24 esecuzioni al giorno, dentro la quota di default (100). La quota resta
+    # dichiarata — 50, il doppio dei giri — perché chi riporterà il cron al minuto (v8–v32: 1440
+    # giri) trovi qui la riga da alzare, invece di scoprirla alle due di notte (v9).
     executionPolicy:
-      maxDailyExecutions: 2000
+      maxDailyExecutions: 50
     outputActions:
       - type: webhook
         url: processes.presa-in-carico-penale.webhook

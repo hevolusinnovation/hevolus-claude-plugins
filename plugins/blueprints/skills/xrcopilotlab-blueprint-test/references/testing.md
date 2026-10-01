@@ -106,6 +106,7 @@ cases:
       skills: [archviz]              # skill che devono risultare selezionate
       noSkills: false
       steps: [letture, confronto]    # orchestratore: passi con successo E stato Completed (Running/in pausa non contano)
+      pausesAt: domanda              # orchestratore conversazionale: il passo userQuestion dove il giro finisce (strada diretta)
       process:                       # processo
         events: [InstanceStarted, ActivityCompleted, WorkItemCreated]   # sottosequenza ordinata
         completed: [estrai]          # attività con ActivityCompleted
@@ -195,7 +196,7 @@ precedente non fallisce «GIÀ PRESENTE» per caso (16/09/2026). Esempio complet
 | Tipo | Cosa fa la CLI | Quando si ferma |
 |---|---|---|
 | `agent` | Una chat sincrona con `enableLogs: true` sull'endpoint `default`, un turno per messaggio nella stessa conversazione | alla risposta dell'ultimo turno |
-| `orchestrator` (`via: direct`, default) | `execute` sull'orchestratore, poi interroga lo stato ogni 3 secondi | a `completed`, `failed`, `cancelled`, `paused` (HITL: esce in errore) o al timeout |
+| `orchestrator` (`via: direct`, default) | `execute` sull'orchestratore, poi interroga lo stato ogni 3 secondi | a `completed`, `failed`, `cancelled`, `paused` (HITL: esce in errore; sul passo di `pausesAt` è la fine del turno) o al timeout |
 | `orchestrator` con `via: chat` | Avvia l'esecuzione e segue lo **stream degli eventi**, la stessa strada che percorre un utente; alle domande risponde con i turni di `conversation` | a `completed`, `failed`, `cancelled`, quando le domande superano i turni scritti, o al timeout |
 | `process` | Avvia un'istanza con `caseData`, poi legge istanza, eventi e compiti ogni 3 secondi | quando c'è un compito aperto su `waitingAt` (o, senza, un compito aperto qualsiasi), quando lo stato non è più `Running`, o al timeout |
 
@@ -214,6 +215,26 @@ della pagina di un orchestratore usa dalla v3.2.0: ciò che prova è ciò che l'
 Se le domande sono più dei turni scritti, il caso **si ferma e lo dice**, con la domanda rimasta
 senza risposta nel report: rispondere a caso a una domanda non prevista produrrebbe un verde che non
 significa niente.
+
+**Che cosa raccoglie.** Per ogni turno, ciò che la chat ha mostrato dopo quel messaggio: i messaggi
+dei passi `sendMessage` e la domanda che chiude il tratto (l'output finale solo se l'ultimo tratto
+non ha mostrato nient'altro). La **risposta** del caso, su cui si leggono `contains`, `matches` e
+`wrongAnswers`, è la trascrizione di tutti i turni in ordine: le attese di un caso a più turni
+descrivono la conversazione intera. I **passi** sono quelli di tutti i tratti, e una domanda a cui
+si è risposto risulta completata. Il risultato di ogni tratto arriva in un evento `paused` suo, dopo
+la domanda: fino al 30/09/2026 il runner lo scartava, e un caso a più turni non vedeva né i messaggi
+né i passi — ogni attesa `steps` usciva «passo non eseguito».
+
+**Quando usare `pausesAt`.** Un orchestratore **conversazionale** — che mostra il risultato con un
+passo `sendMessage` e poi chiede «vuoi altro?» con un `userQuestion` — non termina mai da solo: ogni
+giro finisce con quella domanda. Con `via: chat` il caso deve scrivere anche il turno di chiusura, e
+le attese valgono sulla conversazione intera: per giudicare un giro solo, il suo report, si usa
+`pausesAt`. Con `expect.pausesAt: <passo>`, sulla strada
+diretta, la pausa **su quel passo** è la fine del turno, e le attese si verificano su ciò che la chat
+ha mostrato fin lì: i messaggi dei passi `sendMessage`, poi l'output finale. Una pausa su un altro
+passo — un'approvazione umana, una domanda diversa — o un giro che termina senza fermarsi fanno
+fallire il caso: il giro non ha percorso la strada attesa. Esempio: i casi `consultazione-*` di
+`como-conoscenza-associati.tests.yml`.
 
 Per scrivere i casi di un processo serve il modello di esecuzione del motore (token, gateway,
 work item, soglie) e le domande da farsi sul grafo: sono in
@@ -312,6 +333,7 @@ verdetto: la tabella evidenza → verifica è nella skill
 | `BT020` | Un caso `flow` senza passi, o un passo che non è esattamente uno fra `tool`, `waitInstance`, `complete`, `expect` | errore |
 | `BT021` | Un passo `tool` cita un server MCP o un tool che il manifest non dichiara | errore |
 | `BT022` | `via` non è `direct` né `chat`, o è dichiarato su un caso che non è un orchestratore | errore |
+| `BT023` | `pausesAt` non nomina un passo `userQuestion` dell'orchestratore, è su un caso che non è un orchestratore, o è insieme a `via: chat` | errore |
 
 ## Dove vive il codice
 

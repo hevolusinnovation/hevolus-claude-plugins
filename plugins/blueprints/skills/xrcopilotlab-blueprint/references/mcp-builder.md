@@ -211,6 +211,26 @@ dichiarabile in questa forma: `kind: external` pretende l'URL di un server già 
 caso si annota nella `description` dell'agente che lo userà e si mette fra i passi manuali del piano
 di attivazione.
 
+**Quando il server è già nel catalogo del tenant** — `web-search`, un server registrato a mano,
+uno creato da un altro blueprint — non si dichiara come `builder` né come `external`, e non si
+collega dalla UI: si cita.
+
+```yaml
+mcpServers:
+  - key: web-search
+    kind: existing
+    name: Web Search          # il nome esatto del catalogo, senza prefisso
+    # mcpId: …                # solo se due server hanno lo stesso nome
+agents:
+  - key: bandi
+    mcp: [web-search]
+```
+
+Il blueprint non lo crea e non lo mette in inventario: rollback e delete non lo toccano, e del
+blueprint resta solo il collegamento. Un collegamento che c'era già viene adottato, non rifatto.
+Se il nome non è nel catalogo il piano si ferma con `BP069` ed elenca i server che ci sono: è il
+modo più rapido per scoprire come si chiama davvero.
+
 ## Le chiamate che rispondono senza corpo: `responseFormat: text`
 
 `sendMail`, `reply` e molte POST rispondono **202 senza corpo**. Con il formato di default (`json`)

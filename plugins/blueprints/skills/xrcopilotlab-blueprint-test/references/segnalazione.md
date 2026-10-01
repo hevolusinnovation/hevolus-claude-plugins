@@ -93,7 +93,6 @@ l'elenco delle issue si legge da solo.
 ## Dopo l'apertura
 
 - Numero della issue accanto al caso nel `giudizio.md`.
-- La label `semver:patch` con `xrcopilotlab-label-semver`.
 - Se la stessa causa spiega più casi, **una** issue con tutti i casi elencati, non una per caso.
 - Quando la libreria pubblica la correzione, il bump di versione (`KnowledgeGraphVersion` in
   `KGraph.props`, o `AgentFrameworkVersion`) si verifica rilanciando la suite: è per questo che
