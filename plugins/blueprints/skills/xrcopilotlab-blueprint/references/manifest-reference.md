@@ -374,6 +374,13 @@ spec:
       outputVariable: proposta
       expectedDurationMinutes: 2
 
+    - id: dialoga
+      type: Task
+      performer: AiAssisted
+      agentTaskName: Estrazione udienza
+      roleName: Referente agenda
+      interactive: true        # il work item mostra la chat con l'agente invece di eseguire in automatico
+
     - id: conferma
       type: Task
       performer: HumanOnly
@@ -419,6 +426,9 @@ scritto fra virgolette non farebbe mai scattare il ramo. Vale il core schema di 
 - `Automated` e `AiAssisted` richiedono `agentTaskName`; `HumanOnly` e `AiAssisted` richiedono
   `roleName` oppure `assignmentExpression`;
 - un'attività `Automated` non genera work item, quindi non può avere un form;
+- `interactive` — booleano, solo con `performer: AiAssisted`. Il work item mostra la chat con
+  l'agente o l'orchestratore dell'agent task, invece di eseguirlo in automatico; le risposte
+  riempiono i campi del form;
 - la variabile di una condizione deve essere la `key` di un campo form o un `outputVariable`, e
   se è un campo allegato l'unico operatore ammesso è `exists`;
 - un campo allegato (`type: file`) sta su un'attività umana, mai sullo `Start`.

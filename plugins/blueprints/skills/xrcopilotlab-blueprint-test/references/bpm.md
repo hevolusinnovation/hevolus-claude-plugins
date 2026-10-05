@@ -23,6 +23,9 @@ Due cose del motore che non sono BPMN e che i casi devono sapere:
   avvio, gli `outputVariable` dei passi automatici e i campi dei moduli umani vivono nello stesso
   spazio dei nomi: un campo con lo stesso `key` in due moduli è **lo stesso** dato (è voluto: così
   `dataUdienza` verificato al passo 3 arriva al passo 8).
+- **`interactive: true`** (solo con `performer: AiAssisted`): il work item mostra la chat con
+  l'agente (o l'orchestratore) dell'agent task invece di eseguirlo in automatico, e le risposte
+  compilano i campi del modulo. Dalla CLI il passo resta un compito umano: la chat si prova a mano.
 - **Un modulo con `context: true`** mostra un dato in sola lettura: non lo scrive, e quindi un
   caso non può aspettarsi che quel passo lo modifichi.
 

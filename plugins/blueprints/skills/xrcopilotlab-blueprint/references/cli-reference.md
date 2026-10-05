@@ -169,6 +169,7 @@ Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 | `--manifest <file>` | In `test validate`, il manifest contro cui verificare i riferimenti. Senza, quello accanto alla suite. |
 | `--only <k1,k2>` | In `test run`, i casi da eseguire: chiavi, tag o entità. |
 | `--out <percorso>` | In `test init` il file da scrivere; in `test run` la cartella del report. |
+| `--compare <reportId>` | In `test reports`, confronta quel report con il precedente della stessa suite. |
 
 Variabili d'ambiente: `XRCOPILOTLAB_BP_PROFILES` (percorso dei profili), `XRCOPILOTLAB_BP_DEBUG`
 (traccia completa degli errori), `NO_COLOR` (output senza colore).
@@ -691,7 +692,7 @@ xrcopilotlab-bp pipeline blueprints/test-agenda.yml --yes --skip-external
 xrcopilotlab-bp pipeline blueprints/test-agenda.yml --resume a1b2c3d4e5f6
 ```
 
-## `test init <file.yml>` · `test validate <suite.yml>` · `test run <suite.yml>`
+## `test init` · `test validate` · `test run` · `test push` · `test reports`
 
 Il collaudo di un blueprint **applicato**: una suite di domande per gli agenti, input per gli
 orchestratori e dati di avvio per i processi, con le attese; l'esecuzione sul tenant; un report
@@ -702,12 +703,18 @@ xrcopilotlab-bp test init     blueprints/test-agenda.yml                       #
 xrcopilotlab-bp test validate blueprints/tests/test-agenda.tests.yml           # trova il manifest da solo
 xrcopilotlab-bp test run      blueprints/tests/test-agenda.tests.yml --env staging --company <guid>
 xrcopilotlab-bp test run      blueprints/tests/test-agenda.tests.yml --env staging --only agent,process
+xrcopilotlab-bp test push     blueprints/tests/test-agenda.tests.yml --env staging --company <guid>
+xrcopilotlab-bp test reports  --tag TEST --env staging --company <guid>
+xrcopilotlab-bp test reports  --tag TEST --compare 0123456789ab --env staging --company <guid>
 ```
 
 `init` non sovrascrive una suite esistente (`--overwrite`, o `--out`); `validate` accetta
 `--manifest`; `run` accetta `--tag`, `--run <runId>`, `--only <chiavi,tag,entità>`, `--out
 <cartella>`. Le entità si risolvono dall'inventario dell'ultimo run completato del tag. Il report
-va in `blueprints/tests/reports/<tag>/<data>/` (ignorata da git).
+va in `blueprints/tests/reports/<tag>/<data>/` (ignorata da git) e nell'archivio del tenant, dove
+lo trovano anche la chat dei blueprint e `test reports`. `push` porta una suite nell'archivio,
+accanto al manifest del suo tag; `reports` elenca i report archiviati e, con `--compare <id>`,
+confronta quel report caso per caso con il precedente della stessa suite.
 
 Esce `0` se tutti i casi passano, **`7`** se almeno uno non passa, `2` se la suite non è valida,
 `3` se il tag non ha un run sul tenant. Formato della suite, esiti, sospetti e codici `BT0xx`:

@@ -10,19 +10,27 @@ della piattaforma o delle librerie (`XRCopilotLab.KnowledgeGraph`, `XRCopilotLab
 il tenant consuma. La skill `xrcopilotlab-blueprint-test` guida la scrittura delle domande, il
 giudizio delle risposte, il triage e le segnalazioni.
 
-## I tre comandi
+La stessa cosa si fa **dalla chat dei blueprint della webapp** (#1210), senza nessuno strumento
+installato: lo stesso motore, lo stesso report, lo stesso archivio — vedi
+[«Dalla chat della webapp»](#dalla-chat-della-webapp).
+
+## I comandi
 
 ```bash
 xrcopilotlab-bp test init     blueprints/<nome>.yml                 # scheletro della suite dal manifest
 xrcopilotlab-bp test validate blueprints/tests/<nome>.tests.yml     # verifica offline, contro il manifest
 xrcopilotlab-bp test run      blueprints/tests/<nome>.tests.yml --env staging --company <guid>
+xrcopilotlab-bp test push     blueprints/tests/<nome>.tests.yml --env staging --company <guid>
+xrcopilotlab-bp test reports  --tag <TAG> [--compare <reportId>] --env staging --company <guid>
 ```
 
 | Comando | Cosa fa | Rete | Exit |
 |---|---|---|---|
 | `test init <manifest>` | Scrive `blueprints/tests/<nome>.tests.yml`: un caso positivo e uno negativo per agente, uno per orchestratore, uno per processo, con le attese deducibili dal manifest già compilate e le domande da scrivere (`TODO`). Non sovrascrive una suite esistente senza `--overwrite`; `--out` per un altro percorso | no | `0` |
 | `test validate <suite>` | Struttura, segnaposto, contraddizioni; con il manifest (`--manifest`, o trovato da solo accanto alla suite) anche i riferimenti: entità, skill, file, attività, campi obbligatori del modulo di avvio | no | `0` valida · `2` errori |
-| `test run <suite>` | Esegue i casi sul tenant, scrive `report.json` e `report.md` | sì | `0` tutti passati · `7` almeno un caso non passato · `2` suite non valida · `3` nessun run del tag |
+| `test run <suite>` | Esegue i casi sul tenant, scrive `report.json` e `report.md`, e archivia il report accanto al manifest | sì | `0` tutti passati · `7` almeno un caso non passato · `2` suite non valida · `3` nessun run del tag |
+| `test push <suite>` | Porta la suite nell'archivio del tenant, accanto al manifest del suo tag: è da lì che la chat la legge. Verificata contro il manifest pubblicato; un testo identico all'ultima versione non ne crea una nuova | sì | `0` · `2` suite non valida · `3` nessun manifest con quel tag |
+| `test reports --tag <TAG>` | I report archiviati del tag, lanciati da terminale e dalla chat; con `--compare <id>`, quel report caso per caso contro il precedente della stessa suite | sì | `0` |
 
 Opzioni di `test run`: `--tag` (default: quello della suite), `--run <runId>` (default: l'ultimo
 run completato del tag), `--only <k1,k2>` (chiavi, tag o entità dei casi da eseguire — un valore combacia con la chiave,
@@ -196,8 +204,8 @@ precedente non fallisce «GIÀ PRESENTE» per caso (16/09/2026). Esempio complet
 | Tipo | Cosa fa la CLI | Quando si ferma |
 |---|---|---|
 | `agent` | Una chat sincrona con `enableLogs: true` sull'endpoint `default`, un turno per messaggio nella stessa conversazione | alla risposta dell'ultimo turno |
-| `orchestrator` (`via: direct`, default) | `execute` sull'orchestratore, poi interroga lo stato ogni 3 secondi | a `completed`, `failed`, `cancelled`, `paused` (HITL: esce in errore; sul passo di `pausesAt` è la fine del turno) o al timeout |
-| `orchestrator` con `via: chat` | Avvia l'esecuzione e segue lo **stream degli eventi**, la stessa strada che percorre un utente; alle domande risponde con i turni di `conversation` | a `completed`, `failed`, `cancelled`, quando le domande superano i turni scritti, o al timeout |
+| `orchestrator` (`via: direct`, default) | `execute-blocking` sull'orchestratore; solo se quella chiamata scade, `execute` e poi lo stato ogni 3 secondi | a `completed`, `failed`, `cancelled`, `paused` (HITL: esce in errore; sul passo di `pausesAt` è la fine del turno) o al timeout |
+| `orchestrator` con `via: chat` | Avvia l'esecuzione e segue lo **stream degli eventi**, la stessa strada che percorre un utente; alle domande risponde con i turni di `conversation` — e, dalla chat della webapp, finiti quelli, con la risposta di chi collauda | a `completed`, `failed`, `cancelled`, quando le domande superano i turni scritti (e nessuno risponde), o al timeout |
 | `process` | Avvia un'istanza con `caseData`, poi legge istanza, eventi e compiti ogni 3 secondi | quando c'è un compito aperto su `waitingAt` (o, senza, un compito aperto qualsiasi), quando lo stato non è più `Running`, o al timeout |
 
 Per conto di chi si parla e si avvia lo decide `defaults.userId`: un'**email** si traduce nell'id
@@ -214,7 +222,11 @@ della pagina di un orchestratore usa dalla v3.2.0: ciò che prova è ciò che l'
 
 Se le domande sono più dei turni scritti, il caso **si ferma e lo dice**, con la domanda rimasta
 senza risposta nel report: rispondere a caso a una domanda non prevista produrrebbe un verde che non
-significa niente.
+significa niente. Dalla chat della webapp la domanda va invece a chi collauda, che risponde dal
+pannello come risponderebbe un utente (o ferma il caso; dopo 15 minuti senza risposta si ferma da
+solo). Il turno resta nel report con `origin: Human`, il tempo dell'attesa non entra nella durata
+né nel timeout, e il confronto con un report che ha girato con la sola suite lo segnala: le risposte
+all'orchestratore non erano le stesse.
 
 **Che cosa raccoglie.** Per ogni turno, ciò che la chat ha mostrato dopo quel messaggio: i messaggi
 dei passi `sendMessage` e la domanda che chiude il tratto (l'output finale solo se l'ultimo tratto
@@ -240,9 +252,11 @@ Per scrivere i casi di un processo serve il modello di esecuzione del motore (to
 work item, soglie) e le domande da farsi sul grafo: sono in
 `.claude/skills/xrcopilotlab-blueprint-test/references/bpm.md`.
 
-La CLI **non completa mai un compito umano**: sarebbe firmare un modulo al posto di una
+Un caso `process` **non completa mai un compito umano**: sarebbe firmare un modulo al posto di una
 persona. I rami di un processo si collaudano dal loro ingresso (un'istanza per combinazione del
-modulo di avvio), non attraversandoli.
+modulo di avvio), non attraversandoli. L'unica eccezione è un caso `kind: flow`, che lo dichiara in
+chiaro con un passo `complete` e il modulo scritto nella suite: è la prova che il giro chiude, sulla
+casella di collaudo, e si lancia solo dal terminale.
 
 ### Collaudare un agente su MCP senza la fonte: le letture simulate
 
@@ -277,6 +291,17 @@ Due file nella cartella del report:
   componente, un capitolo per caso con domanda, risposta, risposta attesa, controlli, evidenze.
 
 La cartella `blueprints/tests/reports/` è ignorata da git: contiene risposte e id del tenant.
+
+Lo stesso report va anche **nell'archivio** del tenant (#1210): un documento d'indice nel
+container `blueprints` (tipo `testReport`, partizione del tenant) con il riassunto per caso,
+l'approvazione e il giudizio, e il `report.json` intero nel blob
+`blueprints/<tenant>/<blueprint>/test-reports/<reportId>/`. È ciò che rende confrontabili un
+collaudo dal terminale e uno dalla chat (`test reports --compare`). Se l'archivio non si scrive — un
+ruolo mancante — la CLI lo dice e il report resta su disco.
+
+Prima di uscire dalla macchina, su disco e nell'archivio, il report passa da
+`BlueprintTestRedactor`: i valori che somigliano a una credenziale (`AccountKey=`, `sig=`, `Bearer …`,
+un JWT, una password in una connection string) diventano `[redatto]`, con il nome lasciato al suo posto.
 
 ### Gli esiti
 
@@ -335,15 +360,53 @@ verdetto: la tabella evidenza → verifica è nella skill
 | `BT022` | `via` non è `direct` né `chat`, o è dichiarato su un caso che non è un orchestratore | errore |
 | `BT023` | `pausesAt` non nomina un passo `userQuestion` dell'orchestratore, è su un caso che non è un orchestratore, o è insieme a `via: chat` | errore |
 
+## Dalla chat della webapp
+
+Nella chat dei blueprint (icona `terminal` nell'header, admin delle company con la licenza
+`XRCopilotLab.Blueprint`) il Blueprint Buddy fa il lavoro della skill: scrive le domande dal
+manifest, le fa rivedere e salvare, chiede di eseguirle, giudica le risposte, mostra i difetti e
+chiede come procedere, prepara le domande di prova per il cliente. La webapp esegue solo dopo un
+clic, con lo stesso codice della CLI (`BlueprintTestOperations`, `BlueprintTestRunner`).
+
+| Comando della chat | Equivale a | Cosa succede |
+|---|---|---|
+| `tests` | `test reports --tag` | le suite e i report del tag, e la descrizione del blueprint per scrivere le domande. Sola lettura |
+| blocco `xrcopilot-blueprint-tests` | `test validate` + `test push` | la suite si verifica contro il manifest pubblicato; «Salva le domande» la archivia |
+| `test` | `test run` | il piano di collaudo — tenant, casi, quali avviano processi — e «Approva ed esegui» |
+| `test-report` | `test reports --compare` | un report con il confronto con il precedente della stessa suite |
+| blocco `xrcopilot-blueprint-judgement` | il `giudizio.md` della skill | il giudizio per caso, con la decisione della persona; «Salva il giudizio» lo registra sul report |
+
+Le differenze dal terminale, e perché:
+
+- **Il sì è un'impronta.** «Approva ed esegui» vale per il tenant, il testo della suite (SHA), i
+  casi e il run mostrati (`BlueprintConfirmation.TestFingerprint`): se cambiano prima del clic, non
+  gira nessun caso. Il report registra chi ha approvato e che cosa.
+- **Un lease sul blueprint** per tutta la durata: un apply a metà collaudo cambierebbe gli agenti, e
+  il report mescolerebbe due versioni senza dirlo.
+- **Niente casi `kind: flow`** (`WEB005`): mandano messaggi veri, completano compiti per conto
+  dell'utente di collaudo, caricano allegati da disco. Il piano li elenca con la riga da terminale.
+- **Le domande non previste le risponde la persona**, come spiegato sopra per `via: chat`.
+- **Nessuna issue.** Il sospetto della triage e quello del giudizio restano ipotesi finché la
+  persona non sceglie «difetto confermato»; la decisione per caso — correggere l'attesa, rilanciare,
+  difetto confermato, accettare — è sua e resta sul report.
+- **Il report si salva dopo ogni caso**: un collaudo dura anche un'ora, e se la webapp si riavvia
+  resta ciò che è già stato eseguito, con lo stato `interrupted`.
+- **Capienza propria**: al più due collaudi per istanza, separati dagli apply.
+
+Le suite che stanno in `blueprints/tests/` si portano nell'archivio con `test push`, una volta;
+da lì le leggono sia la chat sia chi le rilancia dal terminale.
+
 ## Dove vive il codice
 
 | Cosa | Dove |
 |---|---|
-| Modelli della suite, del report, del sospetto | `XRCopilotLab.Core/Models/Blueprints/Testing/` |
-| Parser, scheletro, validatore, valutatore, triage, report — funzioni pure | `XRCopilotLab.BluePrints/Testing/` |
-| Esecuzione sul tenant (chat, orchestratori, processi) | `XRCopilotLab.BluePrints.Cli/Services/BlueprintTestRunner.cs` |
+| Modelli della suite, del report, del sospetto, dei documenti d'archivio e del giudizio | `XRCopilotLab.Core/Models/Blueprints/Testing/` |
+| Parser, scheletro, validatore, valutatore, triage, report, filtro dei segreti, confronto, testi per l'agente — funzioni pure | `XRCopilotLab.BluePrints/Testing/` |
+| Esecuzione sul tenant (chat, orchestratori, processi) e i passi di `test run` | `XRCopilotLab.BluePrints.Runtime/Testing/` |
+| Archivio di suite e report | `XRCopilotLab.BluePrints.Runtime/Services/BlueprintStore.Testing.cs` |
 | Il comando | `XRCopilotLab.BluePrints.Cli/Commands/TestCommand.cs` |
-| Test | `tests/BluePrints/Test*Tests.cs` |
+| La chat | `XRCopilotLab.Web/Services/Blueprints/BlueprintChatService.Testing.cs`, `BlueprintTestJob.cs`, `Components/SystemAgents/BlueprintTest*.razor` |
+| Test | `tests/BluePrints/Test*Tests.cs`, `tests/Core/SystemAgents/BlueprintChatTestingEnvelopeTests.cs`, `tests/Web/BlueprintChatTestingTests.cs` |
 
 Le suite dei blueprint del repository stanno in `blueprints/tests/`; `test-agenda.tests.yml` è
 l'esempio minimo e completo del formato.

@@ -179,8 +179,14 @@ Cose da sapere sull'esecuzione:
 - Un caso su **processo** avvia un'istanza vera e la segue finché arriva al compito umano atteso
   (o allo stato atteso, o al timeout). L'istanza resta lì: chi ha il ruolo la vedrà fra i suoi
   compiti. Dirlo all'utente prima, perché è la cosa che sorprende.
-- Un caso su **orchestratore** che si ferma in HITL (`paused`) esce in errore: non può
-  completare da solo. Non è un fallimento dell'orchestratore.
+- Un caso su **orchestratore** che si ferma in HITL (`paused`) sulla strada diretta esce in errore:
+  non può completare da solo, e non è un fallimento dell'orchestratore. Per un orchestratore che fa
+  domande all'utente si scrive il caso con **`via: chat`** e `conversation` (il primo turno avvia,
+  gli altri rispondono in ordine alle domande): percorre lo stream degli eventi come un utente e
+  arriva in fondo. Se le domande superano i turni, il caso si ferma con la domanda non risposta nel
+  report: si aggiunge il turno. Per un orchestratore conversazionale che chiude ogni giro con
+  «vuoi altro?» basta **`expect.pausesAt: <passo userQuestion>`** sulla strada diretta. Dettagli in
+  `docs/blueprints/testing.md`.
 - Prima di leggere un giro come «locale», verificare che lo sia davvero: durante l'esecuzione il
   processo `xrcopilotlab-bp` deve avere una connessione verso `127.0.0.1:<porta dell'Api>`
   (`lsof -nP -a -p <pid> -iTCP`) e nel console dell'Api devono comparire righe `[KGraph]`. Un
@@ -202,6 +208,22 @@ Cose da sapere sull'esecuzione:
 
 Il report finisce in `blueprints/tests/reports/<tag>/<data>/` — `report.md` per leggere,
 `report.json` per tutto il resto. La cartella è ignorata da git: contiene risposte e id del tenant.
+
+Il report va anche **nell'archivio del tenant**, accanto al manifest (#1210): la CLI stampa il suo
+`reportId`. Da lì si confronta con il precedente della stessa suite — anche se lanciato dalla chat
+della webapp — con `xrcopilotlab-bp test reports --tag <TAG> --compare <reportId>`, che dice caso per
+caso migliorato, peggiorato o invariato: è il modo di verificare una correzione o un aggiornamento
+della libreria. Perché la chat legga una suite del repository, la si porta nell'archivio una volta
+con `xrcopilotlab-bp test push blueprints/tests/<nome>.tests.yml`.
+
+**La stessa cosa dalla webapp.** Chi non ha la CLI — sales, AI specialist, l'admin del tenant —
+collauda dalla chat dei blueprint (icona `terminal`, licenza `XRCopilotLab.Blueprint`): il Blueprint
+Buddy scrive le domande, le fa approvare, le esegue con lo stesso motore dopo un «Approva ed
+esegui», giudica con la rubrica di questa skill e chiede alla persona come procedere sui difetti,
+senza aprire issue. Le domande non previste di un orchestratore le risponde la persona dal
+pannello, e il report le segna come date a mano. I casi `kind: flow` restano al terminale. Quando
+l'utente lavora già lì, non serve rifare il giro con la CLI: si rilegge il report con
+`test reports --compare`.
 
 ## 2-bis. Quando la suite non basta: il browser
 
