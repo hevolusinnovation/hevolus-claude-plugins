@@ -37,7 +37,7 @@ Riassunto operativo di ciò che `ProcessSpecValidator` verifica sul server. Serv
 | `Start` | solo `name` e `form` | performer, roleName, agentTaskName, calledProcessName, mapping |
 | `End` | solo `name` | tutto il resto, form compreso |
 | `Task` | dipende dal performer, vedi sotto | `calledProcessName` |
-| `CallActivity` | `calledProcessName`, `inputMapping`, `outputMapping` | form, performer, roleName, agentTaskName, outputVariable |
+| `CallActivity` | `calledProcessName`, `inputMapping`, `outputMapping` | form, performer, roleName, agentTaskName, outputVariable, interactive |
 
 ## Performer di un `Task`
 
@@ -46,8 +46,12 @@ Riassunto operativo di ciò che `ProcessSpecValidator` verifica sul server. Serv
 | Performer | Richiede | Ammette | Vieta |
 |---|---|---|---|
 | `HumanOnly` | `roleName` **oppure** `assignmentExpression` | `form` | `outputVariable` |
-| `AiAssisted` | `agentTaskName` **e** (`roleName` oppure `assignmentExpression`) | `form`, `outputVariable` | — |
-| `Automated` | `agentTaskName` | `outputVariable` | `form`, `roleName`, `assignmentExpression` |
+| `AiAssisted` | `agentTaskName` **e** (`roleName` oppure `assignmentExpression`) | `form`, `outputVariable`, `interactive` | — |
+| `Automated` | `agentTaskName` | `outputVariable` | `form`, `roleName`, `assignmentExpression`, `interactive` |
+
+`interactive: true` è ammesso solo con `performer: AiAssisted` (vietato su Start, End, CallActivity e
+sugli altri performer): il work item mostra la chat con l'agente (o l'orchestratore) dell'agent task
+invece di eseguirlo in automatico, e le risposte compilano i campi del form.
 
 Il motivo del divieto su `Automated`: un'attività automatica non genera un work item, quindi un
 modulo non avrebbe nessuno che lo compili e una corsia non avrebbe nessuno a cui assegnare.

@@ -1289,6 +1289,9 @@
               "outputVariable": {
                 "type": "string"
               },
+              "interactive": {
+                "type": "boolean"
+              },
               "taskCategoryName": {
                 "type": "string"
               },

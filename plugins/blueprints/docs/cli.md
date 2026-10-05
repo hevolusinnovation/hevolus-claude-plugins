@@ -10,9 +10,9 @@ quando ti serve lanciarne uno da solo. Il percorso per chi comincia è nel
 Tutto quello che segue è ricavato dal codice della CLI, non dalla memoria di chi l'ha scritta. Se un
 comando si comporta in modo diverso da come è scritto qui, ha ragione il comando: segnalalo al team.
 
-> **Le versioni in questa guida.** Il plugin porta la CLI **2.16.0**, e tutto ciò che qui è descritto
-> c'è. Con una CLI più vecchia può mancare qualcosa: il [§ 11](#11-le-versioni-cosa-cè-nella-2160) elenca cosa è arrivato con la
-> 2.16.0. Per sapere quale versione hai davvero: `xrcopilotlab-bp version`.
+> **Le versioni in questa guida.** Il plugin porta la CLI **2.17.0**, e tutto ciò che qui è descritto
+> c'è. Con una CLI più vecchia può mancare qualcosa: il [§ 11](#11-le-versioni-cosa-cè-nella-2170) elenca cosa è arrivato con la
+> 2.17.0 e con la 2.16.0. Per sapere quale versione hai davvero: `xrcopilotlab-bp version`.
 
 ---
 
@@ -28,7 +28,7 @@ comando si comporta in modo diverso da come è scritto qui, ha ragione il comand
 8. [Codici dei rilievi `BPxxx`](#8-codici-dei-rilievi-bpxxx)
 9. [Quando qualcosa non va](#9-quando-qualcosa-non-va)
 10. [Dove finisce ciò che la CLI scrive](#10-dove-finisce-ciò-che-la-cli-scrive)
-11. [Le versioni: cosa c'è nella 2.16.0](#11-le-versioni-cosa-cè-nella-2160)
+11. [Le versioni: cosa c'è nella 2.17.0](#11-le-versioni-cosa-cè-nella-2170)
 
 Elenco dei comandi, per saltare subito dove serve:
 
@@ -38,7 +38,7 @@ Elenco dei comandi, per saltare subito dove serve:
 | Segreti | [`secrets set`](#secrets-set) · [`secrets check`](#secrets-check) |
 | Archivio delle versioni | [`push`](#push) · [`pull`](#pull) · [`export`](#export) · [`promote`](#promote) · [`catalog`](#catalog-list--publish--install) |
 | Applicare e smontare | [`plan`](#plan) · [`apply`](#apply) · [`pipeline`](#pipeline) · [`status`](#status) · [`rollback`](#rollback) · [`delete`](#delete) |
-| Collaudo | [`test init`](#test-init) · [`test validate`](#test-validate) · [`test run`](#test-run) |
+| Collaudo | [`test init`](#test-init) · [`test validate`](#test-validate) · [`test run`](#test-run) · [`test push`](#test-push) · [`test reports`](#test-reports) |
 | Un blueprint già applicato | [`schedule`](#schedule-list--pause--resume--logs) · [`mcp`](#mcp-check--orphans--publish--test) · [`connections`](#connections-list--refresh) · [`instances`](#instances-list--show--cancel) · [`knowledge`](#knowledge-list--reingest) |
 | La CLI stessa | [`environments`](#environments) · [`version`](#version) · [`update`](#update) · [`help`](#help) |
 
@@ -68,8 +68,8 @@ si ferma al primo posto in cui la trova:
 | 3 | la copia già scaricata, in `${CLAUDE_PLUGIN_DATA}/bin/` (fuori da Claude Code: `~/.xrcopilotlab-bp/cache/bin/`) | se esiste il file `xrcopilotlab-bp-<versione>-<piattaforma>` |
 | 4 | l'allegato della release `bp-v<versione>` | la prima volta: lo scarica (~52 MB) prima dal catalogo dei plugin, poi dal repository di prodotto come riserva |
 
-La **versione** la decide il file `plugins/blueprints/bin/version.txt`, che oggi dice `2.16.0`: la
-release cercata è quindi `bp-v2.16.0`. Il download passa da `gh` se sei autenticato, altrimenti da
+La **versione** la decide il file `plugins/blueprints/bin/version.txt`, che oggi dice `2.17.0`: la
+release cercata è quindi `bp-v2.17.0`. Il download passa da `gh` se sei autenticato, altrimenti da
 un token in `GH_TOKEN` o `GITHUB_TOKEN`. Dopo il download l'avviatore **confronta l'impronta
 SHA-256** con quella pubblicata accanto al binario, e se non corrisponde non lo esegue.
 
@@ -103,7 +103,7 @@ Con il plugin, **aggiornare la CLI vuol dire aggiornare il plugin**: binario e s
 ```
 
 Quando esce una CLI più recente, al comando successivo l'avviatore scrive una riga sola, per esempio
-`c'è la 2.17.0, il plugin chiede la 2.16.0. Aggiornalo con '/plugin update blueprints@hevolus'`. Il
+`c'è la 2.18.0, il plugin chiede la 2.17.0. Aggiornalo con '/plugin update blueprints@hevolus'`. Il
 controllo gira in secondo piano al massimo una volta al giorno e non può far fallire un comando.
 
 Una copia **installata a mano** (senza plugin) si aggiorna con [`update`](#update).
@@ -1215,7 +1215,8 @@ xrcopilotlab-bp rollback --env staging --run 790b20470820
 ### `delete`
 
 Cancella un blueprint dall'**archivio**: le versioni del manifest in Cosmos, i file nello storage (i
-`.bpmn` esportati compresi) e i run che lo riguardano. Con `--with-entities` smonta **prima** il
+`.bpmn` esportati compresi) e i run che lo riguardano. Cancellando il blueprint intero toglie anche le
+sue suite e i suoi report di collaudo, e il piano li elenca. Con `--with-entities` smonta **prima** il
 tenant.
 
 ```
@@ -1360,6 +1361,9 @@ che resta da giudicare.
 **Scrive:** sul tenant, **attività vere**: ogni domanda apre una conversazione, un caso su un processo
 avvia un'istanza, e consuma token del tenant. Sul disco `report.json` (tutto, con le evidenze) e
 `report.md` (da leggere). La cartella dei report contiene risposte e id del tenant: non va committata.
+Il report va anche **nell'archivio del tenant**, accanto a quelli lanciati dalla chat dei blueprint, e
+la CLI ne stampa il `reportId` per [`test reports --compare`](#test-reports). Se l'archivio non si
+può scrivere lo dice e va avanti: il report su disco c'è già.
 
 **Esce:** 0 tutti passati · **7** almeno un caso fallito o in errore · 2 suite non valida · 3 nessun
 run e nessun manifest pubblicato, o run indicato inesistente.
@@ -1373,6 +1377,61 @@ xrcopilotlab-bp test run blueprints/tests/studiopolis-agenda.tests.yml --env sta
 [`instances cancel`](#instances-list--show--cancel). Il formato della suite, gli esiti e i codici
 `BT0xx`: [il riferimento del collaudo](../skills/xrcopilotlab-blueprint-test/references/testing.md).
 Su un tenant di un cliente la suite non si lancia di propria iniziativa.
+
+---
+
+### `test push`
+
+Porta una suite **nell'archivio del tenant**, accanto al manifest del suo tag. Serve perché la chat
+dei blueprint della webapp legga una suite scritta nel repository.
+
+```
+xrcopilotlab-bp test push <suite.yml> [--tag <TAG>] [--env] [--company]
+```
+
+| Argomento / opzione | Default | Significato |
+|---|---|---|
+| `<suite.yml>` | obbligatorio | la suite |
+| `--tag <TAG>` | il `tag` della suite | il blueprint accanto a cui archiviarla |
+
+Verifica la suite contro il manifest pubblicato: una suite con errori non entra. Un testo identico
+all'ultima versione non crea una versione nuova, e il comando lo dice.
+
+**Scrive:** solo l'archivio dei blueprint, mai le entità del tenant. **Esce:** 0 · 2 suite non valida ·
+3 il tenant non ha un manifest pubblicato con quel tag.
+
+```bash
+xrcopilotlab-bp test push blueprints/tests/studiopolis-agenda.tests.yml --env staging
+```
+
+---
+
+### `test reports`
+
+Elenca i **report archiviati** di un tag, quelli lanciati da terminale e quelli lanciati dalla chat.
+Con `--compare` confronta un report con il precedente della stessa suite.
+
+```
+xrcopilotlab-bp test reports --tag <TAG> [--compare <reportId>] [--env] [--company]
+```
+
+| Opzione | Default | Significato |
+|---|---|---|
+| `--tag <TAG>` | obbligatorio | il blueprint |
+| `--compare <reportId>` | nessuno | confronta quel report, caso per caso, con il precedente della stessa suite |
+
+Senza `--compare` mostra gli ultimi 30 report: id, data, canale (`cli` o chat), stato, passati sul
+totale, suite e versione, chi l'ha lanciato e se è stato giudicato. Con `--compare` scrive, per ogni
+caso, se è **migliorato**, **peggiorato** o **invariato**. Avvisa quando le due esecuzioni non hanno
+usato lo stesso testo della suite, e segna i casi in cui le risposte a un orchestratore sono state
+date a mano. È il modo di verificare una correzione o un aggiornamento della libreria.
+
+**Scrive:** niente. **Esce:** 0 · 1 report non trovato nell'archivio del tag.
+
+```bash
+xrcopilotlab-bp test reports --tag STUDIOPOLIS --env staging
+xrcopilotlab-bp test reports --tag STUDIOPOLIS --env staging --compare 0123456789ab
+```
 
 ---
 
@@ -1897,10 +1956,20 @@ restano valide in lettura).
 
 ---
 
-## 11. Le versioni: cosa c'è nella 2.16.0
+## 11. Le versioni: cosa c'è nella 2.17.0
 
-La CLI del plugin è la **2.16.0** (release `bp-v2.16.0`, 01/10/2026). Tutto ciò che questa guida
+La CLI del plugin è la **2.17.0** (release `bp-v2.17.0`, 05/10/2026). Tutto ciò che questa guida
 descrive è lì.
+
+### Cosa è arrivato con la 2.17.0, rispetto alla 2.16.0
+
+| Novità | Dove se ne parla |
+|---|---|
+| `processes[].spec.activities[].interactive`: un'attività `performer: AiAssisted` crea subito il compito, e chi lo prende lavora con l'agente in chat accanto al form. Il piano la segna «in chat» | [manifest](../skills/xrcopilotlab-blueprint/references/manifest-reference.md) |
+| `test push`: una suite nell'archivio del tenant, perché la chat dei blueprint la legga (#1210) | [`test push`](#test-push) |
+| `test reports` e `--compare`: i report archiviati, da terminale e dalla chat, e il confronto con il precedente della stessa suite (#1210) | [`test reports`](#test-reports) |
+| `test run` archivia anche il report e ne stampa il `reportId` | [`test run`](#test-run) |
+| `delete` del blueprint intero toglie anche suite e report di collaudo | [`delete`](#delete) |
 
 ### Cosa è arrivato con la 2.16.0, rispetto alla 2.15.1
 
