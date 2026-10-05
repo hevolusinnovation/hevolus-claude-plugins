@@ -707,6 +707,29 @@ sul server, ed è da lì che arrivano i messaggi dei rilievi `BP092`.
 
 `recipients` di `humanApproval` devono essere utenti del tenant: il preflight lo verifica.
 
+#### `skillMetadata` — le chiavi che il motore riconosce
+
+`skillMetadata` è una mappa di stringhe libera: il validatore non ne controlla le chiavi. Due sono
+riservate al motore e decidono come lo step interroga la knowledge dei suoi agenti. Valgono sugli
+step `agent` e, passate dal gruppo ai membri, sui `parallelGroup` e `handoffGroup`. Senza la chiave non
+cambia niente; un valore sconosciuto lascia il comportamento di default.
+
+| Chiave | Valori | Effetto |
+|---|---|---|
+| `knowledge.query` | `request` (default), `step`, `both` | Con che testo si cerca nella knowledge: la richiesta dell'utente, il messaggio dello step, o entrambi. Serve quando lo step costruisce apposta un messaggio per la ricerca (per esempio «NOME, partita IVA …»). |
+| `knowledge.records` | `verbatim` | I rami ricevono i record trovati per identificativo così come sono salvati, non la sintesi di un modello; la sintesi resta solo se non ne trova. Serve a chi legge i record da sé e non può perderne per strada. |
+
+```yaml
+- type: parallelGroup
+  skillMetadata:
+    knowledge.query: step
+    knowledge.records: verbatim
+  agents: [cribis, bilanci]
+```
+
+Esempio reale: `blueprints/como-conoscenza-associati.yml`. Le chiavi sono definite in
+`StepKnowledgeQuery` e `StepKnowledgeRecords` (`XRCopilotLab.Core/Services/Orchestration/`).
+
 ## `external`
 
 Serve molto meno di quanto sembri, e conviene sapere perché.
