@@ -214,6 +214,34 @@ degli agenti, e i nomi non lo sanno.
 Il validatore segnala gli stessi casi con `BP028`, come **avvisi**: la decisione richiede di sapere
 cosa fa ciascun agente.
 
+### Con che cosa cerca un passo di catena, e che cosa riceve
+
+Nelle catene c'è un secondo problema, oltre a *quali* file. Un passo interroga la knowledge con la
+**domanda dell'utente**, non con il proprio messaggio. Di solito è giusto, perché il messaggio è
+l'output del passo prima. Diventa sbagliato quando il passo si costruisce il messaggio **apposta per
+la ricerca**: un ramo che riceve «NOME, partita IVA 01717010134» trova il bilancio, mentre la domanda
+«parlami dell'azienda X» non porta la partita IVA e non lo trova.
+
+Due chiavi di `skillMetadata` sullo step (su un gruppo valgono per tutti i membri) cambiano questo
+comportamento:
+
+```yaml
+- type: parallelGroup
+  skillMetadata:
+    knowledge.query: step        # request (default) · step · both
+    knowledge.records: verbatim  # i record trovati per identificativo, non la sintesi
+  agents: [cribis, bilanci]
+```
+
+- `knowledge.query: step` va proposta quando il messaggio dello step contiene l'identificativo che la
+  domanda dell'utente non contiene.
+- `knowledge.records: verbatim` va proposta quando l'agente legge i record da sé (serie storiche,
+  bilanci): la sintesi del modello può perdere anni e righe, e costa tempo. Su COMO una consultazione
+  Cribis ha speso 113 s nella sola sintesi.
+
+Il validatore non controlla queste chiavi, e un valore sconosciuto lascia il default: rileggile prima
+del push. Esempio reale: `blueprints/como-conoscenza-associati.yml`.
+
 ## Come si scrive nel manifest
 
 ```yaml
