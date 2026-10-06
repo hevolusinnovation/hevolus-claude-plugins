@@ -283,9 +283,9 @@ possa capire cosa sta succedendo, e perché a volte è comodo lanciarli a mano.
 | `secrets check <file>` | Elenca i segreti che il file cita e quali mancano nell'ambiente |
 | `rollback --run <id>` | Smonta ciò che quell'esecuzione ha creato |
 | `delete --tag <TAG> --confirm <TAG>` | Cancella il blueprint dall'archivio. Con `--with-entities` smonta prima il tenant |
-| `test init <file>` | Scrive lo scheletro della suite di collaudo dal manifest, in `blueprints/tests/` |
+| `test init <file>` | Scrive lo scheletro della suite di collaudo dal manifest, in `tests/` accanto a lui |
 | `test validate <suite>` | Verifica la suite contro il manifest. Non tocca la rete |
-| `test run <suite>` | Esegue la suite sul tenant — chat con gli agenti, orchestratori, processi — e scrive il report in `blueprints/tests/reports/`. `--only` ne esegue una parte |
+| `test run <suite>` | Esegue la suite sul tenant — chat con gli agenti, orchestratori, processi — e scrive il report nella cartella di lavoro `~/.xrcopilotlab/blueprints/<TAG>/reports/` e nell'archivio del tenant. `--only` ne esegue una parte |
 | `schedule list --tag <TAG>` | Le attività programmate del blueprint, con stato e prossima esecuzione |
 | `schedule pause <attività> --tag <TAG>` | Mette in pausa un'attività programmata. `schedule resume` la riprende |
 | `schedule logs <attività> --tag <TAG>` | La quota giornaliera dell'attività e le sue ultime esecuzioni, con l'esito: dice se sta girando davvero |

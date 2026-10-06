@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-test
-description: Collauda un blueprint XRCopilotLab applicato su un tenant. Scrive le domande di test per agenti, orchestratori e processi (o parte da una suite in `blueprints/tests/`), le esegue con `xrcopilotlab-bp test run` raccogliendo risposte e log (pipeline, knowledge, skill, eventi dell'istanza), giudica le risposte, attribuisce ogni fallimento a un componente (knowledge graph, skill, motore BPM, webapp, manifest), propone le issue aprendole solo dopo un sì, e scrive le domande di prova per il cliente. Senza i repository per confermare una causa, consegna il fallimento a uno sviluppatore e prosegue. Usa quando l'utente chiede di "testare un blueprint", "collaudare gli agenti", "scrivere le domande di test", "verificare le risposte e i log", "aprire le issue dei fallimenti", "preparare le domande per il cliente", oppure nomina `test run`, `test init` o una suite `.tests.yml`. Non per scrivere un manifest (xrcopilotlab-blueprint), la guida al cliente (xrcopilotlab-blueprint-guide) o test unitari.
+description: Collauda un blueprint XRCopilotLab applicato su un tenant. Scrive le domande di test per agenti, orchestratori e processi (o parte dalla suite nell'archivio del tenant), le esegue con `xrcopilotlab-bp test run` raccogliendo risposte e log (pipeline, knowledge, skill, eventi dell'istanza), giudica le risposte, attribuisce ogni fallimento a un componente (knowledge graph, skill, motore BPM, webapp, manifest), propone le issue aprendole solo dopo un sì, e scrive le domande di prova per il cliente. Senza i repository per confermare una causa, consegna il fallimento a uno sviluppatore e prosegue. Usa quando l'utente chiede di "testare un blueprint", "collaudare gli agenti", "scrivere le domande di test", "verificare le risposte e i log", "aprire le issue dei fallimenti", "preparare le domande per il cliente", oppure nomina `test run`, `test init` o una suite `.tests.yml`. Non per scrivere un manifest (xrcopilotlab-blueprint), la guida al cliente (xrcopilotlab-blueprint-guide) o test unitari.
 ---
 
 # xrcopilotlab-blueprint-test
@@ -44,7 +44,7 @@ Orientare e fermarsi. In ordine: a cosa serve (collaudare un blueprint applicato
 triage); che cosa serve (la CLI, che si ottiene installando il plugin `blueprints@hevolus` e non
 compilando il repository — vedi la skill `xrcopilotlab-blueprint`, `references/installazione.md` —
 e lo stesso accesso: un'identità `hevolus.it` e `az login` fatto una volta; vedi la skill `xrcopilotlab-blueprint`, § «Con quale identità gira»);
-quali suite esistono già in `blueprints/tests/`; quali blueprint hanno un run sul tenant
+quali suite ha già l'archivio (`xrcopilotlab-bp files ls --tag <TAG> --kind suite`); quali blueprint hanno un run sul tenant
 (`xrcopilotlab-bp status --env <ambiente> --company <guid>`, **solo** se l'utente ha indicato un
 ambiente). Poi la domanda: quale blueprint, su quale ambiente.
 
@@ -79,9 +79,22 @@ Due cose da sapere mentre lo dici:
 
 ## 1. Da dove si parte
 
+I file del blueprint non stanno nel repository: manifest, suite, report e giudizi vivono
+nell'archivio del tenant su cui il blueprint è applicato, e su disco nella cartella di lavoro
+`~/.xrcopilotlab/blueprints/<TAG>/` (regola 8 di `.claude/rules/blueprints.md`). Si comincia
+portandoli lì:
+
+```bash
+xrcopilotlab-bp pull --tag <TAG> --env <ambiente> --company <guid> --out ~/.xrcopilotlab/blueprints/<TAG>/<nome>.yml
+xrcopilotlab-bp files get --all --kind suite --tag <TAG> --env <ambiente> --company <guid>   # ultima versione di ogni suite, in tests/
+```
+
+Un blueprint si mette a punto sul tenant di collaudo di staging, e lì sta la sua storia. Il tenant di
+un cliente ha il manifest e, al primo collaudo, la suite: se manca, `test run` la archivia da sé.
+
 Tre situazioni, e la prima cosa da fare è capire in quale si è:
 
-1. **Esiste già `blueprints/tests/<nome>.tests.yml`.** È la regressione del blueprint: si parte da
+1. **L'archivio ha già la suite** (`<nome>.tests.yml`). È la regressione del blueprint: si parte da
    lì. Si aggiungono casi solo se il manifest è cambiato o se l'utente porta domande nuove; non
    si riscrive ciò che c'è.
 2. **L'utente porta delle domande** — da un assessment, da una demo, da una lamentela del
@@ -109,11 +122,11 @@ Tre situazioni, e la prima cosa da fare è capire in quale si è:
    un **numero si chiede come aggregazione sui dati**, un criterio a parte — mai «quante ne hai
    riconosciute»; le **regole di dominio vanno nella domanda** («escludendo le righe con Chiusura
    conti»), perché il calcolo non legge il system message. L'esempio tradotto per intero è
-   `blueprints/tests/finlogic-bilancio-aggregato.tests.yml`.
+   la suite `finlogic-bilancio-aggregato` nell'archivio del tag FINLOGIC su staging.
 3. **Non c'è niente.** Si genera lo scheletro e si scrivono le domande:
 
    ```bash
-   xrcopilotlab-bp test init blueprints/<nome>.yml
+   xrcopilotlab-bp test init ~/.xrcopilotlab/blueprints/<TAG>/<nome>.yml
    ```
 
    Per ogni **processo**, prima di scrivere i casi, rispondere alle otto domande di
@@ -138,7 +151,7 @@ suite, solo con un sì. Come, in [`references/testing.md`](references/testing.md
 In tutti e tre i casi, prima di eseguire:
 
 ```bash
-xrcopilotlab-bp test validate blueprints/tests/<nome>.tests.yml
+xrcopilotlab-bp test validate ~/.xrcopilotlab/blueprints/<TAG>/tests/<nome>.tests.yml
 ```
 
 Il validatore trova il manifest da solo (`tests/x.tests.yml` → `x.yml`), verifica che ogni caso
@@ -156,7 +169,7 @@ che sa quale sia il problema giusto è chi conosce il cliente.
 ## 2. Eseguire
 
 ```bash
-xrcopilotlab-bp test run blueprints/tests/<nome>.tests.yml --env <ambiente> --company <guid>
+xrcopilotlab-bp test run ~/.xrcopilotlab/blueprints/<TAG>/tests/<nome>.tests.yml --env <ambiente> --company <guid>
 ```
 
 Prima di lanciare, **dire su quale ambiente e tenant, e quanti casi**, e attendere il sì. Non è
@@ -193,6 +206,15 @@ Cose da sapere sull'esecuzione:
   giro che va sull'ambiente di default risponde «dal frammento» a ogni domanda numerica e somiglia
   a una regressione della libreria: il 13/09/2026 sono state perse due ore così. La CLI ora rifiuta
   le opzioni sconosciute proprio per questo.
+- `--env locale` non è un ambiente incorporato: richiede il profilo `locale` in
+  `~/.xrcopilotlab-bp/profiles.json`. Se la CLI risponde «Quelli disponibili: staging, prod» il profilo
+  manca: **non reinstallare la CLI e non lanciare il giro**. Si scrive con `xrcopilotlab-bp profile
+  init-local` (cerca l'Api in ascolto, mostra il profilo, chiede conferma, non sovrascrive niente; la
+  chiave resta in una variabile d'ambiente, mai nel file) — solo se l'utente vuole il locale. Se
+  `profile` risulta un comando sconosciuto la CLI è precedente alla 2.17: `xrcopilotlab-bp update`, o il
+  modello a mano in `docs/blueprints/cli-reference.md`. Un giro senza `--env` va su staging, e se da lì
+  l'host non è raggiungibile i casi escono tutti in errore d'ambiente: il report è da scartare, non da
+  giudicare.
 - Se un'istanza locale dell'Api è il bersaglio (`--env locale`) e a un certo punto tutte le chiamate
   rispondono 500 in pochi millisecondi, non sono i casi: è l'host che ha smesso di invocare il worker
   (host `Running`, rotte inesistenti 404). Non dipende dal tipo di caso — il 13/09/2026 è successo sia
@@ -206,15 +228,17 @@ Cose da sapere sull'esecuzione:
 - Exit code: `0` tutto passato, `7` almeno un caso non passato, `2` suite non valida, `3`
   nessun run del tag sul tenant. Il `7` **non** è un errore della CLI: è l'esito.
 
-Il report finisce in `blueprints/tests/reports/<tag>/<data>/` — `report.md` per leggere,
-`report.json` per tutto il resto. La cartella è ignorata da git: contiene risposte e id del tenant.
+Il report finisce nella cartella di lavoro, `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/`
+— `report.md` per leggere, `report.json` per tutto il resto — e mai nel repository: contiene
+risposte e id del tenant. Il report registra anche l'host dell'API (`localhost:7013` per un giro
+locale): l'etichetta «Staging» da sola non distingue un'API locale con i dati di staging da quella vera.
 
 Il report va anche **nell'archivio del tenant**, accanto al manifest (#1210): la CLI stampa il suo
 `reportId`. Da lì si confronta con il precedente della stessa suite — anche se lanciato dalla chat
 della webapp — con `xrcopilotlab-bp test reports --tag <TAG> --compare <reportId>`, che dice caso per
 caso migliorato, peggiorato o invariato: è il modo di verificare una correzione o un aggiornamento
-della libreria. Perché la chat legga una suite del repository, la si porta nell'archivio una volta
-con `xrcopilotlab-bp test push blueprints/tests/<nome>.tests.yml`.
+della libreria. Una suite modificata si porta nell'archivio con `xrcopilotlab-bp test push <suite>`:
+nasce una versione nuova, e la chat legge quella.
 
 **La stessa cosa dalla webapp.** Chi non ha la CLI — sales, AI specialist, l'admin del tenant —
 collauda dalla chat dei blueprint (icona `terminal`, licenza `XRCopilotLab.Blueprint`): il Blueprint
@@ -263,10 +287,22 @@ caso può essere `Passed` per la CLI e **fail** per te (i numeri ci sono, ma ha 
 conto «dove gli sembrava giusto»); può essere `Failed` per la CLI e **pass** per te (un
 `contains` che il modello ha riformulato legittimamente — e allora si corregge l'attesa).
 
-Il giudizio va in `blueprints/tests/reports/<tag>/<data>/giudizio.md`: una tabella caso · esito
-CLI · verdetto · perché, poi i casi da rivedere con atteso, risposta e diagnosi, poi le attese
-da correggere nella suite. È la parte che il report non può contenere, ed è quella che l'utente
-legge per prima. Una risposta sbagliata che riconosci e che la suite non elenca **va aggiunta ai
+Il giudizio si scrive in due file accanto al report, nella cartella di lavoro:
+
+- `giudizio.md` — una tabella caso · esito CLI · verdetto · perché, poi i casi da rivedere con
+  atteso, risposta e diagnosi, poi le attese da correggere nella suite. È la parte che il report non
+  può contenere, ed è quella che l'utente legge per prima;
+- `giudizio.json` — i verdetti caso per caso (`{"items":[{"caseKey","verdict":"Pass|Partial|Fail|AwaitingVerification","reason","suspect":{"component","confidence","status"},"decision"}]}`).
+
+Dopo averlo mostrato all'utente, si porta nell'archivio accanto al report:
+
+```bash
+xrcopilotlab-bp test judge --tag <TAG> --report <reportId> --file giudizio.json --summary giudizio.md --env <ambiente> --company <guid>
+```
+
+I verdetti vanno nel documento del report — `test reports --compare` li usa al posto dell'esito
+meccanico, e la chat li mostra — e `giudizio.md` fra i file del report. Un giudizio già registrato
+(magari dalla chat) si sostituisce solo con `--overwrite`, e solo con un sì. Una risposta sbagliata che riconosci e che la suite non elenca **va aggiunta ai
 `wrongAnswers`** con la sua diagnosi: è così che il set si arricchisce.
 
 Se il blueprint ha agent task **schedulati** su una fonte che il collaudo ha trovato rotta (un avviso
@@ -373,7 +409,7 @@ l'allegato senza cui il sospetto «è il prompt» non si può nemmeno valutare.
 ## 5. Segnalare — solo dopo un sì
 
 Per ogni difetto confermato si prepara una **bozza** in
-`blueprints/tests/reports/<tag>/<data>/segnalazioni/<n>-<repo>-<slug>.md`, con il modello in
+`~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/segnalazioni/<n>-<repo>-<slug>.md` (con il report: `files put <cartella del report> --kind report --tag <TAG>` le porta nell'archivio), con il modello in
 [`references/segnalazione.md`](references/segnalazione.md). La bozza contiene ciò che serve a
 chi la riceve per riprodurre senza il tenant: la domanda, la risposta, i passi del log che
 contano, i file consultati, le versioni, l'ambiente, l'id della conversazione o dell'istanza.
@@ -432,8 +468,9 @@ Riportare all'utente, in quest'ordine: quanti casi, quanti passati per la CLI, q
 tuo giudizio; i fallimenti attribuiti, per componente; le segnalazioni aperte con i numeri; i casi
 **consegnati a uno sviluppatore** e se il messaggio è partito o è solo pronto; ciò
 che è rimasto non attribuito e perché; dove stanno report e giudizio, **il link** all'artifact delle domande di prova, e se la guida allo scenario va aggiornata. E
-ricordare che la suite in `blueprints/tests/` va **committata**: è la regressione del blueprint, e la prossima versione
-della libreria si collauda rilanciandola.
+ricordare che la suite, se l'hai cambiata, va **portata nell'archivio** con `test push`: è la
+regressione del blueprint, e la prossima versione della libreria si collauda rilanciandola. Niente
+di tutto questo va nel repository.
 
 ## Cosa non fare
 

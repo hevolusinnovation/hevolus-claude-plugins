@@ -198,7 +198,7 @@ partizione fine.
 ### Il comando che la propone
 
 ```bash
-xrcopilotlab-bp suggest blueprints/<file>.yml --files <cartella> --env staging
+xrcopilotlab-bp suggest ~/.xrcopilotlab/blueprints/<TAG>/<file>.yml --files <cartella> --env staging
 ```
 
 Propone un profilo per agente, assegna i file dove il nome lo giustifica, lascia **non assegnato**
@@ -240,7 +240,7 @@ comportamento:
   Cribis ha speso 113 s nella sola sintesi.
 
 Il validatore non controlla queste chiavi, e un valore sconosciuto lascia il default: rileggile prima
-del push. Esempio reale: `blueprints/como-conoscenza-associati.yml`.
+del push. Esempio reale: il manifest di `COMO` (`xrcopilotlab-bp pull --tag COMO`).
 
 ## Come si scrive nel manifest
 

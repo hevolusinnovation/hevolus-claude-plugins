@@ -17,16 +17,17 @@ installato: lo stesso motore, lo stesso report, lo stesso archivio — vedi
 ## I comandi
 
 ```bash
-xrcopilotlab-bp test init     blueprints/<nome>.yml                 # scheletro della suite dal manifest
-xrcopilotlab-bp test validate blueprints/tests/<nome>.tests.yml     # verifica offline, contro il manifest
-xrcopilotlab-bp test run      blueprints/tests/<nome>.tests.yml --env staging --company <guid>
-xrcopilotlab-bp test push     blueprints/tests/<nome>.tests.yml --env staging --company <guid>
+cd ~/.xrcopilotlab/blueprints/<TAG>                                # la cartella di lavoro del blueprint
+xrcopilotlab-bp test init     <nome>.yml                            # scheletro della suite dal manifest
+xrcopilotlab-bp test validate tests/<nome>.tests.yml                # verifica offline, contro il manifest
+xrcopilotlab-bp test run      tests/<nome>.tests.yml --env staging --company <guid>
+xrcopilotlab-bp test push     tests/<nome>.tests.yml --env staging --company <guid>
 xrcopilotlab-bp test reports  --tag <TAG> [--compare <reportId>] --env staging --company <guid>
 ```
 
 | Comando | Cosa fa | Rete | Exit |
 |---|---|---|---|
-| `test init <manifest>` | Scrive `blueprints/tests/<nome>.tests.yml`: un caso positivo e uno negativo per agente, uno per orchestratore, uno per processo, con le attese deducibili dal manifest già compilate e le domande da scrivere (`TODO`). Non sovrascrive una suite esistente senza `--overwrite`; `--out` per un altro percorso | no | `0` |
+| `test init <manifest>` | Scrive `tests/<nome>.tests.yml` accanto al manifest: un caso positivo e uno negativo per agente, uno per orchestratore, uno per processo, con le attese deducibili dal manifest già compilate e le domande da scrivere (`TODO`). Non sovrascrive una suite esistente senza `--overwrite`; `--out` per un altro percorso | no | `0` |
 | `test validate <suite>` | Struttura, segnaposto, contraddizioni; con il manifest (`--manifest`, o trovato da solo accanto alla suite) anche i riferimenti: entità, skill, file, attività, campi obbligatori del modulo di avvio | no | `0` valida · `2` errori |
 | `test run <suite>` | Esegue i casi sul tenant, scrive `report.json` e `report.md`, e archivia il report accanto al manifest | sì | `0` tutti passati · `7` almeno un caso non passato · `2` suite non valida · `3` nessun run del tag |
 | `test push <suite>` | Porta la suite nell'archivio del tenant, accanto al manifest del suo tag: è da lì che la chat la legge. Verificata contro il manifest pubblicato; un testo identico all'ultima versione non ne crea una nuova | sì | `0` · `2` suite non valida · `3` nessun manifest con quel tag |
@@ -35,7 +36,7 @@ xrcopilotlab-bp test reports  --tag <TAG> [--compare <reportId>] --env staging -
 Opzioni di `test run`: `--tag` (default: quello della suite), `--run <runId>` (default: l'ultimo
 run completato del tag), `--only <k1,k2>` (chiavi, tag o entità dei casi da eseguire — un valore combacia con la chiave,
 con un tag **o con il target**: `--only agenda` esegue anche i casi `sim-…` sull'agente `agenda`), `--out
-<cartella>` (default `blueprints/tests/reports/<tag>/<data>/`), più le comuni `--env`,
+<cartella>` (default `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/`), più le comuni `--env`,
 `--company`, `--version`.
 
 ## Collaudare con ingressi veri
@@ -142,7 +143,7 @@ legge — ed è per questo che il report conta i casi «da giudicare».
 `wrongAnswers` è la memoria delle risposte sbagliate già viste: ciascuna porta la sua diagnosi
 (`means`) e, se lo si sa, il componente a cui rimanda (`suspect`), che il triage riprende. I set
 di domande delle demo — atteso, tolleranza, «risposte sbagliate da riconoscere» — si traducono
-così; l'esempio completo è `blueprints/tests/finlogic-bilancio-aggregato.tests.yml`.
+così; l'esempio completo è la suite `finlogic-bilancio-aggregato.tests.yml` del tag `FINLOGIC`, nell'archivio del tenant di collaudo di staging.
 
 ### `kind: flow` — il giro intero, con ingressi veri
 
@@ -196,8 +197,8 @@ ciò che vuole un campo di tipo utente), `{{instanceId}}`, `{{caseData.<chiave>}
 raggiunto non compare. Ciò che i passi scrivono fuori dal tenant (gli eventi sul calendario) resta
 se il flusso non lo pulisce: la forma è un `tool` di ricerca con `capture` dell'id e un `tool` di
 cancellazione `optional`, prima di scrivere e alla fine. Un giro che trova un residuo del giro
-precedente non fallisce «GIÀ PRESENTE» per caso (16/09/2026). Esempio completo:
-`blueprints/tests/studiopolis-agenda-flusso.tests.yml`.
+precedente non fallisce «GIÀ PRESENTE» per caso (16/09/2026). Esempio completo: la suite
+`studiopolis-agenda-flusso.tests.yml` del tag `STUDIOPOLIS`, nell'archivio del tenant di collaudo di staging.
 
 ### Che cosa fa un caso, per tipo
 
@@ -285,17 +286,20 @@ Due file nella cartella del report:
 
 - `report.json` — tutto: per ogni caso i controlli, le evidenze intere (turni, risposta, passi
   del `CompletionLog` con parametri e durate, file di knowledge consultati, chunk, skill
-  selezionate, intent, lingua, token; per un orchestratore i passi; per un processo istanza,
-  eventi, compiti, case data), il sospetto.
+  selezionate, intent, lingua, token; per un orchestratore i passi e, nei casi `via: chat`, le durate
+  dentro i gruppi paralleli (`stepTimings`: ogni ramo, il gruppo intero, la sintesi che il motore fa
+  girare dopo); per un processo istanza, eventi, compiti, case data), il sospetto.
 - `report.md` — per leggere: riepilogo, tabella dei casi, «Dove guardare» raggruppato per
   componente, un capitolo per caso con domanda, risposta, risposta attesa, controlli, evidenze.
 
-La cartella `blueprints/tests/reports/` è ignorata da git: contiene risposte e id del tenant.
+Il report si scrive nella cartella di lavoro `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/`,
+fuori dal repository: contiene risposte e id del tenant.
 
 Lo stesso report va anche **nell'archivio** del tenant (#1210): un documento d'indice nel
 container `blueprints` (tipo `testReport`, partizione del tenant) con il riassunto per caso,
-l'approvazione e il giudizio, e il `report.json` intero nel blob
-`blueprints/<tenant>/<blueprint>/test-reports/<reportId>/`. È ciò che rende confrontabili un
+l'approvazione e il giudizio, e il `report.json` intero — con `report.md` accanto — nella cartella del
+collaudo `blueprints/<tenant>/<blueprint>/reports/<aaaammgg-hhmmss>/` (fino al 06/10/2026 in
+`test-reports/<reportId>/`: `files consolidate` lo sposta). È ciò che rende confrontabili un
 collaudo dal terminale e uno dalla chat (`test reports --compare`). Se l'archivio non si scrive — un
 ruolo mancante — la CLI lo dice e il report resta su disco.
 
@@ -393,8 +397,9 @@ Le differenze dal terminale, e perché:
   resta ciò che è già stato eseguito, con lo stato `interrupted`.
 - **Capienza propria**: al più due collaudi per istanza, separati dagli apply.
 
-Le suite che stanno in `blueprints/tests/` si portano nell'archivio con `test push`, una volta;
-da lì le leggono sia la chat sia chi le rilancia dal terminale.
+Una suite scritta in locale si porta nell'archivio con `test push` (oppure ci arriva da sé al primo
+`test run` su un tenant che non ce l'ha); da lì la leggono sia la chat sia chi la rilancia dal
+terminale con `test run --from-archive`.
 
 ## Dove vive il codice
 
@@ -408,5 +413,5 @@ da lì le leggono sia la chat sia chi le rilancia dal terminale.
 | La chat | `XRCopilotLab.Web/Services/Blueprints/BlueprintChatService.Testing.cs`, `BlueprintTestJob.cs`, `Components/SystemAgents/BlueprintTest*.razor` |
 | Test | `tests/BluePrints/Test*Tests.cs`, `tests/Core/SystemAgents/BlueprintChatTestingEnvelopeTests.cs`, `tests/Web/BlueprintChatTestingTests.cs` |
 
-Le suite dei blueprint del repository stanno in `blueprints/tests/`; `test-agenda.tests.yml` è
-l'esempio minimo e completo del formato.
+Le suite dei blueprint stanno nell'archivio del tenant, non nel repository;
+`docs/blueprints/esempi/test-agenda.tests.yml` è l'esempio minimo e completo del formato.

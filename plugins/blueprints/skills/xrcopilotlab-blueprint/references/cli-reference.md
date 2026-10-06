@@ -148,6 +148,9 @@ nessun errore — semplicemente nessuno lo legge.
 
 Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 
+`--env locale` non è un ambiente incorporato: esiste solo se il profilo `locale` è nel tuo
+`profiles.json`, e lo scrive [`profile init-local`](#profile-init-local).
+
 ## Opzioni comuni
 
 | Opzione | Significato |
@@ -170,6 +173,9 @@ Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 | `--only <k1,k2>` | In `test run`, i casi da eseguire: chiavi, tag o entità. |
 | `--out <percorso>` | In `test init` il file da scrivere; in `test run` la cartella del report. |
 | `--compare <reportId>` | In `test reports`, confronta quel report con il precedente della stessa suite. |
+| `--report <reportId>` | In `test judge`, il report che si giudica. |
+| `--file <giudizio.json>` | In `test judge`, i verdetti caso per caso. |
+| `--summary <giudizio.md>` | In `test judge`, il riepilogo in Markdown: diagnosi, costo, attese da correggere. |
 
 Variabili d'ambiente: `XRCOPILOTLAB_BP_PROFILES` (percorso dei profili), `XRCOPILOTLAB_BP_DEBUG`
 (traccia completa degli errori), `NO_COLOR` (output senza colore).
@@ -199,8 +205,8 @@ sezioni, e il grafo di ogni processo. Le regole del grafo non sono riscritte nel
 allo stesso validatore che gira sul server, quindi ciò che passa qui passa anche lì.
 
 ```bash
-xrcopilotlab-bp validate blueprints/test-agenda.yml
-xrcopilotlab-bp validate blueprints/test-agenda.yml --graph   # stampa anche il disegno
+xrcopilotlab-bp validate docs/blueprints/esempi/test-agenda.yml
+xrcopilotlab-bp validate docs/blueprints/esempi/test-agenda.yml --graph   # stampa anche il disegno
 ```
 
 Non richiede `--env` né credenziali: gira ovunque, anche in una pipeline di verifica.
@@ -212,8 +218,8 @@ ciascun agente. Non scrive niente: né sul tenant né sul manifest, e stampa la 
 incollare dopo averla decisa.
 
 ```bash
-xrcopilotlab-bp suggest blueprints/finlogic-bilancio-aggregato.yml --files test-data
-xrcopilotlab-bp suggest blueprints/finlogic-bilancio-aggregato.yml --env staging
+xrcopilotlab-bp suggest ~/.xrcopilotlab/blueprints/FINLOGIC/finlogic-bilancio-aggregato.yml --files test-data
+xrcopilotlab-bp suggest ~/.xrcopilotlab/blueprints/FINLOGIC/finlogic-bilancio-aggregato.yml --env staging
 ```
 
 `--files` indica la cartella dei documenti da ripartire. Senza, si usano i file che il manifest già
@@ -302,6 +308,54 @@ di ripubblicare da quel file.
 
 Se la versione è arrivata lì per copia, stampa anche da dove.
 
+## `files ls` · `files put <file>` · `files get <percorso>` · `files rm <percorso>` · `files open <percorso>` · `files share <percorso>` · `files consolidate`
+
+Tutto ciò che un blueprint produce o richiede, oltre al manifest, sta nell'archivio nel cloud accanto
+a lui: suite di collaudo, report, guide, bozze e allegati (#1212). Il repository non è la fonte di
+verità di questi file, e non serve una PR per aggiungerne o cambiarne uno.
+
+```
+blueprints/<tenant>/<blueprint>/
+  v<n>/manifest.yaml                manifest   (lo scrive solo `push`, immutabile)
+  v<n>/files/…                      knowledge  (`push`)
+  tests/<nome>.v<k>.tests.yml       suite      versionata per nome, con il suo documento (`test push`, `files put --kind suite`)
+  reports/<aaaammgg-hhmmss>/…       report     per data del collaudo: report.json, report.md, giudizio.md…
+  docs/…  draft/…  attachments/…
+```
+
+Un posto solo per specie, da terminale e dalla chat. Fino al 06/10/2026 le suite caricate con
+`files put` stavano in `v<n>/tests/` e il JSON dei report indicizzati in `test-reports/<reportId>/`:
+si leggono ancora, e `files consolidate` li porta nei posti di oggi.
+
+| Comando | Fa |
+|---|---|
+| `files ls --tag <TAG> [--kind <specie>]` | Elenca ogni file del blueprint: specie, percorso, dimensione, data, impronta (SHA-256) e autore |
+| `files put <file> --tag <TAG> --kind <suite\|report\|doc\|draft\|attachment> [--name <nome>] [--version <n>] [--stamp <aaaammgg-hhmmss>]` | Archivia un file. Una suite diventa una versione nuova fra le suite del tag, come con `test push` ma senza la verifica contro il manifest; un report va sotto il timbro (default: adesso). Con una **cartella** archivia tutti i file con un solo accesso all'ambiente, ciascuno con il suo percorso relativo: per i report la prima sottocartella è il timbro (`20261006-141450/report.md`), a meno di `--stamp`. I file identici a quelli già archiviati si saltano, quelli nascosti anche |
+| `files get <percorso> --tag <TAG> [--out <cartella>] [--overwrite]` | Scarica un file, col percorso che mostra `files ls` |
+| `files get --all --tag <TAG> [--kind <specie>] [--out <cartella>]` | Scarica tutto, o una specie |
+| `files rm <percorso> --tag <TAG> [--yes]` | Toglie **un solo** file. Solo suite, report, guide, bozze e allegati: il manifest, la knowledge e ciò che un apply ha prodotto fanno parte di una versione, e si tolgono con `delete --version`. Chiede `[s/N]`; senza terminale si ferma con **6** finché non c'è `--yes`. Non si annulla |
+| `files open <percorso> --tag <TAG>` | Scarica il file (sempre una copia fresca) e lo apre con l'applicazione predefinita; senza terminale stampa solo il percorso |
+| `files share <percorso> --tag <TAG> [--expires <30m\|12h\|7d>]` | Produce un link di **sola lettura** a quel file, a scadenza (default 24 h, massimo 7 giorni) |
+| `files consolidate --tag <TAG> [--yes]` | Porta nei posti di oggi suite (`v<n>/tests/` → `tests/`) e report (`test-reports/` → `reports/<timbro>/`, con `report.md` e il documento aggiornato). Senza `--yes` dice soltanto che cosa farebbe; si può ripetere |
+
+- **Cartella di lavoro.** Senza `--out`, `get` scrive in `~/.xrcopilotlab/blueprints/<TAG>/…`, o dove
+  indica la variabile `XRCOPILOTLAB_BP_WORKSPACE`. Sta **fuori dal repository**: è una copia di comodo,
+  non va committata. Una suite ci arriva senza versione (`tests/<nome>.tests.yml`, accanto al manifest)
+  e, con `--all`, solo nella versione più recente.
+- **Sovrascrivere.** Suite, guide, bozze e allegati si riscrivono; un report ha il suo timbro e di
+  norma non si tocca. Il manifest non passa di qui.
+- **Segreti.** Prima di archiviare un file di testo se ne cerca il contenuto per ciò che somiglia a
+  una credenziale (chiavi di storage, password in una connection string, chiavi private, JWT, firme
+  SAS, valori in chiaro per campi da segreto). Se ne trova, il comando si ferma con la riga e la regola
+  — mai il valore — ed esce con codice 1. Un riferimento `Blueprints:Secrets:<TAG>:<nome>` passa.
+- **Link condivisibili.** Il link vale per un solo file e non permette di cambiare niente, ma vale per
+  *chiunque lo abbia* fino alla scadenza: va mandato solo a chi deve vedere il file. Si firma con la
+  chiave dell'account se la connection string dell'ambiente la porta, altrimenti con la tua identità,
+  e allora serve il ruolo *Storage Blob Delegator* sull'account (se manca, il comando lo dice). Ogni
+  link prodotto lascia una traccia nell'archivio — chi, quale file, fino a quando — **senza** l'indirizzo.
+- **Cancellazione.** `delete` dell'intero blueprint toglie anche questi file; `delete --version` non
+  tocca quelli senza versione.
+
 ## `export <orchestratore> [--tag <TAG>] [--out <file>]`
 
 La direzione opposta di `apply`: scrive come manifest un orchestratore che **esiste sul tenant**,
@@ -351,12 +405,12 @@ letture. Scrive una cartella con tre file:
 | `orchestrator <id\|nome>` | l'orchestratore, nel topic dei suoi agenti |
 | `topic <id\|nome>` | agenti, profili e agent task del topic, e gli orchestratori fatti solo dei suoi agenti |
 | `blueprint <TAG>` | ciò che l'inventario dell'ultimo run completato dice creato dal blueprint; il tag del manifest è quello, e le **chiavi** sono quelle del manifest originale |
-| `tenant` | tutto: possibile solo se il tenant ha **un topic solo**, perché un manifest ne descrive uno |
+| `tenant` | tutto. Il primo topic per nome diventa quello di `tenant`, gli altri vanno in `topics` (quello degli agenti rapidi si riusa per id); un topic in cui l'ambito non lascia niente non entra |
 
 Ciò da cui le entità dell'ambito dipendono entra da sé — i profili e i server MCP di un agente, la
 connessione di un server MCP, il processo che un agent task avvia, i ruoli e gli agent task di un
 processo, gli agenti di un orchestratore — e il rapporto dice chi l'ha fatto entrare. Un ambito che
-non si può rispettare (un orchestratore con agenti in topic diversi, un tenant con più topic) esce
+non si può rispettare (un orchestratore con agenti in topic diversi) esce
 **1** con il motivo.
 
 **Il manifest è un modello, non una fotocopia.** I nomi escono senza `BP-<TAG>-`, che l'apply rimette;
@@ -390,7 +444,7 @@ opzioni dei provider di connessione diversi dal webhook.
 Senza `--out` la cartella è `export-<tag>`; se contiene già un manifest non si sovrascrive senza
 `--overwrite`. Dopo aver scritto i file il comando valida: con errori bloccanti esce **2**.
 
-Provato su staging con `--scope blueprint STUDIOPOLIS` contro `blueprints/studiopolis-agenda.yml`:
+Provato su staging con `--scope blueprint STUDIOPOLIS` contro il manifest di `STUDIOPOLIS` (`pull --tag STUDIOPOLIS`):
 stesse chiavi in tutte le sezioni; ruoli, agenti, agent task e processi identici, a meno dei dati
 personali; le differenze che restano sono quelle che il rapporto dichiara.
 
@@ -457,7 +511,7 @@ modello: [`catalogo.md`](catalogo.md).
 
 ```bash
 xrcopilotlab-bp catalog list --env staging [--company <tenant>]
-xrcopilotlab-bp catalog publish blueprints/catalogo/legal-agenda.yml --env staging [--documents-reviewed]
+xrcopilotlab-bp catalog publish ~/.xrcopilotlab/blueprints/LEGAL/legal-agenda.yml --env staging [--documents-reviewed]
 xrcopilotlab-bp catalog install legal-agenda --env staging --company <tenant> \
     [--version <n>] [--tag <TAG>] [--topic <nome> | --existing-topic <nome>] \
     [--members "referente=a@studio.it,b@studio.it;segreteria=c@studio.it"]
@@ -535,13 +589,16 @@ nuova.
   - gli **orchestratori**: step, flussi, ciò che ogni step passa al successivo, messaggio di
     benvenuto. L'id e l'endpoint di chat — quindi i link già dati — restano gli stessi, e gli step
     che c'erano già tengono la loro posizione nel designer;
-  - gli **agent task**: prompt e descrizione. Schedulazione, uscite (webhook compreso) e politica di
-    esecuzione restano quelle che hanno. Fino al 24/09/2026 un prompt cambiato veniva **ignorato in
+  - gli **agent task**: prompt, descrizione e, per ogni uscita email, destinatari e oggetto.
+    Schedulazione, webhook e politica di esecuzione restano quelli che hanno; un'uscita email in più
+    o in meno ferma il piano (`BP067`). Fino al 24/09/2026 un prompt cambiato veniva **ignorato in
     silenzio** — né nel piano né fermato da `BP067` — e la v32 di Studio Polis ne avrebbe portato sul
-    tenant solo metà.
+    tenant solo metà; fino al 06/10/2026 lo stesso valeva per i destinatari delle email (#1286);
+  - gli **owner dei processi**: il piano dice chi entra («+») e chi esce («−»). Del processo cambiano
+    solo gli owner.
 - **Resta com'è** tutto il resto, e il piano lo dice: «N entità del blueprint restano come sono».
   I profili di knowledge esistenti **non si riattivano** (riaccoderebbe l'indicizzazione di tutti i
-  file) e i processi BPM non si aggiornano sul posto.
+  file) e i processi BPM non si aggiornano sul posto, owner a parte.
 - **Non si cancella niente.** Ciò che la versione nuova non dichiara più è segnalato (`BP068`) e
   resta. Ciò che non si può fare sul posto ferma il piano (`BP067`).
 
@@ -567,6 +624,33 @@ All'esecuzione le entità del run di partenza **passano al run nuovo**, che da l
 da riprendere, collaudare o smontare; il run di partenza resta come storico, nello stato
 `Superseded`, e `rollback` su di lui rimanda al run nuovo. Il run nuovo registra anche che cosa ha
 aggiornato e com'era prima (`status --run <runId>`).
+
+## `profile init-local [--port <porta>] [--key-env <VARIABILE>] [--yes]`
+
+Scrive il profilo **`locale`** per l'Api avviata sulla tua macchina, così che `--env locale` funzioni.
+Senza, la CLI risponde «Quelli disponibili: staging, prod» — e senza `--env` va sull'indirizzo di
+staging, che da una rete senza accesso a quell'host dà «No such host is known». Non serve
+reinstallare la CLI.
+
+```bash
+xrcopilotlab-bp profile init-local                 # cerca l'Api in ascolto
+xrcopilotlab-bp profile init-local --port 7013     # se ce n'è più d'una, o non la trova
+export XRCOPILOTLAB_BP_LOCAL_APIKEY=<function key locale>
+xrcopilotlab-bp test run <suite.yml> --tag <TAG> --env locale
+```
+
+- **La porta** si cerca fra i processi `dotnet`/`func` in ascolto, tenendo quelli che rispondono come
+  un host delle Functions (`/admin/host/status`). Api e AsyncOperations sono entrambe host Functions e
+  da fuori non si distinguono: con più di una candidata il comando chiede quale è l'Api, e senza
+  terminale si ferma e vuole `--port`.
+- **La chiave** non finisce nel file: il profilo porta `env:XRCOPILOTLAB_BP_LOCAL_APIKEY` (o la
+  variabile data con `--key-env`) e il comando avvisa se in quella shell non è impostata.
+- **I dati** restano quelli di staging (App Configuration): è ciò che fa l'Api locale col suo
+  `local.settings.json`.
+- Mostra cosa scrive e chiede conferma (`--yes` la dà per presa). **Non sovrascrive** un profilo
+  `locale` già scritto, e riscrivendo il file salva prima una copia `profiles.json.bak`.
+- Dopo, prima di leggere un giro come «locale», si verifica che lo sia: `lsof -nP -a -p <pid> -iTCP`
+  sul processo `xrcopilotlab-bp` deve mostrare una connessione verso quella porta.
 
 ## `status [--run <runId>] [--watch]`
 
@@ -687,23 +771,23 @@ L'ordine non è arbitrario: la fase esterna viene **dopo** l'applicazione perch�
 posta deve puntare a un webhook che prima non esisteva.
 
 ```bash
-xrcopilotlab-bp pipeline blueprints/test-agenda.yml --company <guid>
-xrcopilotlab-bp pipeline blueprints/test-agenda.yml --yes --skip-external
-xrcopilotlab-bp pipeline blueprints/test-agenda.yml --resume a1b2c3d4e5f6
+xrcopilotlab-bp pipeline docs/blueprints/esempi/test-agenda.yml --company <guid>
+xrcopilotlab-bp pipeline docs/blueprints/esempi/test-agenda.yml --yes --skip-external
+xrcopilotlab-bp pipeline docs/blueprints/esempi/test-agenda.yml --resume a1b2c3d4e5f6
 ```
 
-## `test init` · `test validate` · `test run` · `test push` · `test reports`
+## `test init` · `test validate` · `test run` · `test push` · `test reports` · `test report` · `test judge`
 
 Il collaudo di un blueprint **applicato**: una suite di domande per gli agenti, input per gli
 orchestratori e dati di avvio per i processi, con le attese; l'esecuzione sul tenant; un report
 con risposte, log e — per ogni fallimento — il componente da cui cominciare a guardare.
 
 ```bash
-xrcopilotlab-bp test init     blueprints/test-agenda.yml                       # → blueprints/tests/test-agenda.tests.yml
-xrcopilotlab-bp test validate blueprints/tests/test-agenda.tests.yml           # trova il manifest da solo
-xrcopilotlab-bp test run      blueprints/tests/test-agenda.tests.yml --env staging --company <guid>
-xrcopilotlab-bp test run      blueprints/tests/test-agenda.tests.yml --env staging --only agent,process
-xrcopilotlab-bp test push     blueprints/tests/test-agenda.tests.yml --env staging --company <guid>
+xrcopilotlab-bp test init     docs/blueprints/esempi/test-agenda.yml                       # → docs/blueprints/esempi/test-agenda.tests.yml
+xrcopilotlab-bp test validate docs/blueprints/esempi/test-agenda.tests.yml           # trova il manifest da solo
+xrcopilotlab-bp test run      docs/blueprints/esempi/test-agenda.tests.yml --env staging --company <guid>
+xrcopilotlab-bp test run      docs/blueprints/esempi/test-agenda.tests.yml --env staging --only agent,process
+xrcopilotlab-bp test push     docs/blueprints/esempi/test-agenda.tests.yml --env staging --company <guid>
 xrcopilotlab-bp test reports  --tag TEST --env staging --company <guid>
 xrcopilotlab-bp test reports  --tag TEST --compare 0123456789ab --env staging --company <guid>
 ```
@@ -711,10 +795,58 @@ xrcopilotlab-bp test reports  --tag TEST --compare 0123456789ab --env staging --
 `init` non sovrascrive una suite esistente (`--overwrite`, o `--out`); `validate` accetta
 `--manifest`; `run` accetta `--tag`, `--run <runId>`, `--only <chiavi,tag,entità>`, `--out
 <cartella>`. Le entità si risolvono dall'inventario dell'ultimo run completato del tag. Il report
-va in `blueprints/tests/reports/<tag>/<data>/` (ignorata da git) e nell'archivio del tenant, dove
-lo trovano anche la chat dei blueprint e `test reports`. `push` porta una suite nell'archivio,
-accanto al manifest del suo tag; `reports` elenca i report archiviati e, con `--compare <id>`,
-confronta quel report caso per caso con il precedente della stessa suite.
+va nella cartella di lavoro, `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/` — mai
+nel repository: contiene risposte e id del tenant — e nell'archivio del tenant, dove lo trovano
+anche la chat dei blueprint e `test reports`. `push` porta una suite nell'archivio, accanto al
+manifest del suo tag; `reports` elenca i report archiviati e, con `--compare <id>`, confronta quel
+report caso per caso con il precedente della stessa suite (e avvisa se i due giri sono andati ad API
+diverse: il report registra l'host dell'API, perché un'API locale con i dati di staging ha la stessa
+etichetta «Staging» di quella vera).
+
+Se il tenant non ha ancora la suite, `run` la archivia da sé prima di salvare il report: è il caso
+del tenant di un cliente, dove il blueprint arriva con il manifest dopo essere stato collaudato su
+staging. Suite, report e giudizio nascono lì al primo collaudo; non si copiano prima.
+
+Nell'archivio il report sta sotto `reports/<aaaammgg-hhmmss>/` — `report.json`, `report.md` e,
+dopo `test judge`, `giudizio.md` — con il documento d'indice che punta lì: lo stesso posto per un
+collaudo dal terminale e per uno dalla chat. `--no-archive` lo salta.
+Un report che sembra contenere credenziali non parte (il comando lo dice e il file resta su disco), e se
+l'archiviazione non riesce il collaudo resta valido.
+
+La suite può venire dall'archivio invece che da un file:
+
+```bash
+xrcopilotlab-bp test push agenda.tests.yml --tag AGENDA                    # una volta
+xrcopilotlab-bp test run --from-archive --tag AGENDA --env staging          # l'unica suite del tag, nell'ultima versione
+xrcopilotlab-bp test run --from-archive --tag AGENDA --suite flusso         # se il tag ne ha più d'una
+xrcopilotlab-bp test report --tag AGENDA                                    # scarica l'ultimo report archiviato
+```
+
+`--from-archive` scarica la suite nella cartella di lavoro (vedi `files`) e da lì è una suite come le
+altre: i file che i casi citano con un percorso relativo si cercano accanto a lei. Si prende l'ultima
+versione della suite; `--version` sceglie la versione del manifest da collaudare. `test report` accetta
+`--stamp <aaaammgg-hhmmss>` per un collaudo preciso, `--out <cartella>` e `--overwrite`.
+
+Il giudizio di chi legge il report si archivia accanto al report con `judge`:
+
+```bash
+xrcopilotlab-bp test judge --tag STUDIOPOLIS --report 0123456789ab --file giudizio.json --summary giudizio.md --env staging --company <guid>
+```
+
+`giudizio.json` porta i verdetti caso per caso, con i valori per nome:
+
+```json
+{ "items": [ { "caseKey": "riconciliatore-quattro-sezioni", "verdict": "Partial",
+               "reason": "Sezione 2 vuota: il doppione senza avviso sta solo fra i doppioni",
+               "suspect": { "component": "Manifest", "confidence": "High", "status": "Confirmed" },
+               "decision": "Rerun" } ] }
+```
+
+I verdetti finiscono nel documento del report — dove li usano `test reports --compare` (il verdetto
+vince sull'esito meccanico) e la chat dei blueprint — e il riepilogo anche come
+`reports/<timbro>/giudizio.md`. Un caso che il report non ha ferma il comando, come un testo che
+sembra contenere una credenziale; un giudizio già registrato — magari dalla chat — si sostituisce
+solo con `--overwrite`.
 
 Esce `0` se tutti i casi passano, **`7`** se almeno uno non passa, `2` se la suite non è valida,
 `3` se il tag non ha un run sul tenant. Formato della suite, esiti, sospetti e codici `BT0xx`:

@@ -1,6 +1,6 @@
 # Le domande di prova per il cliente: dalla suite alla prova in sala
 
-Il collaudo produce due cose che restano nel repository — la suite e il giudizio — e nessuna delle
+Il collaudo produce due cose che restano nell'archivio del blueprint — la suite e il giudizio — e nessuna delle
 due si può mettere davanti a un cliente: la suite è YAML con regex, il giudizio parla di componenti e
 issue. Ciò che il cliente riceve sono **due documenti**, che raccontano la stessa prova in un'altra lingua;
 questa skill scrive il primo:
@@ -33,10 +33,10 @@ repository dell'assessment**. Quindi vivono in un **artifact** su claude.ai:
   pulsante «Copia». Prima di pubblicare, l'organizzazione Hevolus (`/status`); dopo, aprirla nel
   browser dell'utente, come per la guida ([`pagina-web.md` di blueprint-guide](../../xrcopilotlab-blueprint-guide/references/pagina-web.md)).
 - **È la fonte dello stato per la guida tecnica**: `xrcopilotlab-blueprint-guide` legge da qui la
-  tabella di stato quando il giudizio, che vive nel repository di prodotto, non è a portata.
+  tabella di stato quando il giudizio, che vive nell'archivio del blueprint, non è a portata.
 - **Il repository dell'assessment è facoltativo**: se c'è e l'utente lo vuole, se ne salva una copia
-  in `customers/<cliente>/demo-domande-<scenario>.md`; commit solo su richiesta. **Mai** in
-  `blueprints/` del repository di prodotto: contiene nomi e casi del cliente.
+  in `customers/<cliente>/demo-domande-<scenario>.md`; commit solo su richiesta. **Mai** nel
+  repository di prodotto: contiene nomi e casi del cliente.
 
 ## Le domande di prova: la traduzione inversa della suite
 

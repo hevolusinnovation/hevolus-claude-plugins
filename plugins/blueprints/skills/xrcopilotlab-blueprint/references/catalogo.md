@@ -81,4 +81,20 @@ installano lo stesso modello con lo stesso tag non condividono niente.
 ## Nella webapp
 
 Catalogo e installazione compaiono nella pagina dei blueprint dell'amministrazione: specifiche nella
-#1175.
+#1175. Le pagine chiamano un servizio della piattaforma (#1263), `AppClient.BlueprintCatalog`, che
+rifiuta chi non è amministratore della company — il controllo è dell'Api, non di ciò che l'interfaccia
+mostra:
+
+| Chiamata | Che cosa fa |
+|---|---|
+| `GET blueprints/{company}/catalog` | I modelli (ultima versione) con ciò che il tenant ne ha installato e se ce n'è uno più nuovo. |
+| `GET blueprints/{company}/catalog/{modello}` | Che cosa crea, che cosa chiede (skill, server MCP esistenti), i segreti per nome, i ruoli che vogliono persone. |
+| `POST …/{modello}/preview` | Le scelte (tag, topic, persone) → il piano, i rilievi (licenza compresa) e i segreti mancanti, con la sua **impronta**. Non scrive niente. |
+| `POST …/{modello}/install` | Il sì sull'impronta: se il piano è cambiato (409) o non si può confermare (422) non si crea niente. Altrimenti copia il modello nell'archivio del tenant, crea il run approvato e accoda il lavoro (202). |
+| `GET blueprints/{company}/runs/{run}` | Stato del run: entità create, operazioni previste, fasi, errore. |
+
+L'esecuzione gira in background in `.Api.AsyncOperations` (`BlueprintInstallWorker`, coda
+`blueprint-install`): il messaggio porta solo tenant, run e impronte (#1151), il worker ricostruisce
+il piano dall'archivio e, se non è quello approvato, non crea niente e lo scrive nel run. Una
+installazione alla volta per tenant. I segreti non passano di qui: un segreto che manca ferma
+l'installazione, e si imposta con `secrets set`.

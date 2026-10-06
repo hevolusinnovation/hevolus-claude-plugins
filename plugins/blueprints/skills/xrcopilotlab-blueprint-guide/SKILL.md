@@ -55,7 +55,8 @@ Per questo il risultato sono **due artifact** su claude.ai, non due file:
   e l'utente lo vuole, si salva anche lì una copia dei due Markdown (`guida-<scenario>.md`,
   `guida-tecnica-<scenario>.md`); il commit solo se lo chiede. La copia non sostituisce l'artifact:
   il riferimento resta l'artifact.
-- **Mai** in `blueprints/` del repository di prodotto: contiene nomi e casi del cliente.
+- **Mai** nel repository di prodotto: contiene nomi e casi del cliente. Se serve averla accanto al
+  blueprint, va nel suo archivio con `xrcopilotlab-bp files put <file> --kind doc --tag <TAG>`.
 
 ## Chi fa che cosa
 
@@ -82,8 +83,8 @@ urgente: se l'utente è a metà di una guida, si finisce e si aggiorna dopo.
 
 Orientare e fermarsi: a cosa servono le due guide, quali esistono già (`Artifact`
 `action: "list"`: i titoli «… — guida» e «… — demo (interna)»; e, se c'è il repository,
-`../hevolus-assessment/customers/*/guida-*.md`), quali blueprint ci sono (`blueprints/*.yml`; senza repository si chiede il tag e si scarica il
-manifest con `xrcopilotlab-bp pull --tag <TAG>`). Poi
+`../hevolus-assessment/customers/*/guida-*.md`), quali blueprint ci sono (non stanno nel repository: `xrcopilotlab-bp status` sull'ambiente, oppure
+si chiede il tag e si scarica il manifest con `xrcopilotlab-bp pull --tag <TAG>`). Poi
 le domande: per quale cliente e quale scenario, e se la sessione la conducono in due o l'AI
 Specialist da solo.
 
@@ -91,13 +92,12 @@ Specialist da solo.
 
 | Fonte | Dove | Per il cliente | Per la tecnica |
 |---|---|---|---|
-| Il manifest | `blueprints/<nome>.yml` | il flusso: i passi, chi li fa, cosa passa da uno all'altro; il «cosa non fai» degli agenti; i compiti e i loro tempi; i lavori programmati; le versioni (i blocchi `vN`); ciò che è fuori perimetro | tutto questo **con i nomi veri**: agenti, agent task e il loro cron, processi e passi, orchestratori, server MCP e i loro tool, ruoli |
-| La suite | `blueprints/tests/<nome>.tests.yml` | **solo esempi**: la domanda e ciò che la risposta deve contenere | gli input pronti da usare in demo, le risposte sbagliate da riconoscere al volo |
+| Il manifest | `xrcopilotlab-bp pull --tag <TAG>` (dall'archivio del tenant), o la cartella di lavoro `~/.xrcopilotlab/blueprints/<TAG>/` | il flusso: i passi, chi li fa, cosa passa da uno all'altro; il «cosa non fai» degli agenti; i compiti e i loro tempi; i lavori programmati; le versioni (i blocchi `vN`); ciò che è fuori perimetro | tutto questo **con i nomi veri**: agenti, agent task e il loro cron, processi e passi, orchestratori, server MCP e i loro tool, ruoli |
+| La suite | `~/.xrcopilotlab/blueprints/<TAG>/tests/<nome>.tests.yml`, o dall'archivio con `files get` (`files ls --tag <TAG>` per il percorso) | **solo esempi**: la domanda e ciò che la risposta deve contenere | gli input pronti da usare in demo, le risposte sbagliate da riconoscere al volo |
 | Le domande di prova | l'artifact «<Scenario> — domande di prova» (`path: "demo-domande.md"`), o `../hevolus-assessment/customers/<cliente>/demo-domande-*.md` | **solo esempi**, nella lingua del cliente; la tabella di stato **non** si riporta | la tabella di stato: che cosa è pronto, che cosa no |
 | I materiali della demo | `demo-materiali-*.md`, `demo-workflow-*.md`, una guida per chi conduce già scritta | — | le mail da inviare, i dettati da incollare, i percorsi da fare a mano nei processi |
-| L'ultimo giudizio | `blueprints/tests/reports/<tag>/<data>/giudizio.md` | **mai** | che cosa è sicuro mostrare dal vivo, che cosa è fragile, lo stato lasciato sul tenant |
+| L'ultimo giudizio | `giudizio.md` dell'ultimo report: `xrcopilotlab-bp test report --tag <TAG>` lo scarica in `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/` | **mai** | che cosa è sicuro mostrare dal vivo, che cosa è fragile, lo stato lasciato sul tenant |
 | Il dossier di assessment | `../hevolus-assessment/customers/<cliente>/README.md` | **le criticità dette dal cliente con parole sue** | le domande tecniche che il cliente ha già fatto |
-| Il manifest archiviato | `xrcopilotlab-bp pull --tag <TAG>` | se il repository non c'è | idem |
 | Le guide già pubblicate | `Artifact` `action: "read"`, `path: "guida.md"` / `"guida-tecnica.md"` | la versione da cui ripartire | idem |
 
 **Senza repository** il manifest si prende con `pull`, e il resto lo fornisce l'utente: le domande di

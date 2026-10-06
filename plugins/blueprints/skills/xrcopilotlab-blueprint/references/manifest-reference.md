@@ -52,6 +52,39 @@ tenant:
 I nomi degli agenti vengono comunque confrontati con quelli **già presenti in quel topic**: se uno
 coincide, il piano si ferma.
 
+### Più topic: `topics`
+
+Un blueprint può vivere in più topic — è il caso del backup di un tenant intero (#1175). Il topic di
+`tenant` resta quello di default; gli altri si dichiarano in `topics`, ognuno con una chiave e uno
+solo fra `name` (lo crea), `existingTopic` e `topicId` (lo riusa):
+
+```yaml
+tenant:
+  companyId: 1111...
+  topic: Generale
+
+topics:
+  - key: legale
+    name: Legale
+  - key: hr
+    existingTopic: Risorse umane
+
+agents:
+  - key: assistente          # nel topic di tenant
+    name: Assistente
+  - key: avvocato
+    name: Avvocato
+    topic: legale            # nel topic «BP-<TAG>-Legale», creato dal blueprint
+```
+
+- `topic: <chiave>` si mette su **agenti, profili di knowledge e agent task**. Senza, l'entità sta nel
+  topic di `tenant`; una chiave che `topics` non dichiara è un errore (`BP008`).
+- Un **orchestratore** non ha un topic: ogni suo step porta quello del proprio agente, quindi un
+  orchestratore può usare agenti di topic diversi.
+- La chiave `topic` è riservata al topic di `tenant`. I nomi di agenti e profili si confrontano con
+  quelli già presenti **nel topic in cui finiscono**.
+- Se ogni agente e profilo dichiara il proprio topic, `tenant` può non indicarne uno.
+
 ## `businessRoles`
 
 Ruoli aziendali: sono le lane dei processi BPM, non i ruoli RBAC della piattaforma.
@@ -527,7 +560,9 @@ mcpServers:
         query: { startDateTime: "{{start}}", endDateTime: "{{end}}" }
         # Il transform è il corpo di una funzione che riceve la risposta come `input` (non `data`):
         # gira nel sandbox QuickJS del builder, senza atob, fetch o librerie. Vale anche per
-        # scomporre un allegato .eml in base64: vedi leggi_eml in blueprints/studiopolis-agenda.yml.
+        # scomporre un allegato .eml in base64: vedi leggi_eml nel manifest di STUDIOPOLIS (`pull --tag STUDIOPOLIS`).
+        # Le `variables` del server entrano anche nello script (`"{{mittentiAmmessi}}".split(",")`) quando si
+        # applica, dalla CLI 2.16.3: a runtime il sandbox vede solo `input`. Vedi il filtro dei mittenti.
         transform: return input.value.map(e => ({ subject: e.subject }));
       - name: invia
         method: POST
@@ -644,6 +679,33 @@ il webhook, e il webhook dopo il processo, quindi l'agente della chat e l'agente
 del processo sono due agenti distinti. `connections refresh` sa ricostruire anche questa
 connessione: indirizzo dal webhook sul tenant, chiave dal segreto.
 
+### Una connessione con un proprio schema: `config`
+
+Non tutte le connessioni sono un webhook HTTP. Il **layout del piano editoriale** che legge il
+Marketing Agent (`marketing-editorial-plan-excel`: foglio, riga d'intestazione, mappa delle colonne,
+formati di data) è una connessione del tenant con un JSON suo, senza indirizzo né credenziale. Si
+dichiara con `config`, che diventa il `ConfigJson` **così com'è**:
+
+```yaml
+connections:
+  - key: ped-layout
+    name: piano-editoriale-layout
+    provider: marketing-editorial-plan-excel
+    config:
+      sheet: Piano Editoriale
+      headerRow: 2
+      columns: { date: Data, time: Ora, channel: Canale, typology: Code, topic: Titolo, state: Stato }
+      dateFormats: [dd/MM/yyyy]
+      recordedState: Pianificato
+```
+
+`config` è la connessione per intero: insieme a `baseUrl`, `headers`, `auth` o `process` è un errore
+(`BP048`), come lo è vuoto. Un server MCP `builder` **non** vi si può appoggiare — i suoi tool hanno
+bisogno di un indirizzo, che qui non c'è — e il validatore lo ferma con lo stesso codice. Una
+credenziale, se il provider ne vuole una, si imposta dall'interfaccia sulla connessione creata.
+`export` riporta in `config` le connessioni dei provider che non sono webhook, e `connections refresh`
+le riscrive dal manifest come le altre.
+
 ## `orchestrators`
 
 Un orchestratore sono **step** e **flows**: i nodi e gli archi che li collegano. Si chiamano `flows`
@@ -700,7 +762,7 @@ orchestrators:
 |---|---|---|
 | `start` | **Non serve**: l'ingresso è il primo step a cui nessun flusso arriva. Accettato per i manifest già scritti, segnalato con `BP094` e ignorato dal piano | — |
 | `agent` | Esegue un agente | `agent`, `userMessageTemplate`, `requireStructuredOutput`, `outputSchema`, `skillMetadata`, `allowAgentInteraction`, `allowFileUploadOnPause`, `useTempFiles`, `maxLoopIterations`, `loopInstruction` |
-| `parallelGroup` | Più agenti insieme | `agents`, `agentOutputs`, `maxParallel` |
+| `parallelGroup` | Più agenti insieme | `agents`, `agentOutputs`, `maxParallel`, `summarize` |
 | `handoffGroup` | Più agenti che si passano il turno | `agents`, `agentOutputs` |
 | `condition` | Bivio su una condizione | `condition` — **due** flussi uscenti, `condition: true` e `condition: false` |
 | `switch` | Più vie su un valore | `switchVariable`, `cases`, `defaultCase` — un flusso per ogni caso, con `label` |
@@ -737,7 +799,7 @@ cambia niente; un valore sconosciuto lascia il comportamento di default.
   agents: [cribis, bilanci]
 ```
 
-Esempio reale: `blueprints/como-conoscenza-associati.yml`. Le chiavi sono definite in
+Esempio reale: il manifest di `COMO` (`xrcopilotlab-bp pull --tag COMO`). Le chiavi sono definite in
 `StepKnowledgeQuery` e `StepKnowledgeRecords` (`XRCopilotLab.Core/Services/Orchestration/`).
 
 ## `external`
@@ -784,7 +846,7 @@ variante a polling: quella il blueprint la crea per intero, questa no.
 | `BP010`–`BP016` | Chiavi e nomi: mancanti, duplicati, già prefissati; modello dell'agente non dichiarato (`BP015`); descrizione più larga della colonna SQL che la riceve — 500 caratteri per topic, profilo e agente, 1000 per orchestratore, ruolo e agent task (`BP016`, errore: l'apply si fermerebbe sul tenant a entità già create) |
 | `BP020`–`BP023` | Riferimenti fra sezioni e alternative esclusive |
 | `BP030`–`BP033` | Processi: specifica non valida, ruolo, agent task o sotto-processo sconosciuto |
-| `BP040`–`BP047` | Connessioni e server MCP; connessione verso il webhook di un processo (`BP045`); segreto scritto in chiaro o di un altro tag (`BP047`) |
+| `BP040`–`BP048` | Connessioni e server MCP; connessione verso il webhook di un processo (`BP045`); segreto scritto in chiaro o di un altro tag (`BP047`); `config` di una connessione mescolato ai campi del webhook o usato da un server MCP (`BP048`) |
 | `BP024`–`BP029` | Agent task: trigger, schedulazione, code di uscita; file di knowledge inutilizzabile (`BP027`); partizionamento dei profili (`BP028`); cron più fitto della quota giornaliera (`BP029`) |
 | `BP050`–`BP052` | Risorse esterne, ed equivalenti nativi |
 | `BP060`–`BP065` | Preflight: collisione di nome, skill, utente, segreto o topic mancante; modello fuori catalogo (`BP065`) |

@@ -166,6 +166,7 @@ solo per un caso che si aspetta un errore.
 
 - Domande la cui risposta cambia nel tempo («che giorno è», «gli impegni di oggi»): fissare date
   assolute, meglio se lontane e vuote (gennaio 2030).
-- Dati personali veri nelle domande: nomi, indirizzi, codici fiscali. La suite è nel repository.
+- Dati personali veri nelle domande: nomi, indirizzi, codici fiscali. La suite finisce nell'archivio
+  del blueprint, e da lì nei report e nella chat.
 - Segreti, mai, in nessun campo.
 - Domande che dipendono da una conversazione precedente senza `conversation:` multi-turno.

@@ -8,13 +8,13 @@ Aggiornato al **28/09/2026**.
 
 | Scenario | Stato | Fonte (solo per te) | Mattoni |
 |---|---|---|---|
-| Agenda e scadenze di uno studio legale | Realizzato per un cliente | `blueprints/studiopolis-agenda.yml`, `hevolus-assessment/customers/studiopolis/` | M-POSTA, M-CALENDARIO, M-CHAT, M-PRATICA, M-CONTROLLO |
-| Conoscere un'azienda in una domanda | Realizzato per un cliente | `blueprints/como-conoscenza-associati.yml`, `hevolus-assessment/customers/confindustria-como/` | M-CHAT, M-ARCHIVIO, M-RICERCHE, M-FONTI-PUBBLICHE, M-MAPPA |
-| Il bilancio del gruppo dai libri giornale | Realizzato per un cliente | `blueprints/finlogic-bilancio-aggregato.yml`, `hevolus-assessment/customers/finlogic/` | M-CHAT, M-ARCHIVIO, M-CONTI |
-| Assistente legale sul diritto italiano | Pronto da installare | `blueprints/catalogo/legal-suite.yml` (branch della #1185 finché non è in `main`; nel catalogo di staging), `hevolus-assessment/customers/hevolus-legal/` | M-CHAT, M-ARCHIVIO, M-RICERCHE, M-FONTI-PUBBLICHE, M-TESTI-LEGALI |
+| Agenda e scadenze di uno studio legale | Realizzato per un cliente | tag `STUDIOPOLIS` (archivio del tenant di collaudo di staging; in produzione la v39 sul tenant del cliente), `hevolus-assessment/customers/studiopolis/` | M-POSTA, M-CALENDARIO, M-CHAT, M-PRATICA, M-CONTROLLO |
+| Conoscere un'azienda in una domanda | Realizzato per un cliente | tag `COMO` (archivio del tenant di collaudo di staging; in produzione sul tenant HevoDemo), `hevolus-assessment/customers/confindustria-como/` | M-CHAT, M-ARCHIVIO, M-RICERCHE, M-FONTI-PUBBLICHE, M-MAPPA |
+| Il bilancio del gruppo dai libri giornale | Realizzato per un cliente | tag `FINLOGIC` (archivio del tenant di collaudo di staging), `hevolus-assessment/customers/finlogic/` | M-CHAT, M-ARCHIVIO, M-CONTI |
+| Assistente legale sul diritto italiano | Pronto da installare | modello `legal-suite` nel catalogo di staging (`xrcopilotlab-bp catalog list --env staging`), `hevolus-assessment/customers/hevolus-legal/` | M-CHAT, M-ARCHIVIO, M-RICERCHE, M-FONTI-PUBBLICHE, M-TESTI-LEGALI |
 
-Non sono scenari, e non vanno nel brief: `blueprints/test-agenda.yml` e
-`blueprints/marketing-campagne.yml` sono manifest di prova dei costrutti, non applicati per un
+Non sono scenari, e non vanno nel brief: `docs/blueprints/esempi/test-agenda.yml` e
+`tests/BluePrints/Fixtures/manifests/marketing-campagne.yml` sono manifest di prova dei costrutti, non applicati per un
 cliente.
 
 ---

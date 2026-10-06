@@ -40,8 +40,10 @@ COPIE = [
     ("docs/blueprints/microsoft365-setup.md", DEST / "references"),
     ("docs/blueprints/catalogo.md", DEST / "references"),
     ("src/XRCopilotLab/XRCopilotLab.BluePrints/Schema/blueprint.v1.schema.json", DEST / "references"),
-    ("blueprints/studiopolis-agenda.yml", DEST / "references" / "esempio-agenda.yml"),
-    ("blueprints/test-agenda.yml", DEST / "references" / "esempio-minimo.yml"),
+    # Dal 06/10/2026 i blueprint non stanno più nel repository di prodotto (regola 8): l'esempio reale è
+    # la copia congelata che usano i test, quello minimo e la sua suite sono gli esempi della documentazione.
+    ("tests/BluePrints/Fixtures/manifests/studiopolis-agenda.yml", DEST / "references" / "esempio-agenda.yml"),
+    ("docs/blueprints/esempi/test-agenda.yml", DEST / "references" / "esempio-minimo.yml"),
     # La skill di collaudo: collauda un blueprint applicato con `xrcopilotlab-bp test`.
     (".claude/skills/xrcopilotlab-blueprint-test/SKILL.md", DEST_TEST / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-test/references/domande.md", DEST_TEST / "references"),
@@ -53,7 +55,7 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-test/references/browser.md", DEST_TEST / "references"),
     (".claude/skills/xrcopilotlab-blueprint-test/references/guida-cliente.md", DEST_TEST / "references"),
     ("docs/blueprints/testing.md", DEST_TEST / "references"),
-    ("blueprints/tests/studiopolis-agenda.tests.yml", DEST_TEST / "references" / "esempio-suite-agenda.tests.yml"),
+    ("docs/blueprints/esempi/test-agenda.tests.yml", DEST_TEST / "references" / "esempio-suite-agenda.tests.yml"),
     # La skill delle due guide — per il cliente a slide, tecnica per l'AI Specialist: legge manifest, suite, materiali e dossier, non esegue niente.
     (".claude/skills/xrcopilotlab-blueprint-guide/SKILL.md", DEST_GUIDE / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-guide/references/linguaggio.md", DEST_GUIDE / "references"),
@@ -91,15 +93,10 @@ RISCRITTURE = {
         ),
         (
             "Lo schema autorevole è `src/XRCopilotLab/XRCopilotLab.BluePrints/Schema/blueprint.v1.schema.json`.\n"
-            "Un esempio completo e commentato è in `blueprints/`.",
+            "Un esempio completo e commentato è in `docs/blueprints/esempi/test-agenda.yml`.",
             "Lo schema è in [`references/blueprint.v1.schema.json`](references/blueprint.v1.schema.json).\n"
             "Due esempi commentati: [`references/esempio-agenda.yml`](references/esempio-agenda.yml) (scenario reale)\n"
             "e [`references/esempio-minimo.yml`](references/esempio-minimo.yml) (il giro più corto).",
-        ),
-        (
-            "Il file va in `blueprints/<tag-minuscolo>-<slug>.yml`.",
-            "Il file va in `blueprints/<tag-minuscolo>-<slug>.yml` dentro il progetto dell'utente; se quella\n"
-            "cartella non esiste, si crea.",
         ),
     ],
     DEST / "references" / "cli-reference.md": [
@@ -123,7 +120,7 @@ RISCRITTURE = {
             "[`blueprint.v1.schema.json`](blueprint.v1.schema.json)",
         ),
         (
-            "[`blueprints/test-agenda.yml`](../../blueprints/test-agenda.yml)",
+            "[`docs/blueprints/esempi/test-agenda.yml`](../../docs/blueprints/esempi/test-agenda.yml)",
             "[`esempio-minimo.yml`](esempio-minimo.yml)",
         ),
     ],
