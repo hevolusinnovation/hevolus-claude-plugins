@@ -42,8 +42,9 @@ Cosa riportare, in quest'ordine:
    Se un ambiente risulta **non accessibile**, non proporlo come se lo fosse: distinguere il ruolo
    mancante — che si chiede a chi amministra la sottoscrizione — dall'accesso ad Azure mai fatto su
    quella macchina, che l'utente risolve da sé, una volta, da un terminale.
-4. **I blueprint che esistono già**, se c'è una cartella `blueprints/`: elencare i file con tag e
-   versione. È la risposta più utile, perché quasi sempre chi chiede aiuto vuole ripartire da uno.
+4. **I blueprint che esistono già**: non stanno nel repository ma nell'archivio del tenant
+   (`xrcopilotlab-bp status` sull'ambiente indicato, o la cartella di lavoro
+   `~/.xrcopilotlab/blueprints/` se c'è): elencarli con tag e versione. È la risposta più utile, perché quasi sempre chi chiede aiuto vuole ripartire da uno.
 5. **Cosa c'è già sul tenant**, se l'utente ha indicato un ambiente: `xrcopilotlab-bp status` lo
    dice in una riga per blueprint. Non lanciarlo di propria iniziativa su un ambiente non indicato.
 6. **I tre percorsi possibili**, come domanda finale: partire da un dossier di assessment, fare
@@ -241,8 +242,9 @@ entrambi.
 
 ## 2. Scrivere il manifest
 
-Il file va in `blueprints/<tag-minuscolo>-<slug>.yml` dentro il progetto dell'utente; se quella
-cartella non esiste, si crea.
+Il file va nella cartella di lavoro, `~/.xrcopilotlab/blueprints/<TAG>/<tag-minuscolo>-<slug>.yml`:
+non nel repository, dove la cartella `blueprints/` è in `.gitignore`. Una volta pubblicato con
+`push`, la sua copia di riferimento è quella nell'archivio del tenant.
 
 Sei errori che si fanno se non si sta attenti:
 
@@ -297,7 +299,7 @@ L'id dei flussi lasciarlo fuori: lo genera la CLI, e il file resta leggibile.
 ### Se l'ambiente ha dei documenti, far parlare i file prima di decidere
 
 ```bash
-xrcopilotlab-bp suggest blueprints/<file>.yml --files <cartella> --env staging
+xrcopilotlab-bp suggest ~/.xrcopilotlab/blueprints/<TAG>/<file>.yml --files <cartella> --env staging
 ```
 
 Da lanciare **dopo** aver scritto gli agenti e **prima** di scrivere `knowledge:`. Propone un
@@ -352,7 +354,7 @@ costa un 404, il ponte dalla chat al processo e le regole di prompt sui gap:
 ## 3. Validare
 
 ```bash
-xrcopilotlab-bp validate blueprints/<file>.yml --graph
+xrcopilotlab-bp validate ~/.xrcopilotlab/blueprints/<TAG>/<file>.yml --graph
 ```
 
 Se ci sono errori, correggerli e ripetere. **Non chiedere all'utente di interpretare i codici**: i
@@ -379,7 +381,7 @@ lettura mascherata: va data dove la maschera serve a qualcosa.
 Per un valore che l'utente ha già altrove c'è **`--from-env NOME_VARIABILE`**, che lo legge da una
 variabile d'ambiente invece che dal prompt.
 
-Poi verificare con `xrcopilotlab-bp secrets check blueprints/<file>.yml --env <ambiente>`.
+Poi verificare con `xrcopilotlab-bp secrets check ~/.xrcopilotlab/blueprints/<TAG>/<file>.yml --env <ambiente>`.
 `--env` non è un dettaglio: senza, la verifica può guardare un ambiente diverso da quello in cui il
 piano andrà a cercare la chiave, e si finisce a rifare due volte la stessa cosa.
 
@@ -391,7 +393,7 @@ non dà nessun errore — semplicemente nessuno lo legge.
 ## 5. Piano, e approvazione umana
 
 ```bash
-xrcopilotlab-bp push blueprints/<file>.yml
+xrcopilotlab-bp push ~/.xrcopilotlab/blueprints/<TAG>/<file>.yml
 xrcopilotlab-bp plan --tag <TAG> --company <guid>
 ```
 

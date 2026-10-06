@@ -103,6 +103,56 @@
         }
       ]
     },
+    "topics": {
+      "type": "array",
+      "description": "Topic in più oltre a quello di tenant, per un blueprint che vive in più topic (es. il backup di un tenant). Agenti, profili e agent task dicono il loro (un orchestratore no: ogni step porta il topic del suo agente) con 'topic: <chiave>'; senza, stanno nel topic di tenant.",
+      "items": {
+        "type": "object",
+        "required": [
+          "key"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Chiave con cui le entità citano il topic."
+          },
+          "name": {
+            "type": "string",
+            "description": "Nome del topic da CREARE (senza prefisso)."
+          },
+          "description": {
+            "type": "string",
+            "description": "Descrizione del topic da creare."
+          },
+          "existingTopic": {
+            "type": "string",
+            "description": "Nome di un topic GIÀ ESISTENTE: non viene creato né modificato."
+          },
+          "topicId": {
+            "type": "string",
+            "description": "Id di un topic già esistente. Alternativa a existingTopic."
+          }
+        },
+        "oneOf": [
+          {
+            "required": [
+              "name"
+            ]
+          },
+          {
+            "required": [
+              "existingTopic"
+            ]
+          },
+          {
+            "required": [
+              "topicId"
+            ]
+          }
+        ]
+      }
+    },
     "connections": {
       "type": "array",
       "description": "Connessioni verso sistemi di terze parti. Verificate ma non ancora create (milestone 2).",
@@ -140,6 +190,11 @@
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "config": {
+            "type": "object",
+            "description": "La configurazione intera della connessione, per i provider con un proprio schema (es. marketing-editorial-plan-excel: foglio, riga d'intestazione, mappa delle colonne). Diventa il ConfigJson così com'è. Esclude baseUrl, headers, auth e process; un server MCP builder non vi si può appoggiare (BP048).",
+            "additionalProperties": true
           },
           "auth": {
             "$ref": "#/$defs/auth"
@@ -369,6 +424,10 @@
           "key": {
             "type": "string"
           },
+          "topic": {
+            "type": "string",
+            "description": "Chiave del topic (in 'topics') in cui vive. Assente: il topic di tenant."
+          },
           "name": {
             "type": "string",
             "description": "Nome del profilo, senza prefisso."
@@ -431,6 +490,10 @@
         "properties": {
           "key": {
             "type": "string"
+          },
+          "topic": {
+            "type": "string",
+            "description": "Chiave del topic (in 'topics') in cui vive. Assente: il topic di tenant."
           },
           "name": {
             "type": "string"
@@ -626,6 +689,10 @@
         "properties": {
           "key": {
             "type": "string"
+          },
+          "topic": {
+            "type": "string",
+            "description": "Chiave del topic (in 'topics') in cui vive. Assente: il topic di tenant."
           },
           "name": {
             "type": "string"
@@ -903,6 +970,10 @@
                   "type": "integer",
                   "minimum": 1,
                   "description": "type: parallelGroup — quanti girano insieme. Default 5."
+                },
+                "summarize": {
+                  "type": "boolean",
+                  "description": "type: parallelGroup — se dopo i rami gira un agente che ne riassume gli output. Default true; con false l'output del gruppo è la concatenazione di quelli dei rami (si usa quando i passi successivi leggono le variabili di agentOutputs)."
                 },
                 "question": {
                   "type": "string",

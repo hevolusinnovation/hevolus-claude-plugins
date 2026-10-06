@@ -47,8 +47,9 @@ dopo.
 Orientare e fermarsi. In poche righe:
 
 - a che cosa serve il brief e chi lo legge (l'agenzia, non il cliente);
-- le **fonti disponibili**: i manifest in `blueprints/*.yml` e `blueprints/catalogo/*.yml`, i dossier
-  in `../hevolus-assessment/customers/*/`, e — se c'è la CLI — `xrcopilotlab-bp catalog list`;
+- le **fonti disponibili**: i manifest nell'archivio del tenant di collaudo di staging
+  (`xrcopilotlab-bp pull --tag <TAG>`), i modelli del catalogo (`xrcopilotlab-bp catalog list`), i
+  dossier in `../hevolus-assessment/customers/*/`;
 - gli scenari **già realizzati**, dal registro [`references/scenari-esistenti.md`](references/scenari-esistenti.md);
 - le domande: da quale fonte si parte, e se c'è un settore o una funzione su cui l'agenzia deve
   concentrarsi (per esempio «studi professionali», «uffici acquisti»).

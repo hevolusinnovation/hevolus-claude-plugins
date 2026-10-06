@@ -25,7 +25,7 @@ un nome che non c'è, elencando i disponibili. Il blueprint non aggiunge modelli
 ## Il catalogo si legge, non si ricorda
 
 ```bash
-xrcopilotlab-bp suggest blueprints/<file>.yml --env staging
+xrcopilotlab-bp suggest ~/.xrcopilotlab/blueprints/<TAG>/<file>.yml --env staging
 ```
 
 Il catalogo cambia — a settembre 2026 ha una ventina di righe, da `gpt-4.1` a `claude-opus-5`, e due

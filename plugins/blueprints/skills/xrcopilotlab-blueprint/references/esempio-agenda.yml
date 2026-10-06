@@ -381,7 +381,35 @@ blueprint: studiopolis-agenda
 #              vecchio non compare nell'elenco e può uscire dalla finestra senza essere passato.
 #              ⚠️ L'aggiornamento sul posto NON porta la schedulazione sul tenant (#1126: resta
 #              quella che c'è): il cron va cambiato a parte.
-version: 33
+# v35 (03/10): allowlist dei mittenti. Fin qui le Sorveglianze prendevano QUALUNQUE mittente (il dominio
+#              interno serviva solo a decidere a chi rispondere): phishing e posta qualsiasi aprivano
+#              pratiche e arrivavano a un referente, e il testo di una mail non fidata finiva a un agente
+#              con degli strumenti. Ora il filtro sta nello STRUMENTO (`transform` di posta_in_arrivo e
+#              posta_non_letta), non nel prompt: il modello non vede i messaggi scartati. Ammessi: i
+#              domini nella variabile `mittentiAmmessi` del server (Studio e hevolus.it, quest'ultimo
+#              SOLO collaudo: toglierlo al go-live), le PEC (header X-Trasporto) — e solo se Exchange ha
+#              autenticato il mittente (SPF/DKIM/DMARC, o intra-tenant). I messaggi scartati NON si
+#              segnano né si elencano da nessuna parte: restano non letti in casella e li gestisce lo
+#              Studio. Limite: posta_non_letta restituisce i 100 non letti più recenti (era 25) e gli
+#              scartati restano non letti, quindi una raffica di non ammessi può comunque riempire la
+#              finestra.
+#              ⚠️ Da provare con una mail vera: la lettura di Authentication-Results /
+#              X-MS-Exchange-Organization-AuthAs non è verificabile a secco. Un filtro troppo stretto
+#              non fa aprire pratiche: le mail restano non lette in casella.
+#              ⚠️ Il valore di `mittentiAmmessi` entra nello script quando si applica: serve la CLI dalla
+#              2.16.3 (prima, `{{mittentiAmmessi}}` resterebbe letterale e il filtro scarterebbe tutto).
+# v36 (03/10): «già preso in carico» non è più il flag letto/non letto, che usano anche le persone: se un
+#              collega apriva in Outlook una mail ammessa prima del giro orario, Outlook la segnava come
+#              letta e la Sorveglianza non la vedeva più. Ora il segno è la categoria Outlook «Presa in
+#              carico» (variabile `categoriaPresaInCarico`): posta_non_letta diventa
+#              posta_da_prendere_in_carico, che dà i messaggi senza quella categoria, letti o no, e
+#              segna_letto diventa segna_presa_in_carico (PATCH delle categorie: sostituisce quelle che il
+#              messaggio aveva). Nessun tool tocca più il flag letto: la casella resta come la usano le
+#              persone, e ciò che non ha la categoria è ciò che lo Studio deve ancora guardare, compresi i
+#              mittenti non ammessi. Transizione: i messaggi arrivati prima di `dataAvvio` seguono ancora
+#              la vecchia regola (passano solo se non letti), così quelli già lavorati dalla v35 e segnati
+#              come letti non riaprono una pratica; la variabile si può togliere dopo 24 ore.
+version: 39
 tag: STUDIOPOLIS
 description: Organizer dello Studio — dalla riunione di designazione all'esito dell'udienza, e dalla mail o dal dettato alla pratica e al calendario comune
 
@@ -392,7 +420,7 @@ tenant:
   # e oggi l'elenco è filtrato su «hevolus».
   # Fino alla risposta dello Studio (24/09): tenant di prova di STAGING, strada (a) della nota in
   # fondo. In produzione diventa il companyId del tenant dello Studio.
-  companyId: 4da69cbc-d935-4050-f410-08d8392ca08f
+  companyId: 28d73ee6-6d7b-4864-9b20-9e8ebc1150cb
   topic: Agenda di Studio
 
 # --------------------------------------------------------------------------------------------
@@ -400,6 +428,14 @@ tenant:
 # --------------------------------------------------------------------------------------------
 # Una sola connessione verso Microsoft Graph — un'unica registrazione applicativa nel tenant del
 # cliente — e sopra DUE server MCP, uno per dipartimento: stessi strumenti, casella diversa.
+# v34 (02/10): le caselle VERE dello Studio e il loro tenant. Il 2/10 l'amministratore dello Studio ha
+#   eseguito la configurazione RBAC in Exchange Online (hevolus-assessment/customers/studiopolis/
+#   configurazione): service principal della NOSTRA registrazione multi-tenant
+#   (7a67fbf7-…, ObjectId nel loro tenant 07e0f0bb-…), ambito «Agende Studio» sui due indirizzi,
+#   ruoli Application Mail.ReadWrite / Mail.Send / Calendars.ReadWrite. Verificato con Graph:
+#   200 sulle due agende, 403 su una terza casella. Cambiano SOLO tokenUrl (tenant ec9b1ca0-…),
+#   le due `mailbox` e `dominioInterno`; i segreti restano gli stessi (stessa registrazione), e
+#   `tenant.companyId` resta quello di staging — strada (a) della nota in fondo al file.
 #
 # ── La casella è una VARIABILE, non un parametro ──────────────────────────────────────────────
 # `variables.mailbox` è fissata qui e il modello non la vede. Fosse un parametro del tool,
@@ -437,7 +473,7 @@ tenant:
 #        xrcopilotlab-bp secrets set --tag STUDIOPOLIS graph-client-id
 #        xrcopilotlab-bp secrets set --tag STUDIOPOLIS graph-client-secret
 #
-# `Mail.ReadWrite` al posto di `Mail.Read` non è un allargamento gratuito: serve a `segna_letto`,
+# `Mail.ReadWrite` al posto di `Mail.Read` non è un allargamento gratuito: serve a `segna_presa_in_carico`,
 # cioè alla deduplica. Fino alla v28, senza poter marcare un messaggio, il segnaposto era la
 # risposta già inviata sul thread, e una mail arrivata a cavallo di due giri apriva due pratiche.
 
@@ -448,12 +484,11 @@ connections:
     baseUrl: https://graph.microsoft.com/v1.0
     auth:
       kind: OAuth2ClientCredentials
-      # ⚠️ Il tenant è quello dello STUDIO, non più hevolus.it: l'app registrata vive nella loro
-      # directory e i permessi sono ristretti alle due agende. Da sostituire con il loro
-      # Directory (tenant) ID quando arriva.
-      # Fino alla risposta dello Studio: la registrazione di hevolus.it, la stessa della v28.
-      # In produzione: https://login.microsoftonline.com/<tenant-id-dello-studio>/oauth2/v2.0/token
-      tokenUrl: https://login.microsoftonline.com/45bb21a6-d8f8-4218-b74d-f4a5d5c2138e/oauth2/v2.0/token
+      # Il tenant è quello dello STUDIO (polisavvocati.com): la nostra app multi-tenant ha un service
+      # principal nella loro directory, con i permessi ristretti alle due agende via RBAC di Exchange
+      # (configurazione del 2/10/2026). Il segreto è quello della registrazione Hevolus: lo stesso
+      # client id e client secret ottengono il token su questo tenant.
+      tokenUrl: https://login.microsoftonline.com/ec9b1ca0-5e4d-48a3-ac48-c584bd47b1a3/oauth2/v2.0/token
       clientId: Blueprints:Secrets:STUDIOPOLIS:graph-client-id
       clientSecret: Blueprints:Secrets:STUDIOPOLIS:graph-client-secret
       # .default chiede i permessi applicativi già consentiti: non se ne aggiungono qui.
@@ -633,12 +668,19 @@ mcpServers:
     variables:
       # ⚠️ Indirizzo da confermare con lo Studio. Deve stare sul dominio che è su Microsoft 365:
       # una casella su un dominio ospitato altrove non è raggiungibile da Graph.
-      # Fino alla risposta dello Studio: la casella di prova. In esercizio: agenda.civile@<dominio>.
-      mailbox: test@hevolus.it
+      mailbox: agenda.civile@polisavvocati.com
+      # I mittenti ammessi dal filtro di posta_in_arrivo e posta_da_prendere_in_carico: domini separati
+      # da virgola (confronto esatto). hevolus.it è SOLO per il collaudo: toglierlo al go-live. Le PEC non
+      # si elencano, si riconoscono dalla busta. Il valore entra nello script dei tool quando si applica.
+      mittentiAmmessi: "polisavvocati.com,hevolus.it"
+      categoriaPresaInCarico: "Presa in carico"
+      # Fino a questo momento un messaggio è «già passato» se è letto (regola v35); dopo, se ha la
+      # categoria. Toglierla dopo 24 ore dall'applicazione della v36.
+      dataAvvio: "2026-10-03T09:30:00Z"
       # I domini di chi lavora nello Studio: la Sorveglianza risponde solo a loro. Sono più di uno
       # perché lo Studio ne ha più di uno, e l'avvocato che scrive dal telefono usa quello che ha
       # configurato: elencarli tutti è la differenza fra ricevere la conferma e non riceverla.
-      dominioInterno: hevolus.it
+      dominioInterno: polisavvocati.com
       # «sì» finché si collauda: la risposta di presa in carico avvisa che si è in fase di test e che
       # una mail reinviata è vista come nuova. In esercizio: «no».
       faseDiTest: "sì"
@@ -656,34 +698,126 @@ mcpServers:
         path: /users/{{mailbox}}/mailFolders/inbox/messages
         description: >
           Messaggi arrivati nella casella dello Studio, dal più recente. Restituisce mittente,
-          oggetto, data e anteprima: per il testo completo serve leggi_messaggio.
+          oggetto, data e anteprima, e SOLO di mittenti ammessi (dello Studio o PEC autentiche): il resto è filtrato dallo strumento e non lo vedi: per il testo completo serve leggi_messaggio.
         parameters:
           da: Momento da cui guardare, ISO 8601 con fuso, es. 2026-09-11T00:00:00Z
         required: [da]
         query:
           $filter: "receivedDateTime ge {{da}}"
           $orderby: receivedDateTime desc
-          $top: "25"
-          $select: id,conversationId,receivedDateTime,from,subject,bodyPreview,hasAttachments,isRead
+          $top: "100"
+          $select: id,conversationId,receivedDateTime,from,subject,bodyPreview,hasAttachments,isRead,internetMessageHeaders
+        transform: &filtroMittenti |
+          // Filtro dei mittenti (v35). Gira nel sandbox del builder, PRIMA che il modello veda la risposta: una mail
+          // costruita ad arte non può convincere nessuno a saltarlo. Ammessi: i domini dello Studio, hevolus.it (SOLO per
+          // il collaudo: toglierlo al go-live) e le PEC (header X-Trasporto) — e solo se Exchange ha autenticato il mittente
+          // (SPF/DKIM/DMARC o intra-tenant). I messaggi scartati restano in casella senza la categoria «Presa in carico»: li gestisce lo Studio.
+          const DOMINI = "{{mittentiAmmessi}}".split(",");
+          function intestazione(m, nome) {
+            const hs = m.internetMessageHeaders;
+            if (!hs) return null;
+            let out = "";
+            for (let i = 0; i < hs.length; i++) {
+              if (String(hs[i].name).toLowerCase() === nome) out += " " + String(hs[i].value);
+            }
+            return out;
+          }
+          function autenticato(m) {
+            const interno = intestazione(m, "x-ms-exchange-organization-authas");
+            if (interno && /internal/i.test(interno)) return true;
+            const r = (intestazione(m, "authentication-results") || "").toLowerCase();
+            return /dmarc=pass/.test(r) || /compauth=pass/.test(r);
+          }
+          function classifica(m) {
+            if (!m.internetMessageHeaders) return { ok: false, motivo: "intestazioni non disponibili" };
+            const a = (m.from && m.from.emailAddress && m.from.emailAddress.address) || "";
+            const d = String(a).toLowerCase().split("@").pop();
+            let dominioAmmesso = false;
+            for (let i = 0; i < DOMINI.length; i++) if (d === DOMINI[i]) dominioAmmesso = true;
+            const pec = /posta-certificata/i.test(intestazione(m, "x-trasporto") || "");
+            if (!dominioAmmesso && !pec) return { ok: false, motivo: "mittente non ammesso" };
+            if (!autenticato(m)) return { ok: false, motivo: "mittente non autenticato (SPF/DKIM/DMARC)" };
+            return { ok: true, motivo: pec ? "PEC" : "dominio ammesso" };
+          }
+          const tutti = (input && input.value) || [];
+          const ammessi = [];
+          let scartati = 0;
+          for (let i = 0; i < tutti.length; i++) {
+            const m = tutti[i];
+            if (classifica(m).ok) { delete m.internetMessageHeaders; ammessi.push(m); } else { scartati++; }
+          }
+          return { value: ammessi, scartatiNonAmmessi: scartati };
 
       # Stessa lettura di posta_in_arrivo, ma solo di ciò che nessun giro precedente ha già
       # preso in carico. Esiste separato invece di essere un parametro del filtro perché la
       # Ricognizione, che confronta casella e calendario, deve vedere TUTTO: una comunicazione
       # già lavorata è comunque una riga di quel confronto.
-      - name: posta_non_letta
+      - name: posta_da_prendere_in_carico
         method: GET
         path: /users/{{mailbox}}/mailFolders/inbox/messages
         description: >
-          Messaggi NON ANCORA LETTI arrivati nella casella, dal più recente: quelli che nessun
-          giro precedente ha preso in carico. Per il testo completo serve leggi_messaggio.
+          Messaggi arrivati nella casella, dal più recente, che nessun giro precedente ha preso in
+          carico (non hanno la categoria «Presa in carico»), letti o no, SOLO di mittenti ammessi (dello
+          Studio o PEC autentiche: gli altri li filtra lo strumento e non devi cercarli). Per il testo
+          completo serve leggi_messaggio.
         parameters:
           da: Momento da cui guardare, ISO 8601 con fuso, es. 2026-09-11T00:00:00Z
         required: [da]
         query:
-          $filter: "receivedDateTime ge {{da}} and isRead eq false"
+          $filter: "receivedDateTime ge {{da}}"
           $orderby: receivedDateTime desc
-          $top: "25"
-          $select: id,conversationId,receivedDateTime,from,subject,bodyPreview,hasAttachments,isRead
+          $top: "100"
+          $select: id,conversationId,receivedDateTime,from,subject,bodyPreview,hasAttachments,isRead,categories,internetMessageHeaders
+        transform: |
+          // Filtro dei mittenti (v35). Gira nel sandbox del builder, PRIMA che il modello veda la risposta: una mail
+          // costruita ad arte non può convincere nessuno a saltarlo. Ammessi: i domini dello Studio, hevolus.it (SOLO per
+          // il collaudo: toglierlo al go-live) e le PEC (header X-Trasporto) — e solo se Exchange ha autenticato il mittente
+          // (SPF/DKIM/DMARC o intra-tenant). I messaggi scartati restano in casella senza la categoria «Presa in carico»: li gestisce lo Studio.
+          const DOMINI = "{{mittentiAmmessi}}".split(",");
+          function intestazione(m, nome) {
+            const hs = m.internetMessageHeaders;
+            if (!hs) return null;
+            let out = "";
+            for (let i = 0; i < hs.length; i++) {
+              if (String(hs[i].name).toLowerCase() === nome) out += " " + String(hs[i].value);
+            }
+            return out;
+          }
+          function autenticato(m) {
+            const interno = intestazione(m, "x-ms-exchange-organization-authas");
+            if (interno && /internal/i.test(interno)) return true;
+            const r = (intestazione(m, "authentication-results") || "").toLowerCase();
+            return /dmarc=pass/.test(r) || /compauth=pass/.test(r);
+          }
+          function classifica(m) {
+            if (!m.internetMessageHeaders) return { ok: false, motivo: "intestazioni non disponibili" };
+            const a = (m.from && m.from.emailAddress && m.from.emailAddress.address) || "";
+            const d = String(a).toLowerCase().split("@").pop();
+            let dominioAmmesso = false;
+            for (let i = 0; i < DOMINI.length; i++) if (d === DOMINI[i]) dominioAmmesso = true;
+            const pec = /posta-certificata/i.test(intestazione(m, "x-trasporto") || "");
+            if (!dominioAmmesso && !pec) return { ok: false, motivo: "mittente non ammesso" };
+            if (!autenticato(m)) return { ok: false, motivo: "mittente non autenticato (SPF/DKIM/DMARC)" };
+            return { ok: true, motivo: pec ? "PEC" : "dominio ammesso" };
+          }
+          // Già passato = ha la categoria; per i messaggi arrivati prima di dataAvvio vale ancora la vecchia
+          // regola (letto = già lavorato dalla v35). Dopo, il flag letto è delle persone e non conta.
+          const CATEGORIA = "{{categoriaPresaInCarico}}";
+          const AVVIO = "{{dataAvvio}}";
+          const tutti = (input && input.value) || [];
+          const ammessi = [];
+          let scartati = 0;
+          for (let i = 0; i < tutti.length; i++) {
+            const m = tutti[i];
+            if (!classifica(m).ok) { scartati++; continue; }
+            const cats = m.categories || [];
+            const presa = cats.indexOf(CATEGORIA) >= 0;
+            const vecchio = String(m.receivedDateTime) < AVVIO;
+            if (presa || (vecchio && m.isRead)) continue;
+            delete m.internetMessageHeaders;
+            ammessi.push(m);
+          }
+          return { value: ammessi, scartatiNonAmmessi: scartati };
 
       - name: leggi_messaggio
         method: GET
@@ -991,21 +1125,21 @@ mcpServers:
         body: |
           {"body":{"contentType":"HTML","content":"{{note}}"}}
 
-      # Segna letto un messaggio già preso in carico. È il segnaposto che fino alla v28 non si
-      # poteva avere: con il solo Mail.Read il segno era la risposta inviata sul thread, e una
-      # mail arrivata a cavallo di due giri apriva due pratiche. Richiede Mail.ReadWrite, che le
-      # due caselle nuove hanno.
-      - name: segna_letto
+      # Segna come preso in carico un messaggio, dopo che le sue pratiche sono state aperte. Non tocca il
+      # flag letto, che è delle persone: aggiunge la categoria Outlook (v36). Richiede Mail.ReadWrite.
+      # Il PATCH sostituisce le categorie che il messaggio aveva.
+      - name: segna_presa_in_carico
         method: PATCH
         path: /users/{{mailbox}}/messages/{{messaggioId}}
         description: >
-          Marca un messaggio come già letto, dopo che le sue pratiche sono state aperte. Un
-          messaggio già letto non viene riconsiderato al giro successivo.
+          Segna un messaggio come preso in carico, dopo che le sue pratiche sono state aperte
+          (categoria «Presa in carico»). Un messaggio così segnato non viene riconsiderato al giro
+          successivo.
         parameters:
           messaggioId: Identificativo del messaggio, come restituito da posta_in_arrivo
         required: [messaggioId]
         body: |
-          {"isRead": true}
+          {"categories": ["{{categoriaPresaInCarico}}"]}
 
     # Il tool di prova è in sola lettura e su una finestra vuota: esercita credenziale, permesso
     # e policy senza toccare la casella. Una prova che scrivesse lascerebbe traccia in agenda.
@@ -1023,9 +1157,16 @@ mcpServers:
       Posta e calendario dell'agenda del PENALE dello Studio su Microsoft 365.
     connection: graph
     variables:
-      # Fino alla risposta dello Studio: la casella di prova. In esercizio: agenda.penale@<dominio>.
-      mailbox: test@hevolus.it
-      dominioInterno: hevolus.it
+      mailbox: agenda.penale@polisavvocati.com
+      # I mittenti ammessi dal filtro di posta_in_arrivo e posta_da_prendere_in_carico: domini separati
+      # da virgola (confronto esatto). hevolus.it è SOLO per il collaudo: toglierlo al go-live. Le PEC non
+      # si elencano, si riconoscono dalla busta. Il valore entra nello script dei tool quando si applica.
+      mittentiAmmessi: "polisavvocati.com,hevolus.it"
+      categoriaPresaInCarico: "Presa in carico"
+      # Fino a questo momento un messaggio è «già passato» se è letto (regola v35); dopo, se ha la
+      # categoria. Toglierla dopo 24 ore dall'applicazione della v36.
+      dataAvvio: "2026-10-03T09:30:00Z"
+      dominioInterno: polisavvocati.com
       faseDiTest: "sì"
     systemPrompt: >
       Gli strumenti lavorano su UNA sola casella, quella dell'agenda penale dello Studio: non
@@ -1064,7 +1205,9 @@ businessRoles:
       designazioni della riunione settimanale, assegna e fa registrare. Va popolato con il
       referente del civile e il suo sostituto.
     members:
-      - giuseppe.zileni@hevolus.it     # TODO: i referenti veri del civile
+      - giuseppe.zileni@hevolus.it     # collaudo, finché lo Studio non indica i referenti veri
+      - antonio.arzano@polisavvocati.com  # collaudo, finché lo Studio non indica i referenti veri
+      - enza.palmiotto@polisavvocati.com   # referente agenda civile
 
   - key: referente-penale
     name: Referente agenda penale
@@ -1073,13 +1216,18 @@ businessRoles:
       designazioni della riunione settimanale, assegna e fa registrare. Va popolato con il
       referente del penale e il suo sostituto.
     members:
-      - giuseppe.zileni@hevolus.it     # TODO: i referenti veri del penale
+      - giuseppe.zileni@hevolus.it     # collaudo, finché lo Studio non indica i referenti veri
+      - antonio.arzano@polisavvocati.com  # collaudo, finché lo Studio non indica i referenti veri
+      - stefano.starita@polisavvocati.com  # referente agenda penale
 
   - key: responsabile-agenda
     name: Responsabile agenda
     description: Riceve gli avvisi di superamento soglia sugli avvisi fermi
     members:
-      - giuseppe.zileni@hevolus.it     # TODO: il responsabile vero
+      - giuseppe.zileni@hevolus.it     # collaudo, finché lo Studio non indica i referenti veri
+      - antonio.arzano@polisavvocati.com  # collaudo, finché lo Studio non indica i referenti veri
+      - enza.palmiotto@polisavvocati.com   # responsabile agenda
+      - stefano.starita@polisavvocati.com  # responsabile agenda
 
 # --------------------------------------------------------------------------------------------
 # L'agente che legge l'avviso
@@ -1238,7 +1386,9 @@ agents:
       Dall'autorità (cancelleria, tribunale, PEC di giustizia, ufficiali giudiziari,
       controparti): udienze, rinvii, differimenti, termini, depositi, notifiche,
       comunicazioni da prendere in visione. Di QUALUNQUE tipo, in qualunque forma.
-      Da un collega esterno: se parla di un procedimento dello Studio.
+      I messaggi di mittenti non ammessi — né dello Studio, né una PEC autentica — non ti
+      arrivano: li filtra lo strumento e restano in casella senza la categoria «Presa in carico»,
+      dove li gestisce lo Studio. Non cercarli.
 
       # Cosa scarti
       Newsletter, notifiche automatiche di servizi, pubblicità, fatture, messaggi
@@ -1291,19 +1441,19 @@ agents:
         avuto la sua pratica. Vale il testo nuovo, quello in cima.
 
       # Come leggi
-      1. Chiami posta_non_letta con il momento che ti viene indicato: sono i
+      1. Chiami posta_da_prendere_in_carico con il momento che ti viene indicato: sono i
          messaggi che nessun giro precedente ha ancora preso in carico. La finestra
          è più larga dell'intervallo di proposito — meglio riconsiderare un
          messaggio che perderlo fra due giri — e a non riconsiderarlo per davvero
-         pensa il segno di lettura, non la finestra.
-      2. Lavori il messaggio rimasto PIÙ VECCHIO: posta_non_letta li dà dal più
+         pensa la categoria «Presa in carico», non la finestra.
+      2. Lavori il messaggio rimasto PIÙ VECCHIO: posta_da_prendere_in_carico li dà dal più
          recente, quindi è l'ultimo dell'elenco. A ogni giro ne passa uno, e gli altri
          aspettano il giro dopo nell'ordine in cui sono arrivati. Quando hai finito con lui — pratiche
-         aperte, e conferma mandata se il mittente è interno — chiami segna_letto su
+         aperte, e conferma mandata se il mittente è interno — chiami segna_presa_in_carico su
          quel messaggio, e solo su quello. È l'ultima cosa che fai, mai la prima: un
-         messaggio segnato come letto e non aperto è una comunicazione persa, e qui
-         una comunicazione persa è un termine perso. Dopo segna_letto non richiami
-         posta_non_letta: il giro è finito, e resta solo da restituire il testo.
+         messaggio segnato come preso in carico e non aperto è una comunicazione persa, e qui
+         una comunicazione persa è un termine perso. Dopo segna_presa_in_carico non richiami
+         posta_da_prendere_in_carico: il giro è finito, e resta solo da restituire il testo.
       3. Per il messaggio più vecchio rimasto da passare chiami leggi_messaggio per il
          testo intero.
       4. Se è una busta di posta certificata — l'oggetto comincia con «POSTA
@@ -1388,15 +1538,15 @@ agents:
       Non scrivi il riepilogo di una pratica al posto di aprirla, e non descrivi una
       chiamata invece di farla: una pratica esiste se lo strumento ha risposto, non
       se l'hai nominata.
-      Non segni come letto un messaggio di cui non hai aperto le pratiche, e non
+      Non segni come preso in carico un messaggio di cui non hai aperto le pratiche, e non
       rispondi a nessuno che non sia interno.
       Non apri due pratiche per la stessa voce, e non ne apri una per il messaggio
       citato in fondo a una risposta.
       Se non c'è niente da aprire — nessun messaggio, oppure solo messaggi già presi in carico
       o da scartare — NON chiami apri_pratica_civile e restituisci esattamente queste due parole, senza
       variarle e senza aggiungere altro: NESSUN AVVISO
-      «NESSUN AVVISO» vale SOLO se in questo giro non hai segnato come letto nessun messaggio.
-      Se hai chiamato segna_letto, quel messaggio l'hai preso in carico, e la risposta è il testo
+      «NESSUN AVVISO» vale SOLO se in questo giro non hai segnato nessun messaggio come preso in carico.
+      Se hai chiamato segna_presa_in_carico, quel messaggio l'hai preso in carico, e la risposta è il testo
       della sua prima voce: restituire «NESSUN AVVISO» dopo averlo segnato vuol dire che la
       mail risulta gestita e la pratica non esiste — una comunicazione persa. I messaggi da
       scartare che restano nella casella non cambiano la risposta.
@@ -1421,7 +1571,9 @@ agents:
       Dall'autorità (cancelleria, tribunale, PEC di giustizia, ufficiali giudiziari,
       controparti): udienze, rinvii, differimenti, termini, depositi, notifiche,
       comunicazioni da prendere in visione. Di QUALUNQUE tipo, in qualunque forma.
-      Da un collega esterno: se parla di un procedimento dello Studio.
+      I messaggi di mittenti non ammessi — né dello Studio, né una PEC autentica — non ti
+      arrivano: li filtra lo strumento e restano in casella senza la categoria «Presa in carico»,
+      dove li gestisce lo Studio. Non cercarli.
 
       # Cosa scarti
       Newsletter, notifiche automatiche di servizi, pubblicità, fatture, messaggi
@@ -1474,19 +1626,19 @@ agents:
         avuto la sua pratica. Vale il testo nuovo, quello in cima.
 
       # Come leggi
-      1. Chiami posta_non_letta con il momento che ti viene indicato: sono i
+      1. Chiami posta_da_prendere_in_carico con il momento che ti viene indicato: sono i
          messaggi che nessun giro precedente ha ancora preso in carico. La finestra
          è più larga dell'intervallo di proposito — meglio riconsiderare un
          messaggio che perderlo fra due giri — e a non riconsiderarlo per davvero
-         pensa il segno di lettura, non la finestra.
-      2. Lavori il messaggio rimasto PIÙ VECCHIO: posta_non_letta li dà dal più
+         pensa la categoria «Presa in carico», non la finestra.
+      2. Lavori il messaggio rimasto PIÙ VECCHIO: posta_da_prendere_in_carico li dà dal più
          recente, quindi è l'ultimo dell'elenco. A ogni giro ne passa uno, e gli altri
          aspettano il giro dopo nell'ordine in cui sono arrivati. Quando hai finito con lui — pratiche
-         aperte, e conferma mandata se il mittente è interno — chiami segna_letto su
+         aperte, e conferma mandata se il mittente è interno — chiami segna_presa_in_carico su
          quel messaggio, e solo su quello. È l'ultima cosa che fai, mai la prima: un
-         messaggio segnato come letto e non aperto è una comunicazione persa, e qui
-         una comunicazione persa è un termine perso. Dopo segna_letto non richiami
-         posta_non_letta: il giro è finito, e resta solo da restituire il testo.
+         messaggio segnato come preso in carico e non aperto è una comunicazione persa, e qui
+         una comunicazione persa è un termine perso. Dopo segna_presa_in_carico non richiami
+         posta_da_prendere_in_carico: il giro è finito, e resta solo da restituire il testo.
       3. Per il messaggio più vecchio rimasto da passare chiami leggi_messaggio per il
          testo intero.
       4. Se è una busta di posta certificata — l'oggetto comincia con «POSTA
@@ -1571,15 +1723,15 @@ agents:
       Non scrivi il riepilogo di una pratica al posto di aprirla, e non descrivi una
       chiamata invece di farla: una pratica esiste se lo strumento ha risposto, non
       se l'hai nominata.
-      Non segni come letto un messaggio di cui non hai aperto le pratiche, e non
+      Non segni come preso in carico un messaggio di cui non hai aperto le pratiche, e non
       rispondi a nessuno che non sia interno.
       Non apri due pratiche per la stessa voce, e non ne apri una per il messaggio
       citato in fondo a una risposta.
       Se non c'è niente da aprire — nessun messaggio, oppure solo messaggi già presi in carico
       o da scartare — NON chiami apri_pratica_penale e restituisci esattamente queste due parole, senza
       variarle e senza aggiungere altro: NESSUN AVVISO
-      «NESSUN AVVISO» vale SOLO se in questo giro non hai segnato come letto nessun messaggio.
-      Se hai chiamato segna_letto, quel messaggio l'hai preso in carico, e la risposta è il testo
+      «NESSUN AVVISO» vale SOLO se in questo giro non hai segnato nessun messaggio come preso in carico.
+      Se hai chiamato segna_presa_in_carico, quel messaggio l'hai preso in carico, e la risposta è il testo
       della sua prima voce: restituire «NESSUN AVVISO» dopo averlo segnato vuol dire che la
       mail risulta gestita e la pratica non esiste — una comunicazione persa. I messaggi da
       scartare che restano nella casella non cambiano la risposta.
@@ -1977,7 +2129,7 @@ agents:
       stabilirlo è il compito di chi confronta.
       Non scarti un avviso perché gli mancano dei dati: una riga con quattro
       «non indicato» vale più di una riga che manca.
-      Non rispondi ai messaggi e non segni niente come letto.
+      Non rispondi ai messaggi e non segni niente come preso in carico.
       Se nella finestra non c'è nessun avviso, lo dici in una riga.
 
   - key: ricognizione-penale
@@ -2016,7 +2168,7 @@ agents:
       stabilirlo è il compito di chi confronta.
       Non scarti un avviso perché gli mancano dei dati: una riga con quattro
       «non indicato» vale più di una riga che manca.
-      Non rispondi ai messaggi e non segni niente come letto.
+      Non rispondi ai messaggi e non segni niente come preso in carico.
       Se nella finestra non c'è nessun avviso, lo dici in una riga.
 
   - key: riconciliatore
@@ -2480,15 +2632,15 @@ agentTasks:
     prompt: |
       Adesso è {{now}} (UTC).
 
-      Cerca con posta_non_letta i messaggi arrivati nelle ultime ventiquattro ore.
+      Cerca con posta_da_prendere_in_carico i messaggi arrivati nelle ultime ventiquattro ore.
       Prendi il più vecchio da passare — qualunque comunicazione su un procedimento,
       anche una da prendere solo in visione — e segui le tue regole: la prima voce la apre il
       testo che restituisci, le voci successive le apri con apri_pratica_civile;
-      poi, se il mittente è interno, rispondi; per ultimo chiamalo segna_letto, e
-      dopo segna_letto non rileggi la posta: restituisci il testo della prima voce
+      poi, se il mittente è interno, rispondi; per ultimo chiamalo segna_presa_in_carico, e
+      dopo segna_presa_in_carico non rileggi la posta: restituisci il testo della prima voce
       di quel messaggio. La finestra è molto più larga dell'intervallo di proposito:
       a ogni giro passa un messaggio solo, e uno arrivato nella stessa ora di un
-      altro aspetta il giro dopo senza uscire dalla finestra; il segno di lettura
+      altro aspetta il giro dopo senza uscire dalla finestra; la categoria «Presa in carico»
       dice quali sono già passati.
 
       Mittenti interni: gli indirizzi dei domini dello Studio che ti sono indicati
@@ -2529,15 +2681,15 @@ agentTasks:
     prompt: |
       Adesso è {{now}} (UTC).
 
-      Cerca con posta_non_letta i messaggi arrivati nelle ultime ventiquattro ore.
+      Cerca con posta_da_prendere_in_carico i messaggi arrivati nelle ultime ventiquattro ore.
       Prendi il più vecchio da passare — qualunque comunicazione su un procedimento,
       anche una da prendere solo in visione — e segui le tue regole: la prima voce la apre il
       testo che restituisci, le voci successive le apri con apri_pratica_penale;
-      poi, se il mittente è interno, rispondi; per ultimo chiamalo segna_letto, e
-      dopo segna_letto non rileggi la posta: restituisci il testo della prima voce
+      poi, se il mittente è interno, rispondi; per ultimo chiamalo segna_presa_in_carico, e
+      dopo segna_presa_in_carico non rileggi la posta: restituisci il testo della prima voce
       di quel messaggio. La finestra è molto più larga dell'intervallo di proposito:
       a ogni giro passa un messaggio solo, e uno arrivato nella stessa ora di un
-      altro aspetta il giro dopo senza uscire dalla finestra; il segno di lettura
+      altro aspetta il giro dopo senza uscire dalla finestra; la categoria «Presa in carico»
       dice quali sono già passati.
 
       Mittenti interni: gli indirizzi dei domini dello Studio che ti sono indicati
@@ -2758,7 +2910,9 @@ agentTasks:
     outputActions:
       - type: email
         recipients:
-          - giuseppe.zileni@hevolus.it     # TODO: i referenti del civile
+          - giuseppe.zileni@hevolus.it     # collaudo, finché lo Studio non indica i referenti veri
+          - antonio.arzano@polisavvocati.com  # collaudo, finché lo Studio non indica i referenti veri
+          - enza.palmiotto@polisavvocati.com   # referente agenda civile
         subject: "{{taskName}} — {{date}}"
   - key: chiamata-esiti-penale
     name: Chiamata esiti penale
@@ -2782,7 +2936,9 @@ agentTasks:
     outputActions:
       - type: email
         recipients:
-          - giuseppe.zileni@hevolus.it     # TODO: i referenti del penale
+          - giuseppe.zileni@hevolus.it     # collaudo, finché lo Studio non indica i referenti veri
+          - antonio.arzano@polisavvocati.com  # collaudo, finché lo Studio non indica i referenti veri
+          - stefano.starita@polisavvocati.com  # referente agenda penale
         subject: "{{taskName}} — {{date}}"
   # ------------------------------------------------------------------------------------------
   # Il briefing, al lunedì mattina
@@ -2808,7 +2964,9 @@ agentTasks:
     outputActions:
       - type: email
         recipients:
-          - giuseppe.zileni@hevolus.it     # TODO: i referenti del civile
+          - giuseppe.zileni@hevolus.it     # collaudo, finché lo Studio non indica i referenti veri
+          - antonio.arzano@polisavvocati.com  # collaudo, finché lo Studio non indica i referenti veri
+          - enza.palmiotto@polisavvocati.com   # referente agenda civile
         subject: "{{taskName}} — {{date}}"
 
   - key: briefing-settimanale-penale
@@ -2828,7 +2986,9 @@ agentTasks:
     outputActions:
       - type: email
         recipients:
-          - giuseppe.zileni@hevolus.it     # TODO: i referenti del penale
+          - giuseppe.zileni@hevolus.it     # collaudo, finché lo Studio non indica i referenti veri
+          - antonio.arzano@polisavvocati.com  # collaudo, finché lo Studio non indica i referenti veri
+          - stefano.starita@polisavvocati.com  # referente agenda penale
         subject: "{{taskName}} — {{date}}"
 
   # ------------------------------------------------------------------------------------------
@@ -2854,7 +3014,9 @@ agentTasks:
     outputActions:
       - type: email
         recipients:
-          - giuseppe.zileni@hevolus.it     # TODO: i referenti del civile
+          - giuseppe.zileni@hevolus.it     # collaudo, finché lo Studio non indica i referenti veri
+          - antonio.arzano@polisavvocati.com  # collaudo, finché lo Studio non indica i referenti veri
+          - enza.palmiotto@polisavvocati.com   # referente agenda civile
         subject: "{{taskName}} — {{date}}"
 
   - key: riconciliazione-settimanale-penale
@@ -2870,7 +3032,9 @@ agentTasks:
     outputActions:
       - type: email
         recipients:
-          - giuseppe.zileni@hevolus.it     # TODO: i referenti del penale
+          - giuseppe.zileni@hevolus.it     # collaudo, finché lo Studio non indica i referenti veri
+          - antonio.arzano@polisavvocati.com  # collaudo, finché lo Studio non indica i referenti veri
+          - stefano.starita@polisavvocati.com  # referente agenda penale
         subject: "{{taskName}} — {{date}}"
 
 # --------------------------------------------------------------------------------------------
@@ -2881,7 +3045,9 @@ processes:
   - key: presa-in-carico-civile
     publish: true
     owners:
-      - giuseppe.zileni@hevolus.it     # TODO: il responsabile del civile
+      - giuseppe.zileni@hevolus.it     # collaudo, finché lo Studio non indica i referenti veri
+      - antonio.arzano@polisavvocati.com  # collaudo, finché lo Studio non indica i referenti veri
+      - enza.palmiotto@polisavvocati.com   # referente agenda civile
     starterRoles:
       - referente-civile
     webhook:
@@ -3324,7 +3490,9 @@ processes:
   - key: presa-in-carico-penale
     publish: true
     owners:
-      - giuseppe.zileni@hevolus.it     # TODO: il responsabile del penale
+      - giuseppe.zileni@hevolus.it     # collaudo, finché lo Studio non indica i referenti veri
+      - antonio.arzano@polisavvocati.com  # collaudo, finché lo Studio non indica i referenti veri
+      - stefano.starita@polisavvocati.com  # referente agenda penale
     starterRoles:
       - referente-penale
     webhook:
@@ -3784,7 +3952,10 @@ processes:
   - key: designazione-civile
     publish: true
     owners:
-      - giuseppe.zileni@hevolus.it     # TODO: destinatario vero degli alert di soglia
+      - giuseppe.zileni@hevolus.it     # collaudo, finché lo Studio non indica i referenti veri
+      - antonio.arzano@polisavvocati.com  # collaudo, finché lo Studio non indica i referenti veri
+      - enza.palmiotto@polisavvocati.com   # responsabile agenda
+      - stefano.starita@polisavvocati.com  # responsabile agenda
     starterRoles:
       - referente-civile
     webhook:
@@ -4092,7 +4263,10 @@ processes:
   - key: designazione-penale
     publish: true
     owners:
-      - giuseppe.zileni@hevolus.it     # TODO: destinatario vero degli alert di soglia
+      - giuseppe.zileni@hevolus.it     # collaudo, finché lo Studio non indica i referenti veri
+      - antonio.arzano@polisavvocati.com  # collaudo, finché lo Studio non indica i referenti veri
+      - enza.palmiotto@polisavvocati.com   # responsabile agenda
+      - stefano.starita@polisavvocati.com  # responsabile agenda
     starterRoles:
       - referente-penale
     webhook:

@@ -9,9 +9,8 @@ promettere il falso.
 
 | Fonte | Dove | Nota |
 |---|---|---|
-| Manifest di un cliente | `blueprints/<nome>.yml` | il commento in testa spiega il perché delle scelte e i limiti |
-| Modello del catalogo | `blueprints/catalogo/<nome>.yml`, oppure `xrcopilotlab-bp catalog list` | generico per costruzione: non nomina clienti |
-| Manifest archiviato | `xrcopilotlab-bp pull --tag <TAG>` | quando il repository non c'è |
+| Manifest di un cliente | nell'archivio del tag sul tenant di collaudo di staging: `xrcopilotlab-bp pull --tag <TAG> --env staging` | il commento in testa spiega il perché delle scelte e i limiti. Il repository non li contiene più |
+| Modello del catalogo | `xrcopilotlab-bp catalog list` | generico per costruzione: non nomina clienti |
 | Dossier di assessment | `../hevolus-assessment/customers/<cliente>/README.md` o `assessment-*.md` | criticità del cliente, stato di maturità, punti aperti |
 | Guida per il cliente | `../hevolus-assessment/customers/<cliente>/guida-<scenario>.md` | **la fonte migliore per il linguaggio**: è già scritta senza tecnicismi |
 | File allegati dall'utente | la conversazione | su Claude Desktop sono l'unica fonte |

@@ -376,7 +376,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-si
       <li>le email dei membri dei ruoli: devono essere <strong>già utenti del tenant</strong></li>
       <li>i valori dei segreti, da inserire tu nel tuo terminale — mai in chat</li></ul></div>
     <div><h4>Cosa ottieni</h4><ul>
-      <li><code>blueprints/&lt;tag&gt;-&lt;scenario&gt;.yml</code>, <code>version: 1</code></li>
+      <li><code>~/.xrcopilotlab/blueprints/&lt;TAG&gt;/&lt;tag&gt;-&lt;scenario&gt;.yml</code>, <code>version: 1</code> — e, dopo il <code>push</code>, la sua versione nell'archivio del tenant</li>
       <li>il disegno del processo e il piano, da leggere prima del sì</li>
       <li>il tenant configurato, con un <code>runId</code> che ricorda cosa è stato creato</li>
       <li>la chiave del webhook, se il processo ne ha uno: compare <strong>una sola volta</strong></li></ul></div>
@@ -388,7 +388,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-si
       <div class="then">Legge il capitolo per il provisioning, traduce, chiede solo ciò che manca (membri dei ruoli, nomi dei segreti, tag). Scrive il file, lo valida, ti mostra il disegno del processo.</div></div>
     <div class="say"><q>Ho i documenti in ~/Clienti/studio/documenti: a quali agenti li collego?</q><button class="copy" type="button">Copia</button>
       <div class="then"><code>suggest</code>: propone un profilo di knowledge per agente e una fascia di modello, e dice quali file il nome non basta a distinguere.</div></div>
-    <div class="say"><q>Applica blueprints/studio-agenda.yml su staging</q><button class="copy" type="button">Copia</button>
+    <div class="say"><q>Applica il blueprint STUDIO su staging</q><button class="copy" type="button">Copia</button>
       <div class="then"><code>push</code>, poi <code>plan</code>: ti chiede il tenant da un elenco di nomi, stampa il piano — quante entità, quali nomi, il grafo — e <strong>si ferma</strong>.</div></div>
     <div class="say"><q>Sì, vai</q><button class="copy" type="button">Copia</button>
       <div class="then">Detto <strong>dopo</strong> aver letto il piano. <code>apply --yes</code> registra la tua approvazione con nome e ora; poi riporta entità create, <code>runId</code> ed eventuale chiave del webhook.</div></div>
@@ -396,12 +396,13 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-si
 
   <h3><span class="k">Il giro dei comandi</span>Che la skill lancia per te</h3>
   <div class="code"><button class="copy" type="button" data-copy="c-bp">Copia</button>
-<pre id="c-bp">xrcopilotlab-bp validate blueprints/&lt;file&gt;.yml --graph          <span class="c"># offline: rilievi + disegno del processo</span>
-xrcopilotlab-bp suggest  blueprints/&lt;file&gt;.yml --files &lt;cartella&gt; <span class="c"># documenti → profili, modello per agente</span>
-xrcopilotlab-bp secrets set --env staging --tag &lt;TAG&gt; &lt;nome&gt;       <span class="c"># nel TUO terminale</span>
-xrcopilotlab-bp push     blueprints/&lt;file&gt;.yml --env staging       <span class="c"># pubblica la versione</span>
-xrcopilotlab-bp plan     --tag &lt;TAG&gt; --env staging                 <span class="c"># preflight + piano, non crea niente</span>
-xrcopilotlab-bp apply    --tag &lt;TAG&gt; --env staging --yes           <span class="c"># solo dopo il sì sul piano</span></pre></div>
+<pre id="c-bp">cd ~/.xrcopilotlab/blueprints/&lt;TAG&gt;                           <span class="c"># la cartella di lavoro, fuori dal repository</span>
+xrcopilotlab-bp validate &lt;file&gt;.yml --graph                   <span class="c"># offline: rilievi + disegno del processo</span>
+xrcopilotlab-bp suggest  &lt;file&gt;.yml --files &lt;cartella&gt;        <span class="c"># documenti → profili, modello per agente</span>
+xrcopilotlab-bp secrets set --env staging --tag &lt;TAG&gt; &lt;nome&gt;  <span class="c"># nel TUO terminale</span>
+xrcopilotlab-bp push     &lt;file&gt;.yml --env staging             <span class="c"># pubblica la versione</span>
+xrcopilotlab-bp plan     --tag &lt;TAG&gt; --env staging            <span class="c"># preflight + piano, non crea niente</span>
+xrcopilotlab-bp apply    --tag &lt;TAG&gt; --env staging --yes      <span class="c"># solo dopo il sì sul piano</span></pre></div>
 
   <h3><span class="k">Le regole che spiegano perché si ferma</span></h3>
   <div class="tbl"><table>
@@ -467,7 +468,7 @@ xrcopilotlab-bp apply    --tag &lt;TAG&gt; --env staging --yes           <span c
       <h4>L'esecuzione, dopo un sì</h4>
       <p>Ti dice ambiente, tenant e quanti casi, e aspetta. Ogni caso apre una conversazione nuova; un caso di
       processo avvia un'<strong>istanza vera</strong>, che resta fra i compiti di chi ha il ruolo. Il report va in
-      <code>blueprints/tests/reports/&lt;tag&gt;/&lt;data&gt;/</code>.</p></div></div>
+      <code>~/.xrcopilotlab/blueprints/&lt;TAG&gt;/reports/&lt;aaaammgg-hhmmss&gt;/</code> e nell'archivio del tenant.</p></div></div>
     <div class="lp"><div class="dot" aria-hidden="true"></div><div class="card">
       <h4>Il giudizio</h4>
       <p>Per ogni caso un verdetto <strong>pass · parziale · fail</strong>, con il perché, in <code>giudizio.md</code>.
@@ -492,13 +493,13 @@ xrcopilotlab-bp apply    --tag &lt;TAG&gt; --env staging --yes           <span c
     <div class="exit">
       <h4>Il collaudo finale: la versione stabile</h4>
       <p>Quando i giri parziali sono verdi, si rilancia la <strong>suite intera</strong> sulla versione che non
-      cambierà più. Il giudizio finale va nella tabella di stato delle domande di prova; la suite, se lavori in un
-      repository, si committa: è la regressione del blueprint. I difetti di componente ancora aperti non si nascondono:
+      cambierà più. Il giudizio finale va nella tabella di stato delle domande di prova; la suite resta
+      nell'archivio del blueprint (<code>test push</code>): è la regressione del blueprint. I difetti di componente ancora aperti non si nascondono:
       diventano ⛔ «da non mostrare come funzionante» o 🔁, con il numero di issue.</p></div>
   </div>
 
   <h3><span class="k">Esempio</span>Com'è fatto un caso</h3>
-  <div class="code"><p class="cap"><code>blueprints/tests/studio-agenda.tests.yml</code> — un estratto</p><button class="copy" type="button" data-copy="c-suite">Copia</button>
+  <div class="code"><p class="cap"><code>~/.xrcopilotlab/blueprints/STUDIO/tests/studio-agenda.tests.yml</code> — un estratto</p><button class="copy" type="button" data-copy="c-suite">Copia</button>
 <pre id="c-suite">blueprint: studio-agenda
 tag: STUDIO
 version: 3

@@ -468,11 +468,12 @@ xrcopilotlab-bp status --env staging --run 6cec85b3d6bb    # un run: chi ha appr
 **8. Collaudare**
 
 ```bash
-xrcopilotlab-bp test validate blueprints/tests/studiopolis-agenda.tests.yml
-xrcopilotlab-bp test run      blueprints/tests/studiopolis-agenda.tests.yml --env staging
+cd ~/.xrcopilotlab/blueprints/STUDIOPOLIS
+xrcopilotlab-bp test validate tests/studiopolis-agenda.tests.yml
+xrcopilotlab-bp test run      tests/studiopolis-agenda.tests.yml --env staging
 ```
 
-Il report va in `blueprints/tests/reports/studiopolis/<data-ora>/`. Esce **7** se almeno un caso non
+Il report va in `~/.xrcopilotlab/blueprints/STUDIOPOLIS/reports/<data-ora>/` e nell'archivio del tenant. Esce **7** se almeno un caso non
 passa.
 
 **9. Se la variante non va bene** — smontare quello che il run ha creato, oppure buttare via tutto:
@@ -1302,7 +1303,7 @@ attese già deducibili dal manifest; le domande e le risposte attese da scrivere
 Nessuna rete. **Esce:** 0 · 1 file già presente · 2 manifest illeggibile.
 
 ```bash
-xrcopilotlab-bp test init blueprints/studiopolis-agenda.yml    # → blueprints/tests/studiopolis-agenda.tests.yml
+xrcopilotlab-bp test init ~/.xrcopilotlab/blueprints/STUDIOPOLIS/studiopolis-agenda.yml    # → ~/.xrcopilotlab/blueprints/STUDIOPOLIS/tests/studiopolis-agenda.tests.yml
 ```
 
 ---
@@ -1325,7 +1326,7 @@ I rilievi hanno codici `BT0xx` (tra cui `BT023`, per `expect.pausesAt`). **Esce:
 2 errori.
 
 ```bash
-xrcopilotlab-bp test validate blueprints/tests/studiopolis-agenda.tests.yml
+xrcopilotlab-bp test validate ~/.xrcopilotlab/blueprints/STUDIOPOLIS/tests/studiopolis-agenda.tests.yml
 ```
 
 ---
@@ -1345,7 +1346,8 @@ xrcopilotlab-bp test run <suite.yml> [--tag <TAG>] [--only <k1,k2>] [--run <runI
 | `--only <k1,k2>` | tutti i casi | i casi da eseguire: un valore combacia con la **chiave** del caso, con uno dei suoi **tag** o con il suo **target** (l'entità) |
 | `--run <runId>` | l'ultimo run completato del tag | da quale inventario prendere le entità |
 | `--version <n>` | la più recente | quale versione pubblicata usare per verificare i riferimenti |
-| `--out <cartella>` | `blueprints/tests/reports/<tag>/<aaaammgg-hhmmss>/`, **relativa alla cartella da cui lanci il comando** | dove scrivere il report |
+| `--out <cartella>` | `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/`, la cartella di lavoro | dove scrivere il report |
+| `--no-archive` | — | non porta il report nell'archivio del tenant |
 
 Solo `test` rifiuta le opzioni che non conosce: un `--profile` al posto di `--env` ferma il comando
 invece di collaudare l'ambiente sbagliato.
@@ -1360,17 +1362,22 @@ che resta da giudicare.
 
 **Scrive:** sul tenant, **attività vere**: ogni domanda apre una conversazione, un caso su un processo
 avvia un'istanza, e consuma token del tenant. Sul disco `report.json` (tutto, con le evidenze) e
-`report.md` (da leggere). La cartella dei report contiene risposte e id del tenant: non va committata.
-Il report va anche **nell'archivio del tenant**, accanto a quelli lanciati dalla chat dei blueprint, e
-la CLI ne stampa il `reportId` per [`test reports --compare`](#test-reports). Se l'archivio non si
-può scrivere lo dice e va avanti: il report su disco c'è già.
+`report.md` (da leggere), nella cartella di lavoro: contiene risposte e id del tenant, e in un
+repository non deve finire. Il report va anche **nell'archivio del tenant**, in `reports/<timbro>/`
+accanto a quelli lanciati dalla chat dei blueprint, e la CLI ne stampa il `reportId` per
+[`test reports --compare`](#test-reports) e [`test judge`](#test-judge). Il report registra anche
+l'**host dell'API** che ha risposto: un giro su un'API locale con i dati di staging non si confonde
+più con uno sull'API vera. Se il tenant non ha ancora la suite, `run` la archivia da sé: è così che
+suite e report nascono sul tenant di un cliente al primo collaudo. Se l'archivio non si può scrivere
+lo dice e va avanti: il report su disco c'è già.
 
 **Esce:** 0 tutti passati · **7** almeno un caso fallito o in errore · 2 suite non valida · 3 nessun
 run e nessun manifest pubblicato, o run indicato inesistente.
 
 ```bash
-xrcopilotlab-bp test run blueprints/tests/studiopolis-agenda.tests.yml --env staging
-xrcopilotlab-bp test run blueprints/tests/studiopolis-agenda.tests.yml --env staging --only agenda,process
+xrcopilotlab-bp test run ~/.xrcopilotlab/blueprints/STUDIOPOLIS/tests/studiopolis-agenda.tests.yml --env staging
+xrcopilotlab-bp test run ~/.xrcopilotlab/blueprints/STUDIOPOLIS/tests/studiopolis-agenda.tests.yml --env staging --only agenda,process
+xrcopilotlab-bp test run --from-archive --tag STUDIOPOLIS --suite studiopolis-agenda --env staging
 ```
 
 **Da sapere.** Le istanze lasciate da un collaudo si ripuliscono con
@@ -1382,8 +1389,8 @@ Su un tenant di un cliente la suite non si lancia di propria iniziativa.
 
 ### `test push`
 
-Porta una suite **nell'archivio del tenant**, accanto al manifest del suo tag. Serve perché la chat
-dei blueprint della webapp legga una suite scritta nel repository.
+Porta una suite **nell'archivio del tenant**, accanto al manifest del suo tag, come versione nuova.
+È lì che vivono le suite: le legge la chat dei blueprint, le scarica `test run --from-archive`.
 
 ```
 xrcopilotlab-bp test push <suite.yml> [--tag <TAG>] [--env] [--company]
@@ -1401,7 +1408,7 @@ all'ultima versione non crea una versione nuova, e il comando lo dice.
 3 il tenant non ha un manifest pubblicato con quel tag.
 
 ```bash
-xrcopilotlab-bp test push blueprints/tests/studiopolis-agenda.tests.yml --env staging
+xrcopilotlab-bp test push ~/.xrcopilotlab/blueprints/STUDIOPOLIS/tests/studiopolis-agenda.tests.yml --env staging
 ```
 
 ---
@@ -1476,6 +1483,28 @@ xrcopilotlab-bp schedule list                        --tag STUDIOPOLIS --env sta
 xrcopilotlab-bp schedule pause  sorveglianza-posta   --tag STUDIOPOLIS --env staging
 xrcopilotlab-bp schedule logs   sorveglianza-posta   --tag STUDIOPOLIS --env staging --last 30
 ```
+
+---
+
+### `test judge`
+
+Porta **il giudizio** di un collaudo nell'archivio, accanto al report che giudica: i verdetti caso
+per caso nel documento del report — dove li usano `test reports --compare` (il verdetto vince
+sull'esito meccanico) e la chat — e il riepilogo come `reports/<timbro>/giudizio.md`.
+
+```
+xrcopilotlab-bp test judge --tag <TAG> --report <reportId> --file <giudizio.json> [--summary <giudizio.md>] [--overwrite] [--env] [--company]
+```
+
+| Opzione | Default | Significato |
+|---|---|---|
+| `--report <reportId>` | obbligatorio | il report giudicato, l'id che stampano `test run` e `test reports` |
+| `--file <giudizio.json>` | obbligatorio | i verdetti: `{"items":[{"caseKey","verdict":"Pass\|Partial\|Fail\|AwaitingVerification","reason", …}]}` |
+| `--summary <giudizio.md>` | — | il riepilogo in Markdown: diagnosi, costo, attese da correggere |
+| `--overwrite` | — | sostituisce un giudizio già registrato (magari dalla chat) |
+
+Un caso che il report non ha, o un testo che sembra contenere una credenziale, ferma il comando.
+**Scrive:** solo l'archivio. **Esce:** 0 · 1 file non valido o giudizio già presente senza `--overwrite`.
 
 ---
 
@@ -1942,12 +1971,12 @@ xrcopilotlab-bp rollback --env staging --run <runId>
 
 | Dove | Che cosa | Chi lo scrive |
 |---|---|---|
-| **Archivio — storage**, container `blueprints` | `blueprints/<companyId>/<blueprint>/v<n>/manifest.yaml` (il testo com'è stato scritto), `files/…` (i documenti di knowledge), i `.bpmn` esportati | `push`, `pipeline`, `promote`, `catalog`, `apply` |
+| **Archivio — storage**, container `blueprints` | `blueprints/<companyId>/<blueprint>/v<n>/manifest.yaml` (il testo com'è stato scritto), `files/…` (i documenti di knowledge), i `.bpmn` esportati; `tests/<nome>.v<k>.tests.yml` (le suite); `reports/<timbro>/` (report e giudizi); `docs/`, `attachments/` | `push`, `pipeline`, `promote`, `catalog`, `apply`; `test push`, `test run`, `test judge`, `files put` |
 | **Archivio — Cosmos**, container `blueprints`, partizione = tenant | il manifest interpretato di ogni versione, con impronta e provenienza; i **run** con inventario, fasi e approvazione | `push`, `promote`, `catalog`, `apply`, `pipeline`, `rollback`, `delete` |
 | **Il tenant XRCopilotLab** | topic, profili e documenti, ruoli e membri, agenti, skill assegnate, connessioni, server MCP e loro pubblicazione, orchestratori, agent task, processi e webhook | `apply`, `pipeline`, `rollback`, `delete --with-entities`, e gli interventi puntuali di `schedule`, `mcp`, `connections`, `instances`, `knowledge`; `test run` apre conversazioni e istanze |
 | **Key Vault** dell'ambiente | i valori dei segreti | `secrets set`, e `apply` per la chiave dei webhook |
 | **App Configuration** dell'ambiente | i riferimenti ai segreti (`Blueprints:Secrets:…`) e la chiave `Sentinel` | `secrets set` |
-| **Il tuo disco** | manifest scaricati o esportati, suite di collaudo, report | `pull`, `export`, `test init`, `test run` |
+| **Il tuo disco**, cartella di lavoro `~/.xrcopilotlab/blueprints/<TAG>/` | manifest scaricati o esportati, suite di collaudo, report | `pull --out`, `export`, `test init`, `test run`, `files get` |
 
 Il manifest non contiene mai il valore di un segreto: solo il suo nome, nella forma
 `Blueprints:Secrets:<TAG>:<nome>`. La chiave vera in App Configuration porta anche il tenant:
@@ -1956,10 +1985,21 @@ restano valide in lettura).
 
 ---
 
-## 11. Le versioni: cosa c'è nella 2.17.0
+## 11. Le versioni: cosa c'è nella 2.18.0
 
-La CLI del plugin è la **2.17.0** (release `bp-v2.17.0`, 05/10/2026). Tutto ciò che questa guida
+La CLI del plugin è la **2.18.0** (release `bp-v2.18.0`, 06/10/2026). Tutto ciò che questa guida
 descrive è lì.
+
+### Cosa è arrivato con la 2.18.0, rispetto alla 2.17.0
+
+| Novità | Dove se ne parla |
+|---|---|
+| I file di un blueprint non stanno più in un repository: manifest, suite, report e giudizi vivono nell'archivio del tenant e nella cartella di lavoro `~/.xrcopilotlab/blueprints/<TAG>/` | [§ 10](#10-dove-finisce-ciò-che-la-cli-scrive) |
+| `test judge`: il giudizio di un collaudo nell'archivio, accanto al report | [`test judge`](#test-judge) |
+| `test run` scrive il report nella cartella di lavoro, registra l'host dell'API, e archivia da sé la suite sul tenant che non ce l'ha; `test reports --compare` avvisa se due giri sono andati ad API diverse | [`test run`](#test-run) |
+| Un posto solo per specie nell'archivio: le suite in `tests/`, i report in `reports/<timbro>/` (anche quelli della chat, che ora si scaricano con `test report`); `test run --from-archive --suite <nome>` prende l'ultima versione della suite | [`test push`](#test-push) |
+| `files put <cartella>`: tutta una cartella con un solo accesso all'ambiente; `files put --kind suite` passa dalla strada di `test push`; `files get` porta una suite in `tests/<nome>.tests.yml`, accanto al manifest | [il riferimento della CLI](../skills/xrcopilotlab-blueprint/references/cli-reference.md) |
+| `files consolidate --tag <TAG> [--yes]`: sposta suite e report dai posti di prima | [il riferimento della CLI](../skills/xrcopilotlab-blueprint/references/cli-reference.md) |
 
 ### Cosa è arrivato con la 2.17.0, rispetto alla 2.16.0
 

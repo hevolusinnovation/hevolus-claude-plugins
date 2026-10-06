@@ -10,7 +10,7 @@ un'inferenza da un'assenza — e un'assenza si conferma, non si segnala.
 
 | Componente | Che cos'è | Dove si guarda (il codice) | Segnalazione |
 |---|---|---|---|
-| **Manifest** | il blueprint: system message, modello, partizione della knowledge, attese della suite | `blueprints/<nome>.yml`, `blueprints/tests/` | nessuna: si corregge il file |
+| **Manifest** | il blueprint: system message, modello, partizione della knowledge, attese della suite | il manifest e la suite nella cartella di lavoro `~/.xrcopilotlab/blueprints/<TAG>/` (dall'archivio: `pull`, `files get`) | nessuna: si corregge il file e si pubblica una versione nuova (`push`, `test push`) |
 | **KnowledgeGraph** | ingestione, retrieval, canonical store, selezione delle sorgenti | pacchetto `XRCopilotLab.KnowledgeGraph`, clone in `../xrcopilotlab-knowledge-graph` | issue nella webapp, label `kgraph` |
 | **Skills** | selezione (LLM tool-calling, keyword) ed esecuzione delle skill | pacchetti `XRCopilotLab.Agent.*`, clone in `../xrcopilotlab-agent-framework` (`platform/lib-skills`, `skills/<dominio>`) | issue nella webapp, label `skills` |
 | **Orchestration** | il motore degli orchestratori: passi, parallelismo, mappature, HITL | `Api/Services/Orchestration/`, `Api.Common/Services/*Orchestration*` | issue nella webapp, label `blueprints` |

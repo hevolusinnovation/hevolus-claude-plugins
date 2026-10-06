@@ -8,7 +8,7 @@ prova con le fonti.
 | Stato | Che cosa vuol dire | Come si prova | Che cosa può dire l'agenzia |
 |---|---|---|---|
 | **Realizzato per un cliente** | costruito e provato sui dati veri di un cliente | un manifest applicato per un cliente, con la sua guida o il suo dossier | «già realizzato per uno studio legale», «già al lavoro presso un'associazione di imprese» — mai «in uso da anni», mai il nome |
-| **Pronto da installare** | un modello generico, nel catalogo | un manifest in `blueprints/catalogo/`, o una voce di `catalog list` | «pronto: si installa nel vostro ambiente» |
+| **Pronto da installare** | un modello generico, nel catalogo | una voce di `catalog list` | «pronto: si installa nel vostro ambiente» |
 | **Si configura** | non esiste ancora, ma ogni suo passo usa un mattone già usato da uno scenario realizzato | la tabella dei mattoni qui sotto: **ogni** passo ha un codice | «si può costruire per voi», «si configura sul vostro processo» |
 | *Richiede sviluppo* | serve qualcosa che la piattaforma oggi non fa | almeno un passo senza mattone, o un mattone con un limite che lo esclude | **non entra nel brief**: lo si dice all'utente |
 

@@ -5,7 +5,7 @@ sono già**. La domanda, la risposta, il log, i file consultati, la versione. Il
 nell'ordine in cui chi corregge le vuole, e nel repository giusto — con la forma che quel
 repository pretende.
 
-La bozza si scrive prima in `blueprints/tests/reports/<tag>/<data>/segnalazioni/<n>-<repo>-<slug>.md`
+La bozza si scrive prima in `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/segnalazioni/<n>-<repo>-<slug>.md`
 e si apre **solo dopo il sì** dell'utente su quella bozza.
 
 ## Dove si apre, e in che forma
@@ -31,7 +31,7 @@ collaudo. Che cosa le passi:
 - **Impact**: chi lo vede e come. «Any question that names account codes and a filter phrase;
   the demo question D1 of FinLogic cannot be answered.»
 - **Steps to reproduce**: ambiente, tenant, blueprint e run; la suite e la chiave del caso
-  (`blueprints/tests/finlogic-bilancio-aggregato.tests.yml`, `d1-tre-conti`); la domanda esatta;
+  (`finlogic-bilancio-aggregato.tests.yml` del tag `FINLOGIC`, `d1-tre-conti`); la domanda esatta;
   la data del report.
 - **Expected behavior**: la risposta attesa in prosa del caso, con i numeri.
 - **Acceptance criteria**: il caso della suite passa (e, per un file tabellare, il caso proposto
@@ -41,7 +41,8 @@ collaudo. Che cosa le passi:
   <data>, case <key>, execution <id>».
 
 La **bozza tecnica** resta nel report, in
-`blueprints/tests/reports/<tag>/<data>/segnalazioni/<n>-<slug>.md`, ed è quella che chi corregge
+`~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/segnalazioni/<n>-<slug>.md` — e nell'archivio, con
+`files put <cartella del report> --kind report --tag <TAG>` —, ed è quella che chi corregge
 apre dopo aver letto la issue. Modello:
 
 ```markdown
@@ -96,4 +97,4 @@ l'elenco delle issue si legge da solo.
 - Se la stessa causa spiega più casi, **una** issue con tutti i casi elencati, non una per caso.
 - Quando la libreria pubblica la correzione, il bump di versione (`KnowledgeGraphVersion` in
   `KGraph.props`, o `AgentFrameworkVersion`) si verifica rilanciando la suite: è per questo che
-  la suite sta nel repository.
+  la suite sta nell'archivio del blueprint (`test run --from-archive`).
