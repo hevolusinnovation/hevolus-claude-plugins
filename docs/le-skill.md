@@ -14,6 +14,7 @@ repository di prodotto: [§ Le skill di sviluppo](skill-di-sviluppo.md).
 | [`xrcopilotlab-blueprint-test`](#xrcopilotlab-blueprint-test--collaudare-un-blueprint-applicato) | blueprints | «collauda il blueprint», «scrivi le domande di test», «vedi se funziona», «prepara le domande per il cliente», o si nomina `test run` | la suite `.tests.yml`, il report, il giudizio, le bozze di issue, le domande di prova per il cliente |
 | [`xrcopilotlab-blueprint-guide`](#xrcopilotlab-blueprint-guide--la-guida-per-il-cliente) | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «le slide per i sales», «la pagina da mostrare al cliente» | le due guide: per il cliente a slide (pagina e deck) e tecnica per l'AI Specialist (pagina interna) |
 | [`xrcopilotlab-blueprint-demo`](#xrcopilotlab-blueprint-demo--il-brief-per-lagenzia) | blueprints | «il brief per l'agenzia», «gli scenari per i sales», «cosa possiamo vendere da questo blueprint o assessment» | il brief per l'agenzia di marketing: gli scenari vendibili, anonimi e senza tecnicismi, come artifact «DEMO-» con il PDF |
+| [`xrcopilotlab-blueprint-storyboard`](#xrcopilotlab-blueprint-storyboard--lo-storyboard-del-video) | blueprints | «lo storyboard del blueprint», «le tavole del video», «la voce fuori campo» | lo storyboard di un video breve: tavole con schizzi, battute e audio guida di prova |
 | [`xrcopilotlab-blueprint-howto`](#xrcopilotlab-blueprint-howto--il-percorso-in-una-pagina) | blueprints | «come si usano le skill dei blueprint», «da dove comincio», «spiegami il flusso dall'assessment alla demo» | l'artifact «Dall'intervista alla demo», da girare a chi comincia |
 | [`xrcopilotlab-assessment`](#xrcopilotlab-assessment--dalla-proposta-al-dossier) | assessment (Claude Desktop) | si carica una proposta e si chiede di «valutarla», «fare l'assessment», «tradurla in soluzione» | il dossier tecnico `.md` e `.docx`, con il capitolo per il provisioning |
 | [`xrcopilotlab-delivery-atlas`](#xrcopilotlab-delivery-atlas--dal-dossier-alla-delivery-atlas) | assessment (Claude Desktop) | «apri la delivery Atlas», «prepara il SOW», «carica il cliente sul CMS», «trasforma l'assessment in delivery» | il piano Atlas, i documenti per cliente in stile Atlas, la delivery nel CMS dopo l'anteprima |
@@ -458,6 +459,28 @@ Che cosa **non** fa:
   tecniche, e si ferma se ne trova;
 - non scrive post, slogan, immagini: sono il lavoro dell'agenzia;
 - su Claude Desktop scrive il brief ma non il PDF, che vuole un terminale.
+
+### `xrcopilotlab-blueprint-storyboard` — lo storyboard del video
+
+Parte da un manifest e scrive lo storyboard di un video breve (80 secondi se non dici altro), in
+italiano: tavole da sei riquadri con codice scena, titolo, tempi, battuta della voce, scritte «a
+schermo», camera e schizzo. Il viola è l'AI, l'azzurro è una decisione umana. Mostra sempre la parte
+basilare — come si assegna la knowledge a un assistente e come nasce un assistente con le sue skill —
+e poi il processo del manifest.
+
+| Chiedi | Succede |
+|---|---|
+| «Lo storyboard di questo blueprint» · «le tavole del video» | Ricava la storia dal manifest, propone il copione (scena, secondi, battuta) e aspetta il tuo sì prima di disegnare |
+| «Con la voce» | Misura ogni battuta contro i secondi della scena e genera un audio guida di prova, scena per scena e intero |
+| — | Pubblica l'artifact «<Scenario> — storyboard» con la sorgente `storyboard.md` e l'audio, e lo apre in una nuova finestra a tutto schermo |
+
+Che cosa **non** fa:
+
+- non produce il video, la musica né la voce finale: l'audio è di servizio, serve a sentire i tempi;
+- non nomina clienti o persone senza la tua autorizzazione: di default lo scenario è anonimo;
+- non aggiunge marchi o loghi a piè di tavola;
+- se il manifest non usa knowledge né skill, le scene di base restano come scene didattiche,
+  etichettate «esempio», e lo dichiara.
 
 ### `xrcopilotlab-blueprint-howto` — il percorso in una pagina
 
