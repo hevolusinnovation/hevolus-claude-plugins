@@ -83,6 +83,8 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/narrazione.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/schizzi.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/storyboard-template.html", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/video-narrato.md", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/compose-video.py", DEST_STORYBOARD / "compose-video.py"),
     # La guida d'uso del percorso intero, dall'installazione alla demo: pubblica un artifact, non esegue.
     (".claude/skills/xrcopilotlab-blueprint-howto/SKILL.md", DEST_HOWTO / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-howto/references/percorso.html", DEST_HOWTO / "references"),

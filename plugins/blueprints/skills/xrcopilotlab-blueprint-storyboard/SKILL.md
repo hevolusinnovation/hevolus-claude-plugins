@@ -33,6 +33,7 @@ Input: `$ARGS` — un tag o un manifest, un dossier, la durata, il tono; oppure 
 |---|---|
 | Le scene che non possono mancare (knowledge → assistente, assistente + skill) e come si ricavano dal manifest | [`references/base-piattaforma.md`](references/base-piattaforma.md) |
 | Animare gli schizzi delle scene `Dn` (clip con voce) | [`references/animazione.md`](references/animazione.md) |
+| **Il video narrato di default**: creazione + risultato, voce, montaggio, pagina con download | [`references/video-narrato.md`](references/video-narrato.md) |
 | Registrare l'applicazione vera (`xrcopilotlab-demo`): panoramica, scene `Dn`, montaggio | [`references/registrazione.md`](references/registrazione.md) |
 | Partire dalla guida del cliente: da slide a scena, punti di demo `Dn` | [`references/da-guida.md`](references/da-guida.md) |
 | Formato di una tavola, codici scena, tempi, colori | [`references/tavola.md`](references/tavola.md) |
@@ -145,7 +146,15 @@ ogni battuta e, se è più lunga della scena, **si accorcia il testo** o si ridi
 fra scene, mai si accelera la voce. È l'unica voce di questa skill; per un video da consegnare si può
 comunque registrare una voce umana dal «Copione della voce».
 
-## 5-bis. Il video: l'animatic
+## 5-ter. Il video narrato (prodotto di default)
+
+Il prodotto è **un solo video reale** della piattaforma, con voce e senza sottotitoli: come si crea
+(topic, conoscenza, assistenti, orchestratore, **processo disegnato a mano**) e poi il risultato già
+creato. Si pubblica con il pulsante di download e il **tempo di creazione** sotto il titolo. Procedura in
+[`references/video-narrato.md`](references/video-narrato.md); montaggio con `compose-video.py`. Gli
+schizzi e l'animatic qui sotto restano solo per chi li chiede.
+
+## 5-bis. Il video: l'animatic (solo su richiesta)
 
 Lo storyboard da solo non si «guarda»: dai fotogrammi e dalla voce si monta un **animatic**, un video
 vero (MP4, 1280×720) in cui ogni scena resta a schermo per i suoi secondi, con lo schizzo a tutto fotogramma e, sotto, la traccia guida. **Nessun sottotitolo**, né nei video
