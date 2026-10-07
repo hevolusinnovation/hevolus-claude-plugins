@@ -153,6 +153,16 @@ richiedono sviluppo, i dati che servirebbe autorizzare. Se hai trovato un limite
 dei mattoni non conosceva, proponi di aggiornare
 [`references/scenari-esistenti.md`](references/scenari-esistenti.md).
 
+## 6-bis. Lo storyboard del video (facoltativo)
+
+Dopo il brief, se l'agenzia deve produrre un **video**, proporre lo storyboard con
+[`xrcopilotlab-blueprint-storyboard`](../xrcopilotlab-blueprint-storyboard/SKILL.md): stessa fonte,
+stessa anonimizzazione, stessi stati degli scenari. Prende il manifest e ne ricava le tavole del
+video (80 s di default) con la voce scritta e un audio guida di prova, **mostrando sempre** come si
+assegna la knowledge a un assistente e come nasce un assistente con le sue skill. Non rifare le
+fonti: si passano il tag e lo scenario scelto. Il prefisso `DEMO-` resta del brief; lo storyboard ha
+il suo titolo «<Scenario> — storyboard».
+
 ## Cosa non fare
 
 - Non scrivere post, slogan, hashtag, immagini o prompt per immagini: sono il lavoro dell'agenzia.

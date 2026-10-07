@@ -1058,6 +1058,39 @@ convinto che se ne andasse col server. L'API cancella solo la definizione, e dop
 versioni di Studio Polis il catalogo era pieno di voci morte. Ora `rollback` la toglie prima del
 server; `orphans` serve per quelle lasciate dai rollback precedenti.
 
+## `voice list` · `voice say "<testo>" --out <file.mp3>` · `voice say --lines <righe.json> --out-dir <cartella>`
+
+La **voce neurale** della piattaforma, per chi scrive una narrazione (lo storyboard di un video, la
+voce di una demo) e non ha — né deve avere — un ruolo sulla risorsa Azure Speech o la sua chiave. Il
+comando chiama l'endpoint `common/speech`, lo stesso che usano gli avatar, con l'accesso che ha già
+ogni altro comando: nessuna chiave passa dalla macchina di chi lo lancia.
+
+```bash
+xrcopilotlab-bp voice list --env staging
+xrcopilotlab-bp voice say "Un'udienza persa non si recupera." --out scena-1.mp3 --env staging
+xrcopilotlab-bp voice say --lines righe.json --out-dir audio --env staging
+```
+
+| Opzione | Significato |
+|---|---|
+| `--out <file.mp3>` | Dove scrivere l'audio di una battuta |
+| `--lines <righe.json>` + `--out-dir <cartella>` | Un elenco `[{"name":"scena-1","text":"…"}]`: un MP3 per riga, nominato come `name`. Una sessione per tutte le battute di un video |
+| `--voice <nome>` | La voce (es. `it-IT-DiegoNeural`). Senza, quella che la piattaforma ha scelto per la lingua (`Speech:AzureSpeech:VoiceByLang:<lingua>`); `voice list` elenca le disponibili |
+| `--language <codice>` | `it` (default) o un'altra lingua supportata |
+| `--env <nome>` | L'ambiente, come per ogni comando. Senza, vale lo sviluppo |
+
+Cose da sapere:
+
+- **Formato**: MP3 mono 16 kHz, 32 kbit/s. Adatto a una voce guida e a un video; per una traccia da
+  consegnare a una produzione si riascolta e, se serve, si registra una voce umana.
+- **Il testo non viene stampato né registrato**: è la narrazione di un cliente. Il comando scrive solo
+  i nomi dei file e le dimensioni.
+- **Caratteri speciali**: l'endpoint compone l'SSML con il testo così com'è, quindi il comando
+  sostituisce `&`, `<` e `>` prima di inviarlo.
+- **Nessun audio restituito** (uscita **4**) vuol dire voce o lingua non valide, oppure che la chiave
+  Speech del server non è configurata su quell'ambiente.
+- Non serve `--company`: la sintesi non è dei tenant.
+
 ## `update [--check]`
 
 Porta all'ultima versione **la copia di cui questo comando è padrone**, che è una sola: quella

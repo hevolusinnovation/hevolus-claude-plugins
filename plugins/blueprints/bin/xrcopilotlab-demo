@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# Avvia xrcopilotlab-demo, procurandoselo al primo uso.
+#
+# Il pacchetto (Node incluso, codice e dipendenze) pesa una cinquantina di megabyte: tenerlo nel
+# repository del marketplace lo farebbe scaricare a tutto il team anche solo per leggere una skill.
+# Sta fra gli allegati di una release `demo-v*`, e questo script lo mette in cache la prima volta.
+#
+# Stesso schema di xrcopilotlab-bp: variabile d'ambiente, cache, download dal catalogo e, come
+# riserva, dal repository del banco di registrazione. Verifica l'impronta prima di eseguire.
+
+set -euo pipefail
+
+REPO_CATALOGO="hevolusinnovation/hevolus-claude-plugins"
+REPO_BANCO="hevolusinnovation/demo-recorder-playwright"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VERSION="$(tr -d '[:space:]' < "$HERE/demo-version.txt")"
+CACHE_DIR="${CLAUDE_PLUGIN_DATA:-$HOME/.xrcopilotlab-demo/cache}/demo"
+
+die() { echo "xrcopilotlab-demo: $*" >&2; exit 70; }
+
+# 1. Una cartella già estratta, o un clone del banco, imposti a mano: serve a provare una build locale.
+if [ -n "${XRCOPILOTLAB_DEMO_DIR:-}" ]; then
+  exec "$XRCOPILOTLAB_DEMO_DIR/runtime/node" "$XRCOPILOTLAB_DEMO_DIR/app/bin/xrcopilotlab-demo.mjs" "$@"
+fi
+
+case "$(uname -s)" in
+  Darwin) if [ "$(uname -m)" = "arm64" ]; then RID="osx-arm64"; else RID="osx-x64"; fi ;;
+  Linux)  case "$(uname -m)" in aarch64|arm64) RID="linux-arm64" ;; *) RID="linux-x64" ;; esac ;;
+  *) die "sistema operativo non riconosciuto: $(uname -s). Su Windows si usa xrcopilotlab-demo.cmd." ;;
+esac
+
+DIR="$CACHE_DIR/$VERSION-$RID"
+
+# 2. La copia già scaricata.
+if [ -x "$DIR/runtime/node" ]; then
+  exec "$DIR/runtime/node" "$DIR/app/bin/xrcopilotlab-demo.mjs" "$@"
+fi
+
+ASSET="xrcopilotlab-demo-$RID.tar.gz"
+TAG="demo-v$VERSION"
+
+istruzioni_accesso() {
+  echo "xrcopilotlab-demo: non sono riuscito a scaricare $ASSET (release $TAG)." >&2
+  echo "" >&2
+  echo "  Le cause sono tre, e il rimedio è diverso:" >&2
+  echo "  · non sei autenticato su GitHub  → 'gh auth login', oppure esporta GH_TOKEN;" >&2
+  echo "  · lo sei, ma quell'account non legge $REPO_CATALOGO" >&2
+  echo "    → chiedi l'accesso a chi mantiene il catalogo: riprovare non serve;" >&2
+  echo "  · la release $TAG non esiste ancora, o non ha l'allegato per $RID" >&2
+  echo "    → chiedi a chi mantiene il banco di registrazione, oppure estrai il pacchetto a mano e indicalo con:" >&2
+  echo "        export XRCOPILOTLAB_DEMO_DIR=/percorso/della/cartella" >&2
+  exit 70
+}
+
+da_gh() {
+  command -v gh >/dev/null 2>&1 || return 1
+  gh auth status >/dev/null 2>&1 || return 1
+  gh release download "$TAG" --repo "$1" --pattern "$2" --output "$3" --clobber >/dev/null 2>&1
+}
+
+da_token() {
+  TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+  [ -n "$TOKEN" ] || return 1
+  ASSET_ID="$(curl -fsSL -H "Authorization: Bearer $TOKEN" \
+      "https://api.github.com/repos/$1/releases/tags/$TAG" 2>/dev/null \
+    | python3 -c 'import json,sys; a=[x["id"] for x in json.load(sys.stdin).get("assets",[]) if x["name"]==sys.argv[1]]; print(a[0] if a else "")' "$2" 2>/dev/null)"
+  [ -n "$ASSET_ID" ] || return 1
+  curl -fsSL -H "Authorization: Bearer $TOKEN" -H "Accept: application/octet-stream" \
+    "https://api.github.com/repos/$1/releases/assets/$ASSET_ID" -o "$3" 2>/dev/null
+}
+
+scarica() {
+  for repo in "$REPO_CATALOGO" "$REPO_BANCO"; do
+    da_gh "$repo" "$1" "$2" && return 0
+    da_token "$repo" "$1" "$2" && return 0
+  done
+  return 1
+}
+
+echo "Prima esecuzione: scarico xrcopilotlab-demo ($ASSET, ~45 MB) dalla release $TAG." >&2
+
+mkdir -p "$CACHE_DIR"
+TMP="$(mktemp "$CACHE_DIR/.download.XXXXXX")"
+trap 'rm -f "$TMP" "$TMP.sha256"; rm -rf "$DIR.parziale"' EXIT
+
+scarica "$ASSET" "$TMP" || istruzioni_accesso
+
+# Verifica dell'impronta: si sta per eseguire ciò che si è appena scaricato.
+if scarica "$ASSET.sha256" "$TMP.sha256" && [ -s "$TMP.sha256" ]; then
+  ATTESA="$(awk '{print $1}' "$TMP.sha256" | tr -d '\r')"
+  OTTENUTA="$(shasum -a 256 "$TMP" | awk '{print $1}')"
+  [ "$ATTESA" = "$OTTENUTA" ] || die "impronta non corrispondente (attesa $ATTESA, ottenuta $OTTENUTA). Non eseguo il file."
+else
+  echo "xrcopilotlab-demo: la release non pubblica l'impronta, download non verificato." >&2
+fi
+
+# Si estrae in una cartella a parte e si rinomina: un'estrazione interrotta non deve lasciare una
+# cartella che sembra completa.
+rm -rf "$DIR.parziale"
+mkdir -p "$DIR.parziale"
+tar -xzf "$TMP" -C "$DIR.parziale"
+chmod +x "$DIR.parziale/runtime/node"
+mv "$DIR.parziale" "$DIR"
+trap - EXIT
+rm -f "$TMP" "$TMP.sha256"
+
+echo "xrcopilotlab-demo pronto in $DIR" >&2
+exec "$DIR/runtime/node" "$DIR/app/bin/xrcopilotlab-demo.mjs" "$@"

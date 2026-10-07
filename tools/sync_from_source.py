@@ -21,6 +21,7 @@ DEST_TEST = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-bluepri
 DEST_GUIDE = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-guide"
 DEST_DEMO = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-demo"
 DEST_HOWTO = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-howto"
+DEST_STORYBOARD = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-storyboard"
 
 # Ogni riga: dove sta nel repository di prodotto → dove va nel plugin.
 # Un riferimento nuovo in una skill va aggiunto QUI: se non compare, la copia nel plugin non esiste
@@ -71,6 +72,17 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-demo/references/riservatezza.md", DEST_DEMO / "references"),
     (".claude/skills/xrcopilotlab-blueprint-demo/references/brief.md", DEST_DEMO / "references"),
     (".claude/skills/xrcopilotlab-blueprint-demo/references/brief-template.html", DEST_DEMO / "references"),
+    # Lo storyboard di un video breve da un manifest: tavole, voce e audio guida. Legge, non esegue.
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/SKILL.md", DEST_STORYBOARD / "SKILL.md"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/base-piattaforma.md", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/da-guida.md", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/registrazione.md", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/animazione.md", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/anima-schizzi.mjs", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/tavola.md", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/narrazione.md", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/schizzi.md", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/storyboard-template.html", DEST_STORYBOARD / "references"),
     # La guida d'uso del percorso intero, dall'installazione alla demo: pubblica un artifact, non esegue.
     (".claude/skills/xrcopilotlab-blueprint-howto/SKILL.md", DEST_HOWTO / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-howto/references/percorso.html", DEST_HOWTO / "references"),
@@ -128,6 +140,12 @@ RISCRITTURE = {
         (
             "[`docs/blueprints/microsoft365-setup.md`](../../../../docs/blueprints/microsoft365-setup.md)",
             "[`references/microsoft365-setup.md`](microsoft365-setup.md)",
+        ),
+    ],
+    DEST_STORYBOARD / "references" / "base-piattaforma.md": [
+        (
+            "[`docs/blueprints/manifest-reference.md`](../../../../docs/blueprints/manifest-reference.md)",
+            "[`manifest-reference.md`](../../xrcopilotlab-blueprint/references/manifest-reference.md)",
         ),
     ],
     DEST_TEST / "SKILL.md": [
@@ -193,7 +211,7 @@ def cerca_orfani(copiati):
     la skill non cita qualcosa che nella sorgente è cambiato mesi prima.
     """
     orfani = []
-    for dest in (DEST, DEST_TEST, DEST_GUIDE, DEST_DEMO):
+    for dest in (DEST, DEST_TEST, DEST_GUIDE, DEST_DEMO, DEST_STORYBOARD):
         for p in sorted(dest.rglob("*")):
             if p.is_file() and p.name != ".DS_Store" and p.resolve() not in copiati:
                 orfani.append(p.relative_to(RADICE))
