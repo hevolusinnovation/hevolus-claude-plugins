@@ -32,6 +32,7 @@ Input: `$ARGS` — un tag o un manifest, un dossier, la durata, il tono; oppure 
 | Passo | Documento |
 |---|---|
 | Le scene che non possono mancare (knowledge → assistente, assistente + skill) e come si ricavano dal manifest | [`references/base-piattaforma.md`](references/base-piattaforma.md) |
+| Animare gli schizzi delle scene `Dn` (clip con voce) | [`references/animazione.md`](references/animazione.md) |
 | Registrare l'applicazione vera (`xrcopilotlab-demo`): panoramica, scene `Dn`, montaggio | [`references/registrazione.md`](references/registrazione.md) |
 | Partire dalla guida del cliente: da slide a scena, punti di demo `Dn` | [`references/da-guida.md`](references/da-guida.md) |
 | Formato di una tavola, codici scena, tempi, colori | [`references/tavola.md`](references/tavola.md) |
@@ -148,7 +149,8 @@ comunque registrare una voce umana dal «Copione della voce».
 
 Lo storyboard da solo non si «guarda»: dai fotogrammi e dalla voce si monta un **animatic**, un video
 vero (MP4, 1280×720) in cui ogni scena resta a schermo per i suoi secondi, con lo schizzo, il titolo
-e la battuta come sottotitolo, e sotto la traccia guida. Pesa circa 1 MB per 80 secondi. Procedura in
+e la battuta come sottotitolo, e sotto la traccia guida. Pesa circa 1 MB per 80 secondi. Le scene con un punto di demo `Dn` che il recorder non sa registrare si **animano**
+([`references/animazione.md`](references/animazione.md)): un clip per scena, con la sua battuta. Procedura in
 [`narrazione.md`](references/narrazione.md) § «L'animatic». Si incorpora in cima all'artifact con
 `<video controls>` e si pubblica come file di supporto (`animatic.mp4`).
 
