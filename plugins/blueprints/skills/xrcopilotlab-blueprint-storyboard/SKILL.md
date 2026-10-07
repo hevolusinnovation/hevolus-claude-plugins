@@ -32,6 +32,7 @@ Input: `$ARGS` — un tag o un manifest, un dossier, la durata, il tono; oppure 
 | Passo | Documento |
 |---|---|
 | Le scene che non possono mancare (knowledge → assistente, assistente + skill) e come si ricavano dal manifest | [`references/base-piattaforma.md`](references/base-piattaforma.md) |
+| Partire dalla guida del cliente: da slide a scena, punti di demo `Dn` | [`references/da-guida.md`](references/da-guida.md) |
 | Formato di una tavola, codici scena, tempi, colori | [`references/tavola.md`](references/tavola.md) |
 | Scrivere la voce, misurarla, generare l'audio di prova | [`references/narrazione.md`](references/narrazione.md) |
 | Disegnare gli schizzi in SVG e scrivere la descrizione di disegno | [`references/schizzi.md`](references/schizzi.md) |
@@ -60,6 +61,11 @@ Si chiede, **tutto in una volta**, e si attende la risposta:
 Nessun marchio o logo a piè di tavola: se l'utente ne vuole uno nel video, lo aggiunge il montaggio.
 
 ## 2. Leggere la fonte e ricavare la storia
+
+**La storia è quella della guida per il cliente** ([`da-guida.md`](references/da-guida.md)): si legge
+l'artifact «<Scenario> — guida» e ogni slide `giornata-*`, `flusso`, `ruoli` diventa una scena, con
+gli stessi titoli-messaggio e la stessa ora. Solo se la guida non esiste si ricava dal manifest, con
+la stessa struttura, e lo si dichiara.
 
 Come in [`fonti.md`](../xrcopilotlab-blueprint-demo/references/fonti.md). Dal manifest si ricava:
 
@@ -112,6 +118,21 @@ si genera la voce guida con la procedura di [`narrazione.md`](references/narrazi
 sintetica di servizio**: serve a sentire i tempi e a far leggere il racconto, non è la voce finale.
 Se una battuta è più lunga della scena, si **accorcia il testo**, non si accelera la voce.
 
+## 5-bis. Il video: l'animatic
+
+Lo storyboard da solo non si «guarda»: dai fotogrammi e dalla voce si monta un **animatic**, un video
+vero (MP4, 1280×720) in cui ogni scena resta a schermo per i suoi secondi, con lo schizzo, il titolo
+e la battuta come sottotitolo, e sotto la traccia guida. Pesa circa 1 MB per 80 secondi. Procedura in
+[`narrazione.md`](references/narrazione.md) § «L'animatic». Si incorpora in cima all'artifact con
+`<video controls>` e si pubblica come file di supporto (`animatic.mp4`).
+
+L'animatic è un **video di lavoro** — schizzi e voce di servizio — non il video finale. Il video
+finale con lo schermo reale dell'applicazione si registra con
+[`demo-recorder-playwright`](https://github.com/hevolusinnovation/demo-recorder-playwright): le scene
+marcate `Dn` (punti di demo) sono quelle da sostituire con le riprese; lo storyboard le elenca e il
+brief del recorder lo scrive il plugin `demo` (`xrcopilotlab-demo-video`). Lanciare una registrazione
+è un'azione esterna e va chiesta all'utente.
+
 ## 6. Controlli bloccanti prima di pubblicare
 
 1. **Tempi**: somma delle scene = durata; nessuna battuta oltre la sua scena (durata dell'audio
@@ -133,7 +154,7 @@ Se uno fallisce si corregge e si ripete: non si pubblica «con riserva».
 3. Cartella di lavoro della sessione (o `../hevolus-assessment/marketing/` se l'utente la indica).
    **Stesso percorso a ogni versione**: il link dato non cambia.
 4. `files`: `storyboard.md` (la sorgente, con battute e descrizioni di disegno) e, se generati,
-   `audio/scena-<codice>.mp3` e `audio/narrazione.mp3`. La pagina li incorpora con `<audio>`. Gli
+   `audio/scena-<codice>.mp3`, `audio/narrazione.mp3` e `animatic.mp4`. La pagina li incorpora con `<audio>`. Gli
    audio vanno **solo nell'artifact**, mai in un repository.
 5. Privato alla nascita; aprirlo subito nel browser dell'utente, **sempre in una nuova finestra a
    tutto schermo**, mai in una scheda della finestra che sta usando: lo storyboard si guarda una

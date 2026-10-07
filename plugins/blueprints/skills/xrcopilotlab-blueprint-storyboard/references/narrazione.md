@@ -35,9 +35,10 @@ ffprobe -v error -show_entries format=duration -of csv=p=0 scena-<codice>.mp3   
    la traccia ha i tempi dello storyboard:
 
    ```bash
-   ffmpeg -loglevel error -y -i scena-<codice>.mp3 -af "apad=whole_dur=<s>" -c:a libmp3lame pad-<n>.mp3
-   # per ogni scena, poi in ordine:
-   printf "file 'pad-1.mp3'\nfile 'pad-2.mp3'\n" > lista.txt   # una riga per scena
+   # WAV intermedi: con l'mp3 in ingresso apad + libmp3lame dà «inadequate AVFrame plane padding»
+   ffmpeg -loglevel error -y -i scena-<codice>.mp3 -ar 24000 -ac 1 -af "apad=whole_dur=<s>" -t <s> pad-<n>.wav
+   # scena senza voce: ffmpeg -f lavfi -i anullsrc=r=24000:cl=mono -t <s> pad-<n>.wav
+   printf "file 'pad-1.wav'\nfile 'pad-2.wav'\n" > lista.txt   # una riga per scena
    ffmpeg -loglevel error -y -f concat -safe 0 -i lista.txt -c:a libmp3lame narrazione.mp3
    ```
 
@@ -46,6 +47,37 @@ ffprobe -v error -show_entries format=duration -of csv=p=0 scena-<codice>.mp3   
 3. I file `.aiff` e i `pad-*` si cancellano; restano `scena-<codice>.mp3` e `narrazione.mp3`.
 4. Sono **audio di servizio**: lo si scrive nella pagina («voce di prova») e nel messaggio finale.
    Non si pubblica come voce del video.
+
+## Se la voce è troppo sintetica
+
+La voce di sistema (`say`) è **di servizio**: sul Mac ci sono solo le voci italiane di base (Alice,
+Reed, Flo, Sandy, Eddy…) e suonano artificiali. Non si può migliorare dalla skill. Le strade, in
+ordine di costo, e **ogni voce migliore si chiede all'utente prima**:
+
+1. **Voci Premium/Migliorate** di macOS, se l'utente le scarica (Impostazioni di Sistema →
+   Accessibilità → Contenuto vocale → Voci di sistema → Gestisci voci → Italiano): `say -v '?'` le
+   elenca e la skill usa la migliore che trova. Locale e gratuito, ma resta una voce di sistema.
+2. **Una voce neurale in cloud** (per esempio Azure AI Speech, voci `it-IT`, o un servizio di terzi):
+   molto più naturale, ma il **testo della narrazione esce dalla macchina** e serve una chiave. Si usa
+   solo con l'ok dell'utente, con lo scenario anonimo, e la chiave non entra mai nei file.
+3. **Una voce umana**: si consegna la sezione «Copione della voce» a chi registra, con i tempi.
+
+Qualunque sia la voce, i tempi sono quelli dello storyboard: si rimisura con la stessa procedura.
+
+## L'animatic
+
+Per ogni scena un fotogramma 1280×720 (HTML con lo schizzo, il codice, il titolo e la battuta come
+sottotitolo, reso con Chrome senza interfaccia), poi:
+
+```bash
+# anim.txt: «ffconcat version 1.0», poi per ogni scena  file 'frames/f<n>.png'  e  duration <s>,
+# e l'ultimo file ripetuto una volta
+ffmpeg -y -f concat -safe 0 -i anim.txt -i audio/narrazione.mp3 -vf "fps=25,format=yuv420p" \
+  -c:v libx264 -crf 30 -c:a aac -b:a 80k -shortest -movflags +faststart animatic.mp4
+```
+
+La durata del video deve essere quella dello storyboard (`ffprobe`); si guarda un fotogramma a metà
+e uno verso la fine prima di pubblicare.
 
 Dove non c'è `say` o `ffmpeg` (Windows, Claude Desktop) l'audio non si genera: si pubblica lo
 storyboard con le battute e il budget di parole controllato a mano, e lo si dice.

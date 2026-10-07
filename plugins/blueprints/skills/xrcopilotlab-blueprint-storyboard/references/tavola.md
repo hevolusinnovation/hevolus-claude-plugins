@@ -54,6 +54,7 @@ Una sezione per scena, così la prossima sessione la rilegge e la modifica:
 ## 7A · Anna verifica e conferma · 0:40,5–0:44,3 (3,8 s)
 voce: "Poi decide una persona."
 camera: ferma
+guida: giornata-pec · D1
 disegno: la referente davanti a due schermi, testo originale e proposta; una luce azzurra parte dal dito
 a schermo: La referente verifica e assegna
 umano: sì

@@ -83,6 +83,7 @@
   details.interno table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 13.5px; }
   details.interno th, details.interno td { border-bottom: 1px solid var(--rule); text-align: left; padding: 5px 8px; }
   .a11y { position: absolute; left: -9999px; }
+  .animatic{display:block;width:100%;max-width:960px;margin:0 auto 6px;background:#14151a;border-radius:4px;aspect-ratio:16/9}
 </style>
 
 
@@ -93,11 +94,9 @@
     <span class="meta">80 s · 3 tavole</span>
   </header>
 
-  <!-- Solo se c'è l'audio. Voce di prova, non finale. -->
-  <p class="voce-intera">
-    <span>Voce guida di prova (sintetica):</span>
-    <audio controls preload="none" src="audio/narrazione.mp3"></audio>
-  </p>
+  <!-- Solo se c'è l'animatic (video di lavoro: schizzi + voce guida di prova). -->
+  <video class="animatic" controls preload="metadata" src="animatic.mp4"></video>
+  <p class="voce-intera"><span>Animatic: schizzi e voce guida di prova (sintetica) in sequenza.</span></p>
 
   <!-- REPEAT: una tavola ogni 6 riquadri -->
   <section class="tavola">
