@@ -33,7 +33,7 @@ Tutti sulla **[pagina delle release](https://github.com/hevolusinnovation/hevolu
 | `xrcopilotlab-blueprint-test.zip` | la **skill** che collauda un blueprint applicato | idem |
 | `xrcopilotlab-blueprint-guide.zip` | la **skill** che scrive le due guide della demo — per il cliente a slide, tecnica per l'AI Specialist — e le pubblica come due artifact | idem |
 | `xrcopilotlab-blueprint-demo.zip` | la **skill** che scrive il brief per l'agenzia di marketing: gli scenari vendibili, da un blueprint o da un assessment | idem |
-| `xrcopilotlab-blueprint-storyboard.zip` | la **skill** che scrive lo storyboard di un video breve da un blueprint: tavole, scene, voce, audio guida e video (senza sottotitoli) | idem |
+| `xrcopilotlab-blueprint-storyboard.zip` | la **skill** che scrive lo storyboard di un video breve da un blueprint: tavole, scene, voce, audio guida e, di default, **un solo video narrato dell'applicazione vera** (creazione con processo disegnato a mano + risultato, voce neurale, senza sottotitoli, con download) | idem |
 | `xrcopilotlab-blueprint-howto.zip` | la **skill** che pubblica la guida d'uso del percorso intero, dall'installazione alla demo | idem |
 
 Il **plugin `blueprints` per Claude Code non si scarica**: si installa con le [due righe](#installare-in-breve) e porta con sé le sue quattro skill e lo strumento a riga di comando. Gli zip delle skill servono a chi le vuole **senza** il plugin — in chat, o su un'altra app. La differenza fra i due formati è reale: scambiarli dà l'errore «All files must be inside the top-level folder».
