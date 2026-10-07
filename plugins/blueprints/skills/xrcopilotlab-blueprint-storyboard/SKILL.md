@@ -148,8 +148,8 @@ comunque registrare una voce umana dal «Copione della voce».
 ## 5-bis. Il video: l'animatic
 
 Lo storyboard da solo non si «guarda»: dai fotogrammi e dalla voce si monta un **animatic**, un video
-vero (MP4, 1280×720) in cui ogni scena resta a schermo per i suoi secondi, con lo schizzo, il titolo
-e la battuta come sottotitolo, e sotto la traccia guida. Pesa circa 1 MB per 80 secondi. Le scene con un punto di demo `Dn` che il recorder non sa registrare si **animano**
+vero (MP4, 1280×720) in cui ogni scena resta a schermo per i suoi secondi, con lo schizzo a tutto fotogramma e, sotto, la traccia guida. **Nessun sottotitolo**, né nei video
+animati né in quelli registrati. Pesa circa 1 MB per 80 secondi. Le scene con un punto di demo `Dn` che il recorder non sa registrare si **animano**
 ([`references/animazione.md`](references/animazione.md)): un clip per scena, con la sua battuta. Procedura in
 [`narrazione.md`](references/narrazione.md) § «L'animatic». Si incorpora in cima all'artifact con
 `<video controls>` e si pubblica come file di supporto (`animatic.mp4`).

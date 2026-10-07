@@ -9,7 +9,7 @@ produce **un clip per scena, con la sua battuta**.
 Per ogni scena con un codice `Dn`, sul fotogramma HTML della scena (`frames/f<n>.html`):
 
 - i **tratti si disegnano** uno dopo l'altro (`stroke-dashoffset`), in circa il 60% della durata;
-- le **campiture** e i **testi** compaiono dopo il loro tratto, il titolo e la battuta in apertura;
+- le **campiture** e i **testi dello schizzo** compaiono dopo il loro tratto; **nessun sottotitolo**: né titolo né battuta sotto il disegno, che occupa tutto il fotogramma e la voce racconta;
 - dove **decide una persona** (`umano: sì`) gli elementi azzurri pulsano con un alone;
 - registra la pagina con Chrome (Playwright), taglia l'avvio e monta la **voce neurale di quella scena**.
 

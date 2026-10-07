@@ -33,7 +33,7 @@ Tutti sulla **[pagina delle release](https://github.com/hevolusinnovation/hevolu
 | `xrcopilotlab-blueprint-test.zip` | la **skill** che collauda un blueprint applicato | idem |
 | `xrcopilotlab-blueprint-guide.zip` | la **skill** che scrive le due guide della demo — per il cliente a slide, tecnica per l'AI Specialist — e le pubblica come due artifact | idem |
 | `xrcopilotlab-blueprint-demo.zip` | la **skill** che scrive il brief per l'agenzia di marketing: gli scenari vendibili, da un blueprint o da un assessment | idem |
-| `xrcopilotlab-blueprint-storyboard.zip` | la **skill** che scrive lo storyboard di un video breve da un blueprint: tavole, scene, voce e audio guida | idem |
+| `xrcopilotlab-blueprint-storyboard.zip` | la **skill** che scrive lo storyboard di un video breve da un blueprint: tavole, scene, voce, audio guida e video (senza sottotitoli) | idem |
 | `xrcopilotlab-blueprint-howto.zip` | la **skill** che pubblica la guida d'uso del percorso intero, dall'installazione alla demo | idem |
 
 Il **plugin `blueprints` per Claude Code non si scarica**: si installa con le [due righe](#installare-in-breve) e porta con sé le sue quattro skill e lo strumento a riga di comando. Gli zip delle skill servono a chi le vuole **senza** il plugin — in chat, o su un'altra app. La differenza fra i due formati è reale: scambiarli dà l'errore «All files must be inside the top-level folder».
@@ -171,7 +171,7 @@ quando la richiesta le riguarda. Di solito non serve nominarle — si attivano d
 | `xrcopilotlab-blueprint-test` | blueprints | «collauda il blueprint», «scrivi le domande di test», «vedi se funziona» | la suite `.tests.yml`, il report, il giudizio, le bozze di issue, le domande di prova per il cliente |
 | `xrcopilotlab-blueprint-guide` | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «le slide per i sales» | la guida non tecnica a story slides `guida-<scenario>.md`, con i disegni, e la sua pagina web |
 | `xrcopilotlab-blueprint-demo` | blueprints | «il brief per l'agenzia», «gli scenari per i sales», «cosa possiamo vendere da questo blueprint o assessment» | il brief per l'agenzia di marketing: gli scenari vendibili, anonimi e senza tecnicismi, come artifact «DEMO-» con il PDF |
-| `xrcopilotlab-blueprint-storyboard` | blueprints | «lo storyboard del blueprint», «le tavole del video», «la voce fuori campo» | lo storyboard di un video breve: tavole con schizzi, battute e audio guida di prova, come artifact |
+| `xrcopilotlab-blueprint-storyboard` | blueprints | «lo storyboard del blueprint», «le tavole del video», «la voce fuori campo» | lo storyboard di un video breve: tavole con schizzi, battute, audio guida di prova e video senza sottotitoli, come artifact |
 | `xrcopilotlab-blueprint-howto` | blueprints | «come si usano le skill dei blueprint», «da dove comincio», «l'howto dei blueprint» | l'artifact «Dall'intervista alla demo»: il percorso intero, dall'installazione alla demo, tappa per tappa |
 
 Il dettaglio di ciascuna, con esempi di manifest, di suite e di cosa **non** fanno:

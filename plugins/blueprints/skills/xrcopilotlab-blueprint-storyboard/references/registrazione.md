@@ -101,8 +101,8 @@ esempi del banco) o dall'esplorazione dell'app. Una scena di cui non si hanno se
 uno schizzo e lo storyboard lo dichiara. Il giro è in **sola lettura**: niente chat con gli assistenti,
 niente avvio di processi, finché il banco non sa farlo con garanzie.
 
-`--no-captions` toglie i sottotitoli sovrapposti: nello storyboard c'è la voce, e quelli incisi si
-sovrapporrebbero ai nostri.
+**I video non hanno sottotitoli**: sono spenti di default, perché nello storyboard c'è la voce e quelli incisi
+si sovrapporrebbero. `--captions` li accende, solo se serve un video da guardare senza audio.
 
 ## Il montaggio
 

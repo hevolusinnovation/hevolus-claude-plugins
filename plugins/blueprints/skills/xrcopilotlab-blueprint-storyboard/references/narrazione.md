@@ -75,8 +75,7 @@ Il ripiego `say` (macOS) ha solo le voci italiane base; se l'utente scarica quel
 
 ## L'animatic
 
-Per ogni scena un fotogramma 1280×720 (HTML con lo schizzo, il codice, il titolo e la battuta come
-sottotitolo, reso con Chrome senza interfaccia), poi:
+Per ogni scena un fotogramma 1280×720 (HTML con lo schizzo a tutto fotogramma e il codice scena, **senza sottotitoli**: la voce racconta; reso con Chrome senza interfaccia), poi:
 
 ```bash
 # anim.txt: «ffconcat version 1.0», poi per ogni scena  file 'frames/f<n>.png'  e  duration <s>,
