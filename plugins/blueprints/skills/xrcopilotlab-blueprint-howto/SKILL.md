@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-howto
-description: Pubblica (o aggiorna allo stesso link) l'artifact «Dall'intervista alla demo», la guida d'uso delle skill XRCopilotLab nell'ordine in cui si usano - installazione su Claude Desktop e su Claude Code, xrcopilotlab-assessment (dall'intervista al cliente al dossier), xrcopilotlab-blueprint (dal dossier alla prima versione del manifest, applicata), il giro di xrcopilotlab-blueprint-test fino alla versione stabile con tutti i casi verdi, poi xrcopilotlab-blueprint-guide e xrcopilotlab-blueprint-demo prima della demo al cliente. Per ogni tappa - dove si lavora, cosa portare, frasi da scrivere, cosa succede, cosa si ottiene, domande tipiche, errori frequenti. Usa quando l'utente chiede "come si usano le skill dei blueprint", "la guida al percorso blueprint", "da dove comincio", "l'howto dei blueprint", "spiegami il flusso assessment → demo", "manda a un collega come si usano i plugin", o invoca la skill. NON esegue nessuna delle skill che descrive, non tocca il tenant e non scrive manifest.
+description: Pubblica (o aggiorna allo stesso link) l'artifact «Dall'intervista alla demo», la guida d'uso delle skill XRCopilotLab nell'ordine in cui si usano - installazione su Claude Desktop e su Claude Code, xrcopilotlab-assessment (intervista → dossier), xrcopilotlab-blueprint (dossier → manifest v1, applicato), il giro di xrcopilotlab-blueprint-test fino alla versione stabile con tutti i casi verdi, poi xrcopilotlab-blueprint-guide, xrcopilotlab-blueprint-demo e xrcopilotlab-blueprint-storyboard (il video narrato) prima della demo al cliente. Per ogni tappa - dove si lavora, cosa portare, frasi da scrivere, cosa succede, cosa si ottiene, domande tipiche, errori frequenti. Usa quando l'utente chiede "come si usano le skill dei blueprint", "la guida al percorso blueprint", "da dove comincio", "l'howto dei blueprint", "spiegami il flusso assessment → demo", "manda a un collega come si usano i plugin", o invoca la skill. NON esegue nessuna delle skill che descrive, non tocca il tenant e non scrive manifest.
 ---
 
 # xrcopilotlab-blueprint-howto
@@ -9,8 +9,8 @@ Pubblica una pagina sola che accompagna un collega — un AI Specialist, un Sale
 team — lungo **tutto** il percorso, nell'ordine in cui lo farà:
 
 ```
-installazione  →  assessment  →  blueprint v1  →  collaudo ↺ (fino ai verdi)  →  guide  →  brief  →  demo
-(Desktop+Code)    (Desktop)      (Code)            (Code)                          (Code/Desktop)
+installazione  →  assessment  →  blueprint v1  →  collaudo ↺ (fino ai verdi)  →  guide  →  brief  →  video  →  demo
+(Desktop+Code)    (Desktop)      (Code)            (Code)                          (Code/Desktop)    (Code)
 ```
 
 Le skill dei singoli passi hanno ciascuna il proprio orientamento («cosa sai fare?»), ma nessuna
@@ -43,12 +43,12 @@ La pagina **non contiene numeri di versione** di proposito, come `sito/index.htm
 
 | Fatto nella pagina | Dove si verifica |
 |---|---|
-| Le frasi che attivano ogni skill, cosa produce, cosa non fa | la `description` e il § 0 del `SKILL.md` di ciascuna skill (`xrcopilotlab-assessment`, `xrcopilotlab-blueprint`, `-test`, `-guide`, `-demo`), che sono fra le skill della sessione |
+| Le frasi che attivano ogni skill, cosa produce, cosa non fa | la `description` e il § 0 del `SKILL.md` di ciascuna skill (`xrcopilotlab-assessment`, `xrcopilotlab-blueprint`, `-test`, `-guide`, `-demo`, `-storyboard`), che sono fra le skill della sessione |
 | I nomi dei pacchetti e dove si caricano | il README del catalogo `hevolus-claude-plugins`, § «I pacchetti pronti» — se il clone c'è; altrimenti `references/installazione.md` della skill `xrcopilotlab-blueprint` |
 | Le due righe di installazione e i comandi di aggiornamento | idem |
 | I ruoli Azure e le risorse per ambiente | `docs/accesso-azure.md` del catalogo, se c'è |
 | I comandi della CLI e i codici di uscita | `xrcopilotlab-bp --help`, **se** la CLI è disponibile; altrimenti le tabelle di `cli-reference.md` della skill `xrcopilotlab-blueprint` |
-| I nomi degli artifact prodotti dalle altre skill («— guida», «— demo (interna)», «— domande di prova», «DEMO-») | le sezioni di pubblicazione di `-guide`, `-test`, `-demo` |
+| I nomi degli artifact prodotti dalle altre skill («— guida», «— demo (interna)», «— domande di prova», «DEMO-») | le sezioni di pubblicazione di `-guide`, `-test`, `-demo`, `-storyboard` |
 
 Se una di queste fonti dice una cosa diversa dalla pagina, **vince la fonte**: si corregge la pagina
 nel punto preciso, senza toccare il resto. Una skill nuova nella catena si aggiunge come tappa, al suo

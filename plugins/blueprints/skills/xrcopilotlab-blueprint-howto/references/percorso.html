@@ -178,7 +178,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-si
   <h1>Dall'intervista alla demo</h1>
   <p class="lede">Il percorso intero, nell'ordine in cui lo farai: dall'installazione all'assessment
   dell'intervista con il cliente, dalla prima versione del manifest al collaudo che la porta a una
-  versione stabile, fino alle guide e al brief che servono prima di presentarsi dal cliente.</p>
+  versione stabile, fino alle guide, al brief e al video narrato della piattaforma che servono prima di presentarsi dal cliente.</p>
   <div class="chain" aria-label="La catena delle skill">
     <span class="n b">installazione</span><i>→</i>
     <span class="n d">assessment</span><i>→</i>
@@ -186,6 +186,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-si
     <span class="n c">blueprint-test ↺</span><i>→</i>
     <span class="n c">blueprint-guide</span><i>→</i>
     <span class="n c">blueprint-demo</span><i>→</i>
+    <span class="n c">blueprint-storyboard</span><i>→</i>
     <span class="n b">demo dal cliente</span>
   </div>
 </header>
@@ -199,7 +200,8 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-si
     <li><a href="#collaudo"><b>4</b><span>Collaudo fino ai verdi<small class="c">Claude Code</small></span></a></li>
     <li><a href="#guide"><b>5</b><span>Le due guide<small class="c">Code o Desktop</small></span></a></li>
     <li><a href="#brief"><b>6</b><span>Il brief per l'agenzia<small class="c">Code o Desktop</small></span></a></li>
-    <li><a href="#prima-della-demo"><b>7</b><span>Prima della demo<small>checklist</small></span></a></li>
+    <li><a href="#video"><b>7</b><span>Il video della demo<small class="c">Claude Code</small></span></a></li>
+    <li><a href="#prima-della-demo"><b>8</b><span>Prima della demo<small>checklist</small></span></a></li>
     <li><a href="#riferimenti"><b>·</b><span>Comandi ed errori<small>appendice</small></span></a></li>
   </ol>
   <div class="legend"><span class="d">scheda Chat · Claude Desktop</span><span class="c">scheda Code · Claude Code</span></div>
@@ -280,7 +282,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-si
   <h3><span class="k">Facoltativo</span>Una skill da sola, sull'altra app</h3>
   <div class="prose"><p>Ogni skill esiste anche come zip (<code>xrcopilotlab-assessment.zip</code>,
   <code>xrcopilotlab-blueprint.zip</code>, <code>-blueprint-test</code>, <code>-blueprint-guide</code>,
-  <code>-blueprint-demo</code>, <code>-blueprint-howto</code>) nella stessa pagina delle release. Su Desktop
+  <code>-blueprint-demo</code>, <code>-blueprint-storyboard</code>, <code>-blueprint-howto</code>) nella stessa pagina delle release. Su Desktop
   si carica in <em>Impostazioni → Capacità → Skill</em>; su Code si scompatta in <code>~/.claude/skills/</code>.
   Da Desktop le skill dei blueprint <strong>scrivono e spiegano</strong> un manifest o una suite, ma non
   li applicano né li eseguono. Chi ha già il plugin <code>blueprints</code> non scompatti anche le sue skill:
@@ -643,10 +645,38 @@ cases:
   che richiederebbe sviluppo lo elenca a te invece di metterlo nel brief.</p></div>
 </section>
 
-<!-- 7 · PRIMA DELLA DEMO -->
-<section class="stage" id="prima-della-demo">
+<!-- 7 · VIDEO -->
+<section class="stage" id="video">
   <div class="stage-head">
     <div class="stage-no">7</div>
+    <h2>Il video della demo</h2>
+    <div class="where"><span class="chip c">Claude Code</span><span class="chip s">xrcopilotlab-blueprint-storyboard</span></div>
+  </div>
+  <div class="prose">
+    <p>Il blueprint è applicato e collaudato: qui lo si <strong>fa vedere</strong>. La skill produce, di
+    default, <strong>un solo video narrato della piattaforma vera</strong>, in due parti: <strong>come si crea</strong>
+    (topic, conoscenza, assistenti, orchestratore e un processo disegnato a mano nell'editor, con testi semplici)
+    e <strong>il risultato già creato</strong>, spiegato nel dettaglio. Voce neurale italiana della piattaforma,
+    nessun sottotitolo, pagina con capitoli, pulsante <strong>Scarica</strong> e tempo di creazione.
+    Su richiesta scrive anche lo storyboard a tavole con gli schizzi, per un'agenzia.</p>
+  </div>
+  <div class="says">
+    <div class="say"><q>Fai il video del blueprint marketing</q><button class="copy" type="button">Copia</button>
+      <div class="then">Ti chiede l'<strong>ambiente</strong> (staging se non dici altro; in produzione solo sui tenant a cui appartieni), mostra il piano con le entità che nasceranno e <strong>aspetta il tuo sì</strong> prima di registrare.</div></div>
+    <div class="say"><q>Lo storyboard del blueprint, con la voce</q><button class="copy" type="button">Copia</button></div>
+  </div>
+  <div class="note"><b>Da sapere prima di dire sì</b><p>La creazione ripresa nel video <strong>scrive entità di prova sul
+  tenant</strong> (topic, assistenti, orchestratore, processo): restano lì finché non decidi di cancellarle, e la skill
+  non le cancella da sola. Registrare dura circa 8 minuti per la creazione e 4 per il tour del risultato; non servono
+  chiavi né ruoli Azure, la voce passa dalla piattaforma. Il video è di lavoro: nelle liste compaiono nomi di altri
+  progetti, da oscurare prima di mostrarlo fuori da Hevolus. I file di lavoro finiscono nell'archivio del tenant, non su disco.
+  Il registratore (<code>xrcopilotlab-demo</code>) nasce dal lavoro di Fabio Romano e si scarica da solo al primo uso.</p></div>
+</section>
+
+<!-- 8 · PRIMA DELLA DEMO -->
+<section class="stage" id="prima-della-demo">
+  <div class="stage-head">
+    <div class="stage-no">8</div>
     <h2>Prima di presentarsi dal cliente</h2>
     <div class="where"><span class="chip c">Claude Code</span></div>
   </div>
@@ -660,6 +690,7 @@ cases:
     <li><input type="checkbox" id="ck-6"><label for="ck-6"><code>/status</code> mostra l'organizzazione Hevolus, e i link delle guide si aprono da un'altra finestra</label></li>
     <li><input type="checkbox" id="ck-7"><label for="ck-7">La copia per la sala della guida (il file che si apre senza account) è sul computer che proietta</label></li>
     <li><input type="checkbox" id="ck-8"><label for="ck-8">Al cliente va solo la guida «— guida»; la «— demo (interna)» e le domande di prova restano a chi conduce</label></li>
+    <li><input type="checkbox" id="ck-9"><label for="ck-9">Se mostri il video della piattaforma: le entità di prova sono state cancellate o dichiarate, e i nomi di altri progetti nelle liste sono oscurati</label></li>
   </ul>
 </section>
 
@@ -706,6 +737,7 @@ cases:
       <tr><td><code>xrcopilotlab-blueprint-test</code></td><td>domande, esecuzione, giudizio, triage, issue dopo un sì, domande di prova</td><td>scrivere il manifest, la guida al cliente</td></tr>
       <tr><td><code>xrcopilotlab-blueprint-guide</code></td><td>le due guide della demo, e il deck</td><td>eseguire test, toccare il tenant</td></tr>
       <tr><td><code>xrcopilotlab-blueprint-demo</code></td><td>il brief per l'agenzia di marketing</td><td>post, immagini, la guida di un cliente</td></tr>
+      <tr><td><code>xrcopilotlab-blueprint-storyboard</code></td><td>il video narrato della piattaforma (creazione e risultato), con voce e download; su richiesta lo storyboard a tavole</td><td>cancellare le entità di prova, registrare senza il tuo sì, la voce finale umana</td></tr>
       <tr><td><code>xrcopilotlab-blueprint-howto</code></td><td>questa pagina</td><td>nessuna delle cose qui sopra</td></tr>
     </tbody></table></div>
 
