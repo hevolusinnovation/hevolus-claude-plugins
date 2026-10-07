@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-storyboard
-description: Scrive lo storyboard di un video breve (default 80 s) da un blueprint XRCopilotLab (manifest) o da un dossier di assessment - tavole da 6 riquadri con numero di scena, titolo, tempi, battuta della voce, descrizione visiva, scritte «a schermo», camera e schizzo a mano libera, con il codice colore viola = AI e azzurro = decisione umana. Mostra sempre la parte basilare della piattaforma (un profilo di knowledge assegnato a un assistente; un assistente creato con le sue skill) e racconta il processo del manifest. Scrive anche la narrazione e genera una voce guida di prova (audio) per verificare i tempi. Pubblicato come artifact con la sorgente Markdown e l'audio. Usa quando l'utente chiede "lo storyboard", "il video del blueprint", "le tavole del video", "la voce fuori campo", "storyboard del manifest". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (xrcopilotlab-blueprint-test) o il manifest (xrcopilotlab-blueprint).
+description: Scrive lo storyboard di un video breve (default 80 s) da un blueprint XRCopilotLab (manifest) o da un dossier di assessment - tavole da 6 riquadri con numero di scena, titolo, tempi, battuta della voce, descrizione visiva, scritte «a schermo», camera e schizzo a mano libera, con il codice colore viola = AI e azzurro = decisione umana. Mostra sempre la parte basilare della piattaforma (un profilo di knowledge assegnato a un assistente; un assistente creato con le sue skill) e racconta il processo del manifest. Scrive anche la narrazione e genera la voce neurale della piattaforma (`xrcopilotlab-bp voice`, senza chiavi Azure) per verificare i tempi. Pubblicato come artifact con la sorgente Markdown e l'audio. Usa quando l'utente chiede "lo storyboard", "il video del blueprint", "le tavole del video", "la voce fuori campo", "storyboard del manifest". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (xrcopilotlab-blueprint-test) o il manifest (xrcopilotlab-blueprint).
 ---
 
 # xrcopilotlab-blueprint-storyboard
@@ -49,7 +49,15 @@ collaudo, dossier in `../hevolus-assessment/customers/*/`), e le domande del §1
 
 Si chiede, **tutto in una volta**, e si attende la risposta:
 
-1. la **fonte**: tag o file del manifest, eventualmente il dossier;
+1. la **fonte**: tag o file del manifest, eventualmente il dossier, e **l'ambiente** su cui vive il
+   blueprint (`staging` o `prod`). **L'ambiente non si dà per scontato**: se l'utente nomina uno
+   scenario («Studio Polis») senza dire l'ambiente, **si chiede**, come fa
+   [`xrcopilotlab-blueprint`](../xrcopilotlab-blueprint/SKILL.md) — prima si esegue
+   `xrcopilotlab-bp environments` per sapere dove l'utenza può lavorare davvero, poi si propone
+   **staging come predefinito** e si attende la risposta. L'ambiente scelto vale per tutto: il `pull`
+   del manifest (`--env`), la voce (`voice --env`) e, per il video con lo schermo reale, il
+   `target_env` del recorder. Se il manifest dichiara un ambiente o un tenant diverso da quello
+   scelto, lo si dice e ci si ferma. In produzione si lavora solo sui tenant a cui l'utente appartiene;
 2. la **durata** (80 s se non detto). **La lingua è l'italiano, per ora la sola**: tavole, battute,
    scritte «a schermo» e voce guida (`say -v Alice`) sono in italiano, e non si chiede. Se l'utente
    porta un'altra lingua, si dice che per ora non è prevista e si prosegue in italiano;
@@ -111,12 +119,29 @@ sono ciò che il video insegna. Ognuna si introduce **una volta**, con la sua sp
 frase («una skill: una capacità in più, come leggere una PEC»), e poi si usa. Restano vietati
 manifest, YAML, id, tag, prompt, token, endpoint, nomi di step, versioni.
 
-## 5. La voce e l'audio di prova
+## 5. La voce
 
-Si scrive la battuta di ogni scena, si controlla il budget di parole e — se l'utente l'ha chiesto —
-si genera la voce guida con la procedura di [`narrazione.md`](references/narrazione.md). È una **voce
-sintetica di servizio**: serve a sentire i tempi e a far leggere il racconto, non è la voce finale.
-Se una battuta è più lunga della scena, si **accorcia il testo**, non si accelera la voce.
+Si scrive la battuta di ogni scena e si genera la voce **neurale della piattaforma** con la CLI:
+
+```bash
+xrcopilotlab-bp voice say --lines righe.json --out-dir audio --env <ambiente>
+```
+
+(`righe.json` è un elenco `[{"name":"scena-1","text":"…"}]`; l'ambiente è quello scelto al §1.) Usa
+l'endpoint `common/speech` con l'accesso che ogni utente della CLI ha già: **nessuna chiave Azure,
+nessun ruolo da chiedere**, quindi funziona per chiunque in Hevolus abbia il plugin, non solo per il
+team AI. La voce di default è quella che la piattaforma ha scelto per l'italiano; `voice list` mostra
+le altre (esistono anche voci HD più naturali), e se l'utente ne vuole una si passa `--voice`.
+
+Se la CLI non ha `voice` (plugin più vecchio) si ripiega sulla voce di sistema (`say`, solo macOS) e
+lo si dice: suona molto più artificiale, vedi [`narrazione.md`](references/narrazione.md). Il testo
+della narrazione va all'endpoint della piattaforma: lo scenario resta anonimo come in tutto lo
+storyboard.
+
+Una voce neurale parla **più lenta** della voce di sistema (circa 1,5 parole al secondo): si misura
+ogni battuta e, se è più lunga della scena, **si accorcia il testo** o si ridistribuiscono i secondi
+fra scene, mai si accelera la voce. È l'unica voce di questa skill; per un video da consegnare si può
+comunque registrare una voce umana dal «Copione della voce».
 
 ## 5-bis. Il video: l'animatic
 
@@ -130,8 +155,12 @@ L'animatic è un **video di lavoro** — schizzi e voce di servizio — non il v
 finale con lo schermo reale dell'applicazione si registra con
 [`demo-recorder-playwright`](https://github.com/hevolusinnovation/demo-recorder-playwright): le scene
 marcate `Dn` (punti di demo) sono quelle da sostituire con le riprese; lo storyboard le elenca e il
-brief del recorder lo scrive il plugin `demo` (`xrcopilotlab-demo-video`). Lanciare una registrazione
-è un'azione esterna e va chiesta all'utente.
+brief del recorder lo scrive il plugin `demo` (`xrcopilotlab-demo-video`). Il recorder gira su
+**staging** (`target_env=staging`, o l'ambiente scelto al §1) e registra sulla company `hevodemo`: il
+blueprint deve essere applicato **lì** e verificato; se vive su un altro tenant lo si dice e ci si
+ferma. Il giro è in sola lettura (niente chat né processi): le scene `Dn` che li richiedono restano
+schizzi finché il recorder non le sa fare. Lanciare una registrazione, o applicare un blueprint su
+`hevodemo`, è un'azione esterna e va chiesta all'utente.
 
 ## 6. Controlli bloccanti prima di pubblicare
 
@@ -186,7 +215,10 @@ ne usa gli stessi stati e limiti.
 - Non aggiungere marchi, loghi o fasce a piè di tavola.
 - Non mostrare nel video ciò che il manifest non fa: una scena su una funzione non provata si
   toglie, non si abbellisce.
-- Non generare musica né una voce «finale»: l'audio di servizio è dichiarato tale.
+- Non generare musica. La voce neurale della piattaforma è una voce guida: per un video da consegnare
+  si registra una voce umana dal «Copione della voce».
+- Non assumere l'ambiente: se l'utente non lo dice, lo si chiede (staging predefinito).
+- Non chiedere all'utente chiavi o ruoli Azure per la voce: c'è `xrcopilotlab-bp voice`.
 - Non pubblicare audio o tavole in un repository: contengono lo scenario di un cliente.
 - Non lasciare le scene della parte basilare fuori «per brevità»: sono il motivo per cui questa
   skill esiste.

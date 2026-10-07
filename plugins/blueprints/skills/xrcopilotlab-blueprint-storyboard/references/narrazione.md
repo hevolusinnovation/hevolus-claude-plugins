@@ -5,7 +5,7 @@
 La lingua è l'**italiano**, per ora la sola: battute, scritte e voce guida (`Alice`, `Reed`).
 
 - Una frase per scena, due al massimo; parlata, non scritta: «Poi decide una persona.»
-- **Budget di parole**: circa **2 parole al secondo** di scena, meno se la scena ha un movimento
+- **Budget di parole**: con la voce neurale della piattaforma circa **1,5 parole al secondo** di scena (2 con la voce di sistema), meno se la scena ha un movimento
   importante. Una scena da 4 s regge 8 parole; una da 7,5 s, 14. Le pause fanno parte del racconto.
 - Dove l'immagine parla da sola: **nessuna voce**. «Musica · nessuna voce» vale come battuta.
 - Numeri e sigle si scrivono come si dicono («quattordici», «PEC» letto come lettere, «ISO»).
@@ -13,6 +13,20 @@ La lingua è l'**italiano**, per ora la sola: battute, scritte e voce guida (`Al
 - La **frase chiave** arriva una volta, in fondo, in due tempi se serve; non si ripete prima.
 - Le parole introdotte nella parte basilare (archivio, knowledge, assistente, skill) si dicono con
   la loro spiegazione la prima volta ([`base-piattaforma.md`](base-piattaforma.md)).
+
+## La voce della piattaforma (`xrcopilotlab-bp voice`)
+
+```bash
+xrcopilotlab-bp voice list --env <ambiente>                         # le voci, con il loro identificativo
+xrcopilotlab-bp voice say "<testo>" --out scena-1.mp3 --env <ambiente>
+xrcopilotlab-bp voice say --lines righe.json --out-dir audio --env <ambiente>
+```
+
+Formato MP3 mono 16 kHz. Poi si misura e si monta come qui sotto (la parte «Traccia unica»), con la
+stessa regola: la durata reale entro la scena, con almeno 0,3 s di respiro.
+
+**La voce di sistema (`say`) è solo il ripiego**, per quando la CLI non ha `voice` o non c'è la
+rete verso la piattaforma. Resta la procedura qui sotto, e va detto che suona artificiale.
 
 ## Voce guida di prova (macOS)
 
@@ -48,21 +62,16 @@ ffprobe -v error -show_entries format=duration -of csv=p=0 scena-<codice>.mp3   
 4. Sono **audio di servizio**: lo si scrive nella pagina («voce di prova») e nel messaggio finale.
    Non si pubblica come voce del video.
 
-## Se la voce è troppo sintetica
+## Voci migliori della predefinita
 
-La voce di sistema (`say`) è **di servizio**: sul Mac ci sono solo le voci italiane di base (Alice,
-Reed, Flo, Sandy, Eddy…) e suonano artificiali. Non si può migliorare dalla skill. Le strade, in
-ordine di costo, e **ogni voce migliore si chiede all'utente prima**:
+`voice list` elenca anche le voci **HD** della piattaforma (per l'italiano, per esempio, quelle con
+`DragonHD` nell'identificativo): più naturali, ma si **provano** prima di sceglierle e si ricontrollano
+i tempi. Si passano con `--voice "<identificativo>"`. Per un video da consegnare, la strada resta una
+**voce umana** a partire dal «Copione della voce» in fondo allo `storyboard.md`.
 
-1. **Voci Premium/Migliorate** di macOS, se l'utente le scarica (Impostazioni di Sistema →
-   Accessibilità → Contenuto vocale → Voci di sistema → Gestisci voci → Italiano): `say -v '?'` le
-   elenca e la skill usa la migliore che trova. Locale e gratuito, ma resta una voce di sistema.
-2. **Una voce neurale in cloud** (per esempio Azure AI Speech, voci `it-IT`, o un servizio di terzi):
-   molto più naturale, ma il **testo della narrazione esce dalla macchina** e serve una chiave. Si usa
-   solo con l'ok dell'utente, con lo scenario anonimo, e la chiave non entra mai nei file.
-3. **Una voce umana**: si consegna la sezione «Copione della voce» a chi registra, con i tempi.
-
-Qualunque sia la voce, i tempi sono quelli dello storyboard: si rimisura con la stessa procedura.
+Il ripiego `say` (macOS) ha solo le voci italiane base; se l'utente scarica quelle Premium
+(Impostazioni di Sistema → Accessibilità → Contenuto vocale → Voci di sistema → Gestisci voci)
+`say -v '?'` le elenca e si usa la migliore.
 
 ## L'animatic
 
