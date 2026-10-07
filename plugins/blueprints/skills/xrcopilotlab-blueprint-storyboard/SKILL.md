@@ -1,12 +1,13 @@
 ---
 name: xrcopilotlab-blueprint-storyboard
-description: Scrive lo storyboard di un video breve (default 80 s) da un blueprint XRCopilotLab (manifest) o da un dossier di assessment - tavole da 6 riquadri con numero di scena, titolo, tempi, battuta della voce, descrizione visiva, scritte «a schermo», camera e schizzo a mano libera, con il codice colore viola = AI e azzurro = decisione umana. Mostra sempre la parte basilare della piattaforma (un profilo di knowledge assegnato a un assistente; un assistente creato con le sue skill) e racconta il processo del manifest. Scrive anche la narrazione e genera la voce neurale della piattaforma (`xrcopilotlab-bp voice`, senza chiavi Azure) per verificare i tempi. Pubblicato come artifact con la sorgente Markdown e l'audio. Usa quando l'utente chiede "lo storyboard", "il video del blueprint", "le tavole del video", "la voce fuori campo", "storyboard del manifest". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (xrcopilotlab-blueprint-test) o il manifest (xrcopilotlab-blueprint).
+description: Da un blueprint XRCopilotLab (manifest) produce, di default, UN SOLO VIDEO NARRATO dell'applicazione vera (staging o prod): prima come si crea - topic, conoscenza, assistenti, orchestratore e un processo BPM disegnato a mano nell'editor - poi il risultato già creato spiegato nel dettaglio, con voce neurale italiana della piattaforma (`xrcopilotlab-bp voice`, senza chiavi Azure), senza sottotitoli, pubblicato come artifact con pulsante di download e tempo di creazione. Su richiesta scrive anche lo storyboard a tavole da 80 s con schizzi, battute e audio guida (parte basilare: knowledge assegnata a un assistente, assistente con le sue skill). Chiede ambiente e il sì prima di registrare, perché la creazione scrive entità di prova sul tenant. Usa quando l'utente chiede "il video del blueprint", "il video di come si crea", "lo storyboard", "le tavole del video", "la voce fuori campo", "storyboard del manifest". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (xrcopilotlab-blueprint-test) o il manifest (xrcopilotlab-blueprint).
 ---
 
 # xrcopilotlab-blueprint-storyboard
 
-Porta un blueprint da «esiste, e sappiamo come funziona» a «lo si può raccontare in un video di
-80 secondi». Il prodotto è lo **storyboard**: le tavole che un'agenzia, un illustratore o un
+Porta un blueprint da «esiste, e sappiamo come funziona» a «lo si può guardare in un video». Il prodotto
+di default è **un solo video narrato dell'applicazione vera** ([§5-ter](#5-ter-il-video-narrato-prodotto-di-default));
+su richiesta, lo **storyboard** di un video di 80 secondi:  le tavole che un'agenzia, un illustratore o un
 generatore di video prendono per realizzare il video, con la **voce** già scritta e un audio di
 prova per misurarne i tempi.
 
@@ -15,8 +16,10 @@ storyboard dice *come lo si racconta in video*. Ne eredita fonti, riservatezza e
 ([`../xrcopilotlab-blueprint-demo/references/`](../xrcopilotlab-blueprint-demo/references/)); la
 skill `xrcopilotlab-blueprint-demo` la propone come ultimo passo, dopo il brief.
 
-**Sola lettura sul tenant**: legge il manifest (file, oppure `xrcopilotlab-bp pull --tag <TAG>`),
-non applica niente, non lancia test, non scrive nel repository.
+**Storyboard e tour del risultato: sola lettura sul tenant** (legge il manifest da file o con
+`xrcopilotlab-bp pull --tag <TAG>`, non applica niente, non lancia test, non scrive nel repository).
+**La creazione registrata nel video scrive entità di prova sul tenant**: parte solo dopo il sì dell'utente,
+su ambiente e company dichiarati, e le entità si cancellano solo con un altro sì.
 
 | Chi | Fa | Non fa |
 |---|---|---|
