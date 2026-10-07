@@ -462,7 +462,8 @@ Che cosa **non** fa:
 
 ### `xrcopilotlab-blueprint-storyboard` — lo storyboard del video
 
-Parte da un manifest e scrive lo storyboard di un video breve (80 secondi se non dici altro), in
+Il prodotto di default è **un solo video narrato della piattaforma vera** (vedi la riga «Il video del blueprint»);
+lo storyboard a tavole con gli schizzi si fa solo su richiesta. Parte da un manifest e scrive lo storyboard di un video breve (80 secondi se non dici altro), in
 italiano: tavole da sei riquadri con codice scena, titolo, tempi, battuta della voce, scritte «a
 schermo», camera e schizzo. Il viola è l'AI, l'azzurro è una decisione umana. Mostra sempre la parte
 basilare — come si assegna la knowledge a un assistente e come nasce un assistente con le sue skill —
@@ -473,6 +474,7 @@ e poi il processo del manifest.
 | «Lo storyboard di questo blueprint» · «le tavole del video» | Ricava la storia dal manifest, propone il copione (scena, secondi, battuta) e aspetta il tuo sì prima di disegnare |
 | «Con la voce» | Misura ogni battuta contro i secondi della scena e genera un audio guida di prova, scena per scena e intero |
 | «Anima gli schizzi» | Dalle scene con codice `Dn` ricava un clip per scena: i tratti si disegnano, dove decide una persona gli elementi azzurri pulsano, con la voce di quella scena. Nessun sottotitolo: il disegno occupa tutto il fotogramma e racconta la voce |
+| «Il video del blueprint» (prodotto di default) | Un **solo video reale** con la voce neurale, senza sottotitoli: prima come si crea — topic, conoscenza, assistenti, orchestratore e un **processo disegnato a mano** nell'editor — poi il risultato già creato, spiegato nel dettaglio. Si pubblica con il pulsante **Scarica** e il tempo di creazione sotto il titolo. Chiede il sì prima di registrare (scrive entità di prova sul tenant, che poi propone di cancellare) |
 | «Mostra come si crea» · «il video reale» | Con `xrcopilotlab-demo create` registra nell'interfaccia, davanti alla camera, ciò che dichiara il manifest (1920×1080, cursore rosso con l'onda del clic); `tour` e `record` mostrano invece il risultato. Prima di lanciare chiede il sì, dicendo ambiente, company ed entità che nascono |
 | — | Pubblica l'artifact «<Scenario> — storyboard» con la sorgente `storyboard.md` e l'audio, e lo apre in una nuova finestra a tutto schermo |
 
