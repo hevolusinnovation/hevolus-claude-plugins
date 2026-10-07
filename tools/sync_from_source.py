@@ -76,6 +76,7 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-storyboard/SKILL.md", DEST_STORYBOARD / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/base-piattaforma.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/da-guida.md", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/registrazione.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/tavola.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/narrazione.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/schizzi.md", DEST_STORYBOARD / "references"),

@@ -32,6 +32,7 @@ Input: `$ARGS` — un tag o un manifest, un dossier, la durata, il tono; oppure 
 | Passo | Documento |
 |---|---|
 | Le scene che non possono mancare (knowledge → assistente, assistente + skill) e come si ricavano dal manifest | [`references/base-piattaforma.md`](references/base-piattaforma.md) |
+| Registrare l'applicazione vera (`xrcopilotlab-demo`): panoramica, scene `Dn`, montaggio | [`references/registrazione.md`](references/registrazione.md) |
 | Partire dalla guida del cliente: da slide a scena, punti di demo `Dn` | [`references/da-guida.md`](references/da-guida.md) |
 | Formato di una tavola, codici scena, tempi, colori | [`references/tavola.md`](references/tavola.md) |
 | Scrivere la voce, misurarla, generare l'audio di prova | [`references/narrazione.md`](references/narrazione.md) |
@@ -151,16 +152,18 @@ e la battuta come sottotitolo, e sotto la traccia guida. Pesa circa 1 MB per 80 
 [`narrazione.md`](references/narrazione.md) § «L'animatic». Si incorpora in cima all'artifact con
 `<video controls>` e si pubblica come file di supporto (`animatic.mp4`).
 
-L'animatic è un **video di lavoro** — schizzi e voce di servizio — non il video finale. Il video
-finale con lo schermo reale dell'applicazione si registra con
-[`demo-recorder-playwright`](https://github.com/hevolusinnovation/demo-recorder-playwright): le scene
-marcate `Dn` (punti di demo) sono quelle da sostituire con le riprese; lo storyboard le elenca e il
-brief del recorder lo scrive il plugin `demo` (`xrcopilotlab-demo-video`). Il recorder gira su
-**staging** (`target_env=staging`, o l'ambiente scelto al §1) e registra sulla company `hevodemo`: il
-blueprint deve essere applicato **lì** e verificato; se vive su un altro tenant lo si dice e ci si
-ferma. Il giro è in sola lettura (niente chat né processi): le scene `Dn` che li richiedono restano
-schizzi finché il recorder non le sa fare. Lanciare una registrazione, o applicare un blueprint su
-`hevodemo`, è un'azione esterna e va chiesta all'utente.
+L'animatic è un **video di lavoro** — schizzi e voce — non il video finale. Il video con lo schermo
+reale dell'applicazione si registra con **`xrcopilotlab-demo`**, il banco di registrazione in forma di comando
+(come `xrcopilotlab-bp`: il lanciatore sta nel plugin `blueprints` e scarica il pacchetto al primo uso).
+Questa skill **assorbe** `xrcopilotlab-demo-video`: la panoramica di un blueprint applicato è
+`xrcopilotlab-demo tour`, le scene `Dn` sono `xrcopilotlab-demo record`. Tutto in
+[`references/registrazione.md`](references/registrazione.md): prerequisiti (`doctor`), formato del brief e
+del piano, uscita (`video.mp4`, `scene-timings.json`, un clip per scena) e montaggio.
+
+Regole che non si derogano: l'**ambiente** è quello scelto al §1 e si passa sempre con `--env`; la
+registrazione apre conversazioni e istanze sul tenant, quindi si **chiede il sì** prima di lanciarla; le
+credenziali dell'account demo non passano mai dalla skill; una scena senza selettori verificati resta
+uno schizzo e lo si dichiara.
 
 ## 6. Controlli bloccanti prima di pubblicare
 
