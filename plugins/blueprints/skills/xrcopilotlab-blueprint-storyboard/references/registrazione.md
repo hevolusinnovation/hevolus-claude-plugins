@@ -21,7 +21,26 @@ banco, e non finisce in un repository né in una conversazione.
 `SKILL.md` (staging come predefinito) e lo passa uguale a ogni comando. Una registrazione apre
 conversazioni e istanze sul tenant: dire a chi la chiede su quale ambiente e quale company, e attendere il sì.
 
-## Due modi
+## Tre modi
+
+| | Che cosa fa | Scrive sul tenant? |
+|---|---|---|
+| `create --manifest m.yml [--regia r.yml]` | **Crea nell'interfaccia, davanti alla camera, ciò che dichiara il manifest**: topic, profili di conoscenza, assistenti (con istruzioni, modello, knowledge) e orchestratori sul canvas. Le entità nascono con un suffisso di run, `«Nome» (l1007…)`, per non toccare quelle del blueprint già applicato | **Sì** |
+| `tour --brief brief.json` | Panoramica delle entità già create, con una frase ciascuna | No |
+| `record --plan piano.json` | Registra un piano di azioni (`navigate`, `click`, `fill`, `expectVisible`, `pause`, anche con scene `Dn`) | No, salvo il piano |
+
+`create` è la strada per «mostrare esattamente come si crea»; `tour` e `record` mostrano il **risultato**, che
+va spiegato nel dettaglio con le entità già create. `create --plan-only` calcola il piano e si ferma, senza
+browser e senza toccare il tenant: è quello che si mostra all'utente prima del sì. Cosa il video di
+creazione **non** copre (connessioni, server MCP, ruoli aziendali, agent task, processi) lo dice il piano
+stesso, in una nota per ciascuna sezione: quelle si mostrano con `tour`/`record` sulle entità esistenti.
+
+**Prima di lanciare `create` si chiede il sì**, dicendo su quale ambiente e company, quante entità nascono
+e con quali nomi. Le entità restano sul tenant dopo la registrazione.
+
+La finestra è **1920×1080** (`--size`), e il video porta un **cursore rosso con l'onda del clic**.
+
+## Due modi (panoramica e piano)
 
 | | Che cosa fa | Quando |
 |---|---|---|
