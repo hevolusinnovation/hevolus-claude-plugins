@@ -337,7 +337,7 @@ eventuali segnalazioni li prepara la skill, e nessuna issue viene aperta senza l
 
 Non sei autenticato. Fai `gh auth login` e riprova. Se in azienda `gh` non si può installare,
 scarica il file a mano dalla
-[release](https://github.com/hevolusinnovation/xrcopilotlab-webapp-dotnet/releases) scegliendo
+[release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases) scegliendo
 quello della tua piattaforma, e indicalo così:
 
 ```bash
