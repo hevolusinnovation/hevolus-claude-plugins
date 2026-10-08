@@ -1169,7 +1169,7 @@ nessun inventario che un `rollback` o un `delete` possa smontare. Se non c'è, l
 lo dice. I membri del ruolo non stanno nel manifest: si leggono dalla chiave `Blueprints:Assistenza:Members`
 dell'App Configuration dell'ambiente (email separate da virgola); senza, il ruolo nasce vuoto e il piano lo
 dice (`BP106`). La definizione è la risorsa
-[`assistenza-xrcopilotlab.yml`](../../src/XRCopilotLab/XRCopilotLab.BluePrints/Extensions/assistenza-xrcopilotlab.yml).
+[`assistenza-xrcopilotlab.yml`](assistenza-xrcopilotlab.yml).
 
 ## `version`
 

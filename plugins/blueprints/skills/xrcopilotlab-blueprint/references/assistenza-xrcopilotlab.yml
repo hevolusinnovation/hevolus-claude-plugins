@@ -1,0 +1,99 @@
+# L'Assistenza XRCopilotLab: il ruolo e il processo dove arrivano le segnalazioni della CLI dei blueprint.
+#
+# NON si scrive in un manifest e non si applica da sola: la CLI (e la chat dei blueprint) la AGGIUNGE al
+# piano di ogni manifest se il tenant non l'ha già (AssistenzaExtension). I nomi sono fissi e senza il
+# prefisso BP-<TAG>-, perché appartengono alla piattaforma e non a un blueprint; delete e rollback di un
+# blueprint non li tolgono. I membri del ruolo e i proprietari del processo non stanno qui: li mette
+# l'estensione, dalla chiave di App Configuration «Blueprints:Assistenza:Members» dell'ambiente.
+#
+# La rotta POST support/report avvia un'istanza di questo processo; le notifiche dei work item
+# (Teams 1:1, email di ripiego) la recapitano ai membri del ruolo.
+blueprint: assistenza-xrcopilotlab
+version: 1
+tag: ASSISTENZA
+description: Le segnalazioni che la CLI dei blueprint manda al team di XRCopilotLab, con un'attività da prendere in carico.
+
+tenant:
+  companyId: 00000000-0000-0000-0000-000000000000   # segnaposto: comanda il tenant su cui si applica
+
+businessRoles:
+  - key: assistenza
+    name: Assistenza XRCopilotLab
+    description: Riceve le segnalazioni della CLI dei blueprint (ruoli Azure mancanti, difetti della webapp o della libreria) e le prende in carico.
+    members: []
+
+processes:
+  - key: assistenza
+    publish: true
+    owners: []
+    webhook:
+      enabled: false          # la rotta support/report avvia l'istanza da dentro l'Api, dopo aver verificato il token
+    spec:
+      version: 1
+      name: Assistenza XRCopilotLab
+      description: Una segnalazione della CLI dei blueprint, da prendere in carico e chiudere.
+      criticality: Medium
+      dataSensitivity: Internal
+      activities:
+        - id: start
+          type: Start
+          name: Segnalazione ricevuta
+          form:
+            - key: tipo
+              label: Tipo
+              type: text
+              required: true
+              description: accesso (manca un ruolo Azure) oppure difetto (webapp o libreria)
+            - key: ambiente
+              label: Ambiente
+              type: text
+              required: true
+            - key: chi
+              label: Chi ha segnalato
+              type: text
+              required: true
+            - key: manifest
+              label: Manifest (tag, versione, file)
+              type: text
+            - key: comando
+              label: Comando
+              type: text
+            - key: versioneCli
+              label: Versione della CLI
+              type: text
+            - key: messaggio
+              label: Che cosa è successo
+              type: textarea
+              required: true
+
+        - id: presa-in-carico
+          type: Task
+          name: Prendi in carico la segnalazione
+          performer: HumanOnly
+          roleName: Assistenza XRCopilotLab
+          expectedDurationMinutes: 60
+          maxLeadTimeMinutes: 1440
+          form:
+            - key: messaggio
+              label: Che cosa è successo
+              type: textarea
+              context: true
+            - key: chi
+              label: Chi ha segnalato
+              type: text
+              context: true
+            - key: esito
+              label: Esito
+              type: textarea
+              required: true
+              description: Che cosa si è fatto, o a chi è stata girata
+
+        - id: fine
+          type: End
+          name: Segnalazione chiusa
+
+      flows:
+        - from: start
+          to: presa-in-carico
+        - from: presa-in-carico
+          to: fine

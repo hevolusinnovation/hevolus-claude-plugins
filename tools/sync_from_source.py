@@ -28,6 +28,8 @@ DEST_VERSION = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blue
 # Un riferimento nuovo in una skill va aggiunto QUI: se non compare, la copia nel plugin non esiste
 # e la skill punta a un file che chi l'ha installata non ha.
 COPIE = [
+    # La definizione dell'estensione «Assistenza XRCopilotLab», citata dalla cli-reference.
+    ("src/XRCopilotLab/XRCopilotLab.BluePrints/Extensions/assistenza-xrcopilotlab.yml", DEST / "references"),
     # La skill di provisioning e i riferimenti che le appartengono.
     (".claude/skills/xrcopilotlab-blueprint/SKILL.md", DEST / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint/references/installazione.md", DEST / "references"),
@@ -85,6 +87,8 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/schizzi.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/storyboard-template.html", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/video-narrato.md", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/processo-in-funzione.md", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/guida-video.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/compose-video.py", DEST_STORYBOARD / "compose-video.py"),
     # La mail delle novità fra due versioni del plugin: legge lo storico del catalogo, lascia una bozza. Non esegue.
     (".claude/skills/xrcopilotlab-blueprint-version/SKILL.md", DEST_VERSION / "SKILL.md"),
@@ -105,6 +109,11 @@ RISCRITTURE = {
         (
             "[`docs/blueprints/cli-reference.md`](../../../docs/blueprints/cli-reference.md)",
             "[`references/cli-reference.md`](references/cli-reference.md)",
+        ),
+        # La stessa destinazione compare anche con altre etichette: si riscrive il solo indirizzo.
+        (
+            "](../../../docs/blueprints/cli-reference.md)",
+            "](references/cli-reference.md)",
         ),
         (
             "| Guida d'insieme | [`BLUEPRINTS.md`](../../../BLUEPRINTS.md) |",
@@ -131,6 +140,10 @@ RISCRITTURE = {
             "[`testing.md`](testing.md)",
             "[`testing.md`](../../xrcopilotlab-blueprint-test/references/testing.md)",
         ),
+        (
+            "(../../src/XRCopilotLab/XRCopilotLab.BluePrints/Extensions/assistenza-xrcopilotlab.yml)",
+            "(assistenza-xrcopilotlab.yml)",
+        ),
     ],
     DEST / "references" / "manifest-reference.md": [
         (
@@ -153,6 +166,12 @@ RISCRITTURE = {
         (
             "[`docs/blueprints/manifest-reference.md`](../../../../docs/blueprints/manifest-reference.md)",
             "[`manifest-reference.md`](../../xrcopilotlab-blueprint/references/manifest-reference.md)",
+        ),
+    ],
+    DEST_STORYBOARD / "references" / "guida-video.md": [
+        (
+            "(../../../../docs/blueprints/manifest-reference.md)",
+            "(../../xrcopilotlab-blueprint/references/manifest-reference.md)",
         ),
     ],
     DEST_TEST / "SKILL.md": [

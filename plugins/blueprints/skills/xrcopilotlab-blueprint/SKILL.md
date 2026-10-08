@@ -256,7 +256,7 @@ La segnalazione diventa un'**attività da prendere in carico** per il ruolo «As
 «Assistenza XRCopilotLab»), che le notifiche dei processi recapitano su Teams
 o per email; porta **chi** sta usando la skill, l'**ambiente**, il **manifest** (tag, versione, file) e il
 messaggio. Funziona anche a chi non ha i ruoli: non legge l'App Configuration, prova chi è con il
-token Entra del suo account. Dettagli e limiti in [`cli-reference.md`](../../../docs/blueprints/cli-reference.md).
+token Entra del suo account. Dettagli e limiti in [`cli-reference.md`](references/cli-reference.md).
 
 Regole che non si derogano:
 
