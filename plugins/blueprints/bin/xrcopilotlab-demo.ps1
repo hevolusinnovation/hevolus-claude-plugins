@@ -24,6 +24,13 @@ $Asset = "xrcopilotlab-demo-$Rid.zip"
 $Tag = "demo-v$Version"
 
 function Scarica($nome, $destinazione) {
+  # La strada normale: il catalogo è pubblico, quindi si scarica senza account, senza gh e senza token.
+  try {
+    $ProgressPreference = 'SilentlyContinue'
+    Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/$RepoCatalogo/releases/download/$Tag/$nome" -OutFile $destinazione
+    if (Test-Path $destinazione) { return $true }
+  } catch { }
+
   foreach ($repo in @($RepoCatalogo, $RepoBanco)) {
     if (Get-Command gh -ErrorAction SilentlyContinue) {
       gh auth status *> $null
@@ -42,7 +49,7 @@ $Zip = Join-Path $CacheDir ".download-$Rid.zip"
 $Sha = "$Zip.sha256"
 
 if (-not (Scarica $Asset $Zip)) {
-  Write-Error "xrcopilotlab-demo: non sono riuscito a scaricare $Asset (release $Tag). Serve 'gh auth login' con accesso al catalogo; oppure estrai il pacchetto a mano e imposta XRCOPILOTLAB_DEMO_DIR."
+  Write-Error "xrcopilotlab-demo: non sono riuscito a scaricare $Asset (release $Tag). Il catalogo è pubblico, quindi non serve un account GitHub: controlla che il computer raggiunga github.com (rete aziendale, proxy, VPN); oppure estrai il pacchetto a mano e imposta XRCOPILOTLAB_DEMO_DIR."
   exit 70
 }
 

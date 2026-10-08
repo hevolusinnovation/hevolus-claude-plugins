@@ -186,16 +186,12 @@ il plugin porta le skill e si procura da solo lo strumento a riga di comando.
 |---|---|---|
 | **L'app Claude, scheda Code** | è lì che gira il plugin | [installer per macOS e Windows](#unapp-sola-due-schede) — poi accedi e clicca **Code** |
 | **`git`** | registrare il catalogo è un clone di questo repository | chiedi a Claude, nella scheda Code: «`git --version` funziona?» |
-| **Un accesso GitHub a `hevolusinnovation`** | questo catalogo è privato: serve a installare il plugin **e** a scaricare la CLI, che vive fra i suoi allegati | chiedi a Claude: «sono autenticato su GitHub?» — se non lo sei ti guida lui (`gh auth login` apre il browser). Se `git` o GitHub CLI non ci sono proprio, chiedi al team: è l'unico pezzo che non puoi mettere a posto da solo |
 | **I ruoli Azure** | la CLI legge App Configuration e Key Vault dell'ambiente | [§ L'accesso ad Azure](accesso-azure.md) |
 
-> **Un accesso solo, non due.** Il binario della CLI nasce nel repository di prodotto, ma i suoi
-> allegati vengono rispecchiati qui a ogni release: l'avviatore guarda **prima** in questo catalogo,
-> e solo come riserva nel prodotto. Quindi chi può installare il plugin può anche scaricare la CLI.
->
-> Vale dalla prima release rispecchiata in poi. Se stai usando una versione più vecchia e il primo
-> comando risponde `404`, non è «la release non esiste»: è «non hai accesso al repository di
-> prodotto». Chiedi al team di pubblicare una release aggiornata, invece di riprovare.
+> **Nessun account GitHub.** Questo catalogo è pubblico: registrarlo e scaricare la CLI, che sta
+> fra gli allegati delle sue release, non richiedono né un accesso all'organizzazione né `gh`.
+> L'avviatore scarica con un semplice `curl` (o `Invoke-WebRequest` su Windows) e verifica l'impronta
+> SHA-256. Serve solo che il computer raggiunga `github.com`.
 
 ### Le due righe
 
@@ -272,13 +268,11 @@ Cosa fanno le quattro skill del plugin `blueprints`, con che frasi si attivano e
 
 | Cosa vedi | Cosa è successo |
 |---|---|
-| `/plugin marketplace add` dà **404** o chiede credenziali | Non hai accesso a questo repository, o `git` sulla macchina non è autenticato su GitHub. `gh auth login`, e se resta 404 chiedi di essere aggiunto all'organizzazione |
-| «per scaricare la CLI serve l'accesso a GitHub» | `gh` non c'è o non sei autenticato: `gh auth login` |
-| «non sono riuscito a scaricare …» al primo comando | Il messaggio elenca le tre cause possibili e il rimedio di ciascuna. La più frequente: sei autenticato su GitHub, ma con un account che non legge il catalogo. Non si risolve riprovando |
+| `/plugin marketplace add` non riesce | Il catalogo è pubblico, quindi non è un problema di permessi: controlla che `git` sia installato e che il computer raggiunga `github.com` (rete aziendale, proxy, VPN). Se hai un vecchio accesso configurato, prova con l'indirizzo completo: `/plugin marketplace add https://github.com/hevolusinnovation/hevolus-claude-plugins.git` |
+| «non sono riuscito a scaricare …» al primo comando | Il computer non raggiunge `github.com` (rete aziendale, proxy, VPN), oppure la release non ha il binario per la tua piattaforma. Il messaggio dice quale; nel primo caso si riprova da un'altra rete, nel secondo si chiede una release aggiornata |
 | «la release non contiene l'allegato …» | Stai su una versione pubblicata prima del mirror, oppure su una piattaforma senza binario. Chiedi al team una release aggiornata, o fatti passare il binario e indicalo con `XRCOPILOTLAB_BP_BIN` |
 | «Non è detto su quale ambiente lavorare» | Manca `--env`: fuori da un clone non c'è un ambiente predefinito. Dillo a parole («su staging») |
 | Un comando «non esiste» anche se il manuale lo cita | Sulla macchina c'è un `xrcopilotlab-bp` installato a mano, che l'avviatore preferisce alla copia del plugin — e può essere vecchio di mesi. `xrcopilotlab-bp version` dice quale sta girando e da dove; poi `dotnet tool uninstall --global xrcopilotlab-bp` |
-| Il catalogo sparisce, o il plugin smette di aggiornarsi | L'aggiornamento automatico dei cataloghi **privati** gira senza le credenziali git e fallisce in silenzio. Chiedi al team di impostare `CLAUDE_CODE_PLUGIN_KEEP_MARKETPLACE_ON_FAILURE=1` e `gh auth setup-git`: nel frattempo ripetere la prima delle due righe rimette a posto |
 | Errori su App Configuration o Key Vault | Mancano i ruoli Azure: [§ L'accesso ad Azure](accesso-azure.md) |
 
 ## Solo lo strumento a riga di comando, sul proprio PC

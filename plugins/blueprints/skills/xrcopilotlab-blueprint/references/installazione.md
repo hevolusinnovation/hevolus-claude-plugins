@@ -16,8 +16,8 @@ Da lì in poi `xrcopilotlab-bp` è un comando come un altro, su **macOS, Windows
 uso l'avviatore riconosce il sistema, scarica l'allegato giusto (~52 MB), **ne verifica l'impronta
 SHA-256** e lo tiene in cache. Non si riscarica più finché il plugin non chiede una versione nuova.
 
-Serve un accesso GitHub dell'organizzazione Hevolus — lo stesso che serve a registrare il catalogo:
-se il plugin si installa, la CLI si scarica.
+Non serve un account GitHub, né `gh`: il catalogo è pubblico e l'avviatore scarica con un semplice
+`curl` (su Windows, `Invoke-WebRequest`). Basta che il computer raggiunga `github.com`.
 
 L'avviatore cerca il binario in quest'ordine, e la prima risposta vince:
 

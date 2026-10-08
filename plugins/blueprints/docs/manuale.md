@@ -35,25 +35,10 @@ Tre cose, e due sono probabilmente già a posto.
 **Claude Code.** Se stai leggendo questo manuale dentro Claude Code, ce l'hai. Altrimenti si
 installa da [code.claude.com](https://code.claude.com).
 
-**Accesso a GitHub dell'organizzazione Hevolus**, e `git` installato. Servono a registrare il
-catalogo dei plugin — che è un clone di `hevolus-claude-plugins` — e, al primo avvio, a scaricare la
-CLI, che sta fra gli allegati di quello stesso catalogo. È un accesso solo: se puoi installare il
-plugin, puoi anche prendere la CLI. Verifica così:
-
-```bash
-gh auth status
-```
-
-Se risponde che non sei autenticato, oppure se il comando `gh` non esiste:
-
-```bash
-# macOS
-brew install gh && gh auth login
-
-# Windows
-winget install GitHub.cli
-gh auth login
-```
+**`git` installato.** Serve a registrare il catalogo dei plugin, che è un clone di
+`hevolus-claude-plugins`. Il catalogo è **pubblico**: non serve un account GitHub né `gh`. Al primo
+avvio la CLI si scarica da sola dagli allegati di quello stesso catalogo, con un semplice `curl`, e
+ne verifica l'impronta. Basta che il computer raggiunga `github.com`.
 
 **Accesso ad Azure**, con due ruoli sull'utenza aziendale: *App Configuration Data Reader* e
 *Key Vault Secrets User*. Non li puoi darti da solo: se non li hai, chiedili al team che gestisce
@@ -333,10 +318,10 @@ eventuali segnalazioni li prepara la skill, e nessuna issue viene aperta senza l
 
 ## 6. Quando qualcosa non va
 
-### «per scaricare la CLI serve l'accesso a GitHub»
+### «non sono riuscito a scaricare la CLI»
 
-Non sei autenticato. Fai `gh auth login` e riprova. Se in azienda `gh` non si può installare,
-scarica il file a mano dalla
+Il catalogo è pubblico, quindi non è un problema di account: il computer non raggiunge `github.com`
+(rete aziendale, proxy, VPN). Riprova da un'altra rete. Se non si può, scarica il file a mano dalla
 [release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases) scegliendo
 quello della tua piattaforma, e indicalo così:
 

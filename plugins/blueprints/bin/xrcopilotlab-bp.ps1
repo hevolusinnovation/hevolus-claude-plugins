@@ -27,6 +27,20 @@ function Stop-WithMessage([string]$Message) {
     exit 70
 }
 
+# Gemella di $AggiornaNote per chi non ha gh — di norma, chi non sviluppa. Legge dal ramo main del
+# catalogo, che è pubblico, i due numeri che servono: nessun account, nessun parsing di JSON.
+$AggiornaNotePubbliche = {
+    param($Repo, $File, $FilePlugin)
+    try {
+        $ProgressPreference = 'SilentlyContinue'
+        $Base = "https://raw.githubusercontent.com/$Repo/main/plugins/blueprints"
+        $V = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 10 -Uri "$Base/bin/version.txt").Content.Trim()
+        if ($V -match '^\d+\.\d+\.\d+$') { Set-Content -Path $File -Value $V }
+        $P = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 10 -Uri "$Base/.claude-plugin/plugin.json").Content | ConvertFrom-Json
+        if ($P.version -match '^\d+\.\d+\.\d+$') { Set-Content -Path $FilePlugin -Value $P.version }
+    } catch { }
+}
+
 # Vero se la prima versione è almeno pari alla seconda, confrontando i campi come numeri.
 function Test-Aggiornato([string]$Trovata, [string]$Attesa) {
     try {
@@ -129,9 +143,13 @@ $M = Get-MessaggioAggiornamento
 if ($M) { [Console]::Error.WriteLine("xrcopilotlab-bp: $M") }
 
 # Durante un comando le note si aggiornano staccate: il comando non aspetta GitHub.
-if ((Get-Command gh -ErrorAction SilentlyContinue) -and (Test-NoteScadute)) {
+if (Test-NoteScadute) {
     New-Item -ItemType Directory -Force $CacheRoot | Out-Null
-    Start-Job -ScriptBlock $AggiornaNote -ArgumentList $RepoCatalogo, $Nota, $NotaPlugin | Out-Null
+    if (Get-Command gh -ErrorAction SilentlyContinue) {
+        Start-Job -ScriptBlock $AggiornaNote -ArgumentList $RepoCatalogo, $Nota, $NotaPlugin | Out-Null
+    } else {
+        Start-Job -ScriptBlock $AggiornaNotePubbliche -ArgumentList $RepoCatalogo, $Nota, $NotaPlugin | Out-Null
+    }
 }
 
 # 3. La copia già scaricata.
@@ -145,8 +163,22 @@ if (Test-Path $Bin) {
     exit $LASTEXITCODE
 }
 
+function Try-Pubblico([string]$Repo, [string]$Name, [string]$Destination) {
+    # La strada normale: il catalogo è pubblico, quindi l'allegato si scarica senza account, senza gh
+    # e senza token. Le altre due restano per il repository di prodotto, che è privato.
+    try {
+        $ProgressPreference = 'SilentlyContinue'   # su Windows PowerShell 5 la barra rallenta di ordini di grandezza
+        Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/$Repo/releases/download/$Tag/$Name" -OutFile $Destination
+        return (Test-Path $Destination)
+    } catch {
+        return $false
+    }
+}
+
 function Try-Repo([string]$Repo, [string]$Name, [string]$Destination) {
-    # Vero se l'allegato è arrivato da questo repository, per una delle due strade.
+    # Vero se l'allegato è arrivato da questo repository, per una delle tre strade.
+    if (Try-Pubblico $Repo $Name $Destination) { return $true }
+
     if (Get-Command gh -ErrorAction SilentlyContinue) {
         gh release download $Tag --repo $Repo --pattern $Name --output $Destination --clobber 2>$null
         if ($LASTEXITCODE -eq 0) { return $true }
@@ -177,13 +209,12 @@ function Get-Asset([string]$Name, [string]$Destination) {
     Stop-WithMessage @"
 non sono riuscito a scaricare $Name (release $Tag).
 
-  Le cause sono tre, e il rimedio è diverso:
-  · non sei autenticato su GitHub  -> 'gh auth login', oppure imposta GH_TOKEN;
-  · lo sei, ma quell'account non legge $RepoCatalogo
-    -> chiedi l'accesso a chi mantiene il catalogo: riprovare non serve;
-  · la release non ha l'allegato per questa piattaforma ($Rid)
-    -> fatti passare il binario e indicalo con:
+  Il catalogo è pubblico: non serve un account GitHub. Le cause possibili sono due:
+  · il computer non raggiunge github.com (rete aziendale, proxy, VPN)
+    -> riprova da un'altra rete, oppure fatti passare il binario e indicalo con:
         `$env:XRCOPILOTLAB_BP_BIN = 'C:\percorso\del\binario.exe'
+  · la release non ha l'allegato per questa piattaforma ($Rid)
+    -> scrivi al team: serve una release che lo pubblichi
 "@
 }
 
