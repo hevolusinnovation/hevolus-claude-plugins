@@ -15,6 +15,7 @@ repository di prodotto: [§ Le skill di sviluppo](skill-di-sviluppo.md).
 | [`xrcopilotlab-blueprint-guide`](#xrcopilotlab-blueprint-guide--la-guida-per-il-cliente) | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «le slide per i sales», «la pagina da mostrare al cliente» | le due guide: per il cliente a slide (pagina e deck) e tecnica per l'AI Specialist (pagina interna) |
 | [`xrcopilotlab-blueprint-demo`](#xrcopilotlab-blueprint-demo--il-brief-per-lagenzia) | blueprints | «il brief per l'agenzia», «gli scenari per i sales», «cosa possiamo vendere da questo blueprint o assessment» | il brief per l'agenzia di marketing: gli scenari vendibili, anonimi e senza tecnicismi, come artifact «DEMO-» con il PDF |
 | [`xrcopilotlab-blueprint-storyboard`](#xrcopilotlab-blueprint-storyboard--lo-storyboard-del-video) | blueprints | «lo storyboard del blueprint», «le tavole del video», «la voce fuori campo» | lo storyboard di un video breve: tavole con schizzi, battute e audio guida di prova |
+| [`xrcopilotlab-blueprint-version`](#xrcopilotlab-blueprint-version--la-mail-delle-novità) | blueprints | «la mail delle novità dei blueprint», «cosa è cambiato dalla 2.x alla 2.y», «avvisa il team che c'è una versione nuova» | la bozza di mail in HTML con i comandi per aggiornare, il link alla guida, le novità per versione e il riepilogo delle feature |
 | [`xrcopilotlab-blueprint-howto`](#xrcopilotlab-blueprint-howto--il-percorso-in-una-pagina) | blueprints | «come si usano le skill dei blueprint», «da dove comincio», «spiegami il flusso dall'assessment alla demo» | l'artifact «Dall'intervista alla demo», da girare a chi comincia |
 | [`xrcopilotlab-assessment`](#xrcopilotlab-assessment--dalla-proposta-al-dossier) | assessment (Claude Desktop) | si carica una proposta e si chiede di «valutarla», «fare l'assessment», «tradurla in soluzione» | il dossier tecnico `.md` e `.docx`, con il capitolo per il provisioning |
 | [`xrcopilotlab-delivery-atlas`](#xrcopilotlab-delivery-atlas--dal-dossier-alla-delivery-atlas) | assessment (Claude Desktop) | «apri la delivery Atlas», «prepara il SOW», «carica il cliente sul CMS», «trasforma l'assessment in delivery» | il piano Atlas, i documenti per cliente in stile Atlas, la delivery nel CMS dopo l'anteprima |
@@ -489,6 +490,25 @@ Che cosa **non** fa:
 - non aggiunge marchi o loghi a piè di tavola;
 - se il manifest non usa knowledge né skill, le scene di base restano come scene didattiche,
   etichettate «esempio», e lo dichiara.
+
+### `xrcopilotlab-blueprint-version` — la mail delle novità
+
+Le versioni del plugin salgono quasi ogni giorno e le novità stanno nei messaggi di commit. Questa
+skill le trasforma in una mail da due minuti di lettura, per un intervallo di versioni che indichi tu
+(«dalla 2.27.0 alla 2.30.2»; senza l'arrivo, l'ultima).
+
+| Chiedi | Succede |
+|---|---|
+| «La mail delle novità dei blueprint dalla 2.27.0» | Legge lo storico del catalogo con `scripts/novita.sh`, controlla nelle skill ciò che il messaggio di commit non dice, e ti mostra oggetto, comandi d'aggiornamento e riepilogo prima di creare nulla |
+| — | Compone la mail: **in testa come aggiornare** (da terminale con Claude Code, da Claude Desktop), il link all'artifact «Dall'intervista alla demo», le novità per versione, **in fondo la tabella di tutte le feature** |
+| — | Lascia una bozza in Outlook (connettore Microsoft 365) o un `.eml` con l'anteprima `.html` |
+
+Che cosa **non** fa:
+
+- non invia mai la mail: la bozza la guardi e la mandi tu;
+- non aggiorna nessuna installazione: `/plugin update` e `xrcopilotlab-bp update` sono comandi tuoi;
+- non scrive novità che non ha trovato nello storico o nelle skill, né un link alla guida a memoria;
+- non serve per le release del prodotto (è `xrcopilot-release-email`).
 
 ### `xrcopilotlab-blueprint-howto` — il percorso in una pagina
 

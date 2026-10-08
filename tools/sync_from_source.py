@@ -22,6 +22,7 @@ DEST_GUIDE = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-bluepr
 DEST_DEMO = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-demo"
 DEST_HOWTO = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-howto"
 DEST_STORYBOARD = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-storyboard"
+DEST_VERSION = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-version"
 
 # Ogni riga: dove sta nel repository di prodotto → dove va nel plugin.
 # Un riferimento nuovo in una skill va aggiunto QUI: se non compare, la copia nel plugin non esiste
@@ -85,6 +86,10 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/storyboard-template.html", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/video-narrato.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/compose-video.py", DEST_STORYBOARD / "compose-video.py"),
+    # La mail delle novità fra due versioni del plugin: legge lo storico del catalogo, lascia una bozza. Non esegue.
+    (".claude/skills/xrcopilotlab-blueprint-version/SKILL.md", DEST_VERSION / "SKILL.md"),
+    (".claude/skills/xrcopilotlab-blueprint-version/references/mail-template.html", DEST_VERSION / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-version/scripts/novita.sh", DEST_VERSION / "scripts"),
     # La guida d'uso del percorso intero, dall'installazione alla demo: pubblica un artifact, non esegue.
     (".claude/skills/xrcopilotlab-blueprint-howto/SKILL.md", DEST_HOWTO / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-howto/references/percorso.html", DEST_HOWTO / "references"),
@@ -213,7 +218,7 @@ def cerca_orfani(copiati):
     la skill non cita qualcosa che nella sorgente è cambiato mesi prima.
     """
     orfani = []
-    for dest in (DEST, DEST_TEST, DEST_GUIDE, DEST_DEMO, DEST_STORYBOARD):
+    for dest in (DEST, DEST_TEST, DEST_GUIDE, DEST_DEMO, DEST_STORYBOARD, DEST_VERSION):
         for p in sorted(dest.rglob("*")):
             if p.is_file() and p.name != ".DS_Store" and p.resolve() not in copiati:
                 orfani.append(p.relative_to(RADICE))
