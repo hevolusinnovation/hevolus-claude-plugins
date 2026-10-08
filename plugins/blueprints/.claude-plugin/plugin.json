@@ -1,7 +1,7 @@
 {
   "name": "blueprints",
   "displayName": "XRCopilotLab BluePrints",
-  "version": "2.31.0",
+  "version": "2.31.1",
   "description": "Scrive e applica manifest di blueprint XRCopilotLab: topic, ruoli aziendali, agenti con system message e skill, agent task e processi BPM pubblicati, e li collauda a blueprint applicato, scrivendo poi per il cliente una guida non tecnica con la sua pagina web e, per l'agenzia di marketing, il brief degli scenari vendibili, con una guida d'uso dell'intero percorso dall'intervista alla demo. Porta con sé la CLI, che scarica al primo uso.",
   "author": {
     "name": "Hevolus Innovation — AI Team",

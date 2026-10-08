@@ -189,7 +189,7 @@ Distinti perché uno script — o la skill di Claude — possa reagire senza int
 | `0` | Tutto a posto |
 | `1` | Uso sbagliato: argomenti o configurazione mancanti |
 | `2` | Il manifest non è valido |
-| `3` | Il piano non è applicabile: collisioni, segreti o dipendenze mancanti — oppure, in produzione, il tenant indicato non è fra quelli ammessi |
+| `3` | Il piano non è applicabile: collisioni o dipendenze mancanti — oppure, in produzione, il tenant indicato non è fra quelli ammessi |
 | `4` | Una fase è fallita durante l'esecuzione |
 | `5` | La pipeline è ferma su un passo manuale |
 | `6` | Manca una decisione umana: il piano non è stato approvato, o il tenant non è stato scelto |
@@ -277,10 +277,18 @@ non cambiano da sole: `connections refresh --tag <TAG>` (sotto).
 
 Servono i ruoli *Key Vault Secrets Officer* e *App Configuration Data Owner* sull'utenza corrente.
 
+**`secrets set` non è obbligatorio** (#1234): un segreto non impostato non ferma il piano
+(`BP063` è un avviso). La connessione nasce senza credenziali, la prova del tool che la usa si salta,
+e chi amministra il tenant le inserisce dopo l'apply dalla UI, in **Amministrazione › Connessioni**
+(matita sulla connessione › Autenticazione › «Set / update credentials» › Salva). `secrets set` serve
+a chi vuole precaricarle: allora l'apply le scrive da sé. **La chat dei blueprint non scrive
+segreti**: spiega alla persona dove inserirli, e non chiede mai il valore.
+
 ## `secrets check <file.yml>`
 
 Elenca i segreti che il manifest cita e dice quali mancano, stampando i comandi per crearli. Esce
-con `3` se ne manca almeno uno.
+con `0` anche se ne manca qualcuno: le connessioni che li citano nasceranno senza credenziali, da
+inserire dalla UI (#1234).
 
 ## `push <file.yml>`
 
@@ -531,8 +539,9 @@ xrcopilotlab-bp catalog install legal-agenda --env staging --company <tenant> \
   riparte dalle scelte della prima: è così che si **aggiorna** — la versione nuova arriva con lo
   stesso tag e il piano la applica sul posto (#1126).
 
-Come `promote`, **`install` non crea niente sul tenant**: dopo servono `secrets set` per le
-credenziali che il comando elenca, poi `plan` e `apply` con la loro approvazione. Il tag scelto non
+Come `promote`, **`install` non crea niente sul tenant**: dopo servono `plan` e `apply` con la loro
+approvazione; le credenziali che il comando elenca si precaricano con `secrets set`, oppure si
+inseriscono dalla UI dopo l'apply. Il tag scelto non
 può essere già di un altro blueprint del tenant. La copia ricorda da dove viene (`promotedFrom`
 con `catalogVersion`), ed è da lì che `catalog list --company` sa dire se c'è di più nuovo.
 
@@ -761,7 +770,8 @@ esce **5**.
 Percorre tutte le fasi in sequenza:
 
 1. **validate** — offline;
-2. **secrets** — verifica le chiavi citate, e si ferma stampando i comandi se ne manca una;
+2. **secrets** — verifica le chiavi citate; se ne manca una avvisa che la connessione nascerà senza
+   credenziali (da inserire dalla UI) e stampa i comandi per precaricarle, ma non si ferma;
 3. **push** — registra la versione;
 4. **plan** — stampa il piano e chiede conferma, salvo `--yes`;
 5. **apply** — esegue;
@@ -916,7 +926,9 @@ xrcopilotlab-bp connections refresh graph   --tag STUDIOPOLIS --env staging --co
 `refresh` ricostruisce configurazione e busta di autenticazione dal manifest pubblicato e dai
 segreti **come sono ora**, con la stessa costruzione dell'apply, e aggiorna la connessione sul
 tenant senza cambiarne l'id: server MCP e agenti che la usano non se ne accorgono. L'effetto è
-immediato, perché le API leggono la connessione a ogni chiamata. Verifica: `mcp test`.
+immediato, perché le API leggono la connessione a ogni chiamata. Verifica: `mcp test`. Se i segreti
+di una connessione non sono impostati, `refresh` ne riallinea solo la configurazione e lascia le
+credenziali che ha: quelle inserite dalla UI non si cancellano.
 
 Una connessione con `process:` (verso il webhook di un processo del blueprint) si ricostruisce da
 altre due fonti: l'indirizzo dal webhook com'è sul tenant, la chiave dal segreto
@@ -1105,9 +1117,9 @@ installata a mano. Per le altre dice cosa fare, e non tocca niente.
 
 Con `--check` dice cosa farebbe e si ferma: né scarica né sostituisce.
 
-Scarica con `gh`, come fa l'avviatore del plugin — il catalogo è privato, e lì una credenziale per
-leggerlo c'è già; se la release non è ancora rispecchiata prova il repository di prodotto. Senza
-`gh` autenticato il comando non inventa niente: dice che non ha potuto sapere qual è l'ultima
+Scarica come fa l'avviatore del plugin — il catalogo è pubblico, quindi senza account e senza `gh`;
+`gh` resta come riserva, e se la release non è ancora rispecchiata prova il repository di prodotto.
+Se GitHub non risponde il comando non inventa niente: dice che non ha potuto sapere qual è l'ultima
 versione e si ferma.
 
 **La sostituzione è l'unico momento in cui si può controllare cosa si sta per eseguire**, quindi
@@ -1116,6 +1128,48 @@ accanto e rimosso solo a sostituzione riuscita: se qualcosa va storto a metà, v
 posto — restare senza comando sarebbe il modo peggiore di fallire un aggiornamento. Su Windows un
 eseguibile in esecuzione non si può sovrascrivere, ma si può rinominare, ed è per questo che
 funziona anche lì.
+
+## `report-problem --kind <access|defect> --env <nome> --message <testo>`
+
+Segnala al team ciò che la skill non sa risolvere: un **ruolo Azure che manca** (`access`) o un
+**difetto della webapp o della libreria** (`defect`). La segnalazione diventa un'**istanza del processo
+«Assistenza XRCopilotLab»**, con un'attività «Prendi in carico la
+segnalazione» assegnata al ruolo «Assistenza XRCopilotLab»: la recapitano le notifiche dei processi già
+esistenti (card Teams 1:1, email di ripiego), senza un canale in più.
+
+```bash
+xrcopilotlab-bp report-problem --kind access --env staging --tag MARKETING --manifest-version 16 \
+    --command "plan --tag MARKETING" --message "Non hai accesso a appcs-xrcopilotlab-staging-01."
+```
+
+| Opzione | Significato |
+|---|---|
+| `--kind` | `access` (manca un ruolo o un accesso) · `defect` (qualcosa non funziona; default) |
+| `--env` | L'ambiente su cui è successo. Obbligatorio |
+| `--message` | Che cosa è successo, con il messaggio d'errore. Ripulito da ciò che somiglia a un segreto, massimo 3000 caratteri |
+| `--command` | Il comando che era in corso, senza argomenti sensibili |
+| `--tag` · `--manifest-version` · `--manifest` | Il blueprint a cui si riferisce: tag, versione pubblicata, nome del file (non il percorso) |
+
+**Funziona anche senza i ruoli** su App Configuration e Key Vault, ed è per questo che non passa da
+quelli: conosce l'indirizzo della rotta `support/report` della Function App dell'ambiente e prova chi
+sei con un token Entra del tuo account (lo stesso di `az login --tenant hevolus.it`), senza chiavi.
+Chi segnala lo ricava il server dal token: il client non lo scrive. L'attività porta chi, ambiente,
+manifest (tag, versione, file), comando, versione della CLI e il messaggio, e si legge nella pagina
+dell'attività della webapp (la card di Teams non porta i dati del caso).
+
+Limiti: solo account `@hevolus.it` del tenant, sei segnalazioni all'ora per persona, company fissa nella
+configurazione dell'Api (`SupportReport:CompanyId`: il chiamante non sceglie dove atterra). Il processo non si
+configura: la rotta lo trova **per nome** («Assistenza XRCopilotLab») nella company, e il tenant Entra ha il
+default di `hevolus.it`.
+
+**L'Assistenza XRCopilotLab deve esistere** sulla company che riceve, e ce la porta ogni blueprint: il piano di
+`plan`, `apply` e `pipeline` (e la chat dei blueprint) la **aggiunge da sé** al manifest se il tenant non ha già il
+ruolo e il processo con quel nome, come ultime operazioni del piano. Non si scrive nel manifest e non va in
+nessun inventario che un `rollback` o un `delete` possa smontare. Se non c'è, la rotta risponde 409 e il comando
+lo dice. I membri del ruolo non stanno nel manifest: si leggono dalla chiave `Blueprints:Assistenza:Members`
+dell'App Configuration dell'ambiente (email separate da virgola); senza, il ruolo nasce vuoto e il piano lo
+dice (`BP106`). La definizione è la risorsa
+[`assistenza-xrcopilotlab.yml`](../../src/XRCopilotLab/XRCopilotLab.BluePrints/Extensions/assistenza-xrcopilotlab.yml).
 
 ## `version`
 
