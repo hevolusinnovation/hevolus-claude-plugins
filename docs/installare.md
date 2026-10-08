@@ -57,6 +57,7 @@ invece su **Claude Desktop oppure Claude Code**, quella che usi — cambia cosa 
 | `xrcopilotlab-blueprint-guide` | la skill da sola: scrive la guida per il cliente a story slides e la pagina web — **funziona anche qui**, perché non esegue comandi | il plugin `blueprints@hevolus` |
 | `xrcopilotlab-blueprint-demo` | la skill da sola: scrive il brief per l'agenzia e lo pubblica — **funziona anche qui**, ma senza il PDF, che vuole un terminale | il plugin `blueprints@hevolus` |
 | `xrcopilotlab-blueprint-storyboard` | la skill da sola: scrive lo storyboard e lo pubblica — **funziona anche qui**, ma senza l'audio guida, che vuole un terminale con `say` e `ffmpeg` | il plugin `blueprints@hevolus` |
+| `xrcopilotlab-blueprint-version` | la skill da sola: scrive la mail delle novità fra due versioni — **funziona anche qui**, ma `novita.sh` vuole un terminale con `git` e `gh`: da Desktop si incollano le novità a mano | il plugin `blueprints@hevolus` |
 | `xrcopilotlab-blueprint-howto` | la skill da sola: pubblica la guida d'uso del percorso — **funziona anche qui** | il plugin `blueprints@hevolus` |
 
 Una regola sola governa tutta la tabella, e non è una preferenza: **applicare e collaudare passano
@@ -384,7 +385,7 @@ Il punto di partenza è lo stesso: dalla
 [pagina delle release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest)
 scarica il file con il nome della skill — `xrcopilotlab-assessment.zip`,
 `xrcopilotlab-blueprint.zip`, `xrcopilotlab-blueprint-test.zip`, `xrcopilotlab-blueprint-guide.zip`,
-`xrcopilotlab-blueprint-demo.zip`, `xrcopilotlab-blueprint-storyboard.zip`, `xrcopilotlab-blueprint-howto.zip`.
+`xrcopilotlab-blueprint-demo.zip`, `xrcopilotlab-blueprint-storyboard.zip`, `xrcopilotlab-blueprint-version.zip`, `xrcopilotlab-blueprint-howto.zip`.
 
 ### Su Claude Desktop (e claude.ai)
 
