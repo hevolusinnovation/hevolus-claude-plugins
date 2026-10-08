@@ -98,8 +98,47 @@ Ogni scena `Dn` dello storyboard diventa un gruppo di step che comincia con `"sc
 
 I selettori dipendono dalla pagina e **non si inventano**: si prendono da un piano che già gira (gli
 esempi del banco) o dall'esplorazione dell'app. Una scena di cui non si hanno selettori verificati resta
-uno schizzo e lo storyboard lo dichiara. Il giro è in **sola lettura**: niente chat con gli assistenti,
-niente avvio di processi, finché il banco non sa farlo con garanzie.
+uno schizzo e lo storyboard lo dichiara. Il giro delle scene `Dn` è in **sola lettura**; la **chat con un assistente** (video 2, «come si usa») è
+ammessa alle condizioni qui sotto, l'avvio di processi (video 3) no finché il banco non sa farlo con
+garanzie.
+
+### La chat con un assistente (verificata su staging il 08/10/2026)
+
+Apre una conversazione e consuma token: serve il piano e il sì, e la conversazione si cancella a fine
+registrazione. **Prima si guarda che cosa fa l'assistente**: un orchestratore parte per intero a qualunque
+messaggio (letture di posta e calendario comprese) e un assistente con strumenti di scrittura può usarli.
+Si sceglie dal manifest chi risponde senza effetti, oppure si usa una casella di prova.
+
+Selettori ricavati dal codice (`Components/Chat.razor`) e provati dal vivo:
+
+| Cosa | Come |
+|---|---|
+| Aprire la chat | dalla Home, il pulsante **Chat** della *riga* dell'assistente. Un selettore per antenato rischia di prendere un'altra riga (provato: due pulsanti Chat nel contenitore): si prende l'antenato che ne contiene **esattamente uno**, e si verifica il titolo nella finestra |
+| Campo messaggio | `#messageTextBox` |
+| Invio | il pulsante con l'icona `send`, **presente solo se c'è testo** |
+| Fine della risposta | `#messageTextBox` è `disabled` mentre l'assistente risponde e torna abilitato alla fine: è il segnale stabile (7 s in prova), non il testo che smette di crescere |
+| Testo della risposta | l'ultimo `.chat-markdown` |
+
+**La macro `askAgent`** (banco ≥ la versione che la contiene) fa tutto questo in un passo, con i controlli
+sopra incorporati:
+
+```json
+{ "action": "askAgent", "scene": "U1", "agent": "Formatter-Risposta",
+  "message": "Ciao, cosa sai fare? Rispondi in una frase.",
+  "expectTitle": "Default Agent Endpoint", "narrate": "Chiediamo all'assistente che cosa sa fare." }
+```
+
+`agent` è il nome com'è scritto sulla riga della Home. Il piano deve dichiarare `"uiLanguage": "it"` (come
+per le macro di creazione) o il banco lo rifiuta prima di partire. `expectTitle` ferma la macro **prima di
+scrivere** se nell'intestazione non compare quel testo, ma **l'intestazione mostra il nome dell'endpoint**
+(«Default Agent Endpoint»), non quello dell'assistente: serve a distinguere un endpoint da un altro, non a
+provare che sia la riga giusta. A quello pensa la scelta della riga con un solo pulsante Chat; `maxWaitMs` (120 s) e `holdMs` (4 s, la risposta resta a
+schermo) sono opzionali. Come le macro di creazione **scrive sul tenant** e non si rigioca a freddo
+(`tour --verify` la salta). Provata dal vivo su staging l'08/10/2026: 46 s di registrazione, video di 29 s con il cursore.
+
+Sulla Home compaiono per i blueprint solo gli **orchestratori** (`BP-<TAG>-…`), non gli assistenti
+singoli del manifest: per chattare con un assistente serve un endpoint che lo esponga. Un messaggio non
+dettato come lavoro non apre pratiche, ma dipende dal prompt: si prova prima con una domanda sul suo compito.
 
 **I video non hanno sottotitoli**: sono spenti di default, perché nello storyboard c'è la voce e quelli incisi
 si sovrapporrebbero. `--captions` li accende, solo se serve un video da guardare senza audio.

@@ -40,8 +40,10 @@ Cosa riportare, in quest'ordine:
    lavora solo sui tenant a cui l'utente appartiene — quelli che gli mostra l'interfaccia — e perché.
 
    Se un ambiente risulta **non accessibile**, non proporlo come se lo fosse: distinguere il ruolo
-   mancante — che si chiede a chi amministra la sottoscrizione — dall'accesso ad Azure mai fatto su
-   quella macchina, che l'utente risolve da sé, una volta, da un terminale.
+   mancante dall'accesso ad Azure mai fatto su quella macchina, che l'utente risolve da sé, una
+   volta, da un terminale. Il ruolo mancante **lo segnali tu al team** con `report-problem`
+   ([«Quando non lo risolvi tu»](#quando-non-lo-risolvi-tu-ruoli-mancanti-e-difetti)): i due ruoli li
+   dà in automatico il gruppo `@hevolus.it`, e se qui mancano il team deve saperlo.
 4. **I blueprint che esistono già**: non stanno nel repository ma nell'archivio del tenant
    (`xrcopilotlab-bp status` sull'ambiente indicato, o la cartella di lavoro
    `~/.xrcopilotlab/blueprints/` se c'è): elencarli con tag e versione. È la risposta più utile, perché quasi sempre chi chiede aiuto vuole ripartire da uno.
@@ -163,6 +165,11 @@ I ruoli sono due, più due solo per chi imposta segreti:
 Tutto passa da lì: la chiave di Cosmos e la stringa dello storage sono riferimenti a Key Vault
 dentro App Configuration, quindi non servono ruoli su Cosmos, sullo storage o sull'API.
 
+**Chi ha un account `@hevolus.it` non dovrebbe doverli chiedere:** sono assegnati a un gruppo Entra
+dinamico (issue [xrcopilotlab-iac-terraform#64](https://github.com/hevolusinnovation/xrcopilotlab-iac-terraform/issues/64)).
+Se un messaggio dice che mancano comunque, non si manda l'utente a cercare chi glieli dia: si segnala
+con `report-problem --kind access`.
+
 Si verificano così, senza indovinare:
 
 ```bash
@@ -205,13 +212,75 @@ status`): si apre il browser, e da lì in poi il token in cache vale anche per i
    posta aziendale;
 2. la prima volta si apre una pagina del browser: è normale, è l'accesso ad Azure, e succede una
    volta sola su quella macchina;
-3. se compare un errore che parla di ruoli o di permessi, non è qualcosa che può risolvere da sé —
-   va chiesto a chi amministra la sottoscrizione, riportando **il nome della risorsa** e **il ruolo**
-   che il messaggio nomina.
+3. se compare un errore che parla di ruoli o di permessi, non è qualcosa che può risolvere da sé, e
+   **non deve nemmeno scrivere a nessuno**: lo segnali tu al team, con `report-problem`, come
+   descritto in [«Quando non lo risolvi tu»](#quando-non-lo-risolvi-tu-ruoli-mancanti-e-difetti).
 
 Non fargli installare Azure CLI, non fargli scrivere un profilo, non fargli maneggiare una chiave:
 niente di tutto ciò è necessario, e ognuna di quelle strade ha un modo di finire male che lui non
 può riconoscere.
+
+## L'Assistenza XRCopilotLab: l'estensione che c'è in ogni piano
+
+Ogni manifest completo — con i suoi processi BPM, orchestratori, agenti e il resto — porta con sé
+**un'estensione obbligatoria**: il ruolo e il processo **«Assistenza XRCopilotLab»**, dove arrivano le
+segnalazioni di cui parla la sezione qui sotto. **Non la scrivi tu**, e non la togli: la CLI la aggiunge da sé al
+piano di `plan`, `apply` e `pipeline`, tra le ultime operazioni, solo se il tenant non ha già il ruolo e il processo
+con quel nome. Quando mostri un piano all'utente, dì che c'è e perché (è dove atterrano le sue segnalazioni).
+
+- I nomi sono **senza prefisso** `BP-<TAG>-`: non appartengono al blueprint, e il rollback o la cancellazione del
+  blueprint non li toccano.
+- I membri del ruolo vengono dalla chiave `Blueprints:Assistenza:Members` dell'App Configuration dell'ambiente
+  (email separate da virgola). Se il piano avvisa con **`BP106`** (nascerebbe senza membri), non è un errore del
+  manifest: la chiave dell'ambiente è vuota, e va detto a chi amministra l'ambiente.
+- Un manifest che dichiara già un ruolo o un processo con quel nome è accettato: l'estensione non lo duplica.
+
+## Quando non lo risolvi tu: ruoli mancanti e difetti
+
+Ci sono due cose che questa skill non può sistemare da sola, e in entrambi i casi **il team deve
+saperlo subito**, senza che l'utente debba ricordarsi di scrivere:
+
+| Che cosa è successo | `--kind` | Chi interviene |
+|---|---|---|
+| Un messaggio dice che manca il ruolo **App Configuration Data Reader** (App Configuration) o **Key Vault Secrets User** (Key Vault) sull'utenza | `access` | Di norma nessuno: i due ruoli li dà il **gruppo Entra dinamico `@hevolus.it`** (issue [xrcopilotlab-iac-terraform#64](https://github.com/hevolusinnovation/xrcopilotlab-iac-terraform/issues/64)). Se l'utente è appena entrato o il gruppo non è ancora applicato, il team |
+| Qualcosa non funziona e la causa è la **webapp o la libreria**, non il manifest né l'utente: eccezione dell'API, 5xx, un comando o un endpoint che il manuale cita e non esiste, un esito che contraddice la documentazione, il codice di uscita `4` che non dipende dai dati | `defect` | Il team, sul codice |
+
+**Come si segnala: sempre, senza chiedere, con un comando solo.**
+
+```bash
+xrcopilotlab-bp report-problem --kind access --env staging --tag MARKETING --manifest-version 16 \
+    --command "plan --tag MARKETING" --message "Non hai accesso a appcs-xrcopilotlab-staging-01: serve App Configuration Data Reader."
+```
+
+La segnalazione diventa un'**attività da prendere in carico** per il ruolo «Assistenza XRCopilotLab» (processo
+«Assistenza XRCopilotLab»), che le notifiche dei processi recapitano su Teams
+o per email; porta **chi** sta usando la skill, l'**ambiente**, il **manifest** (tag, versione, file) e il
+messaggio. Funziona anche a chi non ha i ruoli: non legge l'App Configuration, prova chi è con il
+token Entra del suo account. Dettagli e limiti in [`cli-reference.md`](../../../docs/blueprints/cli-reference.md).
+
+Regole che non si derogano:
+
+1. **Si segnala prima di dirlo all'utente**, e poi gli si dice che cosa è stato fatto: «ho avvisato il
+   team». Non si lascia la segnalazione a un suo «sì».
+2. **Il messaggio è il fatto, non il contesto**: il nome della risorsa o dell'endpoint, il codice o il
+   testo dell'errore, il comando. **Mai** un segreto, una chiave, il body di un messaggio, il contenuto
+   di un documento o il nome di un cliente o di una persona che non sia nel manifest. La CLI oscura ciò
+   che somiglia a una chiave, ma non è una ragione per passargliela.
+3. **Una segnalazione per problema**, non una per tentativo: il limite è sei all'ora per persona, e se
+   si esaurisce la segnalazione non parte.
+4. **Se la rotta risponde che l'Assistenza XRCopilotLab non c'è** (409): il tenant che riceve le segnalazioni non
+   ha ancora né il ruolo né il processo. Non è un problema dell'utente, e non si scrive niente nel manifest:
+   basta il giro normale di un blueprint su quel tenant (`plan`, e `apply` **solo dopo il sì sul piano**),
+   perché il piano la aggiunge da sé. Poi si rifà la segnalazione.
+5. **Se il comando non riesce a inviare** (esce con `4` e stampa un testo), il problema non è finito:
+   dire all'utente di girare quel testo a giuseppe.zileni@hevolus.it, e non riprovare in cerca di
+   un'altra strada. Su produzione la rotta non è ancora verificata, quindi il comando lo dice e non
+   prova.
+6. **Non è per i problemi che puoi risolvere**: un manifest non valido, un nome occupato, un segreto
+   mancante o un accesso ad Azure da fare dal terminale si risolvono qui, con l'utente.
+
+Dopo la segnalazione si prosegue con ciò che si può fare senza la parte mancante; se il blocco è un
+ruolo, l'unica cosa utile è aspettare che arrivi, e dirlo.
 
 ## 1. Capire il processo
 
@@ -595,7 +664,7 @@ detto per un altro piano, o prima che il piano esistesse, non vale qui più che 
 | `0` | Procedere |
 | `2` | Manifest non valido: correggerlo, non girare l'errore all'utente |
 | `3` | Piano bloccato da collisioni o segreti mancanti: riportare, non forzare. In produzione, anche: il tenant indicato non è di Hevolus — non cercare strade alternative |
-| `4` | Esecuzione fallita: riportare lo stato, proporre `--resume` o `rollback` |
+| `4` | Esecuzione fallita: riportare lo stato, proporre `--resume` o `rollback`. Se la causa è un difetto della webapp o della libreria, segnalarlo con `report-problem --kind defect` |
 | `5` | In attesa di un passo manuale |
 | `6` | Manca una decisione umana. Piano non approvato: **non aggiungere `--yes` di propria iniziativa**, chiedere il sì. Tenant non scelto: riportare l'elenco dei nomi e chiedere quale |
 
@@ -609,6 +678,7 @@ detto per un altro piano, o prima che il piano esistesse, non vale qui più che 
   consenso dato prima, per un piano diverso, non vale. Il flag registra un'approvazione umana: se
   non c'è stata, sta registrando il falso.
 - Non chiedere, ripetere o scrivere il valore di un segreto.
+- Non lasciare un ruolo mancante o un difetto di webapp o libreria senza `report-problem`, e non metterci un segreto, il body di un messaggio o dati di un cliente.
 - Non usare `--overwrite` di propria iniziativa: una versione pubblicata è immutabile, e alzare
   `version:` è la strada normale.
 - Non promettere le due cose che restano fuori: l'ereditarietà fra blueprint (`extends`) e

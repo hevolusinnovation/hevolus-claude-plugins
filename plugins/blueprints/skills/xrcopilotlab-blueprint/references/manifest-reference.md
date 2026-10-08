@@ -12,6 +12,8 @@ Due regole valgono ovunque nel file:
   **nome di una chiave** di App Configuration (`Blueprints:Secrets:<TAG>:<nome>`), creata con
   `xrcopilotlab-bp secrets set`. `<TAG>` è il tag del manifest: un valore in chiaro, o la chiave di
   un altro tag, è un errore (`BP047`) — chi applica leggerebbe la credenziale di un altro blueprint.
+  Il `<nome>` deve poter stare in Key Vault: lettere, cifre, `-`, `.` e `:`, e due nomi che
+  differiscono solo per maiuscole, `.` o `:` sono lo stesso segreto (`BP047`).
 
 ## Intestazione
 

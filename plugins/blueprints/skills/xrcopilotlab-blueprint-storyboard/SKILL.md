@@ -1,13 +1,13 @@
 ---
 name: xrcopilotlab-blueprint-storyboard
-description: Da un blueprint XRCopilotLab (manifest) produce, di default, UN SOLO VIDEO NARRATO dell'applicazione vera (staging o prod): prima come si crea - topic, conoscenza, assistenti, orchestratore e un processo BPM disegnato a mano nell'editor - poi il risultato già creato spiegato nel dettaglio, con voce neurale italiana della piattaforma (`xrcopilotlab-bp voice`, senza chiavi Azure), senza sottotitoli, pubblicato come artifact con pulsante di download e tempo di creazione. Su richiesta scrive anche lo storyboard a tavole da 80 s con schizzi, battute e audio guida. Chiede ambiente e il sì prima di registrare, perché la creazione scrive entità di prova sul tenant. Usa quando l'utente chiede "il video del blueprint", "il video di come si crea", "lo storyboard", "le tavole del video", "la voce fuori campo", "storyboard del manifest". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (xrcopilotlab-blueprint-test) o il manifest (xrcopilotlab-blueprint).
+description: Da un blueprint XRCopilotLab (manifest) produce, di default, TRE VIDEO NARRATI dell'applicazione vera (come si crea il blueprint da zero, come si usa, il processo in funzione ruolo per ruolo) (staging o prod): prima come si crea - topic, conoscenza, assistenti, orchestratore e un processo BPM disegnato a mano nell'editor - poi il risultato già creato spiegato nel dettaglio, con voce neurale italiana della piattaforma (`xrcopilotlab-bp voice`, senza chiavi Azure), senza sottotitoli, pubblicato come artifact con pulsante di download e tempo di creazione. Il terzo video mostra un processo che gira davvero, ruolo per ruolo (con istanza e un utente per ruolo). Su richiesta può anche caricare i video nel tenant del cliente, nel topic Guide del blueprint con un agente video per manifest che li usa come guida interrogabile (nel manifest, con piano e sì). Su richiesta scrive anche lo storyboard a tavole da 80 s con schizzi, battute e audio guida (parte basilare: knowledge assegnata a un assistente, assistente con le sue skill). Chiede ambiente e il sì prima di registrare, perché la creazione scrive entità di prova sul tenant. Usa quando l'utente chiede "il video del blueprint", "il video di come si crea", "lo storyboard", "le tavole del video", "la voce fuori campo", "storyboard del manifest". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (xrcopilotlab-blueprint-test) o il manifest (xrcopilotlab-blueprint).
 ---
 
 # xrcopilotlab-blueprint-storyboard
 
 Porta un blueprint da «esiste, e sappiamo come funziona» a «lo si può guardare in un video». Il prodotto
-di default è **un solo video narrato dell'applicazione vera** ([§5-ter](#5-ter-il-video-narrato-prodotto-di-default));
-su richiesta, lo **storyboard** di un video di 80 secondi:  le tavole che un'agenzia, un illustratore o un
+di default sono **tre video narrati dell'applicazione vera**: come si crea da zero, come si usa, il processo in funzione ruolo per ruolo ([§5-ter](#5-ter-i-tre-video-narrati-prodotto-di-default));
+su richiesta, la **guida video interrogabile** nel tenant ([§5-quater](#5-quater-la-guida-video-nel-tenant-opzionale)) il **terzo video, con il processo funzionante** ([§5-quater-bis](#5-quater-bis-il-processo-in-funzione-ruolo-per-ruolo-il-terzo-video)) e lo **storyboard** di un video di 80 secondi:  le tavole che un'agenzia, un illustratore o un
 generatore di video prendono per realizzare il video, con la **voce** già scritta e un audio di
 prova per misurarne i tempi.
 
@@ -37,6 +37,8 @@ Input: `$ARGS` — un tag o un manifest, un dossier, la durata, il tono; oppure 
 | Le scene che non possono mancare (knowledge → assistente, assistente + skill) e come si ricavano dal manifest | [`references/base-piattaforma.md`](references/base-piattaforma.md) |
 | Animare gli schizzi delle scene `Dn` (clip con voce) | [`references/animazione.md`](references/animazione.md) |
 | **Il video narrato di default**: creazione + risultato, voce, montaggio, pagina con download | [`references/video-narrato.md`](references/video-narrato.md) |
+| **Terzo video: il processo in funzione, ruolo per ruolo** (istanza vera, un utente per ruolo, piano e sì) | [`references/processo-in-funzione.md`](references/processo-in-funzione.md) |
+| **La guida video nel tenant**: topic `BP-<TAG>-Guide` creato dal manifest, video indicizzati, un agente video per manifest che risponde citando il video | [`references/guida-video.md`](references/guida-video.md) |
 | Registrare l'applicazione vera (`xrcopilotlab-demo`): panoramica, scene `Dn`, montaggio | [`references/registrazione.md`](references/registrazione.md) |
 | Partire dalla guida del cliente: da slide a scena, punti di demo `Dn` | [`references/da-guida.md`](references/da-guida.md) |
 | Formato di una tavola, codici scena, tempi, colori | [`references/tavola.md`](references/tavola.md) |
@@ -73,6 +75,28 @@ Si chiede, **tutto in una volta**, e si attende la risposta:
 5. se vuole la **voce guida** di prova (audio).
 
 Nessun marchio o logo a piè di tavola: se l'utente ne vuole uno nel video, lo aggiunge il montaggio.
+
+## 1-bis. Quale manifest è l'ultimo: si controlla sempre l'archivio
+
+**Mai dedurre dallo stato di un solo ambiente, da una copia locale o da quella già letta in sessione.** Lo
+stesso tag vive in archivi diversi (`blueprints/<companyId>/<blueprintId>/` nel Blob, indice in Cosmos): uno
+per ogni ambiente **e per ogni tenant** su cui è stato pubblicato, e le versioni divergono. Caso reale
+(08/10/2026): `STUDIOPOLIS` era alla v37 su staging, ma la v40 stava sul tenant «STUDIO POLIS» in
+**produzione**, con persone vere nei ruoli e le caselle del cliente: leggere la v37 ha portato a dire cose
+sbagliate su utenti e caselle.
+
+Prima di usare un manifest per qualunque cosa (copione, ruoli, utenti, caselle, piano di registrazione):
+
+1. `xrcopilotlab-bp environments`, poi per **ogni ambiente accessibile** `xrcopilotlab-bp status --env <e>`:
+   elenca i tenant. Per ciascun tenant `status --env <e> --company <id>` mostra versioni, date e le
+   esecuzioni (quale versione è stata **applicata** e quando).
+2. Si sceglie la versione più alta **e** si dice all'utente dove sta (ambiente, tenant, versione, data di
+   apply). Se staging e produzione divergono, lo si dice: l'utente decide quale raccontare.
+3. `pull --tag <TAG> --env <e> --company <id> [--version <n>]` per leggerla; mai un file locale.
+4. Ciò che dipende dall'ambiente si legge da **quella** versione: i membri dei ruoli (`businessRoles[].members`),
+   le caselle (`mailbox` dei server MCP), gli indirizzi (`grep` dei `@`). **Un ruolo con persone vere e caselle
+   vere significa produzione con effetti veri**: niente registrazione che scrive, niente istanze, senza il sì
+   esplicito dell'utente su quel tenant.
 
 ## 2. Leggere la fonte e ricavare la storia
 
@@ -149,13 +173,35 @@ ogni battuta e, se è più lunga della scena, **si accorcia il testo** o si ridi
 fra scene, mai si accelera la voce. È l'unica voce di questa skill; per un video da consegnare si può
 comunque registrare una voce umana dal «Copione della voce».
 
-## 5-ter. Il video narrato (prodotto di default)
+## 5-ter. I tre video narrati (prodotto di default)
 
-Il prodotto è **un solo video reale** della piattaforma, con voce e senza sottotitoli: come si crea
-(topic, conoscenza, assistenti, orchestratore, **processo disegnato a mano**) e poi il risultato già
-creato. Si pubblica con il pulsante di download e il **tempo di creazione** sotto il titolo. Procedura in
-[`references/video-narrato.md`](references/video-narrato.md); montaggio con `compose-video.py`. Gli
-schizzi e l'animatic qui sotto restano solo per chi li chiede.
+Il prodotto sono **tre video reali** della piattaforma, separati, con voce e senza sottotitoli:
+1. **Come si crea il blueprint da zero**, passo passo (topic, conoscenza, assistenti, orchestratore,
+   processo disegnato a mano);
+2. **Come si usa**: il risultato già creato, usato da chi ci lavora ogni giorno (assistenti, knowledge);
+3. **Il processo in funzione, ruolo per ruolo** ([§5-quater-bis](#5-quater-bis-il-processo-in-funzione-ruolo-per-ruolo-il-terzo-video)).
+
+Si fanno in quest'ordine; il 3 scrive istanze sul tenant e ha il suo piano e il suo sì. Si chiede quali
+fare (di default tutti e tre, ciascuno quando le sue condizioni ci sono) e si pubblica una pagina con un
+`<video>` per ciascuno, il pulsante di download e il **tempo di creazione**. Procedura in
+[`references/video-narrato.md`](references/video-narrato.md); montaggio con `compose-video.py`, un file
+per video. Gli schizzi e l'animatic qui sotto restano solo per chi li chiede.
+
+## 5-quater-bis. Il processo in funzione, ruolo per ruolo (il terzo video)
+
+Il terzo video non spiega niente di nuovo sulla costruzione: mostra **un caso che gira davvero**,
+dall'arrivo alla chiusura, visto da **ogni ruolo** con la sua istanza, così che il cliente si riconosca.
+Si fa per ultimo, dopo il sì sul piano: **avvia un'istanza e fa lavorare gli agenti**
+sul tenant. Un utente di prova per ruolo, effetti esterni spenti, caso anonimo. Procedura, controlli e
+ciò che manca al banco in [`references/processo-in-funzione.md`](references/processo-in-funzione.md).
+
+## 5-quater. La guida video nel tenant (opzionale)
+
+Finito il video, si può far diventare la **guida interrogabile**: nel manifest del cliente un profilo
+che indicizza gli `.mp4` e **un agente video per manifest** («Agente video - <Scenario>») che risponde
+citando il video che spiega, nel topic **`BP-<TAG>-Guide`**, che il manifest crea da sé con il prefisso del blueprint. Si propone **una volta**, dopo la consegna del video, e si fa solo su richiesta. Scrive
+sul tenant, quindi piano mostrato e sì prima dell'apply; i video devono essere consegnabili (niente nomi
+di altri clienti). Procedura e frammento in [`references/guida-video.md`](references/guida-video.md).
 
 ## 5-bis. Il video: l'animatic (solo su richiesta)
 
@@ -234,8 +280,12 @@ ne usa gli stessi stati e limiti.
   toglie, non si abbellisce.
 - Non generare musica. La voce neurale della piattaforma è una voce guida: per un video da consegnare
   si registra una voce umana dal «Copione della voce».
-- Non assumere l'ambiente: se l'utente non lo dice, lo si chiede (staging predefinito).
+- Non assumere l'ambiente: se l'utente non lo dice, lo si chiede (staging predefinito). E non assumere che
+  la versione letta sia l'ultima: si controlla l'archivio di ogni ambiente e tenant (§1-bis).
 - Non chiedere all'utente chiavi o ruoli Azure per la voce: c'è `xrcopilotlab-bp voice`.
 - Non pubblicare audio o tavole in un repository: contengono lo scenario di un cliente.
+- Non avviare un'istanza per il terzo video senza il sì sul piano, né con dati veri o effetti esterni accesi.
+- Non caricare i video nel tenant di un cliente senza la conferma che siano consegnabili, né
+  applicare la guida video senza il sì sul piano.
 - Non lasciare le scene della parte basilare fuori «per brevità»: sono il motivo per cui questa
   skill esiste.
