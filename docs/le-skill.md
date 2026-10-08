@@ -15,6 +15,7 @@ repository di prodotto: [§ Le skill di sviluppo](skill-di-sviluppo.md).
 | [`xrcopilotlab-blueprint-guide`](#xrcopilotlab-blueprint-guide--la-guida-per-il-cliente) | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «le slide per i sales», «la pagina da mostrare al cliente» | le due guide: per il cliente a slide (pagina e deck) e tecnica per l'AI Specialist (pagina interna) |
 | [`xrcopilotlab-blueprint-demo`](#xrcopilotlab-blueprint-demo--il-brief-per-lagenzia) | blueprints | «il brief per l'agenzia», «gli scenari per i sales», «cosa possiamo vendere da questo blueprint o assessment» | il brief per l'agenzia di marketing: gli scenari vendibili, anonimi e senza tecnicismi, come artifact «DEMO-» con il PDF |
 | [`xrcopilotlab-blueprint-storyboard`](#xrcopilotlab-blueprint-storyboard--lo-storyboard-del-video) | blueprints | «lo storyboard del blueprint», «le tavole del video», «la voce fuori campo» | lo storyboard di un video breve: tavole con schizzi, battute e audio guida di prova |
+| [`xrcopilotlab-blueprint-bpm-flow`](#xrcopilotlab-blueprint-bpm-flow--i-flussi-del-manifest) | blueprints | «il flow chart del blueprint», «disegna i processi del manifest», «il diagramma BPMN» | l'artifact «Flussi BPM <scenario>»: diagrammi a corsie, panoramica di quando partono e quanto durano, PDF |
 | [`xrcopilotlab-blueprint-version`](#xrcopilotlab-blueprint-version--la-mail-delle-novità) | blueprints | «la mail delle novità dei blueprint», «cosa è cambiato dalla 2.x alla 2.y», «avvisa il team che c'è una versione nuova» | la bozza di mail in HTML con i comandi per aggiornare, il link alla guida, le novità per versione e il riepilogo delle feature |
 | [`xrcopilotlab-blueprint-howto`](#xrcopilotlab-blueprint-howto--il-percorso-in-una-pagina) | blueprints | «come si usano le skill dei blueprint», «da dove comincio», «spiegami il flusso dall'assessment alla demo» | l'artifact «Dall'intervista alla demo», da girare a chi comincia |
 | [`xrcopilotlab-assessment`](#xrcopilotlab-assessment--dalla-proposta-al-dossier) | assessment (Claude Desktop) | si carica una proposta e si chiede di «valutarla», «fare l'assessment», «tradurla in soluzione» | il dossier tecnico `.md` e `.docx`, con il capitolo per il provisioning |
@@ -490,6 +491,39 @@ Che cosa **non** fa:
 - non aggiunge marchi o loghi a piè di tavola;
 - se il manifest non usa knowledge né skill, le scene di base restano come scene didattiche,
   etichettate «esempio», e lo dichiara.
+
+### `xrcopilotlab-blueprint-bpm-flow` — i flussi del manifest
+
+Legge un manifest — da file, o dall'archivio di un tenant con `pull` — e ne disegna i processi BPM e gli
+orchestratori **in stile BPMN**, in un artifact privato: corsie per ruolo, cerchi di inizio e fine,
+riquadri blu per le persone, viola per persona più agente, verdi per i passi automatici, rombi per i bivi,
+frecce con la loro condizione, cicli tratteggiati. La pagina interpreta da sola il manifest incorporato:
+non c'è niente da installare né da lanciare.
+
+Quando i processi sono molti, il diagramma da solo non dice **quando** si usa ciascuno né **quanto tempo**
+ci vuole. Per questo ci sono tre livelli di lettura:
+
+| Dove | Che cosa dice |
+|---|---|
+| **Panoramica** (prima scheda) | chi o che cosa avvia ogni processo — a orario, dalla chat, a mano, da un altro processo —, la tabella «quando si usa e quanto dura», le attività che girano da sole con la **settimana tipo** |
+| **In parole semplici** e **Quando parte e quanto dura** (in testa a ogni scheda) | la sintesi per chi non conosce il prodotto, scritta dalla skill, e l'elenco di come parte e dei tempi, calcolato dal manifest |
+| **Passo per passo** (in fondo) | ogni passo in una frase, numerato come i cerchi del disegno, con chi lo fa e quanto dura |
+
+| Chiedi | Succede |
+|---|---|
+| «Il flow chart di questo blueprint» · «disegna i processi del manifest» | Scarica o legge il manifest (dice **quale versione e da quale ambiente**), tiene solo ciò che serve al disegno, scrive le spiegazioni semplici e pubblica l'artifact «Flussi BPM <scenario>» |
+| «Esporta in PDF» | I pulsanti **PDF di questo flusso** e **PDF di tutti i flussi** generano un file A3 orizzontale con il diagramma, la spiegazione e il passo per passo; chi guarda conferma il salvataggio |
+
+Che cosa **non** fa:
+
+- non mette nella pagina system message, email, indirizzi, autenticazioni o id del tenant: un estrattore
+  tiene solo i campi che servono al disegno;
+- non inventa tempi né orari: quelli sono i `cron`, le `expectedDurationMinutes`, le `maxLeadTimeMinutes` e i
+  `timeoutSeconds` del manifest, e ciò che non è dichiarato lo dice;
+- non modifica né applica il manifest, e non dice se un processo «funziona»: il disegno mostra com'è
+  scritto, non come gira (per quello c'è `xrcopilotlab-blueprint-test`);
+- il PDF si esporta solo dalla pagina pubblicata, aperta in claude.ai: le pagine non possono stampare né
+  scaricare da sole, e la skill usa la capacità di download dell'artifact.
 
 ### `xrcopilotlab-blueprint-version` — la mail delle novità
 

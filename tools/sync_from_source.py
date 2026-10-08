@@ -22,6 +22,7 @@ DEST_GUIDE = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-bluepr
 DEST_DEMO = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-demo"
 DEST_HOWTO = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-howto"
 DEST_STORYBOARD = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-storyboard"
+DEST_BPMFLOW = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-bpm-flow"
 DEST_VERSION = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-version"
 
 # Ogni riga: dove sta nel repository di prodotto → dove va nel plugin.
@@ -94,6 +95,12 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-version/SKILL.md", DEST_VERSION / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-version/references/mail-template.html", DEST_VERSION / "references"),
     (".claude/skills/xrcopilotlab-blueprint-version/scripts/novita.sh", DEST_VERSION / "scripts"),
+    # I flussi di un manifest disegnati in stile BPMN, in un artifact: la pagina legge da sola il manifest incorporato.
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/SKILL.md", DEST_BPMFLOW / "SKILL.md"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/references/notazione.md", DEST_BPMFLOW / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/bpm-viewer.html", DEST_BPMFLOW / "assets"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/estrai-blocchi.sh", DEST_BPMFLOW / "assets"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/assembla.sh", DEST_BPMFLOW / "assets"),
     # La guida d'uso del percorso intero, dall'installazione alla demo: pubblica un artifact, non esegue.
     (".claude/skills/xrcopilotlab-blueprint-howto/SKILL.md", DEST_HOWTO / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-howto/references/percorso.html", DEST_HOWTO / "references"),
@@ -237,7 +244,7 @@ def cerca_orfani(copiati):
     la skill non cita qualcosa che nella sorgente è cambiato mesi prima.
     """
     orfani = []
-    for dest in (DEST, DEST_TEST, DEST_GUIDE, DEST_DEMO, DEST_STORYBOARD, DEST_VERSION):
+    for dest in (DEST, DEST_TEST, DEST_GUIDE, DEST_DEMO, DEST_STORYBOARD, DEST_VERSION, DEST_BPMFLOW):
         for p in sorted(dest.rglob("*")):
             if p.is_file() and p.name != ".DS_Store" and p.resolve() not in copiati:
                 orfani.append(p.relative_to(RADICE))
