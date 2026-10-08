@@ -69,14 +69,15 @@ si ferma al primo posto in cui la trova:
 | 4 | l'allegato della release `bp-v<versione>` | la prima volta: lo scarica (~52 MB) prima dal catalogo dei plugin, poi dal repository di prodotto come riserva |
 
 La **versione** la decide il file `plugins/blueprints/bin/version.txt`, che oggi dice `2.17.0`: la
-release cercata è quindi `bp-v2.17.0`. Il download passa da `gh` se sei autenticato, altrimenti da
-un token in `GH_TOKEN` o `GITHUB_TOKEN`. Dopo il download l'avviatore **confronta l'impronta
+release cercata è quindi `bp-v2.17.0`. Il catalogo è pubblico, quindi il download è anonimo: un semplice `curl` (o
+`Invoke-WebRequest` su Windows), senza account e senza `gh`. Solo se fallisce, e solo per il repository
+di prodotto che è privato, l'avviatore ripiega su `gh` se sei autenticato, o su un token in `GH_TOKEN`
+o `GITHUB_TOKEN`. Dopo il download l'avviatore **confronta l'impronta
 SHA-256** con quella pubblicata accanto al binario, e se non corrisponde non lo esegue.
 
-Se il download non riesce l'avviatore esce con **70** e dice quale delle tre cause è: non sei
-autenticato su GitHub (`gh auth login`), il tuo account non legge il catalogo (va chiesto l'accesso),
-oppure la release non ha il binario per la tua piattaforma (fatti passare il file e indicalo con
-`XRCOPILOTLAB_BP_BIN`).
+Se il download non riesce l'avviatore esce con **70** e dice quale delle due cause è: il computer non
+raggiunge `github.com` (rete aziendale, proxy, VPN: riprova da un'altra rete, oppure fatti passare il file
+e indicalo con `XRCOPILOTLAB_BP_BIN`), oppure la release non ha il binario per la tua piattaforma.
 
 Le piattaforme pubblicate sono sei: `osx-arm64`, `osx-x64`, `win-x64`, `win-arm64`, `linux-x64`,
 `linux-arm64`. Il binario è autonomo: non serve installare .NET.
@@ -312,7 +313,7 @@ Tre cose che conviene sapere:
 | `NO_COLOR` | con un valore qualsiasi, niente colori. Il colore si spegne comunque quando l'uscita non va a un terminale |
 | `XRCOPILOTLAB_BP_BIN` | letta dall'avviatore del plugin: il binario da eseguire al posto di quello scaricato |
 | `CLAUDE_PLUGIN_DATA` | impostata da Claude Code: dove l'avviatore tiene la cache del binario e delle note sulle versioni |
-| `GH_TOKEN`, `GITHUB_TOKEN` | lette dall'avviatore: un token per scaricare la CLI quando `gh` non c'è |
+| `GH_TOKEN`, `GITHUB_TOKEN` | lette dall'avviatore solo come riserva, per il repository di prodotto privato: il catalogo si scarica senza |
 
 ---
 
@@ -1946,10 +1947,11 @@ funziona. Si fa fra un lavoro e l'altro, non a metà di un `apply`.
 Un collega con una CLI più nuova ha scritto quel run. Lo puoi leggere (`status`), non riprendere né
 smontare: aggiorna prima la CLI.
 
-### «per scaricare la CLI serve l'accesso a GitHub» / l'avviatore esce con 70
+### «non sono riuscito a scaricare la CLI» / l'avviatore esce con 70
 
-Vedi il [§ 1](#chi-la-installa-il-plugin): `gh auth login`, oppure chiedi l'accesso al catalogo,
-oppure fatti passare il binario e indicalo con `XRCOPILOTLAB_BP_BIN`.
+Vedi il [§ 1](#chi-la-installa-il-plugin): il catalogo è pubblico, quindi non serve un account; di solito
+è la rete che non raggiunge `github.com`. Riprova da un'altra rete, oppure fatti passare il binario e
+indicalo con `XRCOPILOTLAB_BP_BIN`.
 
 ### L'apply si è fermato a metà
 

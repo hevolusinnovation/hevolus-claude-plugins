@@ -78,6 +78,21 @@ aggiorna_note() {
   return 0
 }
 
+# Gemella di aggiorna_note per chi non ha gh — di norma, chi non sviluppa. Legge dal ramo main del
+# catalogo, che è pubblico, i due numeri che servono: nessun account, nessun parsing di JSON.
+aggiorna_note_pubbliche() {
+  command -v curl >/dev/null 2>&1 || return 0
+  mkdir -p "$DATI" 2>/dev/null || return 0
+  local base="https://raw.githubusercontent.com/$REPO_CATALOGO/main/plugins/blueprints"
+  curl -fsSL --max-time 10 "$base/bin/version.txt" 2>/dev/null | tr -d '\r\n ' > "$NOTA.tmp" \
+    && [ -s "$NOTA.tmp" ] && mv "$NOTA.tmp" "$NOTA" 2>/dev/null
+  curl -fsSL --max-time 10 "$base/.claude-plugin/plugin.json" 2>/dev/null \
+    | sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"\([0-9][0-9.]*\)".*/\1/p' | head -1 > "$NOTA_PLUGIN.tmp" \
+    && [ -s "$NOTA_PLUGIN.tmp" ] && mv "$NOTA_PLUGIN.tmp" "$NOTA_PLUGIN" 2>/dev/null
+  rm -f "$NOTA.tmp" "$NOTA_PLUGIN.tmp" 2>/dev/null
+  return 0
+}
+
 note_scadute() { [ -z "$(find "$NOTA_PLUGIN" -mtime -1 2>/dev/null)" ]; }
 
 # La riga da dire, o niente. Una sola: se il plugin è indietro, aggiornarlo porta anche la CLI, e
@@ -166,8 +181,12 @@ avviso_aggiornamento() {
   [ -n "$M" ] && echo "xrcopilotlab-bp: $M" >&2
 
   # Durante un comando le note si aggiornano staccate e mute: il comando non aspetta GitHub.
-  if command -v gh >/dev/null 2>&1 && note_scadute; then
-    ( aggiorna_note ) >/dev/null 2>&1 &
+  if note_scadute; then
+    if command -v gh >/dev/null 2>&1; then
+      ( aggiorna_note ) >/dev/null 2>&1 &
+    else
+      ( aggiorna_note_pubbliche ) >/dev/null 2>&1 &
+    fi
   fi
 }
 
@@ -184,14 +203,21 @@ TAG="bp-v$VERSION"
 istruzioni_accesso() {
   echo "xrcopilotlab-bp: non sono riuscito a scaricare $ASSET (release $TAG)." >&2
   echo "" >&2
-  echo "  Le cause sono tre, e il rimedio è diverso:" >&2
-  echo "  · non sei autenticato su GitHub  → 'gh auth login', oppure esporta GH_TOKEN;" >&2
-  echo "  · lo sei, ma quell'account non legge $REPO_CATALOGO" >&2
-  echo "    → chiedi l'accesso a chi mantiene il catalogo: riprovare non serve;" >&2
-  echo "  · la release non ha l'allegato per questa piattaforma ($RID)" >&2
-  echo "    → fatti passare il binario e indicalo con:" >&2
+  echo "  Il catalogo è pubblico: non serve un account GitHub. Le cause possibili sono due:" >&2
+  echo "  · il computer non raggiunge github.com (rete aziendale, proxy, VPN)" >&2
+  echo "    → riprova da un'altra rete, oppure fatti passare il binario e indicalo con:" >&2
   echo "        export XRCOPILOTLAB_BP_BIN=/percorso/del/binario" >&2
+  echo "  · la release non ha l'allegato per questa piattaforma ($RID)" >&2
+  echo "    → scrivi al team: serve una release che lo pubblichi" >&2
   exit 70
+}
+
+# La strada normale: il catalogo è pubblico, quindi l'allegato si scarica senza account, senza gh e
+# senza token. Le altre due restano per il repository di prodotto, che è privato, e per chi sviluppa.
+da_pubblico() {
+  # repository = $1, nome dell'allegato = $2, destinazione = $3
+  command -v curl >/dev/null 2>&1 || return 1
+  curl -fsSL --retry 2 "https://github.com/$1/releases/download/$TAG/$2" -o "$3" 2>/dev/null
 }
 
 da_gh() {
@@ -221,6 +247,8 @@ da_token() {
 
 scarica() {
   # nome dell'allegato = $1, file di destinazione = $2. Zero se ce l'ha fatta, da qualunque strada.
+  da_pubblico "$REPO_CATALOGO" "$1" "$2" && return 0
+
   for repo in "$REPO_CATALOGO" "$REPO_PRODOTTO"; do
     da_gh "$repo" "$1" "$2" && return 0
     da_token "$repo" "$1" "$2" && return 0

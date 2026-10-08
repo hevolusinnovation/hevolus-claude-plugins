@@ -249,8 +249,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-si
   <div class="prose">
     <p>Il plugin porta tutte le skill dei blueprint — compresa questa pagina — e scarica da solo la CLI
     al primo uso, con l'impronta verificata. Non serve clonare il repository di prodotto, né .NET.
-    Servono <code>git</code> e un accesso GitHub all'organizzazione <code>hevolusinnovation</code>
-    (<code>gh auth login</code>, se Claude ti dice che non sei autenticato).</p>
+    Serve solo <code>git</code>: il catalogo è pubblico, quindi non servono né un account GitHub né <code>gh</code>.</p>
   </div>
 
   <h3><span class="k">Claude Code</span>L'accesso ad Azure: il punto contro cui si sbatte per primo</h3>
@@ -719,7 +718,7 @@ cases:
   <div class="tbl"><table>
     <thead><tr><th>Cosa vedi</th><th>Cosa è successo</th></tr></thead>
     <tbody>
-      <tr><td><code>/plugin marketplace add</code> dà 404</td><td>Git non è autenticato su GitHub, o non hai accesso a <code>hevolusinnovation</code>: <code>gh auth login</code>, poi chiedi di essere aggiunto</td></tr>
+      <tr><td><code>/plugin marketplace add</code> non riesce</td><td>Il catalogo è pubblico, non è un problema di account: controlla che <code>git</code> sia installato e che il computer raggiunga <code>github.com</code> (rete aziendale, proxy, VPN)</td></tr>
       <tr><td>«App Configuration non leggibile» · «Key Vault … non è leggibile»</td><td>Mancano i ruoli Azure della tappa 1: il messaggio nomina risorsa e ruolo da chiedere</td></tr>
       <tr><td>Errore di autenticazione ad Azure</td><td>Il primo accesso non è stato fatto su questa macchina: dal tuo terminale, non da Claude</td></tr>
       <tr><td>Un comando del manuale «non esiste»</td><td>Gira una copia vecchia installata a mano. <code>xrcopilotlab-bp version</code> dice quale e da dove</td></tr>

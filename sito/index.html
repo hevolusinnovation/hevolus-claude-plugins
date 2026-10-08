@@ -361,34 +361,6 @@
           e la scheda <b>Code</b> è lì in alto.</p>
       </li>
       <li>
-        <b>Un accesso a GitHub</b>
-        <p>Serve a prendere il plugin e lo strumento a riga di comando, che stanno in un repository
-          privato dell'organizzazione. Verifica con <code>gh auth status</code>; se il comando non
-          esiste o dice che non sei autenticato:</p>
-
-        <div class="schede" role="tablist" aria-label="Sistema operativo">
-          <button role="tab" data-so="mac" aria-selected="true">macOS</button>
-          <button role="tab" data-so="win" aria-selected="false">Windows</button>
-          <button role="tab" data-so="linux" aria-selected="false">Linux</button>
-        </div>
-
-        <div class="comando" data-so="mac">
-          <pre><code>brew install gh
-gh auth login</code></pre>
-        </div>
-        <div class="comando" data-so="win" hidden>
-          <pre><code>winget install GitHub.cli
-gh auth login</code></pre>
-        </div>
-        <div class="comando" data-so="linux" hidden>
-          <pre><code>sudo apt install gh    # oppure il gestore di pacchetti della tua distribuzione
-gh auth login</code></pre>
-        </div>
-
-        <p class="nota">Se <code>gh auth login</code> va a buon fine ma più avanti vedi un 404,
-          non è un guasto: è che quell'account non è nell'organizzazione. Si chiede, non si riprova.</p>
-      </li>
-      <li>
         <b>Installa il plugin</b>
         <p>Due righe da incollare <b>dentro Claude Code</b>. La prima registra il catalogo — si fa
           una volta sola, e vale anche per i plugin che arriveranno; la seconda installa questo.</p>
@@ -623,8 +595,8 @@ az account set --subscription "Azure AI"</code></pre>
     <thead><tr><th>Cosa vedi</th><th>Cosa è successo</th></tr></thead>
     <tbody>
       <tr>
-        <td><code>/plugin marketplace add</code> dà <b>404</b> o chiede credenziali</td>
-        <td>Il catalogo è privato: o <code>git</code> non è autenticato su GitHub (<code>gh auth login</code>), o il tuo account non è nell'organizzazione. Nel secondo caso si chiede l'accesso.</td>
+        <td><code>/plugin marketplace add</code> non riesce</td>
+        <td>Il catalogo è pubblico, quindi non è un problema di account: controlla che <code>git</code> sia installato e che il computer raggiunga <code>github.com</code> (rete aziendale, proxy, VPN).</td>
       </tr>
       <tr>
         <td>«non sono riuscito a scaricare…» al primo comando</td>
