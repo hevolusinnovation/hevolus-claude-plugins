@@ -43,7 +43,7 @@ processes:
               label: Tipo
               type: text
               required: true
-              description: accesso (manca un ruolo Azure) oppure difetto (webapp o libreria)
+              description: accesso (manca un ruolo Azure), difetto (webapp o libreria) oppure funzionalità mancante (il manifest non sa esprimere ciò che serve)
             - key: ambiente
               label: Ambiente
               type: text

@@ -157,6 +157,7 @@ Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 |---|---|
 | `--env <nome>` | Ambiente: `staging` o `prod`, o un profilo scritto a mano. Senza, vale lo sviluppo (il `local.settings.json` del clone). |
 | `--company <guid>` | Tenant. Senza, lo si sceglie per nome da un elenco. |
+| `--auth <identity\|key>` | Come si arriva ai dati (#1333, fase 2): `identity` = token utente verso l'API, nessun ruolo Azure; `key` = i ruoli Azure di sempre. Vale per `status`, `plan`, `pull`, `catalog list` ed `export <orchestratore>`. Senza, è `identity` solo se hai già fatto `login` su quell'ambiente; altrimenti `key`. Una scelta esplicita non ripiega mai sull'altra. |
 | `--tag <TAG>` | Blueprint su cui operare, per i comandi che partono da uno già pubblicato. |
 | `--version <n>` | Versione del manifest. Senza, si usa la più recente. |
 | `--yes` | Non chiede conferma. |
@@ -177,7 +178,7 @@ Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 | `--file <giudizio.json>` | In `test judge`, i verdetti caso per caso. |
 | `--summary <giudizio.md>` | In `test judge`, il riepilogo in Markdown: diagnosi, costo, attese da correggere. |
 
-Variabili d'ambiente: `XRCOPILOTLAB_BP_PROFILES` (percorso dei profili), `XRCOPILOTLAB_BP_DEBUG`
+Variabili d'ambiente: `XRCOPILOTLAB_BP_AUTH` (come `--auth`), `XRCOPILOTLAB_BP_PROFILES` (percorso dei profili), `XRCOPILOTLAB_BP_DEBUG`
 (traccia completa degli errori), `NO_COLOR` (output senza colore).
 
 ## Codici di uscita
@@ -194,6 +195,7 @@ Distinti perché uno script — o la skill di Claude — possa reagire senza int
 | `5` | La pipeline è ferma su un passo manuale |
 | `6` | Manca una decisione umana: il piano non è stato approvato, o il tenant non è stato scelto |
 | `7` | La suite di collaudo è stata eseguita e almeno un caso non è passato (`test run`) |
+| `8` | Serve l'accesso: non c'è una sessione valida o l'API non ti riconosce (`login`, `whoami`) |
 | `70` | Errore imprevisto |
 
 ---
@@ -346,9 +348,9 @@ si leggono ancora, e `files consolidate` li porta nei posti di oggi.
 | `files share <percorso> --tag <TAG> [--expires <30m\|12h\|7d>]` | Produce un link di **sola lettura** a quel file, a scadenza (default 24 h, massimo 7 giorni) |
 | `files consolidate --tag <TAG> [--yes]` | Porta nei posti di oggi suite (`v<n>/tests/` → `tests/`) e report (`test-reports/` → `reports/<timbro>/`, con `report.md` e il documento aggiornato). Senza `--yes` dice soltanto che cosa farebbe; si può ripetere |
 
-- **Cartella di lavoro.** Senza `--out`, `get` scrive in `~/.xrcopilotlab/blueprints/<TAG>/…`, o dove
-  indica la variabile `XRCOPILOTLAB_BP_WORKSPACE`. Sta **fuori dal repository**: è una copia di comodo,
-  non va committata. Una suite ci arriva senza versione (`tests/<nome>.tests.yml`, accanto al manifest)
+- **Cartella locale.** Senza `--out`, `get` scrive in `<cartella temporanea del sistema>/xrcopilotlab-bp/workspace/<TAG>/…`,
+  o dove indica la variabile `XRCOPILOTLAB_BP_WORKSPACE`. Sta **fuori dal repository** ed è un appoggio:
+  la sede del blueprint è l'archivio del tenant, e una copia su disco non va né committata né tenuta. Una suite ci arriva senza versione (`tests/<nome>.tests.yml`, accanto al manifest)
   e, con `--all`, solo nella versione più recente.
 - **Sovrascrivere.** Suite, guide, bozze e allegati si riscrivono; un report ha il suo timbro e di
   norma non si tocca. Il manifest non passa di qui.
@@ -805,7 +807,7 @@ xrcopilotlab-bp test reports  --tag TEST --compare 0123456789ab --env staging --
 `init` non sovrascrive una suite esistente (`--overwrite`, o `--out`); `validate` accetta
 `--manifest`; `run` accetta `--tag`, `--run <runId>`, `--only <chiavi,tag,entità>`, `--out
 <cartella>`. Le entità si risolvono dall'inventario dell'ultimo run completato del tag. Il report
-va nella cartella di lavoro, `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/` — mai
+va nella cartella locale, `<temporanea>/xrcopilotlab-bp/workspace/<TAG>/reports/<aaaammgg-hhmmss>/` — mai
 nel repository: contiene risposte e id del tenant — e nell'archivio del tenant, dove lo trovano
 anche la chat dei blueprint e `test reports`. `push` porta una suite nell'archivio, accanto al
 manifest del suo tag; `reports` elenca i report archiviati e, con `--compare <id>`, confronta quel
@@ -1129,10 +1131,10 @@ posto — restare senza comando sarebbe il modo peggiore di fallire un aggiornam
 eseguibile in esecuzione non si può sovrascrivere, ma si può rinominare, ed è per questo che
 funziona anche lì.
 
-## `report-problem --kind <access|defect> --env <nome> --message <testo>`
+## `report-problem --kind <access|defect|feature> --env <nome> --message <testo>`
 
 Segnala al team ciò che la skill non sa risolvere: un **ruolo Azure che manca** (`access`) o un
-**difetto della webapp o della libreria** (`defect`). La segnalazione diventa un'**istanza del processo
+**difetto della webapp o della libreria** (`defect`), o una **funzionalità che il blueprint chiede e il manifest o la piattaforma non hanno** (`feature`). La segnalazione diventa un'**istanza del processo
 «Assistenza XRCopilotLab»**, con un'attività «Prendi in carico la
 segnalazione» assegnata al ruolo «Assistenza XRCopilotLab»: la recapitano le notifiche dei processi già
 esistenti (card Teams 1:1, email di ripiego), senza un canale in più.
@@ -1144,7 +1146,7 @@ xrcopilotlab-bp report-problem --kind access --env staging --tag MARKETING --man
 
 | Opzione | Significato |
 |---|---|
-| `--kind` | `access` (manca un ruolo o un accesso) · `defect` (qualcosa non funziona; default) |
+| `--kind` | `access` (manca un ruolo o un accesso) · `defect` (qualcosa non funziona; default) · `feature` (il blueprint richiede ciò che il manifest non sa esprimere) |
 | `--env` | L'ambiente su cui è successo. Obbligatorio |
 | `--message` | Che cosa è successo, con il messaggio d'errore. Ripulito da ciò che somiglia a un segreto, massimo 3000 caratteri |
 | `--command` | Il comando che era in corso, senza argomenti sensibili |
@@ -1170,6 +1172,72 @@ lo dice. I membri del ruolo non stanno nel manifest: si leggono dalla chiave `Bl
 dell'App Configuration dell'ambiente (email separate da virgola); senza, il ruolo nasce vuoto e il piano lo
 dice (`BP106`). La definizione è la risorsa
 [`assistenza-xrcopilotlab.yml`](assistenza-xrcopilotlab.yml).
+
+## `login [--env <nome>] [--b2c]` — l'accesso senza ruoli Azure (#1333, fase 1)
+
+Un'alternativa ai ruoli Azure: ci si identifica con l'account aziendale `hevolus.it` (Entra), e
+l'API riceve il **token della persona** invece di una chiave. **Per ora solo per lo staff Hevolus**: l'accesso è con l'account aziendale `hevolus.it` (Entra); B2C e i clienti arriveranno dopo. È la **fase 1**: oggi serve a identificarsi e a
+sapere dove si può lavorare; gli altri comandi continuano a usare i ruoli Azure finché le fasi 2–4 non li
+spostano sulla superficie `cli/*`.
+
+```bash
+xrcopilotlab-bp login  --env staging [--b2c]     # si apre il browser; poi mostra chi sei e i tuoi tenant
+xrcopilotlab-bp whoami --env staging [--b2c]     # lo stesso, dalla sessione già in cache
+xrcopilotlab-bp logout --env staging [--b2c]     # toglie il token dalla cache
+```
+
+| Opzione | Significato |
+|---|---|
+| `--env` | L'ambiente (default `staging`) |
+| `--b2c` | Accesso con l'identità di XRCopilotLab (B2C, anche Google) invece dell'account aziendale `hevolus.it`. **Non ancora attivo**: per ora l'accesso è solo dello staff Hevolus, e l'API accetta solo Entra |
+
+- **Il browser è obbligatorio**: B2C non ha il device code. Si apre quello di sistema; se non si apre,
+  l'indirizzo è stampato e lo si apre a mano. Lanciato da un assistente, il browser si apre sulla macchina della
+  persona: è lei a completare l'accesso.
+- **La sessione** sta nel portachiavi del sistema (Keychain, DPAPI, libsecret); dove non c'è, in un file con i
+  permessi ristretti, e il comando lo dice. Si rinnova da sola finché la persona non fa `logout`.
+- **Configurazione e codici di uscita**: vedi `whoami`, qui sotto.
+
+---
+
+### Senza ruoli Azure: la fase 2 di `login` (#1333)
+
+`status`, `plan`, `pull` e `catalog list` funzionano anche con il token utente, dopo `login`: i dati li legge
+l'API con la sua identità e **autorizza per tenant** — chi non è utente del tenant riceve 403, che non dice se
+il tenant esista. Le rotte sono `cli/{companyId}/...`, di sola lettura, e lo stesso codice che con i ruoli Azure
+gira nella CLI qui gira sul server: il piano che si vede è lo stesso.
+
+- **Tenant**: `--company` se è fra i tuoi; altrimenti il predefinito dell'ambiente (non in produzione); altrimenti
+  l'unico che hai. Se ne hai più d'uno e non ne indichi uno, il comando li elenca e si ferma.
+- **Scrivere** (`apply`, `push`, …) non è ancora sulla superficie nuova: continua a chiedere i ruoli Azure.
+- **`export <orchestratore>`** funziona con l'identità, ma l'API lo concede solo agli **amministratori** del tenant: è una
+  copia della configurazione (prompt, agenti, profili), non un elenco. **`export --scope …`** no: legge un tenant
+  intero e non sta in una richiesta HTTP dell'API (per quello c'è il backup); resta con `--auth key`.
+- **Non ancora** con l'identità: `pull --with-files` (fase 4).
+
+---
+
+## `logout [--env <nome>] [--b2c]`
+
+Toglie dalla cache il token dell'ambiente e della directory indicati. Senza sessione non fa niente e lo dice.
+
+---
+
+## `whoami [--env <nome>] [--b2c]`
+
+- **`whoami`** chiama `GET cli/me` sull'API dell'ambiente: dice chi sei per il prodotto e, per ogni tenant dove
+  sei utente, se sei amministratore (può scrivere) o solo utente (sola lettura). **Non crea mai un utente**: un
+  token valido non basta per esserlo, e chi non lo è vede «nessun tenant».
+- **Configurazione**: l'authority B2C (con la user flow) e il tenant Entra di `hevolus.it` sono già i default di
+  staging, letti dall'App Configuration della webapp: non sono segreti. Mancano le app registration **pubbliche**
+  della CLI, in preparazione: finché non esistono si passano da variabile d'ambiente (predefinito, Entra: `XRCOPILOTLAB_BP_ENTRA_CLIENT_ID` e `_SCOPE`; con `--b2c`: `XRCOPILOTLAB_BP_B2C_CLIENT_ID` e `_SCOPE`), e il comando dice
+  quali mancano. `XRCOPILOTLAB_BP_B2C_AUTHORITY` (forma `https://<host>.b2clogin.com/tfp/<tenant>.onmicrosoft.com/<policy>`)
+  e `XRCOPILOTLAB_BP_ENTRA_TENANT` sostituiscono i default; `XRCOPILOTLAB_BP_API_URL` punta a un'API diversa da quella
+  dell'ambiente. Nessun valore è un segreto.
+- **Codici di uscita**: `8` se non c'è una sessione, il token non è accettato o la persona non è un utente;
+  `3` se l'ambiente non ha ancora emittenti configurati (l'API risponde 503).
+
+---
 
 ## `version`
 

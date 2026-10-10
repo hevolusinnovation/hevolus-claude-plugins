@@ -28,6 +28,9 @@ in italiano semplice (vedi la SKILL §2). I campi con `?` sono facoltativi.
         }
       ],
       "processi_nota": "?  Se i processi non sono descritti: perché (manifest non letto).",
+      "risorse": [
+        { "tipo": "video", "titolo": "Video Suite legale", "url": "https://claude.ai/artifact/…", "a_chi": "interno", "nota": "?  Una riga: che cosa si trova lì." }
+      ],
       "serve": ["Le persone di ogni ruolo", "Le credenziali del servizio X, per nome"],
       "non_fa": ["Non inventa un dato che non trova: lo dice."]
     }
@@ -40,6 +43,10 @@ in italiano semplice (vedi la SKILL §2). I campi con `?` sono facoltativi.
 
 Note:
 
+- `risorse` (facoltativo): gli artifact creati dalle skill dei blueprint per quel modello. `tipo` è uno fra `video`,
+  `guida`, `presentazione`, `processi`, `domande`, `brief`, `altro`. `a_chi` è `cliente` solo se l'artifact è scritto per
+  il cliente **e** l'utente lo ha confermato; ogni altro caso è `interno` (è anche il valore se il campo manca). La
+  pagina mostra l'indirizzo per intero accanto al titolo, perché il PDF non ha link cliccabili.
 - `processi` può essere vuoto: allora `processi_nota` dice perché, e la pagina lo mostra al posto del racconto.
 - `numeri` vengono dal catalogo/manifest, mai stimati.
 - Niente HTML nei testi: la pagina fa l'escape. Un a-capo è un nuovo elemento dell'array.

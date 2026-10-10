@@ -37,7 +37,7 @@ persona dello Studio riceve compiti o avvisi. In produzione i ruoli includono pe
 
 **Gli effetti esterni sono veri anche su staging** (verificato l'08/10/2026): il `tokenUrl` del manifest punta al
 tenant `ec9b1ca0-…`, che è **polisavvocati.com** (ricerca pubblica sul dominio; Hevolus è `45bb21a6-…`), e le
-caselle sono `agenda.civile@` e `agenda.penale@polisavvocati.com`, con Calendars.ReadWrite, Mail.ReadWrite e
+caselle sono le due agende dello Studio (civile e penale), con Calendars.ReadWrite, Mail.ReadWrite e
 **Mail.Send**. La v37 applicata su staging scrive quindi sul calendario vero del cliente, e il passo
 «Registra sul calendario comune» lo fa davvero. **Un'istanza non si avvia su quella configurazione.**
 
@@ -126,7 +126,7 @@ Non si avvia da lì.
 Le liste di staging contengono già compiti di collaudi precedenti (10 righe in «Le mie attività» il 08/10): la
 macro cerca il compito **per titolo del caso**, non il primo della griglia.
 
-## Le macro del banco (scritte l'08/10/2026, **non ancora provate dal vivo**)
+## Le macro del banco (scritte e **provate dal vivo su staging l'08/10/2026**)
 
 `demo-recorder-playwright` ha ora, oltre a `askAgent`, due macro per questo video. Come le macro di creazione
 scrivono sul tenant e non si rigiocano a freddo; si validano con `xrcopilotlab-demo validate --plan`.
@@ -147,10 +147,24 @@ scrivono sul tenant e non si rigiocano a freddo; si validano con `xrcopilotlab-d
 - `completeWorkItem`: Le mie attività → aspetta che compaia il compito **di quell'attività e di quel titolo** (si
   aggiorna la griglia: prima possono girare passi di agente) → «Prendi» se serve → «Apri» → campi per etichetta →
   «Completa». Un campo di sola lettura non si compila.
-- **Ancora da fare**: la prova dal vivo (sbaglierà dove i selettori della griglia o del modulo non sono come
-  letti dal codice), il **cambio di sessione per ruolo** (`as: <ruolo>`, oggi c'è una sola sessione: va bene su
-  staging dove i ruoli hanno un solo membro), la lettura dello stato finale dell'istanza e la verifica di
-  **quale calendario** raggiunge il passo «Registra sul calendario comune» su staging.
+- **Provate**: giro completo in un solo piano (avvio, verifica, assegnazione, conferma) in 2,7 minuti, istanza
+  `Completed`, esito «REGISTRATO 12/11/2026, 09:30 …» sul calendario di `test@hevolus.it`. Il video è
+  `03-processo-in-funzione.mp4` (2:22).
+
+**Cose imparate (ognuna è costata una prova)**
+
+| Cosa | Perché conta |
+|---|---|
+| Il nome del processo è quello **sul tenant**, con il prefisso: `BP-STUDIOPOLIS-Presa in carico di una comunicazione (civile)` | la macro si ferma prima di avviare (elenca le voci disponibili) |
+| «Prendi» prende in carico **e porta da solo** alla pagina del compito | non si aspetta nessun cambio di stato nella griglia |
+| Il campo utente («Professionista incaricato») elenca le **email**: si sceglie `giuseppe.zileni@hevolus.it`, non il nome | il menu mostra per un secondo le email dei colleghi: da oscurare per un cliente |
+| Il selettore **data è mm/gg/aaaa** (cultura del browser): per il 12 novembre si scrive `11/12/2026`; il campo poi mostra anche l'ora | sbagliare dà l'11 dicembre; l'assistente della registrazione se ne accorge e scrive «NON REGISTRATO: data non coincidente tra modulo ed estremi» senza toccare il calendario |
+| Il primo `.rz-dropdown` della pagina è la **lingua**; i menu del calendario sono `.rz-dropdown` anch'essi | la macro li esclude; le prove a mano scelgono il menu «Processo» per testo |
+| Un giro fallito a metà lascia **istanze e compiti** su staging | le macro riprendono per titolo e attività; le istanze di prova si cancellano solo con il sì |
+
+- **Ancora da fare**: il cambio di sessione per ruolo (`as: <ruolo>`; su staging basta una sessione perché ogni
+  ruolo ha un solo membro), la lettura automatica dello stato finale dell'istanza (oggi si guarda da «Istanze di
+  processo» → Apri) e l'oscuramento dei menu che mostrano altri progetti e le email dei colleghi.
 
 ## Cosa non fare
 

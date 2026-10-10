@@ -407,6 +407,7 @@ spec:
       performer: Automated     # HumanOnly | AiAssisted | Automated
       agentTaskName: Estrazione udienza     # nome SENZA prefisso: lo qualifica il planner
       outputVariable: proposta
+      shareAttachments: true   # l'agent task riceve gli allegati dei campi file delle attività precedenti
       expectedDurationMinutes: 2
 
     - id: dialoga
@@ -773,6 +774,22 @@ orchestrators:
 | `sendMessage` | Mostra un messaggio | `text` |
 | `action` | Esegue un'azione | `provider` (`email`/`webhook`/`javascript`), `action`, `connection`, `input` |
 | `terminate` | Uscita | — |
+
+**La condizione di un orchestratore non è quella di un gateway.** I gateway dei processi usano
+`{ var, op, value }`; il motore delle orchestrazioni legge invece `type` e, a seconda del tipo,
+`left`/`right`, `key`, `conditions` o `condition`. La forma dei processi in un bivio di orchestratore
+è `BP097`, e fermerebbe lo step solo all'esecuzione.
+
+```yaml
+- key: bivio
+  name: Serve conferma?
+  type: condition
+  condition:                      # confronti: equals, contains, greater_than, less_than,
+    type: and                     #   greater_than_or_equal, less_than_or_equal (left + right)
+    conditions:                   # exists (key) · and / or (conditions) · not (condition)
+      - { type: exists, key: analisi }
+      - { type: equals, left: "{{context.categoria}}", right: urgente }
+```
 
 Ogni step che non sia `terminate` vuole almeno un flusso uscente, e **uno solo** step — l'ingresso —
 non ne vuole di entranti: nessuno (un ciclo chiuso) o più d'uno è `BP095`. Le altre regole del

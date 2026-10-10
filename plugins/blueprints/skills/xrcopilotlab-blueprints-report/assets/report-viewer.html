@@ -28,7 +28,7 @@ html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 var(--font-body);-webkit-font-smoothing:antialiased}
 a{color:var(--brand-ink)}
 h1,h2,h3{font-family:var(--font-display);font-weight:600;line-height:1.2;margin:0}
-.bar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar{position:sticky;top:0;z-index:20;background:var(--bg);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
 .bar-in{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
 .wm{font-family:var(--font-display);font-weight:600;font-size:22px;letter-spacing:-.01em;color:var(--fg);text-decoration:none}
 .wm b{color:var(--brand);font-weight:600}
@@ -73,7 +73,7 @@ tr:last-child td{border-bottom:0}
 @media(min-width:720px){.model{padding:34px 36px}}
 .model>h3{font-size:clamp(24px,3vw,32px)}
 .badges{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px}
-.badge{font-size:12.5px;border-radius:999px;padding:3px 11px;background:var(--brand-soft);color:var(--brand-ink);border:1px solid color-mix(in srgb,var(--brand) 30%,transparent)}
+.badge{font-size:12.5px;border-radius:999px;padding:3px 11px;background:var(--brand-soft);color:var(--brand-ink);border:1px solid var(--brand)}
 .model h4{font:600 13px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--brand-ink);margin:26px 0 8px}
 .one{font-family:var(--font-display);font-size:21px;line-height:1.4;margin:0 0 6px;max-width:60ch}
 ul.plain{margin:0 0 14px;padding-left:20px;max-width:72ch}
@@ -83,12 +83,23 @@ ul.plain li{margin:4px 0}
 .agent{border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--bg)}
 .agent b{display:block;font-size:14.5px}
 .agent span{font-size:14px;color:var(--muted)}
+.res{display:grid;gap:10px;grid-template-columns:1fr;margin:0 0 14px}
+@media(min-width:720px){.res{grid-template-columns:1fr 1fr}}
+.rc{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg);min-width:0}
+.rc .top{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:4px}
+.rt{font:600 11.5px var(--font-body);letter-spacing:.06em;text-transform:uppercase;color:var(--brand-ink)}
+.ra{font-size:11.5px;border-radius:999px;padding:1px 8px;background:var(--ok-soft);color:var(--ok)}
+.ra.int{background:var(--warn-soft);color:var(--warn)}
+.rc a.rl{font-weight:600;color:var(--fg);text-decoration:none;border-bottom:1px solid var(--brand);overflow-wrap:anywhere}
+.rc a.rl:hover{color:var(--brand-ink)}
+.rc p{margin:6px 0 0;font-size:14px;color:var(--muted)}
+.rc .url{display:block;margin-top:6px;font:12px var(--font-mono);color:var(--muted);overflow-wrap:anywhere}
 .proc{border-left:3px solid var(--brand);padding:2px 0 2px 18px;margin:18px 0}
 .proc h5{margin:0 0 4px;font:600 17px var(--font-display)}
 .proc .scopo{color:var(--muted);font-size:15px;margin:0 0 10px}
 .who{font-size:13.5px;color:var(--muted);margin-top:4px}
 .who b{color:var(--fg)}
-.note{border-radius:12px;padding:12px 16px;margin:12px 0 18px;font-size:15px;background:var(--warn-soft);color:var(--fg);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);max-width:72ch}
+.note{border-radius:12px;padding:12px 16px;margin:12px 0 18px;font-size:15px;background:var(--warn-soft);color:var(--fg);border:1px solid var(--warn);max-width:72ch}
 .no{background:var(--brand-soft);border-radius:12px;padding:6px 18px 6px 14px;max-width:72ch}
 pre{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:14px 16px;overflow-x:auto;font:13.5px/1.6 var(--font-mono);margin:10px 0 18px;position:relative}
 code.i{font:13.5px var(--font-mono);background:var(--brand-soft);padding:1px 6px;border-radius:5px;color:var(--brand-ink)}
@@ -99,7 +110,7 @@ pre .cp{position:absolute;top:8px;right:8px;font:500 12px var(--font-body);backg
 .steps>li::before{content:counter(s);position:absolute;left:-17px;top:-2px;width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font:600 14px var(--font-body)}
 .steps h5{margin:0 0 4px;font:600 16.5px var(--font-body)}
 .steps p{margin:0 0 8px;font-size:15px}
-.gate{display:inline-block;font-size:13px;border-radius:8px;padding:3px 10px;background:var(--ok-soft);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent)}
+.gate{display:inline-block;font-size:13px;border-radius:8px;padding:3px 10px;background:var(--ok-soft);color:var(--ok);border:1px solid var(--ok)}
 .gate::before{content:"Cancello · ";font-weight:600}
 .two{display:grid;gap:18px;grid-template-columns:1fr}
 @media(min-width:760px){.two{grid-template-columns:1fr 1fr}}
@@ -187,6 +198,23 @@ function importStd(){
   return h;
 }
 
+function trasfStd(){
+  var H4="<h4 style=\"font:600 13px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--brand-ink)\">";
+  var h=[];
+  h.push("<div class=\"blk\"><p class=\"lead\">Un blueprint che funziona si <b>copia</b>, non si riscrive. Si dice a Claude, con la skill <b>xrcopilotlab-blueprint</b>, che cosa portare e dove. Ci sono due strade: la <b>versione intera</b> verso un altro ambiente o tenant, oppure <b>una parte</b> di ciò che esiste su un tenant. In entrambi i casi Claude si ferma al piano e aspetta il vostro sì prima di creare qualcosa.</p></div>");
+  h.push("<div class=\"blk\">"+H4+"A · Tutto il blueprint, su un altro ambiente o tenant</h4>");
+  h.push("<p>Dite a Claude: <i>«porta la versione 6 del blueprint LEGAL da staging al tenant X di produzione»</i>. Claude copia la versione nell\'archivio di destinazione, poi prepara piano e applicazione.</p>"+cmd("xrcopilotlab-bp promote --tag LEGAL --version 6 \\\n  --from-env staging --from-company <tenant-origine> \\\n  --to-env prod --to-company <tenant-destinazione>\n\n# poi, sulla destinazione, il percorso di sempre\nxrcopilotlab-bp secrets check <manifest>.yml\nxrcopilotlab-bp plan --tag LEGAL --env prod --company <tenant-destinazione>\nxrcopilotlab-bp apply --tag LEGAL --env prod --company <tenant-destinazione>")+"</div>");
+  h.push("<div class=\"blk\"><ul class=\"plain\"><li><b>Non crea niente sul tenant.</b> La copia è solo nell\'archivio: servono ancora piano, sì e applicazione.</li><li><b>Ripeterlo non fa danni.</b> Se la destinazione ha già la stessa versione con lo stesso contenuto, non scrive nulla.</li><li><b>Se dice «contenuto diverso»</b>, qualcuno ha modificato il manifest per quell\'ambiente: si alza il numero di versione, non si sovrascrive.</li><li><b>Le credenziali non viaggiano.</b> Nel manifest ci sono solo i loro nomi: quelle che la destinazione non ha vanno inserite lì (da terminale o dalla pagina Amministrazione › Connessioni).</li><li>In <b>produzione</b> un tenant che l\'API non elenca viene rifiutato, anche come destinazione di una copia.</li></ul></div>");
+  h.push("<div class=\"blk\">"+H4+"B · Solo una parte: dal tenant al manifest</h4>");
+  h.push("<p>Quando serve solo un pezzo (un topic con i suoi assistenti, un orchestratore, ciò che un blueprint ha creato) si legge dal tenant di partenza e si scrive come un nuovo manifest. Dite a Claude: <i>«esporta il topic Agenda di Studio dal tenant X e preparalo per un altro cliente»</i>. Claude chiede prima <b>l\'ambito</b> e se i dati personali vanno sostituiti da segnaposto (il comportamento normale per un altro cliente).</p>"+cmd("# un topic, con ciò che contiene\nxrcopilotlab-bp export --scope topic \"Agenda di Studio\" --tag STUDIOPOLIS \\\n  --env staging --company <tenant-origine> --out export-studiopolis\n\n# un orchestratore\nxrcopilotlab-bp export \"Nome orchestratore\" --tag MIOTAG --env staging --company <tenant-origine>\n\n# tutto ciò che un blueprint ha creato\nxrcopilotlab-bp export --scope blueprint LEGAL --tag LEGAL2 --env staging --company <tenant-origine>\n\n# poi, sul tenant di arrivo\nxrcopilotlab-bp validate export-studiopolis/<manifest>.yml\nxrcopilotlab-bp push export-studiopolis/<manifest>.yml --env prod --company <tenant-destinazione>\nxrcopilotlab-bp plan --tag STUDIOPOLIS --env prod --company <tenant-destinazione>")+"</div>");
+  h.push("<div class=\"blk\"><ul class=\"plain\"><li>Claude vi spiega il <b>rapporto dell\'esportazione</b> prima del manifest: credenziali da impostare, persone da indicare, ciò che il manifest non sa dire.</li><li>I nomi escono <b>senza</b> il prefisso <code class=\"i\">BP-&lt;TAG&gt;-</code>: l\'applicazione lo rimette.</li><li>Riapplicare l\'esportazione sul <b>tenant da cui viene</b> crea delle copie e non aggiorna ciò che era fatto a mano.</li></ul></div>");
+  h.push("<div class=\"blk\">"+H4+"C · Dopo il trasferimento: il collaudo con xrcopilotlab-blueprint-test</h4>");
+  h.push("<p>Un blueprint trasferito non è finito finché non si prova sul tenant nuovo. Dite a Claude: <i>«collauda LEGAL sul tenant X»</i>. Claude parte dalla suite di domande che c\'è nell\'archivio (o ne scrive una dal manifest), la convalida <b>senza rete</b>, vi dice ambiente, tenant e numero di casi e <b>aspetta il vostro sì</b>: il collaudo consuma token e lascia conversazioni e pratiche visibili sul tenant. Sul tenant di un cliente non parte di sua iniziativa.</p>"+cmd("# 1. lo scheletro della suite, dal manifest (se non ce n\'è già una)\nxrcopilotlab-bp test init <manifest>.yml --out <cartella>/<suite>.tests.yml\n\n# 2. la verifica, senza toccare il tenant\nxrcopilotlab-bp test validate <cartella>/<suite>.tests.yml\n\n# 3. la suite entra nell\'archivio, accanto al manifest\nxrcopilotlab-bp test push <cartella>/<suite>.tests.yml --tag LEGAL --env prod --company <tenant-destinazione>\n\n# 4. l\'esecuzione, dopo il vostro sì\nxrcopilotlab-bp test run --from-archive --tag LEGAL --env prod --company <tenant-destinazione>\n\n# 5. i report e il confronto con il giro precedente\nxrcopilotlab-bp test reports --tag LEGAL --env prod --company <tenant-destinazione>\nxrcopilotlab-bp test report --tag LEGAL --env prod --company <tenant-destinazione>")+"</div>");
+  h.push("<div class=\"blk\"><p>Il collaudo restituisce le <b>evidenze</b> (risposte, passi dei processi, esito dei controlli). Il <b>giudizio</b> lo dà Claude: attribuisce ogni difetto a un componente (il prompt di un assistente, un passo del processo, una credenziale) e lo archivia con <code class=\"i\">test judge</code>. Resta un\'ipotesi finché voi non scegliete «difetto confermato», e le segnalazioni su GitHub si aprono solo dopo un vostro sì. Dalla chat della webapp non girano i casi che mandano messaggi veri.</p><span class=\"gate\">Prima di lanciare, Claude dice tenant, numero di casi e quali avviano processi, e aspetta il sì</span></div>");
+  h.push("<div class=\"blk\">"+H4+"Frasi da dire a Claude</h4>"+cmd("Porta la versione più recente del blueprint LEGAL da staging al tenant <nome> di produzione.\nEsporta solo il topic <nome> dal tenant <nome> e preparalo per un altro cliente.\nMostrami il piano per il blueprint LEGAL sul tenant <nome>, senza applicare.\nCollauda LEGAL sul tenant <nome> con la suite dell\'archivio.\nConfronta l\'ultimo report di collaudo con il precedente e dimmi che cosa è cambiato.")+"</div>");
+  return h.join("");
+}
+
 /* ---------- costruzione della pagina ---------- */
 var toc=[],n=0;
 function sec(id,title,body){n++;toc.push([id,n+'. '+title,0]);return '<section class="sec" id="'+id+'"><h2 class="blk"><span class="num">'+n+'.</span>'+esc(title)+'</h2>'+body+'</section>';}
@@ -215,6 +243,10 @@ modelli.forEach(function(m){
   var pr=arr(m.processi);
   if(pr.length) pr.forEach(function(p){mh+='<div class="proc blk"><h5>'+esc(p.titolo)+'</h5>'+(p.scopo?'<p class="scopo">'+esc(p.scopo)+'</p>':'')+paras(p.racconto)+(p.partecipano?'<div class="who"><b>Chi partecipa:</b> '+esc(p.partecipano)+'</div>':'')+'</div>';});
   else mh+='<div class="note blk">'+esc(m.processi_nota||'I processi di questo modello non sono descritti: il manifest non è stato letto.')+'</div>';
+  var rs=arr(m.risorse);
+  if(rs.length){var TIPI={video:'Video',guida:'Guida',presentazione:'Presentazione',processi:'Flussi dei processi',domande:'Domande di prova',brief:'Brief',altro:'Documento'};
+    mh+='<div class="blk"><h4>Per saperne di più</h4><div class="res">'+rs.map(function(r){var int=(r.a_chi||'interno')!=='cliente';
+      return '<div class="rc"><div class="top"><span class="rt">'+esc(TIPI[r.tipo]||TIPI.altro)+'</span><span class="ra'+(int?' int':'')+'">'+(int?'Solo interno':'Per il cliente')+'</span></div><a class="rl" href="'+esc(r.url)+'" target="_blank" rel="noopener">'+esc(r.titolo)+'</a>'+(r.nota?'<p>'+esc(r.nota)+'</p>':'')+'<span class="url">'+esc(r.url)+'</span></div>';}).join('')+'</div></div>';}
   if(arr(m.serve).length) mh+='<div class="blk"><h4>Che cosa serve per usarlo</h4>'+ul(m.serve)+'</div>';
   if(arr(m.non_fa).length) mh+='<div class="blk"><h4>Che cosa non fa</h4><div class="no"><ul class="plain">'+arr(m.non_fa).map(function(t){return '<li>'+esc(t)+'</li>';}).join('')+'</ul></div></div>';
   mh+='</article>';
@@ -223,6 +255,7 @@ html+=sec('modelli','I modelli, uno per uno',mh||'<p class="empty blk">Nessun mo
 toc.splice.apply(toc,[toc.length,0].concat(subs));
 html+=sec('plugin','Installare il plugin su Claude Code e Claude Desktop',D.plugin?'<div class="blk">'+paras(D.plugin)+'</div>':PLUGIN_STD);
 html+=sec('importare','Portare un modello sul vostro tenant, con Claude',D.importare?'<div class="blk">'+paras(D.importare)+'</div>':importStd());
+html+=sec('trasferire','Trasferire un blueprint, o una parte, su un altro tenant',D.trasferire?'<div class="blk">'+paras(D.trasferire)+'</div>':trasfStd());
 if(arr(D.glossario).length) html+=sec('glossario','Le parole che incontrerete','<div class="blk"><dl>'+arr(D.glossario).map(function(g){return '<dt>'+esc(g.termine)+'</dt><dd>'+esc(g.spiegazione)+'</dd>';}).join('')+'</dl></div>');
 html+='<footer class="blk">Hevolus · XRCopilotLab — manuale del catalogo dei blueprint · ambiente '+esc(D.ambiente||'—')+' · letto il '+esc(D.letto_il||'—')+'. Il catalogo cambia: rileggerlo prima di promettere un modello.</footer></main></div>';
 

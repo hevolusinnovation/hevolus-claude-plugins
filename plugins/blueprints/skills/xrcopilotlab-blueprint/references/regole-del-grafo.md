@@ -46,12 +46,18 @@ Riassunto operativo di ciò che `ProcessSpecValidator` verifica sul server. Serv
 | Performer | Richiede | Ammette | Vieta |
 |---|---|---|---|
 | `HumanOnly` | `roleName` **oppure** `assignmentExpression` | `form` | `outputVariable` |
-| `AiAssisted` | `agentTaskName` **e** (`roleName` oppure `assignmentExpression`) | `form`, `outputVariable`, `interactive` | — |
-| `Automated` | `agentTaskName` | `outputVariable` | `form`, `roleName`, `assignmentExpression`, `interactive` |
+| `AiAssisted` | `agentTaskName` **e** (`roleName` oppure `assignmentExpression`) | `form`, `outputVariable`, `interactive`, `shareAttachments` | — |
+| `Automated` | `agentTaskName` | `outputVariable`, `shareAttachments` | `form`, `roleName`, `assignmentExpression`, `interactive` |
 
 `interactive: true` è ammesso solo con `performer: AiAssisted` (vietato su Start, End, CallActivity e
 sugli altri performer): il work item mostra la chat con l'agente (o l'orchestratore) dell'agent task
 invece di eseguirlo in automatico, e le risposte compilano i campi del form.
+
+`shareAttachments: true` è ammesso dove lo step ha un agente — `performer: Automated` o
+`AiAssisted`, anche con `interactive` — e vietato su `HumanOnly`, Start, End e CallActivity. L'agente
+riceve fra i file della conversazione tutti gli allegati caricati nei campi `type: file` delle
+attività precedenti dell'istanza: l'agent task lanciato dal motore, oppure, se lo step è interattivo,
+la chat del work item. Senza, l'agente vede la CaseData ma non i file.
 
 Il motivo del divieto su `Automated`: un'attività automatica non genera un work item, quindi un
 modulo non avrebbe nessuno che lo compili e una corsia non avrebbe nessuno a cui assegnare.

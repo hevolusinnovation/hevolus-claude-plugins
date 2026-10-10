@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-howto
-description: Pubblica (o aggiorna allo stesso link) l'artifact «Dall'intervista alla demo», la guida d'uso delle skill XRCopilotLab nell'ordine in cui si usano - installazione su Claude Desktop e su Claude Code, xrcopilotlab-assessment (dall'intervista al cliente al dossier), xrcopilotlab-blueprint (dal dossier alla prima versione del manifest, applicata), il giro di xrcopilotlab-blueprint-test fino alla versione stabile, poi xrcopilotlab-blueprint-guide, xrcopilotlab-blueprint-demo e xrcopilotlab-blueprint-storyboard prima della demo al cliente. Per ogni tappa - dove si lavora, cosa portare, frasi da scrivere, cosa succede, cosa si ottiene, domande tipiche, errori frequenti. Usa quando l'utente chiede "come si usano le skill dei blueprint", "la guida al percorso blueprint", "da dove comincio", "l'howto dei blueprint", "spiegami il flusso assessment → demo", "manda a un collega come si usano i plugin", o invoca la skill. NON esegue nessuna delle skill che descrive, non tocca il tenant e non scrive manifest.
+description: Pubblica (o aggiorna allo stesso link) l'artifact «Dall'intervista alla demo», la guida d'uso delle skill XRCopilotLab nell'ordine in cui si usano - installazione su Claude Desktop e su Claude Code, xrcopilotlab-assessment (intervista → dossier), xrcopilotlab-blueprint (dal dossier alla prima versione del manifest, applicata), il giro di xrcopilotlab-blueprint-test fino alla versione stabile, poi xrcopilotlab-blueprint-guide, xrcopilotlab-blueprint-demo e xrcopilotlab-blueprint-storyboard (i tre video narrati) prima della demo al cliente. Per ogni tappa - dove si lavora, cosa portare, frasi da scrivere, cosa succede, cosa si ottiene, domande tipiche, errori frequenti. Usa quando l'utente chiede "come si usano le skill dei blueprint", "la guida al percorso blueprint", "da dove comincio", "l'howto dei blueprint", "spiegami il flusso assessment → demo", "manda a un collega come si usano i plugin", o invoca la skill. NON esegue nessuna delle skill che descrive, non tocca il tenant e non scrive manifest.
 ---
 
 # xrcopilotlab-blueprint-howto
@@ -9,7 +9,7 @@ Pubblica una pagina sola che accompagna un collega — un AI Specialist, un Sale
 team — lungo **tutto** il percorso, nell'ordine in cui lo farà:
 
 ```
-installazione  →  assessment  →  blueprint v1  →  collaudo ↺ (fino ai verdi)  →  guide  →  brief  →  video  →  demo
+installazione  →  assessment  →  blueprint v1  →  collaudo ↺ (fino ai verdi)  →  guide  →  brief  →  3 video  →  demo
 (Desktop+Code)    (Desktop)      (Code)            (Code)                          (Code/Desktop)    (Code)
 ```
 
@@ -48,6 +48,8 @@ La pagina **non contiene numeri di versione** di proposito, come `sito/index.htm
 | Le due righe di installazione e i comandi di aggiornamento | idem |
 | I ruoli Azure e le risorse per ambiente | `docs/accesso-azure.md` del catalogo, se c'è |
 | I comandi della CLI e i codici di uscita | `xrcopilotlab-bp --help`, **se** la CLI è disponibile; altrimenti le tabelle di `cli-reference.md` della skill `xrcopilotlab-blueprint` |
+| I tre video (come si crea, come si usa, il processo in funzione), la guida video nel tenant (topic Guide, un agente video per manifest) e le condizioni di sicurezza del video 3 (caselle di prova, ruoli senza persone del cliente) | `SKILL.md` della skill `-storyboard` § 5-ter, § 5-quater, § 5-quater-bis e § 1-bis, `references/guida-video.md`, `references/processo-in-funzione.md` |
+| Le skill di servizio (`-sync`, `-version`) e cosa fanno | la `description` del loro `SKILL.md` |
 | I nomi degli artifact prodotti dalle altre skill («— guida», «— demo (interna)», «— domande di prova», «DEMO-») | le sezioni di pubblicazione di `-guide`, `-test`, `-demo`, `-storyboard` |
 
 Se una di queste fonti dice una cosa diversa dalla pagina, **vince la fonte**: si corregge la pagina

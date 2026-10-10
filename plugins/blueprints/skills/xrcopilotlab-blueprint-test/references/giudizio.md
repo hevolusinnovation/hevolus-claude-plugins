@@ -74,7 +74,7 @@ Due trappole che rendono un giudizio sbagliato:
 ```markdown
 # Giudizio · <blueprint> · <data del report>
 
-Report: ~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/report.md · report <reportId> · tenant <guid> · run <runId>
+Report: <scratch>/report/report.md · report <reportId> · tenant <guid> · run <runId>
 
 | Caso | CLI | Giudizio | Perché (una riga) |
 |---|---|---|---|
