@@ -16,6 +16,7 @@ repository di prodotto: [§ Le skill di sviluppo](skill-di-sviluppo.md).
 | [`xrcopilotlab-blueprint-demo`](#xrcopilotlab-blueprint-demo--il-brief-per-lagenzia) | blueprints | «il brief per l'agenzia», «gli scenari per i sales», «cosa possiamo vendere da questo blueprint o assessment» | il brief per l'agenzia di marketing: gli scenari vendibili, anonimi e senza tecnicismi, come artifact «DEMO-» con il PDF |
 | [`xrcopilotlab-blueprint-storyboard`](#xrcopilotlab-blueprint-storyboard--lo-storyboard-del-video) | blueprints | «lo storyboard del blueprint», «le tavole del video», «la voce fuori campo» | lo storyboard di un video breve: tavole con schizzi, battute e audio guida di prova |
 | [`xrcopilotlab-blueprint-bpm-flow`](#xrcopilotlab-blueprint-bpm-flow--i-flussi-del-manifest) | blueprints | «il flow chart del blueprint», «disegna i processi del manifest», «il diagramma BPMN» | l'artifact «Flussi BPM <scenario>»: diagrammi a corsie, panoramica di quando partono e quanto durano, PDF |
+| [`xrcopilotlab-blueprints-report`](#xrcopilotlab-blueprints-report--il-manuale-del-catalogo) | blueprints | «il manuale dei blueprint», «cosa c'è nel catalogo», «il report dei blueprint del marketplace» | il manuale del catalogo, con l'installazione del plugin e le fasi per portare un modello su un tenant, in PDF |
 | [`xrcopilotlab-blueprint-version`](#xrcopilotlab-blueprint-version--la-mail-delle-novità) | blueprints | «la mail delle novità dei blueprint», «cosa è cambiato dalla 2.x alla 2.y», «avvisa il team che c'è una versione nuova» | la bozza di mail in HTML con i comandi per aggiornare, il link alla guida, le novità per versione e il riepilogo delle feature |
 | [`xrcopilotlab-blueprint-howto`](#xrcopilotlab-blueprint-howto--il-percorso-in-una-pagina) | blueprints | «come si usano le skill dei blueprint», «da dove comincio», «spiegami il flusso dall'assessment alla demo» | l'artifact «Dall'intervista alla demo», da girare a chi comincia |
 | [`xrcopilotlab-assessment`](#xrcopilotlab-assessment--dalla-proposta-al-dossier) | assessment (Claude Desktop) | si carica una proposta e si chiede di «valutarla», «fare l'assessment», «tradurla in soluzione» | il dossier tecnico `.md` e `.docx`, con il capitolo per il provisioning |
@@ -524,6 +525,35 @@ Che cosa **non** fa:
   scritto, non come gira (per quello c'è `xrcopilotlab-blueprint-test`);
 - il PDF si esporta solo dalla pagina pubblicata, aperta in claude.ai: le pagine non possono stampare né
   scaricare da sole, e la skill usa la capacità di download dell'artifact.
+
+### `xrcopilotlab-blueprints-report` — il manuale del catalogo
+
+Legge il **catalogo dei blueprint** di Hevolus — i modelli pronti, installabili da qualunque tenant — e ne
+scrive un **manuale** per chi non conosce il prodotto, in un artifact privato con il design Hevolus e il
+pulsante **Scarica PDF**. Il linguaggio è quello della guida: «assistente», non «agente»; «la pratica», non
+«istanza».
+
+| Dove | Che cosa dice |
+|---|---|
+| **Che cos'è il catalogo** | i modelli in una tabella: a che cosa servono, per chi, che cosa creano |
+| **I modelli, uno per uno** | per ognuno: in una frase, per chi è, che cosa contiene, **i processi BPM raccontati** (come partono, dove decide una persona, come finiscono), che cosa serve, che cosa non fa |
+| **Installare il plugin** | Claude Code (`/plugin marketplace add …`, `/plugin install blueprints@hevolus`, gli aggiornamenti e il riavvio) e Claude Desktop (lo zip da claude.ai/customize/plugins) |
+| **Portare un modello sul vostro tenant** | le fasi che Claude esegue, ognuna con il suo cancello: scelte, installazione dal catalogo, credenziali, piano, **il vostro sì**, applicazione, collaudo con `xrcopilotlab-blueprint-test`, rollback |
+
+| Chiedi | Succede |
+|---|---|
+| «Il manuale dei blueprint» · «cosa c'è nel catalogo» | Chiede **l'ambiente** (staging e produzione hanno cataloghi diversi), legge `catalog list`, procura i manifest e pubblica l'artifact «Catalogo blueprint — manuale» |
+| «Scarica il PDF» | Il pulsante genera un PDF A4 con copertina e numero di pagina; chi guarda conferma il salvataggio |
+
+Che cosa **non** fa:
+
+- non installa, non applica, non collauda e non tocca nessun tenant: descrive i comandi, li esegue la skill
+  del loro mestiere, con i suoi cancelli;
+- nessun comando legge il manifest di un modello direttamente dal catalogo: la skill usa il file del modello
+  o una copia su un tenant, e installare su un tenant di collaudo **solo per leggerlo** richiede un sì. Se il
+  manifest non si legge, il manuale dice che i processi non sono descritti: non li inventa;
+- non mette nella pagina system message, email, id del tenant né credenziali;
+- il PDF si esporta solo dalla pagina pubblicata, aperta in claude.ai.
 
 ### `xrcopilotlab-blueprint-version` — la mail delle novità
 
