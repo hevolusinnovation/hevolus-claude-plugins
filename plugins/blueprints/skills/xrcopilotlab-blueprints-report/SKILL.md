@@ -218,7 +218,7 @@ Come ogni artifact della famiglia: **privato**, titolo stabile, stesso `url` agl
 
 - **Prima**: caricare la skill `artifact-design` (obbligatorio) e `artifact-capabilities` (per `downloads`);
   verificare l'organizzazione con `/status` (un artifact nell'organizzazione sbagliata dà «Page not found» e
-  non si sposta); cercare con `Artifact` `action: "list"` un «Catalogo blueprint — manuale» già
+  non si sposta); cercare con `Artifact` `action: "list"` un «Catalogo blueprint Hevolus» già
   esistente: se c'è, si aggiorna **allo stesso `url`**.
 - `file_path`: la pagina assemblata; **`files`**: `{"manuale.json": "<scratchpad>/manuale.json"}`, così chi
   riprende il manuale legge la sorgente con `action: "read"` e `path: "manuale.json"`; `icon`: `book` alla
