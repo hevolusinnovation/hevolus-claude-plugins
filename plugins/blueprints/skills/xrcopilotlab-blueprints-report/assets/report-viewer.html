@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Catalogo blueprint — manuale</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f2ec; --surface:#ffffff; --fg:#1c1b19; --muted:#5f5b55; --line:#e3ded6;
+  --brand:#b4531f; --brand-ink:#8c3d12; --brand-soft:#fdf1e8; --ink:#14131a; --ink-fg:#f5f2ed;
+  --ok:#1d6b3f; --ok-soft:#e5f3ea; --warn:#8a5a00; --warn-soft:#fbf1da; --code-bg:#14131a; --code-fg:#ece9e4;
+  --font-display:'Newsreader',Georgia,serif; --font-body:'IBM Plex Sans',system-ui,sans-serif; --font-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14131a; --surface:#1e1d23; --fg:#ece9e4; --muted:#a7a29a; --line:#302e37;
+  --brand:#ef9b6a; --brand-ink:#f5b48b; --brand-soft:#2a1f19; --ink:#0e0d12; --ink-fg:#f5f2ed;
+  --ok:#6cc08b; --ok-soft:#173023; --warn:#e0b25c; --warn-soft:#2e2411; --code-bg:#0b0a0e; --code-fg:#ece9e4; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14131a; --surface:#1e1d23; --fg:#ece9e4; --muted:#a7a29a; --line:#302e37;
+  --brand:#ef9b6a; --brand-ink:#f5b48b; --brand-soft:#2a1f19; --ink:#0e0d12; --ink-fg:#f5f2ed;
+  --ok:#6cc08b; --ok-soft:#173023; --warn:#e0b25c; --warn-soft:#2e2411; --code-bg:#0b0a0e; --code-fg:#ece9e4; color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 var(--font-body);-webkit-font-smoothing:antialiased}
+a{color:var(--brand-ink)}
+h1,h2,h3{font-family:var(--font-display);font-weight:600;line-height:1.2;margin:0}
+.bar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.bar-in{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.wm{font-family:var(--font-display);font-weight:600;font-size:22px;letter-spacing:-.01em;color:var(--fg);text-decoration:none}
+.wm b{color:var(--brand);font-weight:600}
+.bar .sp{flex:1}
+.bar .tag{font-size:13px;color:var(--muted);display:none}
+@media(min-width:720px){.bar .tag{display:block}}
+button.btn{font:500 14px var(--font-body);border:1px solid var(--brand);background:var(--brand);color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer}
+button.btn:hover{background:var(--brand-ink);border-color:var(--brand-ink)}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+button.btn.ghost{background:transparent;color:var(--fg);border-color:var(--line)}
+button.btn.ghost:hover{background:var(--brand-soft)}
+button.btn:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.layout{max-width:1180px;margin:0 auto;padding:0 16px 80px;display:grid;grid-template-columns:1fr;gap:40px}
+@media(min-width:980px){.layout{grid-template-columns:230px minmax(0,1fr)}}
+nav.toc{display:none}
+@media(min-width:980px){nav.toc{display:block;position:sticky;top:72px;align-self:start;padding-top:40px;max-height:calc(100vh - 90px);overflow:auto;font-size:14px}}
+nav.toc h4{margin:0 0 10px;font:600 12px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+nav.toc a{display:block;padding:5px 0 5px 12px;border-left:2px solid var(--line);color:var(--muted);text-decoration:none}
+nav.toc a:hover,nav.toc a.on{color:var(--fg);border-left-color:var(--brand)}
+nav.toc a.sub{padding-left:26px;font-size:13px}
+.cover{background:var(--ink);color:var(--ink-fg);border-radius:0 0 22px 22px;margin:0 -16px;padding:56px 16px 52px}
+@media(min-width:980px){.cover{grid-column:1/-1;margin:0}}
+.cover-in{max-width:1180px;margin:0 auto}
+.kicker{font:600 12px var(--font-body);letter-spacing:.14em;text-transform:uppercase;color:#ef9b6a}
+.cover h1{font-size:clamp(34px,6vw,60px);margin:14px 0 14px;color:#fff;max-width:18ch}
+.cover p{max-width:60ch;color:#cfcac2;font-size:18px;margin:0}
+.meta{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.chip{border:1px solid #3a3842;border-radius:999px;padding:5px 12px;font-size:13px;color:#e6e2da}
+.chip b{color:#ef9b6a;font-weight:600}
+main{padding-top:40px;min-width:0}
+section.sec{margin:0 0 56px}
+section.sec>h2{font-size:clamp(26px,3.4vw,36px);margin-bottom:18px;padding-bottom:12px;border-bottom:2px solid var(--brand)}
+.num{color:var(--brand);margin-right:8px}
+p{margin:0 0 14px;max-width:72ch}
+.lead{font-size:18px;color:var(--fg)}
+.scroll{overflow-x:auto;margin:14px 0 22px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 12px var(--font-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--brand-soft);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.model{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:26px 22px;margin:0 0 30px}
+@media(min-width:720px){.model{padding:34px 36px}}
+.model>h3{font-size:clamp(24px,3vw,32px)}
+.badges{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px}
+.badge{font-size:12.5px;border-radius:999px;padding:3px 11px;background:var(--brand-soft);color:var(--brand-ink);border:1px solid color-mix(in srgb,var(--brand) 30%,transparent)}
+.model h4{font:600 13px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--brand-ink);margin:26px 0 8px}
+.one{font-family:var(--font-display);font-size:21px;line-height:1.4;margin:0 0 6px;max-width:60ch}
+ul.plain{margin:0 0 14px;padding-left:20px;max-width:72ch}
+ul.plain li{margin:4px 0}
+.agents{display:grid;gap:8px;grid-template-columns:1fr;margin:0 0 14px}
+@media(min-width:720px){.agents{grid-template-columns:1fr 1fr}}
+.agent{border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--bg)}
+.agent b{display:block;font-size:14.5px}
+.agent span{font-size:14px;color:var(--muted)}
+.proc{border-left:3px solid var(--brand);padding:2px 0 2px 18px;margin:18px 0}
+.proc h5{margin:0 0 4px;font:600 17px var(--font-display)}
+.proc .scopo{color:var(--muted);font-size:15px;margin:0 0 10px}
+.who{font-size:13.5px;color:var(--muted);margin-top:4px}
+.who b{color:var(--fg)}
+.note{border-radius:12px;padding:12px 16px;margin:12px 0 18px;font-size:15px;background:var(--warn-soft);color:var(--fg);border:1px solid color-mix(in srgb,var(--warn) 35%,transparent);max-width:72ch}
+.no{background:var(--brand-soft);border-radius:12px;padding:6px 18px 6px 14px;max-width:72ch}
+pre{background:var(--code-bg);color:var(--code-fg);border-radius:12px;padding:14px 16px;overflow-x:auto;font:13.5px/1.6 var(--font-mono);margin:10px 0 18px;position:relative}
+code.i{font:13.5px var(--font-mono);background:var(--brand-soft);padding:1px 6px;border-radius:5px;color:var(--brand-ink)}
+pre .cp{position:absolute;top:8px;right:8px;font:500 12px var(--font-body);background:#2b2a31;color:#ddd;border:1px solid #3a3842;border-radius:6px;padding:3px 9px;cursor:pointer}
+.steps{counter-reset:s;list-style:none;margin:16px 0 22px;padding:0}
+.steps>li{counter-increment:s;position:relative;padding:0 0 18px 52px;border-left:2px solid var(--line);margin-left:16px}
+.steps>li:last-child{border-left-color:transparent;padding-bottom:0}
+.steps>li::before{content:counter(s);position:absolute;left:-17px;top:-2px;width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font:600 14px var(--font-body)}
+.steps h5{margin:0 0 4px;font:600 16.5px var(--font-body)}
+.steps p{margin:0 0 8px;font-size:15px}
+.gate{display:inline-block;font-size:13px;border-radius:8px;padding:3px 10px;background:var(--ok-soft);color:var(--ok);border:1px solid color-mix(in srgb,var(--ok) 35%,transparent)}
+.gate::before{content:"Cancello · ";font-weight:600}
+.two{display:grid;gap:18px;grid-template-columns:1fr}
+@media(min-width:760px){.two{grid-template-columns:1fr 1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 20px 8px}
+.card h3{font-size:22px;margin-bottom:10px}
+dl{margin:0}dt{font-weight:600;margin-top:12px}dd{margin:2px 0 0;color:var(--muted);max-width:72ch}
+footer{border-top:1px solid var(--line);margin-top:20px;padding-top:18px;font-size:13px;color:var(--muted)}
+.empty{padding:40px 0;color:var(--muted)}
+#msg{font-size:13px;color:var(--muted);min-height:20px}
+/* versione per il PDF: sempre chiara, larga una pagina A4 */
+.pdf-root{position:fixed;left:-10000px;top:0;width:794px;background:#fff;color:#1c1b19;padding:0;font-size:14px}
+.pdf-root{--bg:#fff;--surface:#fff;--fg:#1c1b19;--muted:#5f5b55;--line:#e3ded6;--brand:#b4531f;--brand-ink:#8c3d12;--brand-soft:#fdf1e8;--ok:#1d6b3f;--ok-soft:#e5f3ea;--warn:#8a5a00;--warn-soft:#fbf1da;--code-bg:#14131a;--code-fg:#ece9e4}
+.pdf-root .cover{border-radius:0;margin:0;padding:120px 48px 90px;min-height:1000px;background:#14131a;color:#f5f2ed}
+.pdf-root .layout,.pdf-root main{display:block;padding:0}
+.pdf-root main{padding:28px 0 0}
+.pdf-root section.sec,.pdf-root .model{padding-left:0;padding-right:0}
+.pdf-root .blk{padding-left:4px;padding-right:4px}
+.pdf-root .model{border:0;padding:0;border-radius:0}
+.pdf-root .scroll{overflow:visible}
+.pdf-root pre{white-space:pre-wrap;word-break:break-all}
+.pdf-root .cp,.pdf-root nav.toc,.pdf-root .bar{display:none}
+@media print{.bar,nav.toc{display:none}}
+</style>
+</head>
+<body>
+<header class="bar"><div class="bar-in">
+  <a class="wm" href="#top">hevo<b>lus</b></a>
+  <span class="tag">Catalogo blueprint · manuale</span>
+  <span class="sp"></span>
+  <span id="msg" role="status" aria-live="polite"></span>
+  <button class="btn ghost" id="theme" type="button" aria-label="Cambia tema">Tema</button>
+  <button class="btn" id="pdf" type="button">Scarica PDF</button>
+</div></header>
+<div id="app"></div>
+
+<script type="application/json" id="data">
+__DATA__
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha384-JcnsjUPPylna1s1fvi1u12X5qjY5OL56iySh75FdtrwhO/SWXgMjoVqcKyIIWOLk" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+<script>
+(function(){
+var D; try{D=JSON.parse(document.getElementById('data').textContent);}catch(e){document.getElementById('app').innerHTML='<p class="empty">Il manuale non si legge: i dati non sono validi.</p>';return;}
+
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function arr(x){return Array.isArray(x)?x:(x?[x]:[]);}
+function paras(x){return arr(x).map(function(t){return '<p>'+esc(t)+'</p>';}).join('');}
+function ul(x){var a=arr(x);return a.length?'<ul class="plain">'+a.map(function(t){return '<li>'+esc(t)+'</li>';}).join('')+'</ul>':'';}
+function cmd(t){return '<pre><button class="cp" type="button" data-cp>Copia</button><code>'+esc(t)+'</code></pre>';}
+function slug(s){return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
+
+var titolo=D.titolo||'Catalogo dei blueprint';
+var modelli=arr(D.modelli);
+document.title='Catalogo blueprint — manuale';
+
+/* ---------- testi standard (da SKILL §3 e §4) ---------- */
+var PLUGIN_STD='<div class="blk"><p class="lead">I comandi che toccano un tenant passano dalla CLI <code class="i">xrcopilotlab-bp</code>, che gira solo dove Claude può eseguire comandi: la scheda <b>Code</b> dell\'app Claude, o Claude Code da terminale. La <b>Chat</b> di Claude Desktop non esegue comandi: lì si scrive e si legge, non si applica.</p></div>'
++'<div class="two blk"><div class="card"><h3>Claude Code</h3><p>Nella scheda <b>Code</b> dell\'app, o da terminale, si scrivono una volta sola questi due comandi:</p>'
++cmd('/plugin marketplace add hevolusinnovation/hevolus-claude-plugins\n/plugin install blueprints@hevolus')
++'<p>Poi si <b>riavvia la sessione</b>: le skill si caricano all\'apertura. Quando compare l\'avviso «c\'è il plugin blueprints x.y.z…», si aggiorna così:</p>'
++cmd('/plugin marketplace update hevolus\n/plugin update blueprints@hevolus')
++'<p>La CLI <b>non si installa a mano</b>: il plugin la scarica al primo uso e ne verifica l\'impronta. Servono l\'accesso al repository <code class="i">hevolusinnovation/hevolus-claude-plugins</code> e, per i comandi che toccano il tenant, l\'accesso con la propria utenza Hevolus (<code class="i">xrcopilotlab-bp login</code>, una volta per ambiente, da un terminale vero).</p></div>'
++'<div class="card"><h3>Claude Desktop</h3><p>Nella scheda <b>Chat</b> il plugin dell\'<i>assessment</i> si carica come file zip: dalla pagina delle release di <code class="i">hevolusinnovation/hevolus-claude-plugins</code> si scarica il file <code class="i">Xrcopilotlab-….zip</code> <b>senza aprirlo</b>, poi si va su <b>claude.ai/customize/plugins</b> e si sceglie <b>Carica plugin</b>.</p>'
++'<p>Le skill dei blueprint si possono usare anche in Chat, come skill singole: servono a scrivere un manifest, un manuale o una guida, ma <b>non eseguono</b> l\'applicazione né il collaudo. Per quelli si passa alla scheda <b>Code</b> con il plugin <code class="i">blueprints@hevolus</code>.</p></div></div>';
+
+var FASI=[
+ ['Prima di cominciare','Claude verifica che il plugin e l\'accesso ci siano, chiede <b>ambiente e tenant</b> e controlla che il tenant abbia la licenza per gli assistenti, i profili di conoscenza e i topic che il modello crea.','Il tenant lo sceglie l\'utente. In produzione, solo tenant a cui appartiene.',''],
+ ['Le scelte','Claude chiede ciò che il modello lascia aperto: il <b>tag</b>, il <b>topic</b> (nuovo o già esistente) e le <b>persone di ogni ruolo</b>.','Un ruolo a cui il modello indirizza dei passi non può restare vuoto.',''],
+ ['L\'installazione dal catalogo','Il modello viene copiato nell\'archivio del tenant con le scelte fatte. <b>Non crea ancora niente</b> sul tenant.','',  'xrcopilotlab-bp catalog install <modello> --env <ambiente> --company <tenant> \\\n  [--tag <TAG>] [--topic <nome> | --existing-topic <nome>] \\\n  [--members "ruolo=a@studio.it,b@studio.it"]'],
+ ['Le credenziali','Claude elenca le credenziali per nome. Si possono preimpostare da terminale, oppure inserire dopo dalla pagina Amministrazione › Connessioni. <b>Claude non chiede mai il valore in chat.</b>','Una credenziale mancante non ferma il piano: è un avviso.','xrcopilotlab-bp secrets set <nome> --tag <TAG> --env <ambiente> --company <tenant>'],
+ ['Il piano','Claude mostra che cosa verrebbe creato, che cosa collide con quello che c\'è già e come sta la licenza. Nulla è stato toccato.','',  'xrcopilotlab-bp plan --tag <TAG> --env <ambiente> --company <tenant>'],
+ ['Il vostro sì','Leggete il piano e rispondete sì, oppure chiedete di cambiare qualcosa.','Senza un sì esplicito Claude non va avanti. Se un nome è già occupato da qualcosa che non è del blueprint, il piano si ferma: non sovrascrive.',''],
+ ['L\'applicazione','Claude crea topic, ruoli, assistenti, compiti, processi e orchestratori. Ciò che viene creato resta registrato: serve per aggiornare o smontare.','',  'xrcopilotlab-bp apply --tag <TAG> --env <ambiente> --company <tenant>'],
+ ['Il collaudo','Con la skill <b>xrcopilotlab-blueprint-test</b> Claude parte dalle domande di prova (dall\'archivio, o ne scrive di nuove), le convalida e le lancia; giudica le risposte, attribuisce ogni difetto a un componente e propone le segnalazioni. Le issue si aprono solo dopo un sì.','Prima di lanciare, Claude dice ambiente, tenant e numero di casi, e aspetta il sì: il collaudo consuma token e lascia conversazioni e pratiche visibili. Sul tenant di un cliente non parte di sua iniziativa.','xrcopilotlab-bp test validate <suite>.tests.yml\nxrcopilotlab-bp test run <suite>.tests.yml --env <ambiente> --company <tenant>'],
+ ['La consegna','Claude riporta la versione applicata, l\'esito del collaudo e ciò che resta da fare a mano: le credenziali, le persone, una casella di posta.','',''],
+ ['Se serve tornare indietro','Si smonta ciò che quell\'applicazione ha creato. Cancellare anche l\'archivio chiede di scrivere il tag del blueprint: un sì non basta.','Il comando si ferma finché ci sono entità vive e indica le due strade.','xrcopilotlab-bp rollback --run <runId> --env <ambiente> --company <tenant>']
+];
+function importStd(){
+  var h='<div class="blk"><p class="lead">Non si scrivono comandi a mano: si dice a Claude, in italiano, <i>«installa il modello <b>&lt;nome&gt;</b> sul tenant <b>&lt;…&gt;</b>»</i>. Claude segue le fasi qui sotto e <b>si ferma a ogni cancello</b>. I comandi sono quelli che Claude esegue per voi, riportati per trasparenza.</p></div><ol class="steps">';
+  FASI.forEach(function(f){
+    h+='<li class="blk"><h5>'+esc(f[0])+'</h5><p>'+f[1]+'</p>'+(f[3]?cmd(f[3]):'')+(f[2]?'<span class="gate">'+esc(f[2])+'</span>':'')+'</li>';
+  });
+  h+='</ol><div class="blk"><h4 style="font:600 13px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--brand-ink)">Aggiornare un modello già installato</h4><p>Si ripete l\'installazione dal catalogo: riparte dalle scelte precedenti. Poi piano e applicazione: la versione nuova crea ciò che manca e aggiorna <b>sul posto</b> ciò che il blueprint aveva creato, senza cancellare mai.</p>'
+  +'<h4 style="font:600 13px var(--font-body);letter-spacing:.08em;text-transform:uppercase;color:var(--brand-ink)">Che cosa Claude non fa</h4><div class="no"><ul class="plain"><li>Non applica niente senza il vostro sì.</li><li>Non scrive né chiede segreti in chat.</li><li>Non sovrascrive ciò che non è del blueprint.</li><li>Non apre segnalazioni senza un sì.</li><li>Non collauda il tenant di un cliente di sua iniziativa.</li></ul></div></div>';
+  return h;
+}
+
+/* ---------- costruzione della pagina ---------- */
+var toc=[],n=0;
+function sec(id,title,body){n++;toc.push([id,n+'. '+title,0]);return '<section class="sec" id="'+id+'"><h2 class="blk"><span class="num">'+n+'.</span>'+esc(title)+'</h2>'+body+'</section>';}
+
+var html='<div class="layout" id="top">'
++'<div class="cover blk"><div class="cover-in"><div class="kicker">Hevolus · XRCopilotLab</div><h1>'+esc(titolo)+'</h1>'
++'<p>'+esc(arr(D.introduzione)[0]||'I blueprint pronti, curati da Hevolus, che qualunque tenant può installare.')+'</p>'
++'<div class="meta"><span class="chip">Ambiente <b>'+esc(D.ambiente||'—')+'</b></span><span class="chip">Modelli <b>'+modelli.length+'</b></span><span class="chip">Letto il <b>'+esc(D.letto_il||'—')+'</b></span></div></div></div>'
++'<nav class="toc" aria-label="Indice"><h4>In questa pagina</h4>@@TOC@@</nav><main>';
+
+html+=sec('catalogo','Che cos\'è il catalogo',
+  '<div class="blk">'+paras(arr(D.introduzione).slice(1))+'</div>'
+  +(arr(D.introduzione).length<2?'<div class="blk"><p>Un <b>modello</b> è un blueprint scritto per essere installato da chiunque: non nomina un tenant né persone, e cita le credenziali solo per nome. Hevolus lo pubblica nel catalogo; l\'amministratore di un tenant lo installa scegliendo soltanto ciò che il modello lascia aperto — il prefisso, il topic, le persone di ogni ruolo, le credenziali.</p></div>':'')
+  +(modelli.length?'<div class="scroll blk"><table><thead><tr><th>Modello</th><th>A che cosa serve</th><th>Per chi</th><th>Che cosa crea</th><th>Versione</th></tr></thead><tbody>'
+  +modelli.map(function(m){return '<tr><td><a href="#m-'+esc(slug(m.id||m.nome))+'"><b>'+esc(m.nome||m.id)+'</b></a></td><td>'+esc(m.in_una_frase)+'</td><td>'+esc(m.per_chi)+'</td><td>'+esc(arr(m.numeri).join(' · '))+'</td><td>v'+esc(m.versione)+(m.tag?' · '+esc(m.tag):'')+'</td></tr>';}).join('')
+  +'</tbody></table></div>':'<p class="empty blk">Il catalogo di questo ambiente è vuoto.</p>'));
+
+var mh='',subs=[];
+modelli.forEach(function(m){
+  var id='m-'+slug(m.id||m.nome); subs.push([id,m.nome||m.id,1]);
+  mh+='<article class="model" id="'+id+'"><div class="blk"><h3>'+esc(m.nome||m.id)+'</h3><div class="badges"><span class="badge">v'+esc(m.versione)+'</span>'+(m.tag?'<span class="badge">tag '+esc(m.tag)+'</span>':'')+arr(m.numeri).map(function(x){return '<span class="badge">'+esc(x)+'</span>';}).join('')+'</div><p class="one">'+esc(m.in_una_frase)+'</p></div>';
+  if(m.per_chi) mh+='<div class="blk"><h4>Per chi è</h4><p>'+esc(m.per_chi)+'</p></div>';
+  var ag=arr(m.assistenti);
+  if(ag.length) mh+='<div class="blk"><h4>Che cosa contiene</h4><div class="agents">'+ag.map(function(a){return '<div class="agent"><b>'+esc(a.nome)+'</b><span>'+esc(a.compito)+'</span></div>';}).join('')+'</div></div>';
+  mh+='<div class="blk"><h4>I processi, raccontati</h4></div>';
+  var pr=arr(m.processi);
+  if(pr.length) pr.forEach(function(p){mh+='<div class="proc blk"><h5>'+esc(p.titolo)+'</h5>'+(p.scopo?'<p class="scopo">'+esc(p.scopo)+'</p>':'')+paras(p.racconto)+(p.partecipano?'<div class="who"><b>Chi partecipa:</b> '+esc(p.partecipano)+'</div>':'')+'</div>';});
+  else mh+='<div class="note blk">'+esc(m.processi_nota||'I processi di questo modello non sono descritti: il manifest non è stato letto.')+'</div>';
+  if(arr(m.serve).length) mh+='<div class="blk"><h4>Che cosa serve per usarlo</h4>'+ul(m.serve)+'</div>';
+  if(arr(m.non_fa).length) mh+='<div class="blk"><h4>Che cosa non fa</h4><div class="no"><ul class="plain">'+arr(m.non_fa).map(function(t){return '<li>'+esc(t)+'</li>';}).join('')+'</ul></div></div>';
+  mh+='</article>';
+});
+html+=sec('modelli','I modelli, uno per uno',mh||'<p class="empty blk">Nessun modello da descrivere.</p>');
+toc.splice.apply(toc,[toc.length,0].concat(subs));
+html+=sec('plugin','Installare il plugin su Claude Code e Claude Desktop',D.plugin?'<div class="blk">'+paras(D.plugin)+'</div>':PLUGIN_STD);
+html+=sec('importare','Portare un modello sul vostro tenant, con Claude',D.importare?'<div class="blk">'+paras(D.importare)+'</div>':importStd());
+if(arr(D.glossario).length) html+=sec('glossario','Le parole che incontrerete','<div class="blk"><dl>'+arr(D.glossario).map(function(g){return '<dt>'+esc(g.termine)+'</dt><dd>'+esc(g.spiegazione)+'</dd>';}).join('')+'</dl></div>');
+html+='<footer class="blk">Hevolus · XRCopilotLab — manuale del catalogo dei blueprint · ambiente '+esc(D.ambiente||'—')+' · letto il '+esc(D.letto_il||'—')+'. Il catalogo cambia: rileggerlo prima di promettere un modello.</footer></main></div>';
+
+var tocHtml=toc.map(function(t){return '<a href="#'+t[0]+'"'+(t[2]?' class="sub"':'')+'>'+esc(t[1])+'</a>';}).join('');
+document.getElementById('app').innerHTML=html.replace('@@TOC@@',tocHtml);
+
+/* ---------- interazioni ---------- */
+document.getElementById('app').addEventListener('click',function(e){
+  var b=e.target.closest('[data-cp]'); if(!b)return;
+  var t=b.parentNode.querySelector('code').textContent;
+  try{navigator.clipboard.writeText(t).then(function(){b.textContent='Copiato';setTimeout(function(){b.textContent='Copia';},1500);});}catch(x){}
+});
+var themeBtn=document.getElementById('theme');
+themeBtn.onclick=function(){var r=document.documentElement,cur=r.getAttribute('data-theme');
+  var dark=cur?cur==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches; r.setAttribute('data-theme',dark?'light':'dark');};
+try{var links=[].slice.call(document.querySelectorAll('nav.toc a')),io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){links.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')==='#'+en.target.id);});}});},{rootMargin:'-20% 0px -70% 0px'});
+  document.querySelectorAll('section.sec,article.model').forEach(function(s){io.observe(s);});}catch(x){}
+
+/* ---------- PDF ---------- */
+var msg=document.getElementById('msg'),pdfBtn=document.getElementById('pdf');
+async function downloadsCap(){try{return window.claude&&window.claude.use?await window.claude.use('downloads'):null;}catch(e){return null;}}
+downloadsCap().then(function(c){if(!c){pdfBtn.disabled=true;pdfBtn.title='Disponibile dalla pagina pubblicata su claude.ai';}});
+async function buildPdf(){
+  var J=window.jspdf&&window.jspdf.jsPDF; if(!J||!window.html2canvas) throw new Error('le librerie PDF non sono state caricate');
+  var root=document.createElement('div'); root.className='pdf-root';
+  root.innerHTML=document.getElementById('app').innerHTML;
+  root.querySelectorAll('nav.toc').forEach(function(x){x.remove();});
+  document.body.appendChild(root);
+  try{
+    if(document.fonts&&document.fonts.ready) await document.fonts.ready;
+    var W=794, scale=2;
+    var canvas=await window.html2canvas(root,{scale:scale,backgroundColor:'#ffffff',useCORS:true,windowWidth:W,width:W});
+    var rootTop=root.getBoundingClientRect().top;
+    var bounds=[0]; root.querySelectorAll('.blk').forEach(function(el){var r=el.getBoundingClientRect(); bounds.push(Math.round((r.bottom-rootTop)*scale)); });
+    var starts=[]; root.querySelectorAll('.blk').forEach(function(el){var r=el.getBoundingClientRect(); starts.push(Math.round((r.top-rootTop)*scale));});
+    bounds=bounds.filter(function(v,i,a){return v>0&&a.indexOf(v)===i;}).sort(function(a,b){return a-b;});
+    var cover=root.querySelector('.cover'); var coverEnd=cover?Math.round((cover.getBoundingClientRect().bottom-rootTop)*scale):0;
+    var mmPerPx=186/(W*scale), pageH=Math.floor(268/mmPerPx), total=canvas.height;
+    var doc=new J({unit:'mm',format:'a4',orientation:'portrait'});
+    var pages=[], y=0;
+    if(coverEnd>0){pages.push([0,coverEnd,true]); y=coverEnd;}
+    while(y<total-2){
+      var limit=y+pageH, end=limit;
+      if(limit<total){var best=0; for(var i=0;i<bounds.length;i++){if(bounds[i]>y+pageH*0.35&&bounds[i]<=limit)best=bounds[i];} if(best)end=best;} else end=total;
+      pages.push([y,end,false]); y=end;
+    }
+    var N=pages.length;
+    for(var p=0;p<N;p++){
+      if(p>0)doc.addPage();
+      var s=pages[p][0],e=pages[p][1],cv=pages[p][2];
+      var c=document.createElement('canvas'); c.width=canvas.width; c.height=e-s;
+      var ctx=c.getContext('2d'); ctx.drawImage(canvas,0,s,canvas.width,e-s,0,0,canvas.width,e-s);
+      var img=c.toDataURL('image/jpeg',0.92);
+      if(cv){doc.addImage(img,'JPEG',0,0,210,(e-s)*(210/canvas.width)>297?297:(e-s)*(210/canvas.width));}
+      else{
+        doc.addImage(img,'JPEG',12,13,186,(e-s)*mmPerPx);
+        doc.setFontSize(8);doc.setTextColor(120);
+        doc.text('Hevolus · Catalogo blueprint — manuale · '+(D.ambiente||''),12,288);
+        doc.text('Pagina '+(p+1)+' di '+N,198,288,{align:'right'});
+      }
+    }
+    return doc;
+  } finally { root.remove(); }
+}
+pdfBtn.onclick=async function(){
+  var dl=await downloadsCap(); if(!dl){msg.textContent='Il PDF si scarica dalla pagina pubblicata su claude.ai.';return;}
+  pdfBtn.disabled=true; msg.textContent='Preparo il PDF…';
+  try{
+    var doc=await buildPdf();
+    await dl.save({filename:'catalogo-blueprint-manuale-'+slug(D.ambiente||'hevolus')+'.pdf',data:doc.output('blob')});
+    msg.textContent='PDF pronto.';
+  }catch(e){msg.textContent='Non sono riuscito a preparare il PDF: '+(e&&e.message?e.message:e);}
+  finally{pdfBtn.disabled=false;}
+};
+})();
+</script>
+</body>
+</html>

@@ -25,6 +25,7 @@ plugins/blueprints/
 ├── skills/xrcopilotlab-blueprint-demo/SKILL.md    il brief per l'agenzia di marketing, con i suoi references/
 ├── skills/xrcopilotlab-blueprint-storyboard/SKILL.md   lo storyboard di un video breve, con i suoi references/
 ├── skills/xrcopilotlab-blueprint-bpm-flow/SKILL.md     i flussi di un manifest disegnati in stile BPMN, con la pagina in assets/
+├── skills/xrcopilotlab-blueprints-report/SKILL.md      il manuale del catalogo dei blueprint, con la pagina e lo schema dei dati
 ├── skills/xrcopilotlab-blueprint-version/SKILL.md la mail delle novità fra due versioni, con il template HTML e lo script che legge lo storico
 ├── skills/xrcopilotlab-blueprint-howto/SKILL.md   la guida d'uso del percorso intero, con la pagina in references/
 ├── bin/                                           gli avviatori: finiscono nel PATH quando il plugin è attivo
@@ -111,6 +112,7 @@ perché è lì che stanno le regole che descrivono. Qui ce n'è una copia, che s
 | `.claude/skills/xrcopilotlab-blueprint-demo/` | `plugins/blueprints/skills/xrcopilotlab-blueprint-demo/` |
 | `.claude/skills/xrcopilotlab-blueprint-storyboard/` | `plugins/blueprints/skills/xrcopilotlab-blueprint-storyboard/` |
 | `.claude/skills/xrcopilotlab-blueprint-bpm-flow/` | `plugins/blueprints/skills/xrcopilotlab-blueprint-bpm-flow/` |
+| `.claude/skills/xrcopilotlab-blueprints-report/` | `plugins/blueprints/skills/xrcopilotlab-blueprints-report/` |
 | `.claude/skills/xrcopilotlab-blueprint-version/` | `plugins/blueprints/skills/xrcopilotlab-blueprint-version/` |
 | `.claude/skills/xrcopilotlab-blueprint-howto/` | `plugins/blueprints/skills/xrcopilotlab-blueprint-howto/` |
 
