@@ -178,7 +178,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-si
   <h1>Dall'intervista alla demo</h1>
   <p class="lede">Il percorso intero, nell'ordine in cui lo farai: dall'installazione all'assessment
   dell'intervista con il cliente, dalla prima versione del manifest al collaudo che la porta a una
-  versione stabile, fino alle guide, al brief e al video narrato della piattaforma che servono prima di presentarsi dal cliente.</p>
+  versione stabile, fino alle guide, al brief e ai tre video narrati della piattaforma che servono prima di presentarsi dal cliente.</p>
   <div class="chain" aria-label="La catena delle skill">
     <span class="n b">installazione</span><i>→</i>
     <span class="n d">assessment</span><i>→</i>
@@ -200,7 +200,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-si
     <li><a href="#collaudo"><b>4</b><span>Collaudo fino ai verdi<small class="c">Claude Code</small></span></a></li>
     <li><a href="#guide"><b>5</b><span>Le due guide<small class="c">Code o Desktop</small></span></a></li>
     <li><a href="#brief"><b>6</b><span>Il brief per l'agenzia<small class="c">Code o Desktop</small></span></a></li>
-    <li><a href="#video"><b>7</b><span>Il video della demo<small class="c">Claude Code</small></span></a></li>
+    <li><a href="#video"><b>7</b><span>I tre video della demo<small class="c">Claude Code</small></span></a></li>
     <li><a href="#prima-della-demo"><b>8</b><span>Prima della demo<small>checklist</small></span></a></li>
     <li><a href="#riferimenti"><b>·</b><span>Comandi ed errori<small>appendice</small></span></a></li>
   </ol>
@@ -377,7 +377,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-si
       <li>le email dei membri dei ruoli: devono essere <strong>già utenti del tenant</strong></li>
       <li>i valori dei segreti, da inserire tu nel tuo terminale — mai in chat</li></ul></div>
     <div><h4>Cosa ottieni</h4><ul>
-      <li><code>~/.xrcopilotlab/blueprints/&lt;TAG&gt;/&lt;tag&gt;-&lt;scenario&gt;.yml</code>, <code>version: 1</code> — e, dopo il <code>push</code>, la sua versione nell'archivio del tenant</li>
+      <li>un file temporaneo <code>&lt;tag&gt;-&lt;scenario&gt;.yml</code>, <code>version: 1</code> — che il <code>push</code> porta nell'archivio del tenant, e poi si elimina</li>
       <li>il disegno del processo e il piano, da leggere prima del sì</li>
       <li>il tenant configurato, con un <code>runId</code> che ricorda cosa è stato creato</li>
       <li>la chiave del webhook, se il processo ne ha uno: compare <strong>una sola volta</strong></li></ul></div>
@@ -397,7 +397,7 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-si
 
   <h3><span class="k">Il giro dei comandi</span>Che la skill lancia per te</h3>
   <div class="code"><button class="copy" type="button" data-copy="c-bp">Copia</button>
-<pre id="c-bp">cd ~/.xrcopilotlab/blueprints/&lt;TAG&gt;                           <span class="c"># la cartella di lavoro, fuori dal repository</span>
+<pre id="c-bp">cd &lt;cartella temporanea&gt;                            <span class="c"># un appoggio: la sede è l'archivio del tenant</span>
 xrcopilotlab-bp validate &lt;file&gt;.yml --graph                   <span class="c"># offline: rilievi + disegno del processo</span>
 xrcopilotlab-bp suggest  &lt;file&gt;.yml --files &lt;cartella&gt;        <span class="c"># documenti → profili, modello per agente</span>
 xrcopilotlab-bp secrets set --env staging --tag &lt;TAG&gt; &lt;nome&gt;  <span class="c"># nel TUO terminale</span>
@@ -469,7 +469,7 @@ xrcopilotlab-bp apply    --tag &lt;TAG&gt; --env staging --yes      <span class=
       <h4>L'esecuzione, dopo un sì</h4>
       <p>Ti dice ambiente, tenant e quanti casi, e aspetta. Ogni caso apre una conversazione nuova; un caso di
       processo avvia un'<strong>istanza vera</strong>, che resta fra i compiti di chi ha il ruolo. Il report va in
-      <code>~/.xrcopilotlab/blueprints/&lt;TAG&gt;/reports/&lt;aaaammgg-hhmmss&gt;/</code> e nell'archivio del tenant.</p></div></div>
+      nell'archivio del tenant, in <code>reports/&lt;aaaammgg-hhmmss&gt;/</code>.</p></div></div>
     <div class="lp"><div class="dot" aria-hidden="true"></div><div class="card">
       <h4>Il giudizio</h4>
       <p>Per ogni caso un verdetto <strong>pass · parziale · fail</strong>, con il perché, in <code>giudizio.md</code>.
@@ -500,7 +500,7 @@ xrcopilotlab-bp apply    --tag &lt;TAG&gt; --env staging --yes      <span class=
   </div>
 
   <h3><span class="k">Esempio</span>Com'è fatto un caso</h3>
-  <div class="code"><p class="cap"><code>~/.xrcopilotlab/blueprints/STUDIO/tests/studio-agenda.tests.yml</code> — un estratto</p><button class="copy" type="button" data-copy="c-suite">Copia</button>
+  <div class="code"><p class="cap"><code>tests/studio-agenda.tests.yml</code> — un estratto</p><button class="copy" type="button" data-copy="c-suite">Copia</button>
 <pre id="c-suite">blueprint: studio-agenda
 tag: STUDIO
 version: 3
@@ -648,28 +648,61 @@ cases:
 <section class="stage" id="video">
   <div class="stage-head">
     <div class="stage-no">7</div>
-    <h2>Il video della demo</h2>
+    <h2>I tre video della demo</h2>
     <div class="where"><span class="chip c">Claude Code</span><span class="chip s">xrcopilotlab-blueprint-storyboard</span></div>
   </div>
   <div class="prose">
-    <p>Il blueprint è applicato e collaudato: qui lo si <strong>fa vedere</strong>. La skill produce, di
-    default, <strong>un solo video narrato della piattaforma vera</strong>, in due parti: <strong>come si crea</strong>
-    (topic, conoscenza, assistenti, orchestratore e un processo disegnato a mano nell'editor, con testi semplici)
-    e <strong>il risultato già creato</strong>, spiegato nel dettaglio. Voce neurale italiana della piattaforma,
-    nessun sottotitolo, pagina con capitoli, pulsante <strong>Scarica</strong> e tempo di creazione.
-    Su richiesta scrive anche lo storyboard a tavole con gli schizzi, per un'agenzia.</p>
+    <p>Il blueprint è applicato e collaudato: qui lo si <strong>fa vedere</strong>. La skill produce <strong>tre video
+    narrati della piattaforma vera</strong>, ciascuno nel suo file, con la voce neurale italiana della piattaforma e
+    senza sottotitoli. Hanno pubblici diversi: per questo non sono uno solo.</p>
   </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Video</th><th>Per chi</th><th>Che cosa mostra</th></tr></thead>
+    <tbody>
+      <tr><td><strong>1 · Come si crea</strong></td><td>chi implementa</td><td>il blueprint da zero, passo passo: topic, conoscenza, assistenti, orchestratore e un processo disegnato a mano nell'editor</td></tr>
+      <tr><td><strong>2 · Come si usa</strong></td><td>chi lavora ogni giorno con lo scenario</td><td>il risultato già creato, spiegato nel dettaglio: assistenti, orchestratori, compiti automatici, ruoli, processi</td></tr>
+      <tr><td><strong>3 · Il processo in funzione</strong></td><td>chi decide e deve riconoscersi</td><td>un caso solo, dall'arrivo alla chiusura, visto ruolo per ruolo: la pratica parte, gli assistenti lavorano, ogni persona svolge il suo compito</td></tr>
+    </tbody></table></div>
   <div class="says">
-    <div class="say"><q>Fai il video del blueprint marketing</q><button class="copy" type="button">Copia</button>
-      <div class="then">Ti chiede l'<strong>ambiente</strong> (staging se non dici altro; in produzione solo sui tenant a cui appartieni), mostra il piano con le entità che nasceranno e <strong>aspetta il tuo sì</strong> prima di registrare.</div></div>
+    <div class="say"><q>Fai i video del blueprint marketing</q><button class="copy" type="button">Copia</button>
+      <div class="then">Prima <strong>cerca l'ultimo manifest</strong> nell'archivio di ogni ambiente e tenant (la versione di staging può essere più vecchia di quella in produzione), ti chiede l'<strong>ambiente</strong> (staging se non dici altro) e mostra il piano: <strong>aspetta il tuo sì</strong> prima di registrare.</div></div>
+    <div class="say"><q>Solo il video del processo in funzione, ruolo per ruolo</q><button class="copy" type="button">Copia</button>
+      <div class="then">Avvia un'istanza di prova con un caso anonimo e la porta fino in fondo. Ti mostra il piano e le caselle collegate: <strong>niente parte</strong> finché non confermi che sono di prova.</div></div>
+    <div class="say"><q>Carica i video nel tenant e crea l'agente video</q><button class="copy" type="button">Copia</button>
+      <div class="then">Aggiunge al manifest un topic <strong>Guide</strong>, un profilo con i video e <strong>un agente video</strong> che risponde alle domande indicando il video giusto. Va in piano e aspetta il sì.</div></div>
     <div class="say"><q>Lo storyboard del blueprint, con la voce</q><button class="copy" type="button">Copia</button></div>
   </div>
-  <div class="note"><b>Da sapere prima di dire sì</b><p>La creazione ripresa nel video <strong>scrive entità di prova sul
-  tenant</strong> (topic, assistenti, orchestratore, processo): restano lì finché non decidi di cancellarle, e la skill
-  non le cancella da sola. Registrare dura circa 8 minuti per la creazione e 4 per il tour del risultato; non servono
-  chiavi né ruoli Azure, la voce passa dalla piattaforma. Il video è di lavoro: nelle liste compaiono nomi di altri
-  progetti, da oscurare prima di mostrarlo fuori da Hevolus. I file di lavoro finiscono nell'archivio del tenant, non su disco.
-  Il registratore (<code>xrcopilotlab-demo</code>) nasce dal lavoro di Fabio Romano e si scarica da solo al primo uso.</p></div>
+
+  <h3><span class="k">Come si fa</span>Dal manifest al video, in ordine</h3>
+  <div class="prose">
+    <ol>
+      <li><strong>La skill ricava la storia dal manifest</strong> e dalla guida del cliente, e ti chiede ambiente e il sì.</li>
+      <li><strong>Registra</strong> con il banco <code>xrcopilotlab-demo</code> (si scarica da solo al primo uso): crea le entità di prova nell'interfaccia, davanti alla camera, e poi gira il tour del risultato.</li>
+      <li><strong>Scrive le battute</strong> da ciò che la registrazione ha mostrato, genera la voce con la piattaforma e <strong>monta</strong> un file per video.</li>
+      <li><strong>Pubblica la pagina</strong> con i tre lettori, i capitoli cliccabili, il pulsante Scarica e il tempo di creazione, e copia i file nell'archivio del tenant.</li>
+    </ol>
+  </div>
+
+  <h3><span class="k">La guida da interrogare</span>I video diventano un agente</h3>
+  <div class="prose">
+    <p>Un video non risponde alle domande; l'agente sì. Nel <strong>manifest del cliente</strong> la skill aggiunge un
+    topic <strong>Guide</strong> (con il prefisso del blueprint), un profilo di conoscenza che indicizza i file video e
+    <strong>un agente video per manifest</strong>, con tutti i video di quel manifest. Il cliente gli chiede «come si
+    avvia una pratica?» e l'agente risponde in poche frasi indicando <strong>il video che la spiega</strong>. Cita il
+    file, non il minuto. Profilo e agente consumano licenza: il piano si ferma se il tenant le supererebbe.</p>
+  </div>
+
+  <div class="note"><b>Prima di dire sì</b><p>La creazione del video 1 <strong>scrive entità di prova sul tenant</strong>
+  (topic, assistenti, orchestratore, processo) e il video 3 <strong>avvia un'istanza vera</strong>: gli assistenti
+  consumano token e, se il processo scrive su calendari o posta, <strong>scrive davvero</strong>. Per questo il video 3
+  si gira solo con <strong>caselle di prova</strong>: se il manifest punta a quelle del cliente, la skill te lo dice e
+  si usa una variante con la casella di prova, rimessa a posto dopo. I ruoli del processo devono avere solo persone
+  tue: su un tenant dove i ruoli hanno persone del cliente non si registra. Le entità e l'istanza restano lì finché non
+  decidi di cancellarle.</p></div>
+  <div class="note"><b>Prima di mostrare i video fuori da Hevolus</b><p>Nelle liste dell'applicazione compaiono
+  <strong>nomi di altri progetti</strong> (il menu dei processi, l'elenco degli Argomenti) e, scegliendo una persona,
+  le email dei colleghi: i video sono di lavoro e vanno <strong>oscurati o tagliati</strong> prima di uscire. Caricarli nel
+  tenant del cliente li rende visibili a chiunque in quel tenant. Non servono chiavi né ruoli Azure per la voce.</p></div>
 </section>
 
 <!-- 8 · PRIMA DELLA DEMO -->
@@ -689,7 +722,8 @@ cases:
     <li><input type="checkbox" id="ck-6"><label for="ck-6"><code>/status</code> mostra l'organizzazione Hevolus, e i link delle guide si aprono da un'altra finestra</label></li>
     <li><input type="checkbox" id="ck-7"><label for="ck-7">La copia per la sala della guida (il file che si apre senza account) è sul computer che proietta</label></li>
     <li><input type="checkbox" id="ck-8"><label for="ck-8">Al cliente va solo la guida «— guida»; la «— demo (interna)» e le domande di prova restano a chi conduce</label></li>
-    <li><input type="checkbox" id="ck-9"><label for="ck-9">Se mostri il video della piattaforma: le entità di prova sono state cancellate o dichiarate, e i nomi di altri progetti nelle liste sono oscurati</label></li>
+    <li><input type="checkbox" id="ck-9"><label for="ck-9">Se mostri i video della piattaforma: le entità di prova e le istanze sono state cancellate o dichiarate, e i nomi di altri progetti e le email dei colleghi sono oscurati</label></li>
+    <li><input type="checkbox" id="ck-10"><label for="ck-10">Se hai girato il video del processo con la variante delle caselle di prova: la versione con le caselle del cliente è stata <strong>riapplicata</strong>, oppure hai deciso di lasciare la variante</label></li>
   </ul>
 </section>
 
@@ -736,7 +770,9 @@ cases:
       <tr><td><code>xrcopilotlab-blueprint-test</code></td><td>domande, esecuzione, giudizio, triage, issue dopo un sì, domande di prova</td><td>scrivere il manifest, la guida al cliente</td></tr>
       <tr><td><code>xrcopilotlab-blueprint-guide</code></td><td>le due guide della demo, e il deck</td><td>eseguire test, toccare il tenant</td></tr>
       <tr><td><code>xrcopilotlab-blueprint-demo</code></td><td>il brief per l'agenzia di marketing</td><td>post, immagini, la guida di un cliente</td></tr>
-      <tr><td><code>xrcopilotlab-blueprint-storyboard</code></td><td>il video narrato della piattaforma (creazione e risultato), con voce e download; su richiesta lo storyboard a tavole</td><td>cancellare le entità di prova, registrare senza il tuo sì, la voce finale umana</td></tr>
+      <tr><td><code>xrcopilotlab-blueprint-storyboard</code></td><td>i tre video narrati della piattaforma (come si crea, come si usa, il processo in funzione ruolo per ruolo), con voce e download; su richiesta la guida video nel tenant e lo storyboard a tavole</td><td>cancellare le entità di prova, registrare senza il tuo sì, la voce finale umana</td></tr>
+      <tr><td><code>xrcopilotlab-blueprint-sync</code></td><td>verifica che la CLI e le skill sappiano esprimere ciò che la piattaforma fa oggi</td><td>scrivere o applicare un manifest</td></tr>
+      <tr><td><code>xrcopilotlab-blueprint-version</code></td><td>la mail che annuncia ai colleghi le novità delle skill fra due versioni del plugin: lascia una bozza, mai inviata</td><td>aggiornare un'installazione, le release del prodotto</td></tr>
       <tr><td><code>xrcopilotlab-blueprint-howto</code></td><td>questa pagina</td><td>nessuna delle cose qui sopra</td></tr>
     </tbody></table></div>
 

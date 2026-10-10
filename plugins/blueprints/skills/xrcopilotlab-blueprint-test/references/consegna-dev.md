@@ -34,7 +34,7 @@ che vanno confermati li guarda uno sviluppatore.
    `giudizio.md` come sempre. La consegna avviene **dopo**, su ciò che resta da confermare.
 2. **Raggruppa.** Fallimenti diversi con la stessa causa sono **una** consegna con più casi a
    supporto, esattamente come sarebbero una segnalazione sola.
-3. **Scrive il messaggio** in `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/consegne/<n>-<slug>.md`,
+3. **Scrive il messaggio** in `<scratch>/report/consegne/<n>-<slug>.md`,
    con il modello qui sotto.
 4. **Lo mostra all'utente e chiede se mandarlo.** Vale la stessa regola delle bozze di issue: un
    sì per i messaggi mostrati, non per quelli che scriverai dopo.
@@ -90,10 +90,10 @@ l'accesso al repository. Il sospetto qui sopra è quello della CLI, **non è un 
 
 | File | Dove si prende | Perché serve |
 |---|---|---|
-| `report.md` | `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/`, oppure `xrcopilotlab-bp test report --tag <TAG>` dall'archivio | Il collaudo com'è andato, leggibile |
+| `report.md` | `<scratch>/report/`, oppure `xrcopilotlab-bp test report --tag <TAG>` dall'archivio | Il collaudo com'è andato, leggibile |
 | `report.json` | idem | Le risposte grezze e i passi del log: è qui che si guarda davvero |
 | `giudizio.md` | idem | Il giudizio umano, anche parziale |
-| la suite `.tests.yml` | `~/.xrcopilotlab/blueprints/<TAG>/tests/`, oppure dall'archivio con `files get` | Permette di rilanciare il caso |
+| la suite `.tests.yml` | `<scratch>/tests/`, oppure dall'archivio con `files get` | Permette di rilanciare il caso |
 | il manifest della versione provata | `xrcopilotlab-bp pull --tag <TAG> --env <ambiente>` | **Anche senza il repository**: il manifest si riscarica dall'archivio, ed è il file senza cui il sospetto «è il prompt» non si può nemmeno valutare |
 
 I file di knowledge **non** si allegano: si elencano per nome e dimensione. Sono documenti del

@@ -1,6 +1,6 @@
 # La guida video nel tenant: topic Guide, video, agente
 
-Opzionale, **dopo** i video narrati ([`video-narrato.md`](video-narrato.md)). Il video smette di essere un
+**Obbligatorio**, **dopo** i video narrati ([`video-narrato.md`](video-narrato.md)). Il video smette di essere un
 file da mandare e diventa **una guida che il cliente interroga**: i video stanno nel topic **Guide** del
 suo blueprint, un profilo di knowledge li indicizza e **un agente video per manifest** risponde alle domande
 citando il video che le spiega.
@@ -26,6 +26,9 @@ manca, non tocca il resto.
   Agenda»): il planner antepone `BP-<TAG>-`, quindi il cliente non va scritto nel nome.
 - Se in quel tenant esiste già un topic che si chiama `BP-<TAG>-Guide` **non creato dal blueprint**, il piano
   si ferma (`BP060`): lo si rinomina o si cambia il nome nel manifest. Non si sovrascrive.
+
+Se i video non sono consegnabili (passo 1) il passo si salta, ma **va scritto nel riepilogo** con il
+motivo: senza agente video il prodotto è incompleto e chi legge deve saperlo.
 
 ## Cosa fa la piattaforma, e cosa no
 
@@ -85,7 +88,7 @@ Se un manifest ha più video su uno stesso argomento, il nome dice quale.
    caricato nel tenant di un cliente lo vede chiunque in quel tenant. Si caricano solo video **oscurati o
    registrati su un tenant che contiene solo cose del cliente**; la conferma la dà l'utente.
 2. **I file accanto al manifest.** Si scaricano dall'archivio (`xrcopilotlab-bp files get --tag <TAG>
-   --kind attachment ...`) in `~/.xrcopilotlab/blueprints/<TAG>/video-guida/`, con nomi per argomento.
+   --kind attachment ...`) con `--out <scratch>/video-guida/` (cartella temporanea della sessione, da eliminare a fine lavoro), con nomi per argomento.
    I percorsi del manifest sono relativi alla sua cartella.
 3. **Validare.** `xrcopilotlab-bp validate <manifest> --graph`: zero errori; `BP027` = file mancante.
 4. **Il piano.** Si segue [`xrcopilotlab-blueprint`](../../xrcopilotlab-blueprint/SKILL.md): `push`,
@@ -94,7 +97,8 @@ Se un manifest ha più video su uno stesso argomento, il nome dice quale.
    la versione del manifest (`push` li archivia in `v<N>/files/`).
 5. **Apply e attesa.** Dopo l'apply si controlla che l'indicizzazione sia finita, **poi** si prova: una
    domanda per video, la cui risposta è nel video, e una fuori argomento che deve rispondere «non c'è».
-6. **Dirlo nell'artifact.** Sotto il video una riga «Chiedi all'agente video» con il nome dell'agente e il
+6. **Consegna.** Nel riepilogo: nome dell'agente, topic `BP-<TAG>-Guide`, versione del manifest, esito delle domande di prova.
+7. **Dirlo nell'artifact.** Sotto il video una riga «Chiedi all'agente video» con il nome dell'agente e il
    topic `BP-<TAG>-Guide`. Niente link a entità del tenant se l'artifact esce dall'organizzazione.
 
 ## Cosa non fare

@@ -5,7 +5,7 @@ sono già**. La domanda, la risposta, il log, i file consultati, la versione. Il
 nell'ordine in cui chi corregge le vuole, e nel repository giusto — con la forma che quel
 repository pretende.
 
-La bozza si scrive prima in `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/segnalazioni/<n>-<repo>-<slug>.md`
+La bozza si scrive prima in `<scratch>/report/segnalazioni/<n>-<repo>-<slug>.md`
 e si apre **solo dopo il sì** dell'utente su quella bozza.
 
 ## Dove si apre, e in che forma
@@ -41,7 +41,7 @@ collaudo. Che cosa le passi:
   <data>, case <key>, execution <id>».
 
 La **bozza tecnica** resta nel report, in
-`~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/segnalazioni/<n>-<slug>.md` — e nell'archivio, con
+`<scratch>/report/segnalazioni/<n>-<slug>.md` — e nell'archivio, con
 `files put <cartella del report> --kind report --tag <TAG>` —, ed è quella che chi corregge
 apre dopo aver letto la issue. Modello:
 

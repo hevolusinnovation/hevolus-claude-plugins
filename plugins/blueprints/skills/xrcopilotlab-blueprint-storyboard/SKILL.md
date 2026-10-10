@@ -1,13 +1,13 @@
 ---
 name: xrcopilotlab-blueprint-storyboard
-description: Da un blueprint XRCopilotLab (manifest) produce, di default, TRE VIDEO NARRATI dell'applicazione vera (staging o prod): come si crea il blueprint da zero, il risultato già creato spiegato nel dettaglio e un processo che gira davvero, ruolo per ruolo, con un utente per ruolo. Voce neurale italiana della piattaforma (`xrcopilotlab-bp voice`, senza chiavi Azure), senza sottotitoli, pubblicati come artifact con pulsante di download. Su richiesta li carica nel topic Guide del tenant del cliente (nel manifest, con piano e sì) e scrive lo storyboard a tavole da 80 s con schizzi, battute e audio guida. Chiede ambiente e il sì prima di registrare, perché la creazione scrive entità di prova sul tenant. Usa quando l'utente chiede "il video del blueprint", "il video di come si crea", "lo storyboard", "le tavole del video", "la voce fuori campo", "storyboard del manifest". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (xrcopilotlab-blueprint-test) o il manifest (xrcopilotlab-blueprint).
+description: Da un blueprint XRCopilotLab (manifest) produce, di default, TRE VIDEO NARRATI dell'applicazione vera (staging o prod): come si crea da zero (topic, conoscenza, assistenti, orchestratore, processo BPM disegnato a mano), come si usa il risultato già creato, e il processo in funzione ruolo per ruolo con un'istanza vera. Voce neurale italiana della piattaforma (`xrcopilotlab-bp voice`, senza chiavi Azure), senza sottotitoli, pagina con download e tempo di creazione. Poi crea nel tenant del manifest un agente video con i video generati (topic Guide; saltabile solo se non consegnabili). Su richiesta scrive lo storyboard a tavole. Chiede ambiente e sì prima di registrare: la creazione e il video 3 scrivono sul tenant. Usa per "il video del blueprint", "il video di come si crea", "lo storyboard", "la voce fuori campo". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (-blueprint-test) o il manifest (xrcopilotlab-blueprint).
 ---
 
 # xrcopilotlab-blueprint-storyboard
 
 Porta un blueprint da «esiste, e sappiamo come funziona» a «lo si può guardare in un video». Il prodotto
 di default sono **tre video narrati dell'applicazione vera**: come si crea da zero, come si usa, il processo in funzione ruolo per ruolo ([§5-ter](#5-ter-i-tre-video-narrati-prodotto-di-default));
-su richiesta, la **guida video interrogabile** nel tenant ([§5-quater](#5-quater-la-guida-video-nel-tenant-opzionale)) il **terzo video, con il processo funzionante** ([§5-quater-bis](#5-quater-bis-il-processo-in-funzione-ruolo-per-ruolo-il-terzo-video)) e lo **storyboard** di un video di 80 secondi:  le tavole che un'agenzia, un illustratore o un
+poi la **guida video interrogabile** nel tenant, con un **agente video** che usa i video generati ([§5-quater](#5-quater-la-guida-video-nel-tenant-lagente-video)); su richiesta lo **storyboard** di un video di 80 secondi:  le tavole che un'agenzia, un illustratore o un
 generatore di video prendono per realizzare il video, con la **voce** già scritta e un audio di
 prova per misurarne i tempi.
 
@@ -181,6 +181,9 @@ Il prodotto sono **tre video reali** della piattaforma, separati, con voce e sen
 2. **Come si usa**: il risultato già creato, usato da chi ci lavora ogni giorno (assistenti, knowledge);
 3. **Il processo in funzione, ruolo per ruolo** ([§5-quater-bis](#5-quater-bis-il-processo-in-funzione-ruolo-per-ruolo-il-terzo-video)).
 
+Chiusi i video, il prodotto **non è finito**: c'è il quarto passo, l'**agente video nel tenant del manifest**
+([§5-quater](#5-quater-la-guida-video-nel-tenant-lagente-video)).
+
 Si fanno in quest'ordine; il 3 scrive istanze sul tenant e ha il suo piano e il suo sì. Si chiede quali
 fare (di default tutti e tre, ciascuno quando le sue condizioni ci sono) e si pubblica una pagina con un
 `<video>` per ciascuno, il pulsante di download e il **tempo di creazione**. Procedura in
@@ -195,13 +198,23 @@ Si fa per ultimo, dopo il sì sul piano: **avvia un'istanza e fa lavorare gli ag
 sul tenant. Un utente di prova per ruolo, effetti esterni spenti, caso anonimo. Procedura, controlli e
 ciò che manca al banco in [`references/processo-in-funzione.md`](references/processo-in-funzione.md).
 
-## 5-quater. La guida video nel tenant (opzionale)
+## 5-quater. La guida video nel tenant: l'agente video
 
-Finito il video, si può far diventare la **guida interrogabile**: nel manifest del cliente un profilo
-che indicizza gli `.mp4` e **un agente video per manifest** («Agente video - <Scenario>») che risponde
-citando il video che spiega, nel topic **`BP-<TAG>-Guide`**, che il manifest crea da sé con il prefisso del blueprint. Si propone **una volta**, dopo la consegna del video, e si fa solo su richiesta. Scrive
-sul tenant, quindi piano mostrato e sì prima dell'apply; i video devono essere consegnabili (niente nomi
-di altri clienti). Procedura e frammento in [`references/guida-video.md`](references/guida-video.md).
+**Parte del prodotto, non un extra.** Dopo i video la skill crea, **nel tenant del manifest**, un topic
+`BP-<TAG>-Guide`, un profilo di knowledge che indicizza gli `.mp4` generati e **un agente video per manifest**
+(«Agente video - <Scenario>») che risponde citando il video che spiega. Si aggiunge al manifest come
+versione nuova; procedura e frammento in [`references/guida-video.md`](references/guida-video.md).
+
+- **Piano e sì**: scrive sul tenant, quindi si mostra il piano (topic, profilo con N file, agente) e si
+  attende il sì prima dell'apply. Il sì sul piano dei video non vale per questo.
+- **Si salta solo se i video non sono consegnabili** (nelle liste compaiono nomi di altri clienti o
+  dell'utente): lo si **dichiara** nel riepilogo finale con il motivo, e si propone di registrare di nuovo
+  su un tenant pulito. Mai saltarlo in silenzio.
+- **Licenza**: profilo e agente consumano licenza; se il piano si ferma con `BP071` lo si riferisce,
+  non si procede e non si dichiara il lavoro finito.
+- **Si chiude solo dopo la prova**: indicizzazione terminata, una domanda per video con risposta nel video
+  e una fuori argomento che risponde «non c'è». La consegna riporta nome dell'agente, topic e versione
+  del manifest.
 
 ## 5-bis. Il video: l'animatic (solo su richiesta)
 
@@ -285,6 +298,7 @@ ne usa gli stessi stati e limiti.
 - Non chiedere all'utente chiavi o ruoli Azure per la voce: c'è `xrcopilotlab-bp voice`.
 - Non pubblicare audio o tavole in un repository: contengono lo scenario di un cliente.
 - Non avviare un'istanza per il terzo video senza il sì sul piano, né con dati veri o effetti esterni accesi.
+- Non consegnare i video senza l'agente video nel tenant del manifest, né saltarlo senza dirlo.
 - Non caricare i video nel tenant di un cliente senza la conferma che siano consegnabili, né
   applicare la guida video senza il sì sul piano.
 - Non lasciare le scene della parte basilare fuori «per brevità»: sono il motivo per cui questa

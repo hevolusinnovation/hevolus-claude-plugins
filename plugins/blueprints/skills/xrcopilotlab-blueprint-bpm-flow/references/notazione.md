@@ -37,6 +37,23 @@ Al clic su un passo la pagina mostra: il tipo, il ruolo o la regola di assegnazi
 obbligatori, sola lettura) e, per i bivi, le uscite con le condizioni. Le frecce che entrano e escono dal
 passo si colorano di arancione.
 
+## Vista sintetica e punti da discutere
+
+Secondo la descrizione di BPMN su [Wikipedia](https://it.wikipedia.org/wiki/Business_Process_Model_and_Notation) un modello si
+legge meglio per livelli di dettaglio. La pagina ne ha due, per i soli processi:
+
+| Vista | Regola |
+|---|---|
+| **Completa** | un simbolo per ogni attività, evento e bivio del manifest |
+| **Sintetica** (predefinita) | ogni **serie di due o più attività automatiche consecutive** (ognuna con una sola freccia in entrata e una in uscita) diventa **un solo riquadro verde «Il sistema lavora da solo»**, con il «+» del sottoprocesso compresso e l'elenco dei passi dentro. Persone, controlli, bivi, inizio e fine restano com'erano; nessun passo scompare dal manifest, e al clic si vede che cosa contiene |
+
+I numeri nei cerchi sono quelli **della vista in uso**: PDF e Word usano la vista scelta al momento
+dell'esportazione. I «Dettagli tecnici» usano sempre la vista completa.
+
+Il **pallino ambra D1, D2…** in alto a sinistra di un passo è un punto da discutere col cliente
+(`discutere[].passo` in `spiegazioni.yml`): non è BPMN, è un'annotazione della pagina, la stessa idea
+dell'annotazione di testo collegata a un elemento.
+
 ## Orchestratore (`orchestrators[].steps` e `flows`)
 
 Gli orchestratori non hanno corsie per ruolo: c'è una sola corsia, «Orchestrazione».

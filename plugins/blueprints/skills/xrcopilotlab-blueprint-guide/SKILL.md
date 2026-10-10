@@ -92,11 +92,11 @@ Specialist da solo.
 
 | Fonte | Dove | Per il cliente | Per la tecnica |
 |---|---|---|---|
-| Il manifest | `xrcopilotlab-bp pull --tag <TAG>` (dall'archivio del tenant), o la cartella di lavoro `~/.xrcopilotlab/blueprints/<TAG>/` | il flusso: i passi, chi li fa, cosa passa da uno all'altro; il «cosa non fai» degli agenti; i compiti e i loro tempi; i lavori programmati; le versioni (i blocchi `vN`); ciò che è fuori perimetro | tutto questo **con i nomi veri**: agenti, agent task e il loro cron, processi e passi, orchestratori, server MCP e i loro tool, ruoli |
-| La suite | `~/.xrcopilotlab/blueprints/<TAG>/tests/<nome>.tests.yml`, o dall'archivio con `files get` (`files ls --tag <TAG>` per il percorso) | **solo esempi**: la domanda e ciò che la risposta deve contenere | gli input pronti da usare in demo, le risposte sbagliate da riconoscere al volo |
+| Il manifest | `xrcopilotlab-bp pull --tag <TAG>` (dall'archivio del tenant) | il flusso: i passi, chi li fa, cosa passa da uno all'altro; il «cosa non fai» degli agenti; i compiti e i loro tempi; i lavori programmati; le versioni (i blocchi `vN`); ciò che è fuori perimetro | tutto questo **con i nomi veri**: agenti, agent task e il loro cron, processi e passi, orchestratori, server MCP e i loro tool, ruoli |
+| La suite | dall'archivio con `files get` (`files ls --tag <TAG>` per il percorso) | **solo esempi**: la domanda e ciò che la risposta deve contenere | gli input pronti da usare in demo, le risposte sbagliate da riconoscere al volo |
 | Le domande di prova | l'artifact «<Scenario> — domande di prova» (`path: "demo-domande.md"`), o `../hevolus-assessment/customers/<cliente>/demo-domande-*.md` | **solo esempi**, nella lingua del cliente; la tabella di stato **non** si riporta | la tabella di stato: che cosa è pronto, che cosa no |
 | I materiali della demo | `demo-materiali-*.md`, `demo-workflow-*.md`, una guida per chi conduce già scritta | — | le mail da inviare, i dettati da incollare, i percorsi da fare a mano nei processi |
-| L'ultimo giudizio | `giudizio.md` dell'ultimo report: `xrcopilotlab-bp test report --tag <TAG>` lo scarica in `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/` | **mai** | che cosa è sicuro mostrare dal vivo, che cosa è fragile, lo stato lasciato sul tenant |
+| L'ultimo giudizio | `giudizio.md` dell'ultimo report: `xrcopilotlab-bp test report --tag <TAG>` lo scarica in una cartella locale temporanea, da eliminare dopo la lettura | **mai** | che cosa è sicuro mostrare dal vivo, che cosa è fragile, lo stato lasciato sul tenant |
 | Il dossier di assessment | `../hevolus-assessment/customers/<cliente>/README.md` | **le criticità dette dal cliente con parole sue** | le domande tecniche che il cliente ha già fatto |
 | Le guide già pubblicate | `Artifact` `action: "read"`, `path: "guida.md"` / `"guida-tecnica.md"` | la versione da cui ripartire | idem |
 

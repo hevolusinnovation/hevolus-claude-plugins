@@ -80,13 +80,14 @@ Due cose da sapere mentre lo dici:
 ## 1. Da dove si parte
 
 I file del blueprint non stanno nel repository: manifest, suite, report e giudizi vivono
-nell'archivio del tenant su cui il blueprint è applicato, e su disco nella cartella di lavoro
-`~/.xrcopilotlab/blueprints/<TAG>/` (regola 8 di `.claude/rules/blueprints.md`). Si comincia
-portandoli lì:
+**solo** nell'archivio del tenant su cui il blueprint è applicato (Azure Blob Storage). Una copia su disco è un appoggio che si butta, in una cartella temporanea della sessione (`<scratch>`, mai sotto `~/.xrcopilotlab/`: ogni comando che scrive file riceve `--out <scratch>/…`): si riparte **sempre da `pull`**,
+mai da ciò che c'è già su disco, e **ogni modifica va nell'archivio subito** — `push`, `test push`,
+`files put` — con la versione e il blob riportati all'utente (regola 8 di `.claude/rules/blueprints.md`).
+Non dire «salvato in cartella»: dire dove sta nell'archivio. Si comincia portandoli in locale:
 
 ```bash
-xrcopilotlab-bp pull --tag <TAG> --env <ambiente> --company <guid> --out ~/.xrcopilotlab/blueprints/<TAG>/<nome>.yml
-xrcopilotlab-bp files get --all --kind suite --tag <TAG> --env <ambiente> --company <guid>   # ultima versione di ogni suite, in tests/
+xrcopilotlab-bp pull --tag <TAG> --env <ambiente> --company <guid> --out <scratch>/<nome>.yml
+xrcopilotlab-bp files get --all --kind suite --tag <TAG> --env <ambiente> --company <guid> --out <scratch>/tests   # ultima versione di ogni suite
 ```
 
 Un blueprint si mette a punto sul tenant di collaudo di staging, e lì sta la sua storia. Il tenant di
@@ -126,7 +127,7 @@ Tre situazioni, e la prima cosa da fare è capire in quale si è:
 3. **Non c'è niente.** Si genera lo scheletro e si scrivono le domande:
 
    ```bash
-   xrcopilotlab-bp test init ~/.xrcopilotlab/blueprints/<TAG>/<nome>.yml
+   xrcopilotlab-bp test init <scratch>/<nome>.yml
    ```
 
    Per ogni **processo**, prima di scrivere i casi, rispondere alle otto domande di
@@ -151,7 +152,7 @@ suite, solo con un sì. Come, in [`references/testing.md`](references/testing.md
 In tutti e tre i casi, prima di eseguire:
 
 ```bash
-xrcopilotlab-bp test validate ~/.xrcopilotlab/blueprints/<TAG>/tests/<nome>.tests.yml
+xrcopilotlab-bp test validate <scratch>/tests/<nome>.tests.yml
 ```
 
 Il validatore trova il manifest da solo (`tests/x.tests.yml` → `x.yml`), verifica che ogni caso
@@ -169,7 +170,7 @@ che sa quale sia il problema giusto è chi conosce il cliente.
 ## 2. Eseguire
 
 ```bash
-xrcopilotlab-bp test run ~/.xrcopilotlab/blueprints/<TAG>/tests/<nome>.tests.yml --env <ambiente> --company <guid>
+xrcopilotlab-bp test run <scratch>/tests/<nome>.tests.yml --out <scratch>/report --env <ambiente> --company <guid>
 ```
 
 Prima di lanciare, **dire su quale ambiente e tenant, e quanti casi**, e attendere il sì. Non è
@@ -228,7 +229,7 @@ Cose da sapere sull'esecuzione:
 - Exit code: `0` tutto passato, `7` almeno un caso non passato, `2` suite non valida, `3`
   nessun run del tag sul tenant. Il `7` **non** è un errore della CLI: è l'esito.
 
-Il report finisce nella cartella di lavoro, `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/`
+Il report finisce in `<scratch>/report/` (con `--out`; senza, la CLI userebbe `~/.xrcopilotlab/blueprints/<TAG>/reports/`: non lasciarglielo fare)
 — `report.md` per leggere, `report.json` per tutto il resto — e mai nel repository: contiene
 risposte e id del tenant. Il report registra anche l'host dell'API (`localhost:7013` per un giro
 locale): l'etichetta «Staging» da sola non distingue un'API locale con i dati di staging da quella vera.
@@ -287,7 +288,7 @@ caso può essere `Passed` per la CLI e **fail** per te (i numeri ci sono, ma ha 
 conto «dove gli sembrava giusto»); può essere `Failed` per la CLI e **pass** per te (un
 `contains` che il modello ha riformulato legittimamente — e allora si corregge l'attesa).
 
-Il giudizio si scrive in due file accanto al report, nella cartella di lavoro:
+Il giudizio si scrive in due file accanto al report, in `<scratch>/report/`:
 
 - `giudizio.md` — una tabella caso · esito CLI · verdetto · perché, poi i casi da rivedere con
   atteso, risposta e diagnosi, poi le attese da correggere nella suite. È la parte che il report non
@@ -409,7 +410,7 @@ l'allegato senza cui il sospetto «è il prompt» non si può nemmeno valutare.
 ## 5. Segnalare — solo dopo un sì
 
 Per ogni difetto confermato si prepara una **bozza** in
-`~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/segnalazioni/<n>-<repo>-<slug>.md` (con il report: `files put <cartella del report> --kind report --tag <TAG>` le porta nell'archivio), con il modello in
+`<scratch>/report/segnalazioni/<n>-<repo>-<slug>.md` (con il report: `files put <cartella del report> --kind report --tag <TAG>` le porta nell'archivio), con il modello in
 [`references/segnalazione.md`](references/segnalazione.md). La bozza contiene ciò che serve a
 chi la riceve per riprodurre senza il tenant: la domanda, la risposta, i passi del log che
 contano, i file consultati, le versioni, l'ambiente, l'id della conversazione o dell'istanza.

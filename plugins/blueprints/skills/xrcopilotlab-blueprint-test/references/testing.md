@@ -36,7 +36,7 @@ xrcopilotlab-bp test reports  --tag <TAG> [--compare <reportId>] --env staging -
 Opzioni di `test run`: `--tag` (default: quello della suite), `--run <runId>` (default: l'ultimo
 run completato del tag), `--only <k1,k2>` (chiavi, tag o entità dei casi da eseguire — un valore combacia con la chiave,
 con un tag **o con il target**: `--only agenda` esegue anche i casi `sim-…` sull'agente `agenda`), `--out
-<cartella>` (default `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/`), più le comuni `--env`,
+<cartella>` (default `<temporanea>/xrcopilotlab-bp/workspace/<TAG>/reports/<aaaammgg-hhmmss>/`), più le comuni `--env`,
 `--company`, `--version`.
 
 ## Collaudare con ingressi veri
@@ -292,7 +292,7 @@ Due file nella cartella del report:
 - `report.md` — per leggere: riepilogo, tabella dei casi, «Dove guardare» raggruppato per
   componente, un capitolo per caso con domanda, risposta, risposta attesa, controlli, evidenze.
 
-Il report si scrive nella cartella di lavoro `~/.xrcopilotlab/blueprints/<TAG>/reports/<aaaammgg-hhmmss>/`,
+Il report si scrive nella cartella locale `<temporanea>/xrcopilotlab-bp/workspace/<TAG>/reports/<aaaammgg-hhmmss>/`,
 fuori dal repository: contiene risposte e id del tenant.
 
 Lo stesso report va anche **nell'archivio** del tenant (#1210): un documento d'indice nel

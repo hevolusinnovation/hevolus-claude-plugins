@@ -9,7 +9,7 @@ caricati nel tenant come guida ([`guida-video.md`](guida-video.md)) l'assistente
 |---|---|---|---|---|
 | 1 | `01-come-si-crea.mp4` | chi implementa | il blueprint **da zero, passo passo**: topic, conoscenza, assistenti, orchestratore, processo disegnato a mano | si fa (`create`, passi sotto) |
 | 2 | `02-come-si-usa.mp4` | chi lavora ogni giorno con lo scenario | il risultato **già creato, usato**: si chiede qualcosa a un assistente, la knowledge risponde, dove si consultano i processi. **Non** fa girare un caso completo | il tour del risultato si fa (`tour`); la chat con gli assistenti richiede che il banco la sappia fare |
-| 3 | `03-processo-in-funzione.mp4` | chi decide e deve riconoscersi | **un caso solo, dall'arrivo alla chiusura, ruolo per ruolo**, con l'istanza che avanza ([`processo-in-funzione.md`](processo-in-funzione.md)) | richiede utenti di prova per ruolo e le azioni in scrittura del banco |
+| 3 | `03-processo-in-funzione.mp4` | chi decide e deve riconoscersi | **un caso solo, dall'arrivo alla chiusura, ruolo per ruolo**, con l'istanza che avanza ([`processo-in-funzione.md`](processo-in-funzione.md)) | si fa su staging con le caselle di prova (variante v41 per Studio Polis) e le macro `startInstance`/`completeWorkItem` |
 
 **Ordine: 1, 2, 3.** I primi due non dipendono da nulla di nuovo; il terzo scrive istanze sul tenant e va
 per ultimo. Se il 2 e il 3 sembrano sovrapposti, il 2 resta l'uso degli assistenti e della knowledge e il 3
@@ -47,10 +47,11 @@ fanno solo se l'utente li chiede per un'agenzia.
 8. **Archivio.** Finito il lavoro manifest-video, regia, brief, piano, `timings.json` e gli mp4 si caricano
    **nell'archivio del tenant** (blob), non si lasciano su disco:
    `xrcopilotlab-bp files put <file> --tag <TAG> --kind attachment --name creazione-umana/video/video.mp4 --env <amb> --company <id>`
-   (si rileggono con `files ls|get --kind attachment`). La cartella locale `~/.xrcopilotlab/blueprints/<TAG>/`
-   è solo di lavoro e può sparire: regola 8 di `.claude/rules/blueprints.md`.
-9. **Guida interrogabile (opzionale).** Se il cliente vuole i video come guida, si aggiungono al suo
-   manifest: [`guida-video.md`](guida-video.md).
+   (si rileggono con `files ls|get --kind attachment`). Su disco non resta niente: si lavora in
+   una cartella temporanea della sessione (mai sotto `~/.xrcopilotlab/`) e si elimina dopo l'upload: regola 8 di `.claude/rules/blueprints.md`.
+9. **Agente video nel tenant (obbligatorio).** I video generati si aggiungono al manifest come guida
+   interrogabile con un agente video: [`guida-video.md`](guida-video.md). Si salta solo se i video non
+   sono consegnabili, e lo si dichiara.
 10. **Pulizia.** Le entità create restano sul tenant: si propone di cancellarle, e si cancella solo con il sì
    (mai dal codice: lo fa una persona o uno spec dedicato con elenco esplicito).
 

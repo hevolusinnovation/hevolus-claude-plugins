@@ -7,5 +7,9 @@
     "superficie": "desktop",
     "distribuzione": "zip",
     "nomeNelPacchetto": "xrcopilotlab"
+  },
+  "demo": {
+    "superficie": "code",
+    "distribuzione": "marketplace"
   }
 }

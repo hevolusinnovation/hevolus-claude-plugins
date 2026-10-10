@@ -1363,6 +1363,9 @@
               "interactive": {
                 "type": "boolean"
               },
+              "shareAttachments": {
+                "type": "boolean"
+              },
               "taskCategoryName": {
                 "type": "string"
               },
