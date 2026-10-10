@@ -83,6 +83,38 @@ grep -c 'baseUrl\|systemMessage' $S/<TAG>.blocchi.yml  # deve dare 0
 Il manifest intero contiene system message, destinatari delle email, id del tenant: nel manuale **non
 devono finire**.
 
+### 1.3 Le risorse di ogni modello: gli artifact già fatti
+
+Ogni capitolo chiude con «Per saperne di più»: i link agli artifact che le altre skill dei blueprint hanno già
+pubblicato per quel modello. Il manuale non li rifà e non li riassume: li indica.
+
+| Cosa si cerca | Prodotto da | `tipo` | Titolo tipico |
+|---|---|---|---|
+| I video che spiegano | `xrcopilotlab-blueprint-storyboard` | `video` | «Video <Scenario>», «<Scenario> video» |
+| La guida e il deck | `xrcopilotlab-blueprint-guide` | `guida`, `presentazione` | «<Scenario> — guida», «<Scenario> — deck» |
+| La guida tecnica per chi fa la demo | `xrcopilotlab-blueprint-guide` | `guida` (**interno**) | «<Scenario> — demo (interna)» |
+| La spiegazione dei processi BPM | `xrcopilotlab-blueprint-bpm-flow` | `processi` | «Flussi BPM <Scenario>» |
+| Le domande di prova | `xrcopilotlab-blueprint-test` | `domande` | «<Scenario> — domande di prova» |
+| Il brief per l'agenzia | `xrcopilotlab-blueprint-demo` | `brief` | «DEMO-<Scenario>» |
+
+Come si trovano, senza indovinare:
+
+1. `Artifact` `action: "list"` (limite 200) e si **propone** la corrispondenza modello → artifact. Il titolo non porta il
+   tag: l'abbinamento si fa dal nome dello scenario e **si mostra all'utente**, che lo conferma o lo corregge.
+2. Per ogni artifact dubbio si legge la pagina (`action: "read"`) prima di linkarla: un titolo come «tecnica» non basta.
+3. **Si classifica a chi è rivolto** (`a_chi`). Vale `interno` per tutto ciò che è «(interna)», per i video che portano
+   l'avviso «solo uso interno» (nomi di altri clienti non oscurati) e per i brief; vale `cliente` solo se l'artifact è
+   scritto per il cliente **e** l'utente lo conferma. Nel dubbio, `interno`.
+4. **Un artifact di un cliente non entra nel manuale di un modello**: «Studio Polis», «Conoscenza degli associati» e simili
+   appartengono a un blueprint di un tenant, non al catalogo. Si linkano solo gli artifact dello scenario del modello.
+5. Se per un modello non c'è niente, la sezione non compare e il messaggio finale dice **che cosa manca** (per esempio «nessun
+   video»): è l'elenco delle skill da lanciare.
+6. Si tiene un solo link per tipo: fra due versioni dello stesso titolo vale quella aggiornata più di recente, e la duplicata
+   si cita all'utente.
+
+I link funzionano solo per chi può aprire l'artifact di destinazione: il manuale **non cambia la condivisione** di nessuno
+e lo dice nel messaggio finale. L'indirizzo compare per intero accanto al titolo perché il PDF non ha link cliccabili.
+
 ## 2. Scrivere il manuale
 
 La sorgente è `manuale.json`, nella cartella di lavoro della sessione (lo scratchpad). Lo schema è in
@@ -121,6 +153,7 @@ In quest'ordine, **ogni parte breve**:
 5. **Che cosa serve per usarlo** — i ruoli che vogliono persone, le credenziali (per nome, mai il valore), i
    server esterni che il modello cita, e la **licenza** del tenant (agenti, profili di conoscenza).
 6. **Che cosa non fa** — i confini, presi dal «cosa NON fai» degli assistenti e dal perimetro.
+7. **Per saperne di più** — i link agli artifact del §1.3 (`risorse`), ciascuno con una riga su che cosa si trova.
 
 **Regole di scrittura** (stesse della guida): frasi corte; nessun termine tecnico senza spiegazione
 (orchestratore, topic, MCP, token, gateway, webhook, `BPxxx` non compaiono nel racconto); nessun dato del
@@ -234,7 +267,8 @@ Come ogni artifact della famiglia: **privato**, titolo stabile, stesso `url` agl
 
 Riportare, in poche righe: **il link**, **l'ambiente e la data** di lettura del catalogo, **quanti modelli**
 e di quali versioni, per quali modelli i **processi sono descritti** e per quali no (e perché), e che il PDF
-si scarica dal pulsante in alto a destra. Non ripetere il contenuto del manuale.
+si scarica dal pulsante in alto a destra. Aggiungere le **risorse** trovate per modello, quelle **interne**, e ciò che manca
+(video, guida, flussi) con la skill che lo produce. Non ripetere il contenuto del manuale.
 
 Il manuale **invecchia**: quando il catalogo cambia (un modello nuovo, una versione) si rifà il giro dal §1 e
 si ripubblica allo stesso `url`.
@@ -243,6 +277,7 @@ si ripubblica allo stesso `url`.
 
 - Non scegliere in silenzio l'ambiente: i cataloghi di staging e produzione sono diversi.
 - Non inventare un modello, un processo, un passo o un orario che catalogo e manifest non hanno.
+- Non linkare un artifact interno come se fosse per il cliente, né uno di un cliente nel capitolo di un modello: `a_chi` si decide con l'utente (§1.3).
 - Non mettere nel manuale system message, indirizzi email, id del tenant, chiavi, indirizzi con credenziali.
 - Non installare un modello su un tenant — nemmeno «per leggerlo» — senza un sì, e mai su quello di un cliente.
 - Non eseguire `apply`, `rollback`, `delete` o `test run` da questa skill: il manuale li **descrive**; li

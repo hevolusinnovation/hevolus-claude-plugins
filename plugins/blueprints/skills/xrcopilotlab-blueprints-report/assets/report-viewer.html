@@ -83,6 +83,17 @@ ul.plain li{margin:4px 0}
 .agent{border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--bg)}
 .agent b{display:block;font-size:14.5px}
 .agent span{font-size:14px;color:var(--muted)}
+.res{display:grid;gap:10px;grid-template-columns:1fr;margin:0 0 14px}
+@media(min-width:720px){.res{grid-template-columns:1fr 1fr}}
+.rc{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg);min-width:0}
+.rc .top{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:4px}
+.rt{font:600 11.5px var(--font-body);letter-spacing:.06em;text-transform:uppercase;color:var(--brand-ink)}
+.ra{font-size:11.5px;border-radius:999px;padding:1px 8px;background:var(--ok-soft);color:var(--ok)}
+.ra.int{background:var(--warn-soft);color:var(--warn)}
+.rc a.rl{font-weight:600;color:var(--fg);text-decoration:none;border-bottom:1px solid var(--brand);overflow-wrap:anywhere}
+.rc a.rl:hover{color:var(--brand-ink)}
+.rc p{margin:6px 0 0;font-size:14px;color:var(--muted)}
+.rc .url{display:block;margin-top:6px;font:12px var(--font-mono);color:var(--muted);overflow-wrap:anywhere}
 .proc{border-left:3px solid var(--brand);padding:2px 0 2px 18px;margin:18px 0}
 .proc h5{margin:0 0 4px;font:600 17px var(--font-display)}
 .proc .scopo{color:var(--muted);font-size:15px;margin:0 0 10px}
@@ -215,6 +226,10 @@ modelli.forEach(function(m){
   var pr=arr(m.processi);
   if(pr.length) pr.forEach(function(p){mh+='<div class="proc blk"><h5>'+esc(p.titolo)+'</h5>'+(p.scopo?'<p class="scopo">'+esc(p.scopo)+'</p>':'')+paras(p.racconto)+(p.partecipano?'<div class="who"><b>Chi partecipa:</b> '+esc(p.partecipano)+'</div>':'')+'</div>';});
   else mh+='<div class="note blk">'+esc(m.processi_nota||'I processi di questo modello non sono descritti: il manifest non è stato letto.')+'</div>';
+  var rs=arr(m.risorse);
+  if(rs.length){var TIPI={video:'Video',guida:'Guida',presentazione:'Presentazione',processi:'Flussi dei processi',domande:'Domande di prova',brief:'Brief',altro:'Documento'};
+    mh+='<div class="blk"><h4>Per saperne di più</h4><div class="res">'+rs.map(function(r){var int=(r.a_chi||'interno')!=='cliente';
+      return '<div class="rc"><div class="top"><span class="rt">'+esc(TIPI[r.tipo]||TIPI.altro)+'</span><span class="ra'+(int?' int':'')+'">'+(int?'Solo interno':'Per il cliente')+'</span></div><a class="rl" href="'+esc(r.url)+'" target="_blank" rel="noopener">'+esc(r.titolo)+'</a>'+(r.nota?'<p>'+esc(r.nota)+'</p>':'')+'<span class="url">'+esc(r.url)+'</span></div>';}).join('')+'</div></div>';}
   if(arr(m.serve).length) mh+='<div class="blk"><h4>Che cosa serve per usarlo</h4>'+ul(m.serve)+'</div>';
   if(arr(m.non_fa).length) mh+='<div class="blk"><h4>Che cosa non fa</h4><div class="no"><ul class="plain">'+arr(m.non_fa).map(function(t){return '<li>'+esc(t)+'</li>';}).join('')+'</ul></div></div>';
   mh+='</article>';
