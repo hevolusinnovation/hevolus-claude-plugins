@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprints-report
-description: Elenca i blueprint del catalogo di Hevolus (il «market place» dei modelli installabili da qualunque tenant) e li descrive come un manuale in linguaggio semplice, come la guida (xrcopilotlab-blueprint-guide) — a che cosa serve ognuno, per chi, che cosa crea, e soprattutto i processi BPM raccontati in modo discorsivo (come partono, dove decide una persona, che cosa si ottiene). Il manuale contiene anche le istruzioni per installare il plugin su Claude Code e Claude Desktop (/plugin …) e per importare il manifest di un blueprint in un tenant qualsiasi facendo eseguire a Claude tutte le fasi — installazione dal catalogo, segreti, piano, approvazione, apply, collaudo con xrcopilotlab-blueprint-test, rollback. Si pubblica come artifact con design Hevolus ed esporta in PDF. Usa per «il manuale dei blueprint», «cosa c'è nel catalogo», «il report dei blueprint del marketplace», «presenta i blueprint ai clienti/sales». NON scrive né applica un manifest (xrcopilotlab-blueprint), non collauda (-blueprint-test), non scrive la guida di un cliente (-blueprint-guide), non tocca nessun tenant.
+description: Elenca i blueprint del catalogo di Hevolus (il «market place» dei modelli installabili da qualunque tenant) e li descrive come un manuale in linguaggio semplice, come la guida (xrcopilotlab-blueprint-guide): a che cosa serve ognuno, per chi, che cosa crea, i processi BPM raccontati in modo discorsivo, i link ai video e alle guide già pubblicati. Contiene le istruzioni, con esempi da terminale e da Claude Code, per installare il plugin, importare un modello, trasferire un blueprint o una sua parte su un altro tenant e collaudarlo (xrcopilotlab-blueprint-test). Si pubblica come artifact con design Hevolus ed esporta in PDF. Usa per «il manuale dei blueprint», «cosa c'è nel catalogo», «presenta i blueprint ai clienti/sales». NON scrive né applica un manifest (xrcopilotlab-blueprint), non collauda, non scrive la guida di un cliente, non tocca nessun tenant.
 ---
 
 # xrcopilotlab-blueprints-report
@@ -237,6 +237,8 @@ Anche questo è già nella pagina (funzione `trasfStd`; override con `trasferire
 - **A · tutto il blueprint**: `promote --tag <TAG> --version <n> --from-env/--from-company --to-env/--to-company` (xrcopilotlab-blueprint §6-bis); copia solo in archivio, poi `plan` e `apply`; le credenziali non viaggiano.
 - **B · una parte**: `export --scope topic|blueprint …` o `export <orchestratore>` (§6-quater), con il rapporto dell'esportazione, poi `validate`, `push`, `plan`.
 - **C · collaudo dopo il trasferimento** con `xrcopilotlab-blueprint-test`: `test init` (`--out` è un file), `test validate`, `test push`, `test run --from-archive`, `test reports`/`test report`, `test judge`; il sì prima di lanciare.
+
+Per ogni percorso la pagina mostra anche una **sessione in Claude Code dal terminale** (`claude`, poi `/xrcopilotlab-blueprint …` o `/xrcopilotlab-blueprint-test …` in italiano, con le domande e i cancelli di Claude): chi legge non scrive comandi, descrive ciò che vuole.
 
 Se i comandi di quelle skill cambiano, si corregge `trasfStd` una volta sola.
 
