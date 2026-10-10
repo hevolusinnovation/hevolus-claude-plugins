@@ -49,6 +49,7 @@ La delivery Atlas scrive nel CMS attraverso il **server MCP «atlas»**, che non
 |---|---|---|---|
 | **assessment** | Claude Desktop | scaricando uno [zip](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest) | Traduce la proposta di un cliente nella soluzione XRCopilotLab: scenari, agenti orchestrati o processo BPM, fattibilità delle fonti dati, dossier tecnico in Markdown e Word; poi la **delivery Atlas**: fasi, documenti per cliente in stile Atlas, delivery nel CMS [delivery.hevolus.it](https://delivery.hevolus.it) |
 | **blueprints** | Claude Code | `/plugin install blueprints@hevolus` | Configura un ambiente da un file — topic, knowledge, ruoli, agenti, agent task, processi BPM — mostrando il piano prima di creare; lo **collauda** una volta applicato, e lo **racconta al cliente** in una guida non tecnica |
+| **demo** | Claude Code | `/plugin install demo@hevolus` | Trasforma un blueprint **già applicato e verificato** nel video tutorial per il cliente: legge il manifest, ne ricava un brief, lo passa al demo-recorder che registra e carica l'mp4 ([manuale](plugins/demo/docs/manuale.md)) |
 
 I due sono i tempi dello stesso lavoro su due strumenti diversi, e la divisione non è arbitraria:
 l'assessment si fa in chat, dove la proposta del cliente si carica e si legge; il provisioning si fa

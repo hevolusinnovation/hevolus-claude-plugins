@@ -1,0 +1,18 @@
+{
+  "name": "demo",
+  "displayName": "XRCopilotLab Demo Video",
+  "version": "0.1.0",
+  "description": "Trasforma un blueprint già applicato e verificato in un video tutorial per il cliente: legge il manifest, ne ricava un brief con i nomi e le descrizioni degli elementi creati, e lo consegna al demo-recorder, che registra la panoramica e la carica su Azure. Non tocca il tenant e non dipende dal plugin dei blueprint: fra i due passa solo un file.",
+  "author": {
+    "name": "Hevolus Innovation — AI Team",
+    "url": "https://github.com/hevolusinnovation"
+  },
+  "repository": "https://github.com/hevolusinnovation/hevolus-claude-plugins",
+  "keywords": [
+    "xrcopilotlab",
+    "blueprint",
+    "demo",
+    "video",
+    "tutorial"
+  ]
+}
