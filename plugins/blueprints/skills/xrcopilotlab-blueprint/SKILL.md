@@ -302,7 +302,7 @@ saperlo subito**, senza che l'utente debba ricordarsi di scrivere:
 | Che cosa è successo | `--kind` | Chi interviene |
 |---|---|---|
 | Un messaggio dice che manca il ruolo **App Configuration Data Reader** (App Configuration) o **Key Vault Secrets User** (Key Vault) sull'utenza | `access` | Di norma nessuno: i due ruoli li dà il **gruppo Entra dinamico `@hevolus.it`** (issue [xrcopilotlab-iac-terraform#64](https://github.com/hevolusinnovation/xrcopilotlab-iac-terraform/issues/64)). Se l'utente è appena entrato o il gruppo non è ancora applicato, il team |
-| Il blueprint chiede una **funzionalità che il manifest non sa esprimere** e la piattaforma non ha (nessun tipo di step, campo, connettore o capacità equivalente: hai controllato [`copertura.md`](../../../docs/blueprints/copertura.md) e `BP052`/`external` non la risolvono) | `feature` | Il team: valuta se si sviluppa o se esiste già una forma nativa che non conosci |
+| Il blueprint chiede una **funzionalità che il manifest non sa esprimere** e la piattaforma non ha (nessun tipo di step, campo, connettore o capacità equivalente: hai controllato `copertura.md` (il registro di copertura, nel repository di prodotto) e `BP052`/`external` non la risolvono) | `feature` | Il team: valuta se si sviluppa o se esiste già una forma nativa che non conosci |
 | Qualcosa non funziona e la causa è la **webapp o la libreria**, non il manifest né l'utente: eccezione dell'API, 5xx, un comando o un endpoint che il manuale cita e non esiste, un esito che contraddice la documentazione, il codice di uscita `4` che non dipende dai dati | `defect` | Il team, sul codice |
 
 **Come si segnala: sempre, senza chiedere, con un comando solo.**

@@ -128,6 +128,11 @@ RISCRITTURE = {
             "](../../../docs/blueprints/cli-reference.md)",
             "](references/cli-reference.md)",
         ),
+        # copertura.md rimanda a file del prodotto che il plugin non ha: non viaggia, si cita senza link.
+        (
+            "[`copertura.md`](../../../docs/blueprints/copertura.md)",
+            "`copertura.md` (il registro di copertura, nel repository di prodotto)",
+        ),
         (
             "| Guida d'insieme | [`BLUEPRINTS.md`](../../../BLUEPRINTS.md) |",
             "| Manuale d'uso del plugin | [`../../docs/manuale.md`](../../docs/manuale.md) |",
