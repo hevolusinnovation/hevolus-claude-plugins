@@ -34,7 +34,7 @@ function scWho(nd,kind){ /* una riga corta: il ruolo, non la frase */
   return 'Il sistema';
 }
 function scBuild(g,caso){
-  var n=caso.steps.length,cols=n<=4?Math.max(1,n):(n<=8?4:5),VW=1030,PADX=28,PADY=18,GX=40,GY=60,CH=176;
+  var n=caso.steps.length,cols=n<=4?Math.max(1,n):(n<=12?4:5),VW=1030,PADX=28,PADY=18,GX=40,GY=60,CH=176;
   var CW=Math.floor((VW-2*PADX-(cols-1)*GX)/cols),rows=Math.ceil(n/cols),VH=PADY*2+rows*CH+(rows-1)*GY;
   var out=['<defs><marker id="sc-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5 0 10z" fill="var(--edge)"/></marker></defs>'];
   var pos=caso.steps.map(function(s,i){var row=Math.floor(i/cols),col=i%cols;if(row%2)col=cols-1-col;return {row:row,col:col,x:PADX+col*(CW+GX),y:PADY+row*(CH+GY)};});
@@ -59,13 +59,13 @@ function scBuild(g,caso){
       '<circle cx="'+(x+17)+'" cy="'+(y+17)+'" r="11.5" class="sc-num"/><text x="'+(x+17)+'" y="'+(y+21)+'" class="sc-numt">'+(i+1)+'</text>'+
       '<g transform="translate('+cx+' '+(y+54)+')">'+scIcon(kind,c||{bg:'--surface',bd:'--edge'})+'</g>'+
       nm.map(function(t,k){return '<text x="'+cx+'" y="'+(y+100+k*16)+'" class="sc-name" fill="'+fg+'">'+esc(t)+'</text>';}).join('')+
-      (who?'<text x="'+cx+'" y="'+(y+CH-(ch?24:10))+'" class="sc-who">'+esc(vzCut(who,Math.floor(CW/6)))+'</text>':'')+
+      (who?'<text x="'+cx+'" y="'+(y+CH-(ch?24:10))+'" class="sc-who">'+esc(vzCut(who,Math.floor(CW/5.3)))+'</text>':'')+
       (ch?'<text x="'+cx+'" y="'+(y+CH-8)+'" class="sc-choice">'+esc(ch)+'</text>':'')+
       '<g class="sc-vis" transform="translate('+(x+CW-17)+' '+(y+17)+')"><circle r="9" fill="var(--auto-bd)"/><path d="M-4 0l3 3 5-6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></g></g>');
   });
   out.push(cards.join(''));
   /* la pratica: un foglietto che si sposta da una scheda all'altra, lungo il bordo d'ingresso */
-  var entry=pos.map(function(p,i){var prev=pos[i-1];if(!prev)return [p.x+14,p.y+CH/2];if(prev.row!==p.row)return [p.x+CW/2,p.y];return [prev.col<p.col?p.x:p.x+CW,p.y+CH/2];});
+  var entry=pos.map(function(p,i){var prev=pos[i-1];if(!prev)return [p.x+2,p.y+CH/2];if(prev.row!==p.row)return [p.x+CW/2,p.y];return [prev.col<p.col?p.x:p.x+CW,p.y+CH/2];});
   var path=[];
   pos.forEach(function(p,i){
     var prev=pos[i-1];
