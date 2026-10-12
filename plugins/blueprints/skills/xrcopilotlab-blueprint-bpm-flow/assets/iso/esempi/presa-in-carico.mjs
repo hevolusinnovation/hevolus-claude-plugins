@@ -4,6 +4,11 @@
 // e la vaschetta delle pratiche chiuse. Ogni cosa che si vede è un passo del processo; il disegno non dice
 // niente che il manifest non dica.
 //
+// La figura si muove (SMIL, nessuno script): le comunicazioni scorrono sul nastro, il timbro batte, l'occhio dell'arco
+// pulsa, la lancetta oscilla. Regola per chi ne scrive una: ogni movimento sta in un elemento `animate*` figlio della
+// parte (così PDF e Word, che li tolgono, restano con la parte a riposo) o in un gruppo `.iso-anim`; ciò che a riposo
+// va mostrato al posto di un gruppo mobile sta in un gruppo `.iso-static` (la pagina lo nasconde mentre anima).
+//
 //   node presa-in-carico.mjs [uscita.svg] [--preview]
 //
 // Senza --preview scrive solo l'SVG (quello che si dà a `assembla.sh`); con --preview scrive anche una pagina
@@ -96,7 +101,7 @@ function nastro() {
   for (let x = BELT.x + 6; x < BELT.x + BELT.w - 4; x += 8) ticks.push(k.lineOnTop([x, BELT.y + 2.5], [x, BELT.y + BELT.d - 2.5], BELT_Z, P));
   out.push(L(ticks.join(""), { tone: "faint" }));
   // le frecce del verso di marcia, sul nastro
-  const chev = [-60, -20, 40, 72].map((x) => k.lineOnTop([x - 2.5, -4], [x + 1.5, 0], BELT_Z, P) + k.lineOnTop([x - 2.5, 4], [x + 1.5, 0], BELT_Z, P));
+  const chev = [-62, -20, 24, 80].map((x) => k.lineOnTop([x - 2.5, -4], [x + 1.5, 0], BELT_Z, P) + k.lineOnTop([x - 2.5, 4], [x + 1.5, 0], BELT_Z, P));
   out.push(L(chev.join(""), { tone: "mid" }));
   out.push(D([at([BELT.x + 4, BELT.y - 2, 11]), at([BELT.x + BELT.w - 4, BELT.y - 2, 11])], { size: 0.45 }));
   return out.join("");
@@ -109,7 +114,7 @@ function nastroDavanti() {
 }
 
 // ───────── le comunicazioni sul nastro ─────────
-const LETTERS = [[-104, -3, 4], [-94, 4, -6], [-70, -2, 3], [-38, 3, -4], [58, -4, 5], [100, 2, -3]];
+const LETTERS = [[-104, -3, 4], [-94, 4, -6], [-70, -2, 3], [-30, 3, -4], [20, -4, 5], [100, 2, -3]];
 function lettera([x, y, deg]) {
   const ring = rotRect(x, y, 13, 9.5, deg);
   const out = [S(k.extrude(ring, BELT_Z, 1.4, P, { convex: true }), { tone: "hi", crease: "none" })];
@@ -117,6 +122,21 @@ function lettera([x, y, deg]) {
   const pt = (u, v) => [x + u * c - v * s, y + u * s + v * c];
   out.push(L(k.lineOnTop(pt(-4.5, -1.2), pt(3, -1.2), BELT_Z + 1.4, P) + k.lineOnTop(pt(-4.5, 1.2), pt(1.2, 1.2), BELT_Z + 1.4, P), { tone: "lo" }));
   return out.join("");
+}
+
+// Le comunicazioni che scorrono: sei lettere fanno il giro del nastro, sfasate; a riposo ne restano due ferme.
+const RUN = k.axisVector(P, [232, 0, 0]);
+function lettereMobili() {
+  const out = [];
+  for (let i = 0; i < 6; i++) {
+    const y = [-3, 3, -2, 4, -4, 2][i];
+    out.push(
+      `<g opacity="0"><g>${lettera([-114, y, (i % 2 ? -5 : 4)])}</g>` +
+        `<animateTransform attributeName="transform" type="translate" values="0 0;${RUN[0].toFixed(1)} ${RUN[1].toFixed(1)}" dur="21s" begin="-${(i * 3.5).toFixed(1)}s" repeatCount="indefinite"/>` +
+        `<animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.05;0.93;1" dur="21s" begin="-${(i * 3.5).toFixed(1)}s" repeatCount="indefinite"/></g>`,
+    );
+  }
+  return `<g class="iso-anim">${out.join("")}</g>`;
 }
 
 // ───────── l'arco dell'assistente (viola) ─────────
@@ -131,7 +151,7 @@ function arcoTrave() {
   const beam = { x: ARCO.x - 2, y: -29, w: 18, d: 58, r: 2 };
   const out = [S(k.slabOf(beam, ARCO.h, 9, P, 4, 0.6), { tone: "violet" })];
   out.push(L(k.planOutline(k.insetPlan(beam, 3), ARCO.h + 9, P, 3), { tone: "faint" }));
-  out.push(S(k.cylinder(ARCO.x + 7, 0, 5, ARCO.h - 5, 5, P, 24), { tone: "violet", lit: true }));
+  out.push(`<g>${S(k.cylinder(ARCO.x + 7, 0, 5, ARCO.h - 5, 5, P, 24), { tone: "violet", lit: true })}<animate attributeName="opacity" values="1;.45;1" dur="1.8s" repeatCount="indefinite"/></g>`);
   out.push(D([at([ARCO.x + 7, 0, ARCO.h - 5])], { size: 0.7, tone: "hi" }));
   const lamp = [ARCO.x + 7, 20];
   out.push(S(k.cylinder(lamp[0], lamp[1], 2.2, ARCO.h + 9, 2.4, P, 16), { tone: "violet" }));
@@ -140,7 +160,7 @@ function arcoTrave() {
 }
 
 // ───────── il bivio (ambra) e i due rami ─────────
-const GATE = { x: 6, y: 0 };
+const GATE = { x: 56, y: 0 };
 function rami() {
   const out = [];
   const back = { x: GATE.x - 8, y: -62, w: 16, d: 48, r: 2 };
@@ -171,7 +191,7 @@ function deviatore() {
 }
 
 // ───────── la scrivania della persona (azzurro) ─────────
-const DESK = { x: 36, y: 40, w: 62, d: 34, r: 2.5 };
+const DESK = { x: -58, y: 40, w: 62, d: 34, r: 2.5 };
 function scrivania() {
   const out = [S(k.slabOf(DESK, 0, 20, P, 4, 0.7), { tone: "blue" })];
   out.push(L(k.planOutline(k.insetPlan(DESK, 3), 20, P, 4), { tone: "faint" }));
@@ -180,7 +200,10 @@ function scrivania() {
   out.push(S(k.cylinder(dial[0], dial[1], 10, 20, 4, P, 36, 0.5), { tone: "blue" }));
   const t = k.radialTicks(dial[0], dial[1], 9, 20, 5, 24, [1.4, 2.6], P, -2.4, 4.8);
   out.push(L(t.minor, { tone: "lo" }), L(t.major, { tone: "mid" }));
-  out.push(L(k.lineOnTop([dial[0], dial[1]], [dial[0] + 5, dial[1] - 6], 24, P), { tone: "hi" }));
+  const needle = (deg) => k.lineOnTop([dial[0], dial[1]], [dial[0] + 7.4 * Math.sin((deg * Math.PI) / 180), dial[1] - 7.4 * Math.cos((deg * Math.PI) / 180)], 24, P);
+  out.push(
+    L(needle(40), { tone: "hi" }).replace(/\/>$/, `><animate attributeName="d" values="${[needle(-55), needle(35), needle(-10), needle(50), needle(-55)].join(";")}" dur="9s" repeatCount="indefinite"/></path>`),
+  );
   out.push(D([at([dial[0], dial[1], 24])], { size: 0.55, tone: "hi" }));
   const knob = [DESK.x + 44, DESK.y + 14];
   out.push(S(k.cylinder(knob[0], knob[1], 5, 20, 4, P, 28), { tone: "blue" }));
@@ -205,8 +228,11 @@ function timbroPosti(front) {
 function timbroTesta() {
   const out = [S(k.slabOf({ x: TIMBRO.x - 2, y: -29, w: 16, d: 58, r: 2 }, 26, 7, P, 4, 0.5), { tone: "green" })];
   out.push(S(k.cylinder(TIMBRO.x + 6, 0, 2, 20, 6, P, 16), { tone: "green", crease: "none" }));
-  out.push(S(k.cylinder(TIMBRO.x + 6, 0, 6.4, BELT_Z + 3, 11, P, 28, 0.5), { tone: "green" }));
-  out.push(L(k.knurl(TIMBRO.x + 6, 0, 6.4, BELT_Z + 3, BELT_Z + 14, 24, P), { tone: "lo" }));
+  const DOWN = k.axisVector(P, [0, 0, 7]);
+  out.push(
+    `<g>${S(k.cylinder(TIMBRO.x + 6, 0, 6.4, BELT_Z + 3, 11, P, 28, 0.5), { tone: "green" })}${L(k.knurl(TIMBRO.x + 6, 0, 6.4, BELT_Z + 3, BELT_Z + 14, 24, P), { tone: "lo" })}` +
+      `<animateTransform attributeName="transform" type="translate" values="0 0;0 0;${DOWN[0].toFixed(1)} ${DOWN[1].toFixed(1)};0 0;0 0" keyTimes="0;0.55;0.62;0.7;1" dur="3.5s" repeatCount="indefinite"/></g>`,
+  );
   return out.join("");
 }
 
@@ -235,9 +261,9 @@ const body = [
   r.out,
   arcoPosti(false),
   timbroPosti(false),
-  ...LETTERS.filter(([x]) => x < GATE.x - 12).map(lettera),
+  `<g class="iso-static">${[LETTERS[2], LETTERS[4]].map(lettera).join("")}</g>`,
+  lettereMobili(),
   deviatore(),
-  ...LETTERS.filter(([x]) => x >= GATE.x - 12).map(lettera),
   nastroDavanti(),
   arcoPosti(true),
   arcoTrave(),

@@ -116,6 +116,19 @@ function isoMapBuild(){
     pos.slice(1).forEach(function(q,j){g.push(L(K.segment([pos[j][0],pos[j][1],Z+0.3],[q[0],q[1],Z+0.3],P),{tone:'mid'}));});
     it.pcs.map(function(pc,j){return {pc:pc,q:pos[j]};}).sort(function(a,b){return K.depthOf([a.q[0],a.q[1],0],P)-K.depthOf([b.q[0],b.q[1],0],P);}).forEach(function(e){
       g.push(isoPiece(e.q[0],e.q[1],Z,P,e.pc.kind,e.pc.stack));});
+    /* la pratica che scorre: un puntino percorre la fila dei pezzi e ognuno si illumina quando ci passa sopra. Solo a video:
+       nelle esportazioni i nodi .iso-anim si tolgono (PDF e Word non si muovono) */
+    var dur=Math.max(5,it.pcs.length*0.6),begin=-((it.i*1.3)%dur),n=it.pcs.length,anim=[];
+    if(n>1){
+      var tops=pos.map(function(q){return at([q[0],q[1],Z+9]);});
+      anim.push('<circle r="4.6" fill="#c2410c" opacity=".30"><animateMotion dur="'+dur+'s" begin="'+begin+'s" repeatCount="indefinite" path="M'+tops.map(function(q){return q[0].toFixed(1)+' '+q[1].toFixed(1);}).join(' L')+'" calcMode="linear"/></circle>');
+      anim.push('<circle r="2.2" fill="#c2410c"><animateMotion dur="'+dur+'s" begin="'+begin+'s" repeatCount="indefinite" path="M'+tops.map(function(q){return q[0].toFixed(1)+' '+q[1].toFixed(1);}).join(' L')+'" calcMode="linear"/></circle>');
+      tops.forEach(function(q,j){
+        var a=j/n,m=(j+0.5)/n,b=(j+1)/n;
+        anim.push('<circle cx="'+q[0].toFixed(1)+'" cy="'+q[1].toFixed(1)+'" r="6.4" fill="none" stroke="#c2410c" stroke-width="1.5" opacity="0"><animate attributeName="opacity" values="0;0;1;0;0" keyTimes="0;'+a.toFixed(3)+';'+m.toFixed(3)+';'+b.toFixed(3)+';1" dur="'+dur+'s" begin="'+begin+'s" repeatCount="indefinite"/></circle>');
+      });
+      g.push('<g class="iso-anim" pointer-events="none">'+anim.join('')+'</g>');
+    }
     g.push('</g>');o.push(g.join(''));
   });
   var tot={human:0,ai:0,auto:0,gw:0,call:0,n:0};
@@ -155,7 +168,7 @@ function isoDocxLegend(D,m){
   return new D.Paragraph({spacing:{after:120},children:runs});
 }
 function mappaHtml(m){
-  return '<div class="iso iso-bpm"><figure class="iso-figure"><div class="iso-plate"><div class="iso-plate-corners" aria-hidden="true">'+
+  return '<div class="iso iso-bpm iso-live"><figure class="iso-figure"><div class="iso-plate"><div class="iso-plate-corners" aria-hidden="true">'+
     '<span class="iso-plate-corner" data-corner="fig">Fig 1</span><span class="iso-plate-corner" data-corner="title">La mappa dei flussi</span>'+
     '<span class="iso-plate-corner" data-corner="hint">Tocca una postazione per aprire il flusso</span><span class="iso-plate-corner" data-corner="readout">'+esc(isoCaption(m))+'</span></div>'+
     ISO.figureSvg({width:m.W,height:m.H,label:'Mappa isometrica dei flussi del blueprint ('+isoCaption(m)+')',body:m.body})+'</div>'+
@@ -174,7 +187,12 @@ function mountMappa(open){
   [].forEach.call(host.querySelectorAll('.mappa-list button'),function(b){b.addEventListener('click',function(){go(+b.getAttribute('data-i'));});});
 }
 /* per PDF e Word: una figura isometrica con i colori della versione chiara, come per il diagramma */
+function isoStatica(svg){ /* PDF e Word: via le animazioni (nodi .iso-anim e elementi animate*), resta il disegno a riposo */
+  [].slice.call(svg.querySelectorAll('.iso-anim,animate,animateTransform,animateMotion')).forEach(function(x){if(x.parentNode)x.parentNode.removeChild(x);});
+  return svg;
+}
 function isoToCanvas(svg,W,H,scale){
+  svg=isoStatica(svg.cloneNode(true));
   var css=document.getElementById('isocss').textContent;
   return toCanvas(svg,W,H,scale,{css:css,cls:'iso-svg iso iso-bpm',vars:isoVarsText(Object.assign(isoPalette('light',LIGHT),{'--anatomy-weight':(0.6*scale*1.5).toFixed(2)+'px'}))}); /* il tratto si misura in pixel dell'immagine: sulla pagina stampata deve restare visibile */
 }
@@ -198,7 +216,7 @@ function figuraOf(gf){
 }
 function figuraBox(gf){
   var f=figuraOf(gf);if(!f)return '';
-  return '<div class="iso iso-bpm figbox"><figure class="iso-figure"><div class="iso-plate"><div class="iso-plate-corners" aria-hidden="true">'+
+  return '<div class="iso iso-bpm figbox iso-live"><figure class="iso-figure"><div class="iso-plate"><div class="iso-plate-corners" aria-hidden="true">'+
     '<span class="iso-plate-corner" data-corner="fig">Fig '+f.n+'</span><span class="iso-plate-corner" data-corner="title">'+esc(vzCut(f.titolo,48))+'</span>'+
     (f.dato?'<span class="iso-plate-corner" data-corner="readout">'+esc(f.dato)+'</span>':'')+'</div>'+f.svg.outerHTML+'</div>'+
     (f.didascalia?'<figcaption class="iso-legend"><span class="iso-caption">'+esc(f.didascalia)+'</span></figcaption>':'')+'</figure></div>';

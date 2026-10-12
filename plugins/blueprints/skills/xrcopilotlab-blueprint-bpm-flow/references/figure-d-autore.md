@@ -54,4 +54,10 @@ solo gli esempi di questa skill.
 - **Le linee finiscono su qualcosa** (una faccia, un'altra linea, un pallino): niente frecce o etichette che fluttuano.
   Le parole nel disegno sono al massimo una, incisa (la targhetta).
 - **Non dire più del manifest**: ogni pezzo è un passo vero; niente pezzi «per bellezza» che somigliano a passi.
-- Nessun movimento: la figura è statica (PDF e Word non animano). Niente WebGL.
+- **Il movimento è facoltativo, ma una figura che si muove spiega meglio.** Si fa con SMIL (`animate`, `animateTransform`,
+  `animateMotion`), senza script e senza WebGL: le comunicazioni che scorrono sul nastro, un timbro che batte, una lancetta che
+  oscilla. Due regole perché PDF e Word (che non animano e **tolgono** ogni animazione) restino giusti: un movimento di una parte
+  sta in un elemento `animate*` figlio della parte, così senza animazione la parte resta a riposo; ciò che si muove in
+  un gruppo a parte sta in `<g class="iso-anim">`, e ciò che deve vedersi al suo posto a riposo in `<g class="iso-static">`
+  (la pagina nasconde `.iso-static` mentre anima). Con «riduci movimento» la pagina mostra la figura ferma.
+  Esempio: `presa-in-carico.mjs` (lettere sul nastro, timbro, occhio dell'arco, lancetta).

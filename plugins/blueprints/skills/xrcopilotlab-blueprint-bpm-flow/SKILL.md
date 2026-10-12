@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-bpm-flow
-description: Legge il manifest di un blueprint XRCopilotLab (da file o dall'archivio di un tenant) e ne ricava un documento di lavoro per ragionare dei processi con il cliente: in testa una mappa isometrica dei flussi e tre grafici dei numeri (passi per tipo, ruoli, settimana tipo); per ogni processo BPM una scheda sintetica (scopo, in breve, come parte, chi partecipa, dove decide una persona, quanto dura), il diagramma BPMN a corsie sintetico o completo, il passo per passo, i punti «da decidere insieme» (D1, D2…) e le note; su richiesta una figura d'autore. Si esporta in PDF e Word con le note dentro. Pubblicato come artifact. Usa per «il flow chart del blueprint», «il documento dei processi da rivedere col cliente», «la scheda del processo», «il diagramma BPMN», «la mappa dei processi». NON scrive né applica il manifest (xrcopilotlab-blueprint), non collauda (-blueprint-test), non scrive la guida/demo (-blueprint-guide), non tocca il tenant.
+description: Legge il manifest di un blueprint XRCopilotLab (da file o dall'archivio di un tenant) e ne ricava un documento di lavoro per ragionare dei processi con il cliente: una mappa isometrica animata dei flussi; per ogni processo BPM la scheda (scopo, in breve, come parte, chi partecipa, dove decide una persona, quanto dura), il diagramma BPMN a corsie, una pallina che lo percorre raccontando i passi (con «casi tipici» da guardare) e un video muto del caso; il passo per passo, i punti «da decidere insieme» (D1, D2…) e le note; su richiesta una figura d'autore animata. Si esporta in PDF e Word, con una pagina a fotogrammi per caso. Pubblicato come artifact. Usa per «il flow chart del blueprint», «il documento dei processi da rivedere col cliente», «la scheda del processo», «il diagramma BPMN», «la mappa dei processi». NON scrive né applica il manifest, non collauda, non scrive la guida/demo, non tocca il tenant.
 ---
 
 # xrcopilotlab-blueprint-bpm-flow
@@ -50,13 +50,28 @@ segue la pagina: ci sono i processi BPM (**P1, P2…**) e, se `includi` nomina `
 orchestratori (**O1, O2…**). Un flusso con più di 28 passi ne mostra i primi 28, e la lista sotto la figura lo dice.
 Esportando **tutti** i flussi la mappa è la prima pagina del PDF e del Word, con la **legenda a colori**.
 
-**I numeri** (sotto la mappa, «I numeri del blueprint») sono tre grafici calcolati dal manifest, costruiti con le regole
+**I numeri** (in fondo alla pagina, «I numeri del blueprint, per chi configura») sono tre grafici calcolati dal manifest, costruiti con le regole
 della skill `dataviz`: *Come sono fatti i flussi* (barre impilate per tipo di passo), *Chi lavora di più* (passi per
 ruolo) e *La settimana tipo* (giri per giorno e ora delle attività che girano da sole; solo se ce ne sono). Ognuno ha
 la tabella dei numeri sotto e il suggerimento al passaggio del mouse. I colori sono stati validati con
 `validate_palette.js` in chiaro e in scuro: il blu e il viola del diagramma da soli non si distinguono con la visione
 dei colori alterata, per questo nei grafici il viola è più chiaro e il blu più scuro, e l'identità sta anche in
-legenda, etichette e tabella. Nel PDF e nel Word, esportando tutti i flussi, vengono dopo la mappa.
+legenda, etichette e tabella.  Contano i passi ma non spiegano i processi, quindi non entrano nel PDF né nel Word.
+
+**Segui una pratica, i casi tipici e il video.** Sopra il diagramma c'è il lettore: **Segui una pratica** fa partire una
+pallina che percorre il diagramma, si ferma a ogni passo (che si illumina) e sotto racconta che cosa succede, chi lo fa e,
+dove la strada si divide, chiede a chi guarda quale uscita prendere (con le condizioni del manifest). **Un caso tipico**
+percorre da sola una storia già scelta («Arriva un'udienza», «Mancano dei dati», «L'udienza viene rinviata»): sono i
+`percorsi` di `spiegazioni.yml` (§3); senza, c'è il solo «percorso principale». **Crea il video** registra nel browser un
+breve **video muto** del caso scelto (titolo, pallina sul diagramma con la telecamera che la segue, frase di ogni passo,
+scelta fatta ai bivi, e in fondo le domande «da decidere insieme»): MP4, o WebM dove il browser non fa MP4. Dura quanto il
+video e vuole la scheda aperta; si salva dal pulsante, con la stessa capacità `downloads` di PDF e Word. **La voce non c'è**
+(il browser non può registrarla): per un video con voce si usa la CLI (`xrcopilotlab-bp voice`) fuori dalla pagina, come
+nella skill `xrcopilotlab-blueprint-storyboard`. Il video è un file del blueprint: va nell'archivio del tenant (`files put`), non nel repository.
+
+**PDF e Word non si muovono**: al posto del lettore, ogni caso è **una pagina a fotogrammi**: il diagramma con la strada del
+caso in evidenza e i passi numerati nell'ordine in cui il caso li percorre, e sotto l'elenco di ciò che succede, con la
+scelta fatta a ogni bivio. Le animazioni della mappa e della figura d'autore si tolgono (restano i pezzi fermi).
 
 **La figura d'autore** di un processo (facoltativa) è un'illustrazione fatta a mano per quel processo, in cima alla sua
 scheda e in una pagina propria nel PDF e nel Word: [`references/figure-d-autore.md`](references/figure-d-autore.md).
@@ -168,6 +183,12 @@ flussi:
       titolo: "Presa in carico"
       didascalia: "Una frase che racconta la figura."
       dato: "arrivo → controllo → pratica chiusa"
+    percorsi:                               # facoltativo: i casi tipici, da guardare e da esportare
+      - nome: "Mancano dei dati"
+        scelte:                             # per id del bivio: l'etichetta dell'uscita (o il nome del passo che segue)
+          filtro: comunicazione
+          completezza: [da chiarire, completi]   # una lista se si passa dallo stesso bivio più volte
+          smista: presa visione
     discutere:                              # le domande da fare al cliente: D1, D2…
       - passo: verifica                     # facoltativo: l'id del passo, e D1 compare sul disegno
         domanda: "Il referente è sempre la stessa persona, o cambia secondo l'autorità?"
@@ -180,6 +201,10 @@ BPM**: niente Panoramica né orchestratori, a meno che `includi` li nomini.
 
 Come scriverlo:
 
+- **I casi (`percorsi`)** sono 3 o 4 storie che il cliente riconosce, dal primo all'ultimo passo, con le scelte ai bivi
+  copiate dalle etichette del manifest (non inventare uscite: se una scelta non corrisponde a nessuna uscita il caso si ferma
+  al bivio e la pagina lo scrive). Uno per ogni modo diverso di finire: la via normale, quella con un rinvio o un
+  chiarimento, quella che si chiude subito.
 - **Sintetico.** `scopo` una frase; `in_breve` al massimo tre paragrafi e ~90 parole in tutto; `passi` una
   riga a passo. Il documento serve a ragionare insieme, non a sostituire il manifest.
 - **Racconto, non elenco**, nell'ordine in cui le cose succedono. I numeri stanno nel disegno.

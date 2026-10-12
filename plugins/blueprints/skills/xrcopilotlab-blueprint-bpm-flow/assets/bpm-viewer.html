@@ -116,6 +116,9 @@ svg text{font-family:var(--font-body)}
 .t{font-size:11.5px;text-anchor:middle} .cap{fill:var(--muted);font-size:10px;text-anchor:middle}
 .evt{fill:var(--fg);font-size:11px;text-anchor:middle}
 .numb{fill:var(--accent)} .numt{fill:var(--bg);font-size:9px;font-weight:600;text-anchor:middle}
+.node.onpath .shape{stroke:var(--edge-hot);stroke-width:3}
+.edge.done{stroke:var(--edge-hot);stroke-width:2.6}
+.pnb{fill:var(--edge-hot);stroke:#ffffff;stroke-width:1.5} .pnt{fill:#ffffff;font-size:11.5px;font-weight:700;text-anchor:middle}
 .qb{fill:#f59e0b;stroke:#ffffff;stroke-width:1.5} .qt{fill:#1c2127;font-size:8.5px;font-weight:700;text-anchor:middle}
 </style>
 <style id="isocss">
@@ -125,9 +128,9 @@ __ISO_CSS__
   <h1>Flussi BPM __SCENARIO__</h1>
   <p class="sub" id="sub"></p>
   <div id="mappa"></div>
-  <div id="numeri"></div>
   <div class="tabs" id="tabs" role="tablist"></div>
   <div id="view"></div>
+  <div id="numeri"></div>
 </div>
 __FIGURE__
 <script>
@@ -799,7 +802,8 @@ function modelOf(g0){
   var gf=layout(g0),g=viewOf(gf);markQuestions(g);
   var qs=questionsOf(g);qs.forEach(function(q){q.note=getNote(gf,'q'+q.n);});
   return {gf:gf,g:g,title:gf.title,kind:gf.kind,scopo:flat(entryOf(gf).scopo),brevi:storiaParas(gf),quando:lineIn(gf),rows:schedaRows(gf),
-    steps:authoredSteps(g)||[],qs:qs,gen:getNote(gf,'gen'),fig:figuraOf(gf)};
+    steps:authoredSteps(g)||[],qs:qs,gen:getNote(gf,'gen'),fig:figuraOf(gf),
+    casi:gf.kind==='Panoramica'?[]:percorsiOf(g).map(function(c){return {caso:c,passi:casoPassi(g,c)};})};
 }
 function hex3(h){return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
 async function buildPdf(list){
@@ -843,16 +847,6 @@ async function buildPdf(list){
       pdf.setFont('helvetica','normal');pdf.setTextColor.apply(pdf,INK);pdf.text(pdf.splitTextToSize(ascii(it.title+'  ('+it.n+' passi)'),cw2-10)[0],M+col*(cw2+10)+9,yy+3);
     });
   }
-  if(list.length>1&&vizData&&vizData.length){
-    newPage();y+=2;y+=put('I numeri del blueprint',M,y,PW-2*M,20,'bold')+3;
-    for(var ci=0;ci<vizData.length;ci++){
-      var vc=vizData[ci],vw=Math.min(PW-2*M,95*vc.W/vc.H),vh=vw*vc.H/vc.W;
-      if(y+vh+12>BOT)newPage();
-      y+=put(vc.title,M,y,PW-2*M,11.5,'bold',ACC)+0.5;y+=put(vc.sub,M,y,PW-2*M,8.5,'normal',MUT)+1.5;
-      var vcv=await vizExportCanvas(vc,2.5);
-      pdf.addImage(vcv.toDataURL('image/jpeg',0.93),'JPEG',M,y,vw,vh,undefined,'FAST');y+=vh+5;
-    }
-  }
   for(var k=0;k<list.length;k++){
     var m=await Promise.resolve(modelOf(list[k]));
     /* pagina 1: la scheda */
@@ -886,6 +880,20 @@ async function buildPdf(list){
     var sc=Math.min(3,9000/m.g.W),cv=await toCanvas(d.svg,m.g.W,m.g.H,sc);
     var maxH=BOT-y,w=PW-2*M,h=w*m.g.H/m.g.W;if(h>maxH){h=maxH;w=h*m.g.W/m.g.H;}
     pdf.addImage(cv.toDataURL('image/jpeg',0.93),'JPEG',M,y,w,h,undefined,'FAST');
+    /* un caso tipico per pagina: il diagramma con la strada in evidenza e i passi numerati nell'ordine del caso */
+    for(var ci=0;ci<m.casi.length;ci++){
+      var cs=m.casi[ci];
+      newPage();y+=1;y+=put(m.title+' - un caso: '+cs.caso.nome,M,y,PW-2*M,14,'bold')+2;
+      if(cs.caso.incompleto)y+=put(cs.caso.incompleto,M,y,PW-2*M,9,'italic',MUT)+2;
+      var ccv=await casoCanvas(m.g,cs.caso,Math.min(2.5,8000/m.g.W));
+      var chM=Math.min(80,(BOT-y)*0.5),cw0=PW-2*M,ch0=cw0*m.g.H/m.g.W;if(ch0>chM){ch0=chM;cw0=ch0*m.g.W/m.g.H;}
+      pdf.addImage(ccv.toDataURL('image/jpeg',0.93),'JPEG',M,y,cw0,ch0,undefined,'FAST');y+=ch0+4;
+      var ccw=(PW-2*M-10)/2,fsz=9,chs=cs.passi.map(function(s){pdf.setFontSize(fsz);return pdf.splitTextToSize(ascii(s.i+'. '+s.name+(s.scelta?' (scelta: '+s.scelta+')':'')+(s.text?' - '+s.text:'')),ccw).length*fsz*0.43+1.6;}),ctot=chs.reduce(function(a,b){return a+b;},0),cacc=0,ccol=0,cyy=y,cy0=y;
+      cs.passi.forEach(function(s,ii){
+        if(ccol===0&&cacc>=ctot/2){ccol=1;cyy=cy0;}
+        put(s.i+'. '+s.name+(s.scelta?' (scelta: '+s.scelta+')':'')+(s.text?' - '+s.text:''),M+ccol*(ccw+10),cyy,ccw,fsz);cyy+=chs[ii];cacc+=chs[ii];
+      });
+    }
     /* pagina 3: passo per passo, punti da discutere, note */
     newPage();
     y+=1;y+=put(m.title+' - passo per passo e punti da decidere',M,y,PW-2*M,14,'bold')+4;
@@ -938,18 +946,7 @@ async function buildDocx(list){
     }
     mm.items.forEach(function(it){kids.push(para(it.code+'  '+it.title+'  ('+it.n+' passi)',{after:30}));});
   }
-  var charts=list.length>1&&vizData&&vizData.length;
-  if(charts){
-    kids.push(para('I numeri del blueprint',{h:D.HeadingLevel.HEADING_1,pb:cover,after:60}));
-    for(var ci=0;ci<vizData.length;ci++){
-      var vc=vizData[ci];
-      kids.push(para(vc.title,{h:D.HeadingLevel.HEADING_2,keep:true,before:120,after:20}));
-      kids.push(para(vc.sub,{color:'59636E',size:18,keep:true,after:60}));
-      var vcv=await vizExportCanvas(vc,2),vblob=await new Promise(function(r){vcv.toBlob(r,'image/png');}),vbuf=new Uint8Array(await vblob.arrayBuffer());
-      var vw=Math.min(900,330*vc.W/vc.H),vh=vw*vc.H/vc.W;
-      kids.push(new P({children:[new D.ImageRun({data:vbuf,type:'png',transformation:{width:Math.round(vw),height:Math.round(vh)}})]}));
-    }
-  }
+  var charts=false;
   for(var k=0;k<list.length;k++){
     var m=modelOf(list[k]);
     kids.push(para(m.title,{h:D.HeadingLevel.HEADING_1,pb:k>0||cover||charts,after:60}));
@@ -976,6 +973,15 @@ async function buildDocx(list){
     var blob=await new Promise(function(r){cv.toBlob(r,'image/png');}),buf=new Uint8Array(await blob.arrayBuffer());
     var w=900,h=w*m.g.H/m.g.W;if(h>500){h=500;w=h*m.g.W/m.g.H;}
     kids.push(new P({children:[new D.ImageRun({data:buf,type:'png',transformation:{width:Math.round(w),height:Math.round(h)}})]}));
+    for(var ci=0;ci<m.casi.length;ci++){
+      var cs=m.casi[ci];
+      kids.push(para('Un caso: '+cs.caso.nome,{h:D.HeadingLevel.HEADING_2,pb:true,after:60}));
+      if(cs.caso.incompleto)kids.push(para(cs.caso.incompleto,{it:true,color:'59636E',size:18,after:60}));
+      var ccv=await casoCanvas(m.g,cs.caso,Math.min(2,6000/m.g.W)),cblob=await new Promise(function(r){ccv.toBlob(r,'image/png');}),cbuf=new Uint8Array(await cblob.arrayBuffer());
+      var cw1=900,ch1=cw1*m.g.H/m.g.W;if(ch1>360){ch1=360;cw1=ch1*m.g.W/m.g.H;}
+      kids.push(new P({children:[new D.ImageRun({data:cbuf,type:'png',transformation:{width:Math.round(cw1),height:Math.round(ch1)}})]}));
+      cs.passi.forEach(function(s){kids.push(para(s.i+'. '+s.name+(s.scelta?' (scelta: '+s.scelta+')':'')+(s.text?' - '+s.text:''),{after:50}));});
+    }
     if(m.steps.length){
       kids.push(para('Passo per passo',{h:D.HeadingLevel.HEADING_2,before:200,keep:true}));
       m.steps.forEach(function(s){kids.push(para(s.num+'. '+s.text,{after:60}));});
@@ -1014,6 +1020,9 @@ async function doExport(all,fmt){
 
 __ISO_MAPPA__
 __GRAFICI__
+__PERCORSI__
+__PLAYER__
+__VIDEO__
 /* ───────── pagina ───────── */
 var graphs=[];
 (doc.processes||[]).forEach(function(p){graphs.push(fromProcess(p));});
@@ -1057,7 +1066,7 @@ function discutereBox(g){
   return h;
 }
 function show(i){
-  current=i;scale=1;
+  plKill();current=i;scale=1;
   [].forEach.call(tabs.children,function(b,j){b.setAttribute('aria-selected',j===i?'true':'false');});
   var gf=layout(graphs[i]);          /* il processo intero: per i dettagli tecnici e per la scheda */
   var g=viewOf(gf);markQuestions(g);  /* quello che si disegna: sintetico o completo */
@@ -1069,7 +1078,7 @@ function show(i){
     '<div class="scheda"><div>'+storyBox(gf)+'</div>'+schedaBox(gf)+'</div>'+
     '<div class="bar">'+legend()+'<div class="tools">'+(gf.kind==='Processo'?'<span class="seg" role="group" aria-label="Livello di dettaglio"><button type="button" id="vs" aria-pressed="'+(mode==='sintetica')+'">Sintetica</button><button type="button" id="vc" aria-pressed="'+(mode!=='sintetica')+'">Completa</button></span>':'')+
     '<button class="tool" id="zo" type="button" aria-label="Riduci">−</button><button class="tool" id="zf" type="button">Adatta</button><button class="tool" id="zi" type="button" aria-label="Ingrandisci">+</button></div></div>'+
-    '<div class="canvas" id="canvas"></div>'+stepsBox(g)+(gf.kind==='Panoramica'?'':discutereBox(g))+
+    (gf.kind==='Panoramica'?'':'<div class="player" id="player"></div>')+'<div class="canvas" id="canvas"></div>'+stepsBox(g)+(gf.kind==='Panoramica'?'':discutereBox(g))+
     '<details class="tech" id="tech"><summary>Dettagli tecnici, per chi configura il blueprint (tocca un passo del diagramma per vederlo qui)</summary><div class="panel" id="panel"><p class="hint">Tocca un passo del diagramma per vederne i dettagli.</p></div>'+
     (gf.kind==='Panoramica'?'<div class="panel">'+infoTech(gf)+panoramaTables()+'</div>':'<div class="panel">'+'<h3>Come parte e quanto dura</h3><ul>'+infoLines(gf).map(function(s){return '<li>'+esc(s)+'</li>';}).join('')+'</ul></div><div class="panel"><h3>Passo per passo (tutti i passi)</h3><p class="hint">I numeri sono quelli del diagramma nella vista completa.</p><ol class="steps">'+plain(gf).map(function(s){return '<li><b class="n">'+s.num+'</b>'+esc(s.text)+'</li>';}).join('')+'</ol></div>')+'</details>'+
     '<p class="note" id="pdfnote"></p>';
@@ -1080,6 +1089,7 @@ function show(i){
     drawn.edgeEls.forEach(function(x){var on=x.e.from===n.id||x.e.to===n.id;x.p.style.stroke=on?'var(--edge-hot)':'';x.p.setAttribute('marker-end',on?'url(#ah-hot)':'url(#ah-edge)');});
     document.getElementById('panel').innerHTML=detail(g,n);document.getElementById('tech').open=true;
   });
+  if(gf.kind!=='Panoramica')mountPlayer(g,drawn,canvas);
   function apply(){drawn.svg.setAttribute('width',g.W*scale);drawn.svg.setAttribute('height',g.H*scale);}
   document.getElementById('zi').onclick=function(){scale=Math.min(2,scale+0.15);apply();};
   document.getElementById('zo').onclick=function(){scale=Math.max(0.4,scale-0.15);apply();};

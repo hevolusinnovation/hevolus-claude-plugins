@@ -106,6 +106,10 @@ COPIE = [
     # licenza e origine viaggiano con i file.
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/mappa-isometrica.js", DEST_BPMFLOW / "assets"),
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/grafici.js", DEST_BPMFLOW / "assets"),
+    # Il lettore «Segui una pratica», i casi tipici e il video muto (#1386).
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/player.js", DEST_BPMFLOW / "assets"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/percorsi.js", DEST_BPMFLOW / "assets"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/video.js", DEST_BPMFLOW / "assets"),
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/references/figure-d-autore.md", DEST_BPMFLOW / "references"),
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/iso/iso-kit.mjs", DEST_BPMFLOW / "assets" / "iso"),
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/iso/iso.css", DEST_BPMFLOW / "assets" / "iso"),
