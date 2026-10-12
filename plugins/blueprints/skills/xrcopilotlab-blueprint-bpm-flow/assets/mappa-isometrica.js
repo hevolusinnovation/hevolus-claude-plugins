@@ -89,10 +89,14 @@ function isoMapBuild(){
   var TW=cols*W+(cols-1)*GAP,TD=rowD.reduce(function(a,b){return a+b;},0)+(rowsN-1)*GAP,oy=-TD/2,y0=[];
   for(r=0;r<rowsN;r++){y0[r]=oy;oy+=rowD[r]+GAP;}
   items.forEach(function(it,j){it.c=j%cols;it.r=Math.floor(j/cols);it.x=-TW/2+it.c*(W+GAP);it.y=y0[it.r];it.W=W;});
-  var base={x:-TW/2-14,y:-TD/2-14,w:TW+28,d:TD+28,r:6},fitPts=K.boxCorners(base,-13,0);
+  var base={x:-TW/2-14,y:-TD/2-30,w:TW+28,d:TD+44,r:6},fitPts=K.boxCorners(base,-13,0);
   items.forEach(function(it){K.boxCorners({x:it.x,y:it.y,w:W,d:it.D},0,Z+16).forEach(function(q){fitPts.push(q);});});
-  var VW=1000,VH=Math.round(Math.max(380,Math.min(640,VW*(0.34+0.08*Math.min(rowsN,4)))));
-  var P=K.fitProjection(fitPts,VW,VH,{pad:22,azimuth:42});
+  /* vista frontale (azimut 90): la fila dei pezzi corre in orizzontale; l'altezza segue le proporzioni del banco */
+  var AZ=90,EL=34,VW=1000,unit={origin:[0,0],scale:1,azimuth:AZ,elevation:EL},sx=fitPts.map(function(q){return K.iso(q,unit);}),
+    bw=Math.max.apply(null,sx.map(function(q){return q[0];}))-Math.min.apply(null,sx.map(function(q){return q[0];})),
+    bh=Math.max.apply(null,sx.map(function(q){return q[1];}))-Math.min.apply(null,sx.map(function(q){return q[1];})),
+    VH=Math.round(Math.max(300,Math.min(640,(VW-44)*bh/bw+44)));
+  var P=K.fitProjection(fitPts,VW,VH,{pad:22,azimuth:AZ,elevation:EL});
   var at=function(q){return K.iso(q,P);},S=K.solidSvg,L=K.lineSvg,o=[];
   /* il banco: ombra, quattro piedi, lastra, riquadro inciso, viti agli angoli */
   o.push('<path class="iso-halo" d="'+K.haloOf(base,-13,13,P)+'"/>');

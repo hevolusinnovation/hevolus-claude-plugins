@@ -23,7 +23,10 @@ const args = process.argv.slice(2);
 const OUT = resolve(args.find((a) => !a.startsWith("--")) ?? join(HERE, "presa-in-carico.svg"));
 
 const WIDTH = 1000;
-const HEIGHT = 560;
+const HEIGHT = 440;
+// Vista quasi frontale (azimut 72°): il nastro corre in orizzontale e un poco in diagonale, così si vede anche il fianco dei pezzi.
+const AZ = 72;
+const EL = 30;
 
 const BASE = { x: -190, y: -104, w: 380, d: 208, r: 9 };
 const BASE_H = 10;
@@ -271,8 +274,8 @@ const body = [
   timbroTesta(),
   chiuse(),
   bidone(GATE.x, 84, 4),
-  scrivania(),
   persona(),
+  scrivania(),
 ].filter(Boolean);
 
 const svg = k.figureSvg({ width: WIDTH, height: HEIGHT, label: "Presa in carico di una comunicazione: arrivi, lettura dell'assistente, bivio, controllo di una persona, timbro e pratiche chiuse", body });
