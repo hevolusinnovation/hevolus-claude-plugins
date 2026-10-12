@@ -128,7 +128,7 @@ function vzBuild(){return [vzComposition(),vzRoles(),vzWeek()].filter(Boolean);}
 function mountGrafici(){
   var host=document.getElementById('numeri');if(!host)return;
   vizData=vzBuild();if(!vizData.length){host.innerHTML='';return;}
-  host.innerHTML='<details class="mappa-box"><summary>I numeri del blueprint: passi, ruoli e settimana tipo</summary><div class="viz-scope">'+
+  host.innerHTML='<details class="mappa-box"><summary>I numeri del blueprint, per chi configura: passi, ruoli e settimana tipo</summary><div class="viz-scope">'+
     vizData.map(function(c){
       return '<div class="viz-box" data-id="'+c.id+'"><h3>'+esc(c.title)+'</h3><p class="hint">'+esc(c.sub)+'</p>'+c.svg+
         '<details><summary>I numeri in tabella</summary>'+tableHtml(c.head,c.rows.map(function(r){return r.map(function(x,i){return i?String(x):esc(x);});}))+'</details></div>';}).join('')+'</div></details>';
