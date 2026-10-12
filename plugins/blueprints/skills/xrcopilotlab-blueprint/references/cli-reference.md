@@ -612,6 +612,10 @@ nuova.
   file) e i processi BPM non si aggiornano sul posto, owner a parte.
 - **Non si cancella niente.** Ciò che la versione nuova non dichiara più è segnalato (`BP068`) e
   resta. Ciò che non si può fare sul posto ferma il piano (`BP067`).
+  Dal 12/10/2026 vale anche per la **definizione di un processo**: i processi non si riscrivono sul posto (si
+  aggiornano solo gli owner), e se passi, bivi o flussi sono cambiati rispetto alla versione applicata il piano
+  si ferma con `BP067` e dice quali. Prima il cambio veniva ignorato in silenzio, mentre i prompt di agenti e
+  agent task cambiavano. Si smonta il blueprint (`rollback`) e si riapplica, oppure si modifica il processo dall'interfaccia.
 
 Un nome occupato da un'entità che il blueprint **non** ha creato resta una collisione (`BP060`),
 come prima.
