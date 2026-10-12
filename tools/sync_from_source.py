@@ -102,6 +102,18 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/bpm-viewer.html", DEST_BPMFLOW / "assets"),
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/estrai-blocchi.sh", DEST_BPMFLOW / "assets"),
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/assembla.sh", DEST_BPMFLOW / "assets"),
+    # La mappa isometrica, i grafici e le figure d'autore (#1386). Il kit viene dalla skill «anatomy» (MIT):
+    # licenza e origine viaggiano con i file.
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/mappa-isometrica.js", DEST_BPMFLOW / "assets"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/grafici.js", DEST_BPMFLOW / "assets"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/references/figure-d-autore.md", DEST_BPMFLOW / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/iso/iso-kit.mjs", DEST_BPMFLOW / "assets" / "iso"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/iso/iso.css", DEST_BPMFLOW / "assets" / "iso"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/iso/iso-bpm.css", DEST_BPMFLOW / "assets" / "iso"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/iso/inline-kit.sh", DEST_BPMFLOW / "assets" / "iso"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/iso/ORIGINE.md", DEST_BPMFLOW / "assets" / "iso"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/iso/LICENSE-anatomy-MIT.txt", DEST_BPMFLOW / "assets" / "iso"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/iso/esempi/presa-in-carico.mjs", DEST_BPMFLOW / "assets" / "iso" / "esempi"),
     # Il manuale del catalogo dei blueprint: legge il catalogo, racconta i modelli, pubblica un artifact con il PDF. Non installa, non applica.
     (".claude/skills/xrcopilotlab-blueprints-report/SKILL.md", DEST_REPORT / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprints-report/references/schema.md", DEST_REPORT / "references"),
