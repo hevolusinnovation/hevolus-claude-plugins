@@ -110,6 +110,7 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/player.js", DEST_BPMFLOW / "assets"),
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/percorsi.js", DEST_BPMFLOW / "assets"),
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/video.js", DEST_BPMFLOW / "assets"),
+    (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/scena.js", DEST_BPMFLOW / "assets"),
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/references/figure-d-autore.md", DEST_BPMFLOW / "references"),
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/iso/iso-kit.mjs", DEST_BPMFLOW / "assets" / "iso"),
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/assets/iso/iso.css", DEST_BPMFLOW / "assets" / "iso"),

@@ -127,6 +127,7 @@ var vizData=null;
 function vzBuild(){return [vzComposition(),vzRoles(),vzWeek()].filter(Boolean);}
 function mountGrafici(){
   var host=document.getElementById('numeri');if(!host)return;
+  if(!isoMapData)isoMapData=isoMapBuild();
   vizData=vzBuild();if(!vizData.length){host.innerHTML='';return;}
   host.innerHTML='<details class="mappa-box"><summary>I numeri del blueprint, per chi configura: passi, ruoli e settimana tipo</summary><div class="viz-scope">'+
     vizData.map(function(c){

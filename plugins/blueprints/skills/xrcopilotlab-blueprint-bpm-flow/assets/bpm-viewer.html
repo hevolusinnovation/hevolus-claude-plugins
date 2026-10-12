@@ -94,6 +94,7 @@ textarea.nota{width:100%;min-height:58px;font:inherit;color:var(--fg);background
 textarea.nota.big{min-height:110px}
 textarea.nota:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .panel h3.sp{margin-top:14px}
+details.pl-det{margin:0 0 10px} details.pl-det>summary{cursor:pointer;color:var(--muted);font-weight:500;padding:6px 0}
 </style>
 <style id="svgcss">
 svg text{font-family:var(--font-body)}
@@ -831,7 +832,7 @@ async function buildPdf(list){
     pdf.setFont('helvetica','normal');pdf.setFontSize(8.5);pdf.setTextColor.apply(pdf,MUT);pdf.text('Da discutere',x+6,yy+3);
   }
   /* copertina: la mappa isometrica dei processi, quando si esportano tutti */
-  if(list.length>1&&isoMapData){
+  if(list.length>1&&isoMapShown&&isoMapData){
     var mm=isoMapData;
     newPage();y+=2;y+=put('La mappa del blueprint',M,y,PW-2*M,20,'bold')+1;
     y+=put(isoCaption(mm),M,y,PW-2*M,9.5,'normal',MUT)+2;isoPdfLegend(pdf,M,y,mm);y+=7;
@@ -883,8 +884,12 @@ async function buildPdf(list){
     /* un caso tipico per pagina: il diagramma con la strada in evidenza e i passi numerati nell'ordine del caso */
     for(var ci=0;ci<m.casi.length;ci++){
       var cs=m.casi[ci];
-      newPage();y+=1;y+=put(m.title+' - un caso: '+cs.caso.nome,M,y,PW-2*M,14,'bold')+2;
-      if(cs.caso.incompleto)y+=put(cs.caso.incompleto,M,y,PW-2*M,9,'italic',MUT)+2;
+      if(cs.caso.incompleto){newPage();y+=1;y+=put(m.title+' - un caso: '+cs.caso.nome,M,y,PW-2*M,14,'bold')+2;y+=put(cs.caso.incompleto,M,y,PW-2*M,9,'italic',MUT)+2;}
+      var scn=await scenaCanvas(m.g,cs.caso,1.6);
+      newPage();y+=1;y+=put(m.title+' - un caso: '+cs.caso.nome+', passo per passo',M,y,PW-2*M,14,'bold')+2;
+      var sh0=Math.min(BOT-y,(PW-2*M)*scn.H/scn.W),sw0=sh0*scn.W/scn.H;
+      pdf.addImage(scn.cv.toDataURL('image/jpeg',0.93),'JPEG',M+(PW-2*M-sw0)/2,y,sw0,sh0,undefined,'FAST');
+      newPage();y+=1;y+=put(m.title+' - un caso: '+cs.caso.nome+' (il diagramma)',M,y,PW-2*M,14,'bold')+2;
       var ccv=await casoCanvas(m.g,cs.caso,Math.min(2.5,8000/m.g.W));
       var chM=Math.min(80,(BOT-y)*0.5),cw0=PW-2*M,ch0=cw0*m.g.H/m.g.W;if(ch0>chM){ch0=chM;cw0=ch0*m.g.W/m.g.H;}
       pdf.addImage(ccv.toDataURL('image/jpeg',0.93),'JPEG',M,y,cw0,ch0,undefined,'FAST');y+=ch0+4;
@@ -933,7 +938,7 @@ async function buildDocx(list){
     var body=text?String(text).split(/\n/).map(function(l){return para(l,{after:40});}):[para('',{after:40}),para('',{after:40}),para('',{after:40})];
     return new D.Table({width:{size:100,type:D.WidthType.PERCENTAGE},rows:[new D.TableRow({children:[cell([para(label,{bold:true,color:'1F4E6B',after:40,size:18})].concat(body),{w:100})]})]});
   }
-  var cover=list.length>1&&!!isoMapData;
+  var cover=list.length>1&&isoMapShown&&!!isoMapData;
   if(cover){
     var mm=isoMapData;
     kids.push(para('La mappa del blueprint',{h:D.HeadingLevel.HEADING_1,after:60}));
@@ -976,6 +981,9 @@ async function buildDocx(list){
     for(var ci=0;ci<m.casi.length;ci++){
       var cs=m.casi[ci];
       kids.push(para('Un caso: '+cs.caso.nome,{h:D.HeadingLevel.HEADING_2,pb:true,after:60}));
+      var scn=await scenaCanvas(m.g,cs.caso,1.6),sblob=await new Promise(function(r){scn.cv.toBlob(r,'image/png');}),sbuf=new Uint8Array(await sblob.arrayBuffer());
+      var sw1=900,sh1=sw1*scn.H/scn.W;if(sh1>520){sh1=520;sw1=sh1*scn.W/scn.H;}
+      kids.push(new P({children:[new D.ImageRun({data:sbuf,type:'png',transformation:{width:Math.round(sw1),height:Math.round(sh1)}})]}));
       if(cs.caso.incompleto)kids.push(para(cs.caso.incompleto,{it:true,color:'59636E',size:18,after:60}));
       var ccv=await casoCanvas(m.g,cs.caso,Math.min(2,6000/m.g.W)),cblob=await new Promise(function(r){ccv.toBlob(r,'image/png');}),cbuf=new Uint8Array(await cblob.arrayBuffer());
       var cw1=900,ch1=cw1*m.g.H/m.g.W;if(ch1>360){ch1=360;cw1=ch1*m.g.W/m.g.H;}
@@ -1023,6 +1031,7 @@ __GRAFICI__
 __PERCORSI__
 __PLAYER__
 __VIDEO__
+__SCENA__
 /* ───────── pagina ───────── */
 var graphs=[];
 (doc.processes||[]).forEach(function(p){graphs.push(fromProcess(p));});
@@ -1066,7 +1075,7 @@ function discutereBox(g){
   return h;
 }
 function show(i){
-  plKill();current=i;scale=1;
+  plKill();scKill();current=i;scale=1;
   [].forEach.call(tabs.children,function(b,j){b.setAttribute('aria-selected',j===i?'true':'false');});
   var gf=layout(graphs[i]);          /* il processo intero: per i dettagli tecnici e per la scheda */
   var g=viewOf(gf);markQuestions(g);  /* quello che si disegna: sintetico o completo */
@@ -1076,9 +1085,10 @@ function show(i){
     (scopo?'<p class="scopo">'+esc(scopo)+'</p>':'')+
     figuraBox(gf)+
     '<div class="scheda"><div>'+storyBox(gf)+'</div>'+schedaBox(gf)+'</div>'+
+    (gf.kind==='Panoramica'?'':'<div id="scena"></div>')+
     '<div class="bar">'+legend()+'<div class="tools">'+(gf.kind==='Processo'?'<span class="seg" role="group" aria-label="Livello di dettaglio"><button type="button" id="vs" aria-pressed="'+(mode==='sintetica')+'">Sintetica</button><button type="button" id="vc" aria-pressed="'+(mode!=='sintetica')+'">Completa</button></span>':'')+
     '<button class="tool" id="zo" type="button" aria-label="Riduci">−</button><button class="tool" id="zf" type="button">Adatta</button><button class="tool" id="zi" type="button" aria-label="Ingrandisci">+</button></div></div>'+
-    (gf.kind==='Panoramica'?'':'<div class="player" id="player"></div>')+'<div class="canvas" id="canvas"></div>'+stepsBox(g)+(gf.kind==='Panoramica'?'':discutereBox(g))+
+    (gf.kind==='Panoramica'?'':'<details class="pl-det"><summary>Segui una pratica sul diagramma BPMN (per chi conosce la notazione)</summary><div class="player" id="player"></div></details>')+'<div class="canvas" id="canvas"></div>'+stepsBox(g)+(gf.kind==='Panoramica'?'':discutereBox(g))+
     '<details class="tech" id="tech"><summary>Dettagli tecnici, per chi configura il blueprint (tocca un passo del diagramma per vederlo qui)</summary><div class="panel" id="panel"><p class="hint">Tocca un passo del diagramma per vederne i dettagli.</p></div>'+
     (gf.kind==='Panoramica'?'<div class="panel">'+infoTech(gf)+panoramaTables()+'</div>':'<div class="panel">'+'<h3>Come parte e quanto dura</h3><ul>'+infoLines(gf).map(function(s){return '<li>'+esc(s)+'</li>';}).join('')+'</ul></div><div class="panel"><h3>Passo per passo (tutti i passi)</h3><p class="hint">I numeri sono quelli del diagramma nella vista completa.</p><ol class="steps">'+plain(gf).map(function(s){return '<li><b class="n">'+s.num+'</b>'+esc(s.text)+'</li>';}).join('')+'</ol></div>')+'</details>'+
     '<p class="note" id="pdfnote"></p>';
@@ -1090,6 +1100,7 @@ function show(i){
     document.getElementById('panel').innerHTML=detail(g,n);document.getElementById('tech').open=true;
   });
   if(gf.kind!=='Panoramica')mountPlayer(g,drawn,canvas);
+  if(gf.kind!=='Panoramica')mountScena(g,document.getElementById('scena'));
   function apply(){drawn.svg.setAttribute('width',g.W*scale);drawn.svg.setAttribute('height',g.H*scale);}
   document.getElementById('zi').onclick=function(){scale=Math.min(2,scale+0.15);apply();};
   document.getElementById('zo').onclick=function(){scale=Math.max(0.4,scale-0.15);apply();};
@@ -1111,7 +1122,7 @@ graphs.forEach(function(g,i){
   b.innerHTML=esc(g.title)+'<small>'+(g.kind==='Panoramica'?'Panoramica · tutti i processi':esc(g.kind)+' · '+g.nodes.length+' passi')+'</small>';
   b.addEventListener('click',function(){show(i);});tabs.appendChild(b);
 });
-mountMappa(true);
+if(incl.indexOf('mappa')>=0)mountMappa(true);
 mountGrafici();
 show(0);
 })();

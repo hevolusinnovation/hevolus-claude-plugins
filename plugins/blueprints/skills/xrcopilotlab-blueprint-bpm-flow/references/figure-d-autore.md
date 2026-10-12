@@ -49,6 +49,9 @@ solo gli esempi di questa skill.
 
 ## Regole del disegno (in breve)
 
+- **Vista frontale.** Le figure si guardano di fronte, non ruotate: azimut 90° per le mappe, 72° per un oggetto (il nastro corre in
+  orizzontale e si vede un poco il fianco). In `fitProjection(…, { azimuth, elevation })`. Con un azimut diverso l'ordine di disegno
+  cambia: «davanti» è il lato con più `y`, e ciò che sta dietro un altro pezzo va disegnato prima.
 - **Solidi, non fili**: ogni parte è piena e dipinta in ordine; niente linee nascoste né tratteggi per «vedere attraverso».
 - **Toni**: base e piedi `lo`, struttura `mid`, soggetto `hi`; un solo pezzo `lit`. Il colore solo dove il colore è il soggetto.
 - **Le linee finiscono su qualcosa** (una faccia, un'altra linea, un pallino): niente frecce o etichette che fluttuano.

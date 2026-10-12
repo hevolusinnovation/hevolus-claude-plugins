@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-bpm-flow
-description: Legge il manifest di un blueprint XRCopilotLab (da file o dall'archivio di un tenant) e ne ricava un documento di lavoro per ragionare dei processi con il cliente: una mappa isometrica animata dei flussi; per ogni processo BPM la scheda (scopo, in breve, come parte, chi partecipa, dove decide una persona, quanto dura), il diagramma BPMN a corsie, una pallina che lo percorre raccontando i passi (con «casi tipici» da guardare) e un video muto del caso; il passo per passo, i punti «da decidere insieme» (D1, D2…) e le note; su richiesta una figura d'autore animata. Si esporta in PDF e Word, con una pagina a fotogrammi per caso. Pubblicato come artifact. Usa per «il flow chart del blueprint», «il documento dei processi da rivedere col cliente», «la scheda del processo», «il diagramma BPMN», «la mappa dei processi». NON scrive né applica il manifest, non collauda, non scrive la guida/demo, non tocca il tenant.
+description: Legge il manifest di un blueprint XRCopilotLab (da file o dall'archivio di un tenant) e ne ricava un documento di lavoro per ragionare dei processi con il cliente. Per ogni processo BPM: la scheda (scopo, in breve, come parte, chi partecipa, dove decide una persona, quanto dura), una scena animata dei passi di un «caso tipico» (una scheda per passo, con un'icona che si anima e la spiegazione di cosa succede), il diagramma BPMN a corsie, il passo per passo, i punti «da decidere insieme» (D1, D2…) e le note. Si esporta in PDF e Word (una pagina a fotogrammi per caso) e si registra un video muto del caso. Pubblicato come artifact. Usa per «il flow chart del blueprint», «il documento dei processi da rivedere col cliente», «la scheda del processo», «il diagramma BPMN», «la mappa dei processi». NON scrive né applica il manifest, non collauda, non scrive la guida/demo, non tocca il tenant.
 ---
 
 # xrcopilotlab-blueprint-bpm-flow
@@ -32,7 +32,8 @@ sempre gli stessi**. Per questo ogni scheda ha due viste dello stesso processo:
 
 | Dove, in ordine di pagina | Che cosa dice | Da dove viene |
 |---|---|---|
-| **La mappa** (in testa alla pagina, sopra le schede) | una figura isometrica sola: ogni processo è una postazione su un banco, con un pezzo per ogni passo (persona, persona + assistente, automatico, bivio, sottoprocesso, inizio e fine), conteggi e legenda; al clic apre il processo | calcolata dal manifest, senza testi da scrivere |
+| **La scena** (in ogni scheda, sopra il diagramma) | una scheda per passo del caso scelto, in fila, con i colori del BPMN, un'icona animata e il nome; **Avvia la simulazione** fa muovere una pratica e sotto compare che cosa succede a quel passo | calcolata dal manifest; le parole sono quelle di `passi` (§3) |
+| **La mappa** (solo con `includi: [mappa]`) | una figura isometrica di tutti i flussi insieme, in testa alla pagina | calcolata dal manifest; di default **non c'è**, perché con molti processi confonde |
 | **Scopo** (una frase) | a che cosa serve il processo | **lo scrivi tu** (§3) |
 | **In breve** e **Quando si usa** | il racconto in pochi paragrafi, e quando sì e quando no | **lo scrivi tu** (§3) |
 | **La scheda**: come parte · che cosa arriva · che cosa si ottiene · chi partecipa · dove decide una persona · che cosa fa il sistema da solo · quanto dura | il «canvas» del processo | calcolata dal manifest; «arriva» e «si ottiene» (e, se serve, «dove decide una persona») li scrivi tu |
@@ -42,13 +43,14 @@ sempre gli stessi**. Per questo ogni scheda ha due viste dello stesso processo:
 | **Panoramica** (prima scheda, solo se richiesta) | chi o che cosa avvia ogni processo | diagramma calcolato; testo scritto da te |
 | **Dettagli tecnici, per chi configura** (sezione chiusa, in fondo, **non esportata**) | come parte, tempi, passo per passo completo, tabelle, settimana tipo | calcolato dal manifest |
 
-**La mappa** non sostituisce il diagramma BPMN: il BPMN resta com'è (stessi simboli, stesso layout) e la mappa è
-un colpo d'occhio sull'insieme. Si disegna nel browser dal manifest incorporato, con il kit isometrico della
-skill `anatomy` (MIT) copiato in [`assets/iso/`](assets/iso/ORIGINE.md); i colori sono quelli della pagina
-(azzurro persona, viola persona + assistente, verde automatico, ambra bivio), in chiaro e in scuro. La mappa
-segue la pagina: ci sono i processi BPM (**P1, P2…**) e, se `includi` nomina `orchestratori`, anche gli
-orchestratori (**O1, O2…**). Un flusso con più di 28 passi ne mostra i primi 28, e la lista sotto la figura lo dice.
-Esportando **tutti** i flussi la mappa è la prima pagina del PDF e del Word, con la **legenda a colori**.
+**La scena** è il modo semplice di capire un processo: una scheda grande per ogni passo del caso scelto (azzurro persona, viola
+persona + assistente, verde sistema, ambra bivio, come nel diagramma), con un numero, un'icona e il nome. «Avvia la simulazione»
+fa muovere una pratica da una scheda all'altra: la scheda in corso si illumina, la sua icona si anima (una persona che spunta,
+un documento letto da un raggio, un ingranaggio che gira, un deviatore che sceglie, una scatola che si apre…) e sotto compare
+che cosa succede, chi lo fa e la scelta fatta ai bivi. «Un passo» avanza a mano. Il caso si sceglie dal menu (§3, `percorsi`;
+«Tutti i passi» li mostra tutti). Si disegna da sola dal manifest: niente da costruire, e vale per ogni processo e ogni orchestratore.
+La **mappa isometrica** di tutti i flussi (kit della skill `anatomy`, MIT, in [`assets/iso/`](assets/iso/ORIGINE.md)) c'è solo se
+`includi` nomina `mappa`: con molti processi insieme confonde più di quanto spieghi.
 
 **I numeri** (in fondo alla pagina, «I numeri del blueprint, per chi configura») sono tre grafici calcolati dal manifest, costruiti con le regole
 della skill `dataviz`: *Come sono fatti i flussi* (barre impilate per tipo di passo), *Chi lavora di più* (passi per
@@ -58,20 +60,17 @@ la tabella dei numeri sotto e il suggerimento al passaggio del mouse. I colori s
 dei colori alterata, per questo nei grafici il viola è più chiaro e il blu più scuro, e l'identità sta anche in
 legenda, etichette e tabella.  Contano i passi ma non spiegano i processi, quindi non entrano nel PDF né nel Word.
 
-**Segui una pratica, i casi tipici e il video.** Sopra il diagramma c'è il lettore: **Segui una pratica** fa partire una
-pallina che percorre il diagramma, si ferma a ogni passo (che si illumina) e sotto racconta che cosa succede, chi lo fa e,
-dove la strada si divide, chiede a chi guarda quale uscita prendere (con le condizioni del manifest). **Un caso tipico**
-percorre da sola una storia già scelta («Arriva un'udienza», «Mancano dei dati», «L'udienza viene rinviata»): sono i
-`percorsi` di `spiegazioni.yml` (§3); senza, c'è il solo «percorso principale». **Crea il video** registra nel browser un
-breve **video muto** del caso scelto (titolo, pallina sul diagramma con la telecamera che la segue, frase di ogni passo,
-scelta fatta ai bivi, e in fondo le domande «da decidere insieme»): MP4, o WebM dove il browser non fa MP4. Dura quanto il
-video e vuole la scheda aperta; si salva dal pulsante, con la stessa capacità `downloads` di PDF e Word. **La voce non c'è**
-(il browser non può registrarla): per un video con voce si usa la CLI (`xrcopilotlab-bp voice`) fuori dalla pagina, come
-nella skill `xrcopilotlab-blueprint-storyboard`. Il video è un file del blueprint: va nell'archivio del tenant (`files put`), non nel repository.
+**I casi tipici e il video.** I casi sono i `percorsi` di `spiegazioni.yml` (§3): tre o quattro storie («Arriva un'udienza», «Mancano
+dei dati», «L'udienza viene rinviata»); senza, c'è il solo «percorso principale». **Crea il video del caso** (accanto alla scena)
+registra nel browser un breve **video muto** del caso scelto (titolo, pallina sul diagramma BPMN con la telecamera che la segue,
+frase di ogni passo, scelta ai bivi, in fondo le domande «da decidere insieme»): MP4, o WebM dove il browser non fa MP4. Dura quanto
+il video e vuole la scheda aperta; si salva col pulsante, con la stessa capacità `downloads` di PDF e Word. **La voce non c'è** (il
+browser non può registrarla): per un video con voce si usa la CLI (`xrcopilotlab-bp voice`) fuori dalla pagina, come nella skill
+`xrcopilotlab-blueprint-storyboard`. Il video è un file del blueprint: va nell'archivio del tenant (`files put`), non nel repository.
+Sotto il diagramma c'è anche, chiusa, la pallina che lo percorre («Segui una pratica sul diagramma BPMN»), per chi conosce la notazione.
 
-**PDF e Word non si muovono**: al posto del lettore, ogni caso è **una pagina a fotogrammi**: il diagramma con la strada del
-caso in evidenza e i passi numerati nell'ordine in cui il caso li percorre, e sotto l'elenco di ciò che succede, con la
-scelta fatta a ogni bivio. Le animazioni della mappa e della figura d'autore si tolgono (restano i pezzi fermi).
+**PDF e Word non si muovono**: ogni caso ha **due pagine a fotogrammi**: la scena con tutti i passi numerati, e il diagramma con la
+strada del caso in evidenza e, sotto, l'elenco di ciò che succede con la scelta fatta a ogni bivio.
 
 **La figura d'autore** di un processo (facoltativa) è un'illustrazione fatta a mano per quel processo, in cima alla sua
 scheda e in una pagina propria nel PDF e nel Word: [`references/figure-d-autore.md`](references/figure-d-autore.md).
@@ -193,11 +192,11 @@ flussi:
       - passo: verifica                     # facoltativo: l'id del passo, e D1 compare sul disegno
         domanda: "Il referente è sempre la stessa persona, o cambia secondo l'autorità?"
       - domanda: "Quante comunicazioni arrivano in media in un giorno?"   # senza passo: domanda generale
-includi: []                                 # facoltativo: [panoramica, orchestratori]
+includi: []                                 # facoltativo: [panoramica, orchestratori, mappa]
 ```
 
 (`storia` e `sintesi` al posto di `in_breve` funzionano ancora.) **Di default la pagina spiega solo i processi
-BPM**: niente Panoramica né orchestratori, a meno che `includi` li nomini.
+BPM**: niente Panoramica, orchestratori né mappa, a meno che `includi` li nomini.
 
 Come scriverlo:
 
