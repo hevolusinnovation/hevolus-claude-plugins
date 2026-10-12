@@ -52,12 +52,9 @@ function mountPlayer(g,d,canvas){
   host.innerHTML='<div class="pl-bar"><button class="tool pl-main" id="pl-play" type="button">Segui una pratica</button>'+
     '<button class="tool" id="pl-step" type="button">Un passo</button><button class="tool" id="pl-reset" type="button">Da capo</button>'+
     '<label>Velocità <select id="pl-speed" aria-label="Velocità"><option value="0.6">lenta</option><option value="1" selected>normale</option><option value="1.8">veloce</option></select></label></div>'+
-    '<div class="pl-bar pl-cases"><label>Un caso tipico <select id="pl-case" aria-label="Un caso tipico">'+casi.map(function(c,i){return '<option value="'+i+'">'+esc(c.nome)+'</option>';}).join('')+'</select></label>'+
-    '<button class="tool" id="pl-guarda" type="button">Guarda il caso</button><button class="tool" id="pl-video" type="button">Crea il video</button><span class="hint" id="pl-vstat" role="status"></span></div>'+
-    '<div id="pl-vbox"></div>'+
     '<div class="pl-cap" id="pl-cap" aria-live="polite"><span class="hint">Premi «Segui una pratica»: una pallina percorre il diagramma e racconta che cosa succede a ogni passo. Dove la strada si divide scegli tu.</span></div>'+
     '<div class="pl-choice" id="pl-choice"></div>';
-  var caseS=host.querySelector('#pl-case'),guardaB=host.querySelector('#pl-guarda'),videoB=host.querySelector('#pl-video'),vstat=host.querySelector('#pl-vstat'),vbox=host.querySelector('#pl-vbox'),play=host.querySelector('#pl-play'),stepB=host.querySelector('#pl-step'),resetB=host.querySelector('#pl-reset'),speedS=host.querySelector('#pl-speed'),cap=host.querySelector('#pl-cap'),choice=host.querySelector('#pl-choice');
+  var play=host.querySelector('#pl-play'),stepB=host.querySelector('#pl-step'),resetB=host.querySelector('#pl-reset'),speedS=host.querySelector('#pl-speed'),cap=host.querySelector('#pl-cap'),choice=host.querySelector('#pl-choice');
   var svg=d.svg,NSx='http://www.w3.org/2000/svg',plan=null,pi=0,cur=null,playing=false,moving=false,timer=null,raf=null,done=false,count=0,waiting=false;
   var tok=document.createElementNS(NSx,'g');tok.setAttribute('class','pl-token');tok.style.display='none';
   var halo=document.createElementNS(NSx,'circle');halo.setAttribute('r',10);halo.setAttribute('class','pl-halo');
@@ -145,18 +142,6 @@ function mountPlayer(g,d,canvas){
     if(done){clear();}
     playing=false;if(timer){clearTimeout(timer);timer=null;}play.textContent=cur?'Riprendi':'Segui una pratica';
     next();
-  });
-  guardaB.addEventListener('click',function(){
-    var c=casi[+caseS.value||0];if(!c)return;
-    clear();plan=c;pi=0;playing=true;play.textContent='Pausa';
-    if(c.incompleto)vstat.textContent=c.incompleto;else vstat.textContent='';
-    next();
-  });
-  videoB.addEventListener('click',function(){
-    var c=casi[+caseS.value||0];if(!c)return;
-    if(typeof creaVideo!=='function'){vstat.textContent='Il video non è disponibile in questa pagina.';return;}
-    clear();playing=false;play.textContent='Segui una pratica';
-    creaVideo(g,c,{status:vstat,box:vbox,button:videoB});
   });
   resetB.addEventListener('click',function(){clear();playing=false;play.textContent='Segui una pratica';cap.innerHTML='<span class="hint">Premi «Segui una pratica» per ripartire dall’inizio.</span>';});
 }

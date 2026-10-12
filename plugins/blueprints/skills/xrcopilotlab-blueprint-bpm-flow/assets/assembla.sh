@@ -23,7 +23,7 @@ if [ -n "$F" ] && [ -d "$F" ]; then
     printf '<template id="fig-%s">' "$k" >> "$FIG"; cat "$f" >> "$FIG"; printf '</template>\n' >> "$FIG"
   done
 fi
-awk -v fig="$FIG" -v b="$B" -v s="$S" -v n="$N" -v kit="$KIT" -v css="$CSS" -v mappa="$D/mappa-isometrica.js" -v grafici="$D/grafici.js" -v player="$D/player.js" -v percorsi="$D/percorsi.js" -v video="$D/video.js" '
+awk -v fig="$FIG" -v b="$B" -v s="$S" -v n="$N" -v kit="$KIT" -v css="$CSS" -v mappa="$D/mappa-isometrica.js" -v grafici="$D/grafici.js" -v player="$D/player.js" -v percorsi="$D/percorsi.js" -v video="$D/video.js" -v scena="$D/scena.js" '
   function dump(f,  l) { while ((getline l < f) > 0) print l; close(f) }
   /^__YAML__$/ { dump(b); next }
   /^__SPIEGAZIONI__$/ { dump(s); next }
@@ -35,6 +35,7 @@ awk -v fig="$FIG" -v b="$B" -v s="$S" -v n="$N" -v kit="$KIT" -v css="$CSS" -v m
   /^__PERCORSI__$/ { dump(percorsi); next }
   /^__PLAYER__$/ { dump(player); next }
   /^__VIDEO__$/ { dump(video); next }
+  /^__SCENA__$/ { dump(scena); next }
   { gsub(/__SCENARIO__/, n); print }
 ' "$D/bpm-viewer.html"
 rm -f "$KIT" "$CSS" "$FIG"
