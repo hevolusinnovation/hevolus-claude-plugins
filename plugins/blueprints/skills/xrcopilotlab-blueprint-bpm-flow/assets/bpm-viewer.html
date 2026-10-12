@@ -901,7 +901,7 @@ async function buildPdf(list){
     }
     /* pagina 3: passo per passo, punti da discutere, note */
     newPage();
-    y+=1;y+=put(m.title+' - passo per passo e punti da decidere',M,y,PW-2*M,14,'bold')+4;
+    y+=1;y+=put(m.title+' - passo per passo e domande per il cliente',M,y,PW-2*M,14,'bold')+4;
     if(m.steps.length){
       var cw=(PW-2*M-10)/2,hs=m.steps.map(function(s){pdf.setFontSize(10);return pdf.splitTextToSize(ascii(s.num+'. '+s.text),cw).length*10*0.43+1.5;}),tot=hs.reduce(function(a,b){return a+b;},0),acc=0,col=0,yy=y,y0=y;
       m.steps.forEach(function(s,i){
@@ -912,7 +912,7 @@ async function buildPdf(list){
       y=Math.max(y,yy)+2;
     }
     if(m.qs.length){
-      need(14);y+=put('Da decidere insieme',M,y,PW-2*M,12,'bold',ACC)+2;
+      need(14);y+=put('Domande per il cliente',M,y,PW-2*M,12,'bold',ACC)+2;
       m.qs.forEach(function(q){
         need(26);
         pdf.setFillColor(245,158,11);pdf.circle(M+3.5,y+3,3.2,'F');pdf.setFont('helvetica','bold');pdf.setFontSize(7);pdf.setTextColor(28,33,39);pdf.text('D'+q.n,M+3.5,y+3.8,{align:'center'});
@@ -995,7 +995,7 @@ async function buildDocx(list){
       m.steps.forEach(function(s){kids.push(para(s.num+'. '+s.text,{after:60}));});
     }
     if(m.qs.length){
-      kids.push(para('Da decidere insieme',{h:D.HeadingLevel.HEADING_2,before:200,keep:true}));
+      kids.push(para('Domande per il cliente',{h:D.HeadingLevel.HEADING_2,before:200,keep:true}));
       m.qs.forEach(function(q){
         kids.push(para('D'+q.n+'  '+q.text+(q.stepNum?'  (passo '+q.stepNum+')':''),{bold:true,keep:true,after:60}));
         kids.push(noteBox('Risposta o nota',q.note));kids.push(para('',{after:80}));
@@ -1067,7 +1067,7 @@ function schedaBox(gf){
     return '<dt>'+esc(r.k)+'</dt><dd>'+(r.v.length>1?'<ul>'+r.v.map(function(v){return '<li>'+esc(v)+'</li>';}).join('')+'</ul>':esc(r.v[0]))+'</dd>';}).join('')+'</dl></div>';
 }
 function discutereBox(g){
-  var qs=questionsOf(g),h='<div class="panel"><h3>Da decidere insieme</h3><p class="hint">Scrivi qui le risposte durante l’incontro: restano in questo browser e finiscono nel PDF e nel Word. Nel Word si possono anche aggiungere a mano.</p>';
+  var qs=questionsOf(g),h='<div class="panel"><h3>Domande per il cliente</h3><p class="hint">Scrivi qui le risposte durante l’incontro: restano in questo browser e finiscono nel PDF e nel Word. Nel Word si possono anche aggiungere a mano.</p>';
   qs.forEach(function(q){
     h+='<div class="q"><b class="d">D'+q.n+'</b><div><p>'+esc(q.text)+(q.stepNum?' <span class="hint">(passo '+q.stepNum+')</span>':'')+'</p><textarea class="nota" data-k="q'+q.n+'" aria-label="Nota per D'+q.n+'" placeholder="Risposta o nota…"></textarea></div></div>';
   });

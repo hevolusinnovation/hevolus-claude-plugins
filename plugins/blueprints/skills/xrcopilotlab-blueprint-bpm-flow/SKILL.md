@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-bpm-flow
-description: Legge il manifest di un blueprint XRCopilotLab (da file o dall'archivio di un tenant) e ne ricava un documento di lavoro per ragionare dei processi con il cliente. Per ogni processo BPM: la scheda (scopo, in breve, come parte, chi partecipa, dove decide una persona, quanto dura), una scena animata dei passi di un «caso tipico» (una scheda per passo, con un'icona che si anima e la spiegazione di cosa succede), il diagramma BPMN a corsie, il passo per passo, i punti «da decidere insieme» (D1, D2…) e le note. Si esporta in PDF e Word (una pagina a fotogrammi per caso) e si registra un video muto del caso. Pubblicato come artifact. Usa per «il flow chart del blueprint», «il documento dei processi da rivedere col cliente», «la scheda del processo», «il diagramma BPMN», «la mappa dei processi». NON scrive né applica il manifest, non collauda, non scrive la guida/demo, non tocca il tenant.
+description: Legge il manifest di un blueprint XRCopilotLab (da file o dall'archivio di un tenant) e ne ricava un documento di lavoro per ragionare dei processi con il cliente. Per ogni processo BPM: la scheda (scopo, in breve, come parte, chi partecipa, dove decide una persona, quanto dura), una scena animata dei passi di un «caso tipico» (una scheda per passo, con un'icona che si anima e la spiegazione di cosa succede), il diagramma BPMN a corsie, il passo per passo, le domande per il cliente (D1, D2…) e le note. Si esporta in PDF e Word (una pagina a fotogrammi per caso) e si registra un video muto del caso. Pubblicato come artifact. Usa per «il flow chart del blueprint», «il documento dei processi da rivedere col cliente», «la scheda del processo», «il diagramma BPMN», «la mappa dei processi». NON scrive né applica il manifest, non collauda, non scrive la guida/demo, non tocca il tenant.
 ---
 
 # xrcopilotlab-blueprint-bpm-flow
@@ -39,7 +39,7 @@ sempre gli stessi**. Per questo ogni scheda ha due viste dello stesso processo:
 | **La scheda**: come parte · che cosa arriva · che cosa si ottiene · chi partecipa · dove decide una persona · che cosa fa il sistema da solo · quanto dura | il «canvas» del processo | calcolata dal manifest; «arriva» e «si ottiene» (e, se serve, «dove decide una persona») li scrivi tu |
 | **Diagramma** | corsie per ruolo, attività, bivi, cicli; al clic il dettaglio; i pallini ambra **D1, D2…** segnano i punti da discutere | calcolato dal manifest |
 | **Passo per passo** | una frase per cerchio e bivio, con i numeri del disegno | **lo scrivi tu** (§3) |
-| **Da decidere insieme** | le domande da porre al cliente, con un campo per la risposta; poi **Note della sessione** | **le scrivi tu**; le risposte le scrive chi conduce, nella pagina |
+| **Domande per il cliente** (D1, D2…) | le domande da porre al cliente, con un campo per la risposta; poi **Note della sessione** | **le scrivi tu**; le risposte le scrive chi conduce, nella pagina |
 | **Panoramica** (prima scheda, solo se richiesta) | chi o che cosa avvia ogni processo | diagramma calcolato; testo scritto da te |
 | **Dettagli tecnici, per chi configura** (sezione chiusa, in fondo, **non esportata**) | come parte, tempi, passo per passo completo, tabelle, settimana tipo | calcolato dal manifest |
 
@@ -61,11 +61,14 @@ dei colori alterata, per questo nei grafici il viola è più chiaro e il blu pi�
 legenda, etichette e tabella.  Contano i passi ma non spiegano i processi, quindi non entrano nel PDF né nel Word.
 
 **I casi tipici e il video.** I casi sono i `percorsi` di `spiegazioni.yml` (§3): tre o quattro storie («Arriva un'udienza», «Mancano
-dei dati», «L'udienza viene rinviata»); senza, c'è il solo «percorso principale». **Crea il video del caso** (accanto alla scena)
-registra nel browser un breve **video muto** del caso scelto (titolo, pallina sul diagramma BPMN con la telecamera che la segue,
-frase di ogni passo, scelta ai bivi, in fondo le domande «da decidere insieme»): MP4, o WebM dove il browser non fa MP4. Dura quanto
-il video e vuole la scheda aperta; si salva col pulsante, con la stessa capacità `downloads` di PDF e Word. **La voce non c'è** (il
-browser non può registrarla): per un video con voce si usa la CLI (`xrcopilotlab-bp voice`) fuori dalla pagina, come nella skill
+dei dati», «L'udienza viene rinviata»); senza, c'è il solo «percorso principale». Accanto alla scena c'è sempre il pulsante
+**Scarica il video**, con un menu: *del caso scelto*, oppure *di tutto il processo, con tutte le diramazioni*. Il video si registra nel
+browser (muto, con le frasi scritte sotto: titolo, pallina sul diagramma con la telecamera che la segue, frase di ogni passo) e poi si
+salva; se lo stesso video è già stato registrato, il tasto lo salva subito. **A ogni bivio c'è una sequenza dedicata**: le strade possibili come
+pulsanti, quella presa in evidenza, le altre tratteggiate sul diagramma. Nel video di tutto il processo il primo caso è intero e di ogni
+altro caso c'è solo la parte nuova, da dove si separa a dove si ricongiunge (un capitolo «Una variante»); in fondo, il riepilogo dei bivi e
+dei casi. MP4, o WebM dove il browser non fa MP4; dura quanto il video e vuole la scheda aperta. **La voce non c'è** (il browser non può
+registrarla): per un video con voce si usa la CLI (`xrcopilotlab-bp voice`) fuori dalla pagina, come nella skill
 `xrcopilotlab-blueprint-storyboard`. Il video è un file del blueprint: va nell'archivio del tenant (`files put`), non nel repository.
 Sotto il diagramma c'è anche, chiusa, la pallina che lo percorre («Segui una pratica sul diagramma BPMN»), per chi conosce la notazione.
 

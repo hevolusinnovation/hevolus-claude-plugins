@@ -125,9 +125,10 @@ function mountScena(g,host){
   host.innerHTML='<div class="sc-box"><div class="sc-bar"><label>Il caso <select id="sc-case" aria-label="Il caso">'+casi.map(function(c,i){return '<option value="'+i+'">'+esc(c.nome)+'</option>';}).join('')+'</select></label>'+
     '<button class="tool pl-main" id="sc-play" type="button">Avvia la simulazione</button><button class="tool" id="sc-step" type="button">Un passo</button><button class="tool" id="sc-reset" type="button">Da capo</button>'+
     '<label>Velocità <select id="sc-speed" aria-label="Velocità"><option value="0.6">lenta</option><option value="1" selected>normale</option><option value="1.8">veloce</option></select></label>'+
-    '<button class="tool" id="sc-video" type="button">Crea il video del caso</button><span class="hint" id="sc-vstat" role="status"></span></div><div id="sc-vbox"></div>'+
+    '<label>Video <select id="sc-vscope" aria-label="Che video"><option value="caso">del caso scelto</option><option value="tutto">di tutto il processo, con tutte le diramazioni</option></select></label>'+
+    '<button class="tool pl-main" id="sc-video" type="button">Scarica il video</button><span class="hint" id="sc-vstat" role="status">Si registra nel browser e dura quanto il video.</span></div><div id="sc-vbox"></div>'+
     '<div class="sc-stage" id="sc-stage"></div><div class="pl-cap" id="sc-cap" aria-live="polite"></div></div>';
-  var videoB=host.querySelector('#sc-video'),vstat=host.querySelector('#sc-vstat'),vbox=host.querySelector('#sc-vbox'),caseS=host.querySelector('#sc-case'),play=host.querySelector('#sc-play'),stepB=host.querySelector('#sc-step'),resetB=host.querySelector('#sc-reset'),speedS=host.querySelector('#sc-speed'),stage=host.querySelector('#sc-stage'),cap=host.querySelector('#sc-cap');
+  var vscope=host.querySelector('#sc-vscope'),videoB=host.querySelector('#sc-video'),vstat=host.querySelector('#sc-vstat'),vbox=host.querySelector('#sc-vbox'),caseS=host.querySelector('#sc-case'),play=host.querySelector('#sc-play'),stepB=host.querySelector('#sc-step'),resetB=host.querySelector('#sc-reset'),speedS=host.querySelector('#sc-speed'),stage=host.querySelector('#sc-stage'),cap=host.querySelector('#sc-cap');
   var caso,passi,sc,svg,letter,cur=-1,playing=false,moving=false,timer=null,raf=null,done=false;
   function speed(){return +speedS.value||1;}
   function clear(){if(timer){clearTimeout(timer);timer=null;}if(raf){cancelAnimationFrame(raf);raf=null;}moving=false;done=false;playing=false;cur=-1;play.textContent='Avvia la simulazione';}
@@ -175,9 +176,25 @@ function mountScena(g,host){
     if(!svg.querySelector('.sc-st.act')){place(0);return;}
     advance();
   });
-  videoB.addEventListener('click',function(){
+  /* il video: il tasto c'è sempre. Se il video di quella scelta è già stato registrato lo salva subito, altrimenti lo registra e poi lo salva */
+  var vcache={},recording=false,real=casi.filter(function(c){return c.nome!=='Tutti i passi';});
+  videoB.addEventListener('click',async function(){
+    if(recording)return;
     if(typeof creaVideo!=='function'){vstat.textContent='Il video non è disponibile in questa pagina.';return;}
-    var c=casi[+caseS.value||0];if(!c)return;clear();creaVideo(g,c,{status:vstat,box:vbox,button:videoB});
+    var all=vscope.value==='tutto',ci=+caseS.value||0,key=all?'tutto':'caso|'+ci,c=casi[ci];
+    async function salva(v){
+      var dl=await downloadsCap();
+      if(!dl){vstat.textContent='Il download è disponibile dalla pagina pubblicata, aperta in claude.ai.';return;}
+      try{await dl.save({filename:slugOf(document.title||'flussi-bpm')+'-'+slugOf(g.key)+'-'+(all?'tutto-il-processo':slugOf(c.nome))+v.ext,data:v.blob});vstat.textContent='Video salvato ('+Math.round(v.total)+' s, '+(v.blob.size/1048576).toFixed(1).replace('.',',')+' MB).';}
+      catch(e){vstat.textContent=e&&e.code==='declined'?'Download annullato.':'Non sono riuscito a salvare il video: '+((e&&e.message)||e);}
+    }
+    if(vcache[key]){await salva(vcache[key]);return;}
+    clear();recording=true;videoB.disabled=true;vscope.disabled=true;caseS.disabled=true;
+    try{
+      var v=await creaVideo(g,{casi:all?real:[c],tutto:all,status:vstat,box:vbox});
+      vcache[key]=v;vbox.innerHTML='';recording=false;videoB.disabled=false;vscope.disabled=false;caseS.disabled=false;
+      await salva(v);
+    }catch(e){vbox.innerHTML='';recording=false;videoB.disabled=false;vscope.disabled=false;caseS.disabled=false;vstat.textContent=(e&&e.message)||'Non sono riuscito a registrare il video.';}
   });
   resetB.addEventListener('click',render);caseS.addEventListener('change',render);
   render();
