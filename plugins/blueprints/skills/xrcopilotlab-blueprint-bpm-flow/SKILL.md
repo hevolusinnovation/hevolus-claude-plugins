@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-bpm-flow
-description: Legge il manifest di un blueprint XRCopilotLab (da file o dall'archivio di un tenant) e ne ricava un documento di lavoro per ragionare del processo insieme al cliente: per ogni processo BPM una scheda sintetica (scopo, in breve, quando si usa, come parte, che cosa arriva e che cosa si ottiene, chi partecipa, dove decide una persona, che cosa fa il sistema da solo, quanto dura), il diagramma BPMN a corsie in vista sintetica o completa, il passo per passo, i punti «da decidere insieme» (D1, D2… segnati sul disegno) e gli spazi per le note. Si esporta in PDF e in Word (.docx, modificabile) con le note scritte dentro. Pubblicato come artifact. Usa per «il flow chart del blueprint», «il documento dei processi da rivedere col cliente», «la scheda del processo», «il diagramma BPMN», «la mappa dei processi». NON scrive né applica il manifest (xrcopilotlab-blueprint), non collauda (-blueprint-test), non scrive la guida/demo del cliente (-blueprint-guide), non tocca il tenant.
+description: Legge il manifest di un blueprint XRCopilotLab (da file o dall'archivio di un tenant) e ne ricava un documento di lavoro per ragionare dei processi con il cliente: in testa una mappa isometrica dei flussi e tre grafici dei numeri (passi per tipo, ruoli, settimana tipo); per ogni processo BPM una scheda sintetica (scopo, in breve, come parte, chi partecipa, dove decide una persona, quanto dura), il diagramma BPMN a corsie sintetico o completo, il passo per passo, i punti «da decidere insieme» (D1, D2…) e le note; su richiesta una figura d'autore. Si esporta in PDF e Word con le note dentro. Pubblicato come artifact. Usa per «il flow chart del blueprint», «il documento dei processi da rivedere col cliente», «la scheda del processo», «il diagramma BPMN», «la mappa dei processi». NON scrive né applica il manifest (xrcopilotlab-blueprint), non collauda (-blueprint-test), non scrive la guida/demo (-blueprint-guide), non tocca il tenant.
 ---
 
 # xrcopilotlab-blueprint-bpm-flow
@@ -32,6 +32,7 @@ sempre gli stessi**. Per questo ogni scheda ha due viste dello stesso processo:
 
 | Dove, in ordine di pagina | Che cosa dice | Da dove viene |
 |---|---|---|
+| **La mappa** (in testa alla pagina, sopra le schede) | una figura isometrica sola: ogni processo è una postazione su un banco, con un pezzo per ogni passo (persona, persona + assistente, automatico, bivio, sottoprocesso, inizio e fine), conteggi e legenda; al clic apre il processo | calcolata dal manifest, senza testi da scrivere |
 | **Scopo** (una frase) | a che cosa serve il processo | **lo scrivi tu** (§3) |
 | **In breve** e **Quando si usa** | il racconto in pochi paragrafi, e quando sì e quando no | **lo scrivi tu** (§3) |
 | **La scheda**: come parte · che cosa arriva · che cosa si ottiene · chi partecipa · dove decide una persona · che cosa fa il sistema da solo · quanto dura | il «canvas» del processo | calcolata dal manifest; «arriva» e «si ottiene» (e, se serve, «dove decide una persona») li scrivi tu |
@@ -40,6 +41,25 @@ sempre gli stessi**. Per questo ogni scheda ha due viste dello stesso processo:
 | **Da decidere insieme** | le domande da porre al cliente, con un campo per la risposta; poi **Note della sessione** | **le scrivi tu**; le risposte le scrive chi conduce, nella pagina |
 | **Panoramica** (prima scheda, solo se richiesta) | chi o che cosa avvia ogni processo | diagramma calcolato; testo scritto da te |
 | **Dettagli tecnici, per chi configura** (sezione chiusa, in fondo, **non esportata**) | come parte, tempi, passo per passo completo, tabelle, settimana tipo | calcolato dal manifest |
+
+**La mappa** non sostituisce il diagramma BPMN: il BPMN resta com'è (stessi simboli, stesso layout) e la mappa è
+un colpo d'occhio sull'insieme. Si disegna nel browser dal manifest incorporato, con il kit isometrico della
+skill `anatomy` (MIT) copiato in [`assets/iso/`](assets/iso/ORIGINE.md); i colori sono quelli della pagina
+(azzurro persona, viola persona + assistente, verde automatico, ambra bivio), in chiaro e in scuro. La mappa
+segue la pagina: ci sono i processi BPM (**P1, P2…**) e, se `includi` nomina `orchestratori`, anche gli
+orchestratori (**O1, O2…**). Un flusso con più di 28 passi ne mostra i primi 28, e la lista sotto la figura lo dice.
+Esportando **tutti** i flussi la mappa è la prima pagina del PDF e del Word, con la **legenda a colori**.
+
+**I numeri** (sotto la mappa, «I numeri del blueprint») sono tre grafici calcolati dal manifest, costruiti con le regole
+della skill `dataviz`: *Come sono fatti i flussi* (barre impilate per tipo di passo), *Chi lavora di più* (passi per
+ruolo) e *La settimana tipo* (giri per giorno e ora delle attività che girano da sole; solo se ce ne sono). Ognuno ha
+la tabella dei numeri sotto e il suggerimento al passaggio del mouse. I colori sono stati validati con
+`validate_palette.js` in chiaro e in scuro: il blu e il viola del diagramma da soli non si distinguono con la visione
+dei colori alterata, per questo nei grafici il viola è più chiaro e il blu più scuro, e l'identità sta anche in
+legenda, etichette e tabella. Nel PDF e nel Word, esportando tutti i flussi, vengono dopo la mappa.
+
+**La figura d'autore** di un processo (facoltativa) è un'illustrazione fatta a mano per quel processo, in cima alla sua
+scheda e in una pagina propria nel PDF e nel Word: [`references/figure-d-autore.md`](references/figure-d-autore.md).
 
 Il **PDF** (A4 orizzontale, tre pagine per processo) ha: la scheda; il diagramma intero, ad alta risoluzione
 e con la legenda; il passo per passo, le domande con la risposta (o con le **righe vuote per scrivere a
@@ -144,6 +164,10 @@ flussi:
     passi:                                  # una frase per ogni cerchio e bivio, per id del manifest
       start: "Arriva una comunicazione in casella."
       verifica: "Il referente controlla la proposta sul testo originale."
+    figura:                                 # facoltativo, solo se c'è <chiave>.svg (references/figure-d-autore.md)
+      titolo: "Presa in carico"
+      didascalia: "Una frase che racconta la figura."
+      dato: "arrivo → controllo → pratica chiusa"
     discutere:                              # le domande da fare al cliente: D1, D2…
       - passo: verifica                     # facoltativo: l'id del passo, e D1 compare sul disegno
         domanda: "Il referente è sempre la stessa persona, o cambia secondo l'autorità?"
@@ -186,11 +210,17 @@ riempie con il manifest estratto e con le spiegazioni:
 ```bash
 sh <percorso della skill>/assets/assembla.sh $S/blocchi.yml $S/spiegazioni.yml "<Nome dello scenario>" > $S/flussi-bpm.html
 # senza spiegazioni: sh .../assembla.sh $S/blocchi.yml - "<Nome dello scenario>" > $S/flussi-bpm.html
+# con le figure d'autore: sh .../assembla.sh $S/blocchi.yml $S/spiegazioni.yml "<Nome>" $S/figure > $S/flussi-bpm.html
 ```
 
 `<Nome dello scenario>` è il nome che l'utente dà al cliente o allo scenario («Studio Polis», «Agenda di
 studio»): **due o tre parole**, perché il titolo dell'artifact diventa «Flussi BPM <Scenario>». Non il
 tag in maiuscolo, a meno che sia l'unico nome.
+
+`assembla.sh` inserisce nella pagina anche il kit isometrico (`assets/iso/inline-kit.sh` lo avvolge in una
+funzione, `iso.css` e `iso-bpm.css` sono i suoi stili) e il disegnatore della mappa (`assets/mappa-isometrica.js`):
+non c'è niente da installare né da lanciare in più. Il kit si aggiorna ricopiando i due file dalla skill
+`anatomy`, come spiegato in [`assets/iso/ORIGINE.md`](assets/iso/ORIGINE.md); non si modifica a mano.
 
 La pagina carica `js-yaml` e `jsPDF` da cdnjs e `docx` (il Word) da jsDelivr, tutti con l'impronta di integrità: non c'è niente da installare.
 Non modificare il modello nella cartella della skill per un caso particolare: se serve un ritocco
@@ -269,6 +299,8 @@ stesso `url`. Il diagramma non si aggiorna da solo.
   diversi (§1).
 - Non condividere l'artifact col cliente senza un sì dell'utente: è la mappa tecnica, non la guida.
 - Non scrivere nel racconto tempi, orari o passi che il manifest non dichiara: la pagina mostra i numeri veri, e un racconto che dice altro li smentisce davanti al cliente.
+- Non toccare `assets/iso/iso-kit.mjs` né `iso.css` (sono copie della skill `anatomy`, con la sua licenza): i ritocchi stanno in `iso-bpm.css` e in `mappa-isometrica.js`.
+- Non scrivere nel racconto che la mappa «mostra» qualcosa che il manifest non dice: i suoi conteggi sono quelli dei passi, e i pezzi seguono l'ordine in cui il processo li incontra.
 - Non offrire un pulsante «Stampa» o un link di download a mano: le pagine pubblicate non li eseguono. PDF e Word passano dalla capacità `downloads`, e solo da lì.
 - Non usare questa skill per collaudare, né per dire se un processo «funziona»: il disegno mostra come è
   scritto, non come gira. Per quello, `xrcopilotlab-blueprint-test`.

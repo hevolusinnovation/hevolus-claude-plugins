@@ -15,7 +15,7 @@ repository di prodotto: [§ Le skill di sviluppo](skill-di-sviluppo.md).
 | [`xrcopilotlab-blueprint-guide`](#xrcopilotlab-blueprint-guide--la-guida-per-il-cliente) | blueprints | «scrivi la guida per il cliente», «spiega il blueprint al cliente», «una guida non tecnica», «le slide per i sales», «la pagina da mostrare al cliente» | le due guide: per il cliente a slide (pagina e deck) e tecnica per l'AI Specialist (pagina interna) |
 | [`xrcopilotlab-blueprint-demo`](#xrcopilotlab-blueprint-demo--il-brief-per-lagenzia) | blueprints | «il brief per l'agenzia», «gli scenari per i sales», «cosa possiamo vendere da questo blueprint o assessment» | il brief per l'agenzia di marketing: gli scenari vendibili, anonimi e senza tecnicismi, come artifact «DEMO-» con il PDF |
 | [`xrcopilotlab-blueprint-storyboard`](#xrcopilotlab-blueprint-storyboard--lo-storyboard-del-video) | blueprints | «lo storyboard del blueprint», «le tavole del video», «la voce fuori campo» | lo storyboard di un video breve: tavole con schizzi, battute e audio guida di prova |
-| [`xrcopilotlab-blueprint-bpm-flow`](#xrcopilotlab-blueprint-bpm-flow--i-flussi-del-manifest) | blueprints | «il flow chart del blueprint», «disegna i processi del manifest», «il diagramma BPMN» | l'artifact «Flussi BPM <scenario>»: diagrammi a corsie, panoramica di quando partono e quanto durano, PDF |
+| [`xrcopilotlab-blueprint-bpm-flow`](#xrcopilotlab-blueprint-bpm-flow--i-flussi-del-manifest) | blueprints | «il flow chart del blueprint», «disegna i processi del manifest», «il diagramma BPMN» | l'artifact «Flussi BPM <scenario>»: mappa isometrica e grafici, diagrammi a corsie, panoramica di quando partono e quanto durano, PDF e Word |
 | [`xrcopilotlab-blueprints-report`](#xrcopilotlab-blueprints-report--il-manuale-del-catalogo) | blueprints | «il manuale dei blueprint», «cosa c'è nel catalogo», «il report dei blueprint del marketplace» | il manuale del catalogo, con l'installazione del plugin e le fasi per portare un modello su un tenant, in PDF |
 | [`xrcopilotlab-blueprint-version`](#xrcopilotlab-blueprint-version--la-mail-delle-novità) | blueprints | «la mail delle novità dei blueprint», «cosa è cambiato dalla 2.x alla 2.y», «avvisa il team che c'è una versione nuova» | la bozza di mail in HTML con i comandi per aggiornare, il link alla guida, le novità per versione e il riepilogo delle feature |
 | [`xrcopilotlab-blueprint-howto`](#xrcopilotlab-blueprint-howto--il-percorso-in-una-pagina) | blueprints | «come si usano le skill dei blueprint», «da dove comincio», «spiegami il flusso dall'assessment alla demo» | l'artifact «Dall'intervista alla demo», da girare a chi comincia |
@@ -500,6 +500,13 @@ orchestratori **in stile BPMN**, in un artifact privato: corsie per ruolo, cerch
 riquadri blu per le persone, viola per persona più agente, verdi per i passi automatici, rombi per i bivi,
 frecce con la loro condizione, cicli tratteggiati. La pagina interpreta da sola il manifest incorporato:
 non c'è niente da installare né da lanciare.
+
+In testa alla pagina ci sono, calcolati dal manifest, una **mappa isometrica dei flussi** (una postazione per
+processo e, se richiesti, per orchestratore, con un pezzo per ogni passo: persona, persona + assistente, automatico,
+bivio) e tre **grafici** — come sono fatti i flussi, chi lavora di più, la settimana tipo — con la tabella dei numeri
+sotto ciascuno. Nel PDF e nel Word, esportando tutti i flussi, sono le prime pagine. Su richiesta ogni processo può avere
+una **figura d'autore**, un'illustrazione fatta a mano con il kit isometrico (serve Node 20 per costruirla). Il kit
+isometrico è copiato dalla skill `anatomy` (licenza MIT, nota in `assets/iso/ORIGINE.md`).
 
 Quando i processi sono molti, il diagramma da solo non dice **quando** si usa ciascuno né **quanto tempo**
 ci vuole. Per questo ci sono tre livelli di lettura:

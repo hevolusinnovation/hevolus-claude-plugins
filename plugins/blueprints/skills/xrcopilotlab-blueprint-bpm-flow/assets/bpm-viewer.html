@@ -118,12 +118,21 @@ svg text{font-family:var(--font-body)}
 .numb{fill:var(--accent)} .numt{fill:var(--bg);font-size:9px;font-weight:600;text-anchor:middle}
 .qb{fill:#f59e0b;stroke:#ffffff;stroke-width:1.5} .qt{fill:#1c2127;font-size:8.5px;font-weight:700;text-anchor:middle}
 </style>
+<style id="isocss">
+__ISO_CSS__
+</style>
 <div class="page">
   <h1>Flussi BPM __SCENARIO__</h1>
   <p class="sub" id="sub"></p>
+  <div id="mappa"></div>
+  <div id="numeri"></div>
   <div class="tabs" id="tabs" role="tablist"></div>
   <div id="view"></div>
 </div>
+__FIGURE__
+<script>
+__ISO_KIT__
+</script>
 <script type="text/yaml" id="spiegazioni">
 __SPIEGAZIONI__
 </script>
@@ -770,12 +779,14 @@ function ascii(s){
   return String(s==null?'':s).replace(/[«»]/g,'"').replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[–—]/g,'-').replace(/…/g,'...')
     .replace(/→/g,'->').replace(/≠/g,'!=').replace(/≥/g,'>=').replace(/≤/g,'<=').replace(/×/g,'x').replace(/[^\x00-\xFF]/g,'?');
 }
-function toCanvas(svg,W,H,scale){
+function toCanvas(svg,W,H,scale,opt){
+  opt=opt||{};
   return new Promise(function(res,rej){
     var c=svg.cloneNode(true);c.setAttribute('xmlns',NS);c.setAttribute('width',W);c.setAttribute('height',H);
-    c.setAttribute('style',Object.keys(LIGHT).map(function(k){return k+':'+LIGHT[k];}).join(';'));
+    if(opt.cls)c.setAttribute('class',opt.cls);
+    c.setAttribute('style',Object.keys(LIGHT).map(function(k){return k+':'+LIGHT[k];}).join(';')+(opt.vars?';'+opt.vars:''));
     [].forEach.call(c.querySelectorAll('.sel'),function(x){x.classList.remove('sel');});
-    var st=document.createElementNS(NS,'style');st.textContent=document.getElementById('svgcss').textContent;c.insertBefore(st,c.firstChild);
+    var st=document.createElementNS(NS,'style');st.textContent=opt.css||document.getElementById('svgcss').textContent;c.insertBefore(st,c.firstChild);
     var img=new Image();
     img.onload=function(){var cv=document.createElement('canvas');cv.width=Math.round(W*scale);cv.height=Math.round(H*scale);var x=cv.getContext('2d');x.fillStyle='#ffffff';x.fillRect(0,0,cv.width,cv.height);x.drawImage(img,0,0,cv.width,cv.height);res(cv);};
     img.onerror=function(){rej(new Error('il diagramma non si converte in immagine'));};
@@ -788,7 +799,7 @@ function modelOf(g0){
   var gf=layout(g0),g=viewOf(gf);markQuestions(g);
   var qs=questionsOf(g);qs.forEach(function(q){q.note=getNote(gf,'q'+q.n);});
   return {gf:gf,g:g,title:gf.title,kind:gf.kind,scopo:flat(entryOf(gf).scopo),brevi:storiaParas(gf),quando:lineIn(gf),rows:schedaRows(gf),
-    steps:authoredSteps(g)||[],qs:qs,gen:getNote(gf,'gen')};
+    steps:authoredSteps(g)||[],qs:qs,gen:getNote(gf,'gen'),fig:figuraOf(gf)};
 }
 function hex3(h){return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
 async function buildPdf(list){
@@ -815,6 +826,33 @@ async function buildPdf(list){
     pdf.setFillColor(245,158,11);pdf.circle(x+2,yy+2,2,'F');pdf.setFontSize(5.5);pdf.setFont('helvetica','bold');pdf.setTextColor(28,33,39);pdf.text('D1',x+2,yy+2.7,{align:'center'});
     pdf.setFont('helvetica','normal');pdf.setFontSize(8.5);pdf.setTextColor.apply(pdf,MUT);pdf.text('Da discutere',x+6,yy+3);
   }
+  /* copertina: la mappa isometrica dei processi, quando si esportano tutti */
+  if(list.length>1&&isoMapData){
+    var mm=isoMapData;
+    newPage();y+=2;y+=put('La mappa del blueprint',M,y,PW-2*M,20,'bold')+1;
+    y+=put(isoCaption(mm),M,y,PW-2*M,9.5,'normal',MUT)+2;isoPdfLegend(pdf,M,y,mm);y+=7;
+    var mcv=await isoExportCanvas(2);
+    if(mcv){
+      var mhh=Math.min(BOT-y-34,(PW-2*M)*mm.H/mm.W),mw=mhh*mm.W/mm.H;
+      pdf.addImage(mcv.toDataURL('image/jpeg',0.93),'JPEG',M+(PW-2*M-mw)/2,y,mw,mhh,undefined,'FAST');y+=mhh+4;
+    }
+    var half=Math.ceil(mm.items.length/2),cw2=(PW-2*M-10)/2;
+    mm.items.forEach(function(it,j){
+      var col=j<half?0:1,row=col?j-half:j,yy=y+row*5;
+      pdf.setFont('helvetica','bold');pdf.setFontSize(8.5);pdf.setTextColor.apply(pdf,ACC);pdf.text(it.code,M+col*(cw2+10),yy+3);
+      pdf.setFont('helvetica','normal');pdf.setTextColor.apply(pdf,INK);pdf.text(pdf.splitTextToSize(ascii(it.title+'  ('+it.n+' passi)'),cw2-10)[0],M+col*(cw2+10)+9,yy+3);
+    });
+  }
+  if(list.length>1&&vizData&&vizData.length){
+    newPage();y+=2;y+=put('I numeri del blueprint',M,y,PW-2*M,20,'bold')+3;
+    for(var ci=0;ci<vizData.length;ci++){
+      var vc=vizData[ci],vw=Math.min(PW-2*M,95*vc.W/vc.H),vh=vw*vc.H/vc.W;
+      if(y+vh+12>BOT)newPage();
+      y+=put(vc.title,M,y,PW-2*M,11.5,'bold',ACC)+0.5;y+=put(vc.sub,M,y,PW-2*M,8.5,'normal',MUT)+1.5;
+      var vcv=await vizExportCanvas(vc,2.5);
+      pdf.addImage(vcv.toDataURL('image/jpeg',0.93),'JPEG',M,y,vw,vh,undefined,'FAST');y+=vh+5;
+    }
+  }
   for(var k=0;k<list.length;k++){
     var m=await Promise.resolve(modelOf(list[k]));
     /* pagina 1: la scheda */
@@ -832,6 +870,14 @@ async function buildPdf(list){
     yr=rowsH(rsz,false);
     if(m.rows.length){pdf.setDrawColor(200,204,208);pdf.setLineWidth(0.3);pdf.line(RX-5,y,RX-5,Math.max(y+10,yr-2));}
     y=Math.max(yl,yr);
+    /* la figura d'autore, se c'è: una pagina propria */
+    if(m.fig){
+      newPage();y+=1;y+=put(m.title+' - la figura',M,y,PW-2*M,14,'bold')+2;
+      if(m.fig.didascalia)y+=put(m.fig.didascalia,M,y,PW-2*M,10,'italic',MUT)+3;
+      var fcv=await isoToCanvas(m.fig.svg,m.fig.W,m.fig.H,2);
+      var fh=Math.min(BOT-y,(PW-2*M)*m.fig.H/m.fig.W),fw=fh*m.fig.W/m.fig.H;
+      pdf.addImage(fcv.toDataURL('image/jpeg',0.93),'JPEG',M+(PW-2*M-fw)/2,y,fw,fh,undefined,'FAST');
+    }
     /* pagina 2: il diagramma, intero, ad alta risoluzione */
     newPage();
     y+=1;y+=put(m.title+' - il diagramma',M,y,PW-2*M,14,'bold')+3;
@@ -879,9 +925,34 @@ async function buildDocx(list){
     var body=text?String(text).split(/\n/).map(function(l){return para(l,{after:40});}):[para('',{after:40}),para('',{after:40}),para('',{after:40})];
     return new D.Table({width:{size:100,type:D.WidthType.PERCENTAGE},rows:[new D.TableRow({children:[cell([para(label,{bold:true,color:'1F4E6B',after:40,size:18})].concat(body),{w:100})]})]});
   }
+  var cover=list.length>1&&!!isoMapData;
+  if(cover){
+    var mm=isoMapData;
+    kids.push(para('La mappa del blueprint',{h:D.HeadingLevel.HEADING_1,after:60}));
+    kids.push(para(isoCaption(mm),{color:'59636E',after:60}));kids.push(isoDocxLegend(D,mm));
+    var mcv=await isoExportCanvas(2);
+    if(mcv){
+      var mblob=await new Promise(function(r){mcv.toBlob(r,'image/png');}),mbuf=new Uint8Array(await mblob.arrayBuffer());
+      var mw=900,mh=mw*mm.H/mm.W;if(mh>470){mh=470;mw=mh*mm.W/mm.H;}
+      kids.push(new P({children:[new D.ImageRun({data:mbuf,type:'png',transformation:{width:Math.round(mw),height:Math.round(mh)}})]}));
+    }
+    mm.items.forEach(function(it){kids.push(para(it.code+'  '+it.title+'  ('+it.n+' passi)',{after:30}));});
+  }
+  var charts=list.length>1&&vizData&&vizData.length;
+  if(charts){
+    kids.push(para('I numeri del blueprint',{h:D.HeadingLevel.HEADING_1,pb:cover,after:60}));
+    for(var ci=0;ci<vizData.length;ci++){
+      var vc=vizData[ci];
+      kids.push(para(vc.title,{h:D.HeadingLevel.HEADING_2,keep:true,before:120,after:20}));
+      kids.push(para(vc.sub,{color:'59636E',size:18,keep:true,after:60}));
+      var vcv=await vizExportCanvas(vc,2),vblob=await new Promise(function(r){vcv.toBlob(r,'image/png');}),vbuf=new Uint8Array(await vblob.arrayBuffer());
+      var vw=Math.min(900,330*vc.W/vc.H),vh=vw*vc.H/vc.W;
+      kids.push(new P({children:[new D.ImageRun({data:vbuf,type:'png',transformation:{width:Math.round(vw),height:Math.round(vh)}})]}));
+    }
+  }
   for(var k=0;k<list.length;k++){
     var m=modelOf(list[k]);
-    kids.push(para(m.title,{h:D.HeadingLevel.HEADING_1,pb:k>0,after:60}));
+    kids.push(para(m.title,{h:D.HeadingLevel.HEADING_1,pb:k>0||cover||charts,after:60}));
     kids.push(para(m.kind==='Panoramica'?'Panoramica':(m.kind==='Processo'?'Scheda del processo':m.kind),{color:'59636E',after:120}));
     if(m.scopo)kids.push(para(m.scopo,{it:true,color:'1F4E6B',size:26,after:160}));
     if(m.brevi.length){kids.push(para('In breve',{h:D.HeadingLevel.HEADING_2,keep:true}));m.brevi.forEach(function(p){kids.push(para(p));});}
@@ -890,6 +961,13 @@ async function buildDocx(list){
       kids.push(para('La scheda',{h:D.HeadingLevel.HEADING_2,keep:true,before:120}));
       kids.push(new D.Table({width:{size:100,type:D.WidthType.PERCENTAGE},rows:m.rows.map(function(r){
         return new D.TableRow({cantSplit:true,children:[cell([para(r.k,{bold:true,after:0})],{w:26,fill:'E3EDF3'}),cell(r.v.map(function(v){return para(v,{bullet:r.v.length>1,after:30});}),{w:74})]});})}));
+    }
+    if(m.fig){
+      kids.push(para('La figura',{h:D.HeadingLevel.HEADING_2,pb:true,after:40}));
+      if(m.fig.didascalia)kids.push(para(m.fig.didascalia,{it:true,color:'59636E',after:80}));
+      var fcv=await isoToCanvas(m.fig.svg,m.fig.W,m.fig.H,2),fblob=await new Promise(function(r){fcv.toBlob(r,'image/png');}),fbuf=new Uint8Array(await fblob.arrayBuffer());
+      var fw=900,fh=fw*m.fig.H/m.fig.W;if(fh>470){fh=470;fw=fh*m.fig.W/m.fig.H;}
+      kids.push(new P({children:[new D.ImageRun({data:fbuf,type:'png',transformation:{width:Math.round(fw),height:Math.round(fh)}})]}));
     }
     kids.push(para('Il diagramma',{h:D.HeadingLevel.HEADING_2,pb:true,after:60}));
     kids.push(para('Blu: persona · Viola: persona + assistente · Verde: automatico · Rombo: bivio · Pallino D1: punto da discutere',{color:'59636E',size:18,after:80}));
@@ -934,6 +1012,8 @@ async function doExport(all,fmt){
   }catch(e){note.textContent=e&&e.code==='declined'?'Download annullato.':'Non sono riuscito a creare il file: '+((e&&e.message)||e);}
 }
 
+__ISO_MAPPA__
+__GRAFICI__
 /* ───────── pagina ───────── */
 var graphs=[];
 (doc.processes||[]).forEach(function(p){graphs.push(fromProcess(p));});
@@ -985,6 +1065,7 @@ function show(i){
   view.innerHTML='<div class="head"><div><h2>'+esc(gf.title)+'</h2></div>'+
     '<div class="tools"><button class="tool" id="pdf1" type="button">PDF di questo flusso</button><button class="tool" id="doc1" type="button">Word di questo flusso</button><button class="tool" id="pdfN" type="button">PDF di tutti</button><button class="tool" id="docN" type="button">Word di tutti</button></div></div>'+
     (scopo?'<p class="scopo">'+esc(scopo)+'</p>':'')+
+    figuraBox(gf)+
     '<div class="scheda"><div>'+storyBox(gf)+'</div>'+schedaBox(gf)+'</div>'+
     '<div class="bar">'+legend()+'<div class="tools">'+(gf.kind==='Processo'?'<span class="seg" role="group" aria-label="Livello di dettaglio"><button type="button" id="vs" aria-pressed="'+(mode==='sintetica')+'">Sintetica</button><button type="button" id="vc" aria-pressed="'+(mode!=='sintetica')+'">Completa</button></span>':'')+
     '<button class="tool" id="zo" type="button" aria-label="Riduci">−</button><button class="tool" id="zf" type="button">Adatta</button><button class="tool" id="zi" type="button" aria-label="Ingrandisci">+</button></div></div>'+
@@ -1020,6 +1101,8 @@ graphs.forEach(function(g,i){
   b.innerHTML=esc(g.title)+'<small>'+(g.kind==='Panoramica'?'Panoramica · tutti i processi':esc(g.kind)+' · '+g.nodes.length+' passi')+'</small>';
   b.addEventListener('click',function(){show(i);});tabs.appendChild(b);
 });
+mountMappa(true);
+mountGrafici();
 show(0);
 })();
 </script>
