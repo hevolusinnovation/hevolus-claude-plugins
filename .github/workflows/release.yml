@@ -1,0 +1,47 @@
+name: Release
+
+# A ogni merge su main che cambia un plugin o il catalogo, se la versione del catalogo
+# (.claude-plugin/marketplace.json) non ha ancora il suo tag, avvia il workflow «Pacchetti», che
+# crea la Release v<versione> con gli zip aggiornati di skill e plugin Desktop.
+#
+# Il numero lo alza chi fa la PR, e controlli.yml lo impone: qui non si decide niente, si pubblica.
+# Se il tag esiste già (merge che non alza la versione, o rilancio) il workflow non fa niente.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'plugins/**'
+      - '.claude-plugin/marketplace.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Decidi il tag
+        id: tag
+        run: |
+          tag="v$(python3 -c 'import json;print(json.load(open(".claude-plugin/marketplace.json"))["version"])')"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Avvia i pacchetti se il tag è nuovo
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          # Un tag creato con GITHUB_TOKEN non farebbe partire «Pacchetti» da solo: si avvia
+          # esplicitamente, ed è lui a creare il tag insieme alla Release.
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1 \
+             || gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::notice::$TAG esiste già: niente da pubblicare."
+            exit 0
+          fi
+
+          gh workflow run pacchetti.yml --ref main -f tag="$TAG"
+          echo "Avviato «Pacchetti» per $TAG."
