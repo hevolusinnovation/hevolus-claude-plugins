@@ -932,7 +932,7 @@ xrcopilotlab-bp catalog install <modello> [--version <n>] [--tag <TAG>] [--topic
 |---|---|---|
 | `<modello>` | obbligatorio | l'identificativo del modello (da `catalog list`) |
 | `--version <n>` | l'ultima | quale versione del modello |
-| `--tag <TAG>` | quello del modello, o dell'installazione precedente | il tag con cui installarlo; non può essere già di un altro blueprint del tenant (3) |
+| `--tag <TAG>` | quello del modello più il codice del nome del tenant (`LEGAL` su «Pippo SRL» → `LEGALPIPPOSRL`, max 20 caratteri), o quello dell'installazione precedente | il tag con cui installarlo, se valido e libero; non può essere già di un altro blueprint del tenant (3). Se dal nome del tenant non si ricava un tag, `BP109` e serve `--tag` |
 | `--topic <nome>` | quello del modello, o dell'installazione precedente | il topic da creare |
 | `--existing-topic <nome>` | — | un topic già presente da riusare, al posto di `--topic` |
 | `--members "…"` | quelli dell'installazione precedente | le persone di ogni ruolo: `referente=a@studio.it,b@studio.it;segreteria=c@studio.it` |
@@ -951,7 +951,7 @@ tenant (con un'intestazione che dice da dove viene), elenca le credenziali da im
 ```bash
 xrcopilotlab-bp catalog list    --env staging --company 4da69cbc-d935-4050-f410-08d8392ca08f
 xrcopilotlab-bp catalog publish blueprints/catalogo/legal-agenda.yml --check
-xrcopilotlab-bp catalog install legal-agenda --env staging --tag LEGAL \
+xrcopilotlab-bp catalog install legal-agenda --env staging --company <tenant> \
     --members "referente=avvocato@esempio.it;segreteria=segreteria@esempio.it"
 ```
 

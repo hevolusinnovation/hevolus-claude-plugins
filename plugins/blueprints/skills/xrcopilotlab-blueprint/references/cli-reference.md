@@ -527,6 +527,9 @@ xrcopilotlab-bp catalog install legal-agenda --env staging --company <tenant> \
     [--members "referente=a@studio.it,b@studio.it;segreteria=c@studio.it"]
 ```
 
+- **`install`** — senza `--tag`, il tag della copia è quello del modello seguito dal codice del nome
+  del tenant (`LEGAL` su «Pippo SRL» → `LEGALPIPPOSRL`); un aggiornamento tiene il tag già installato.
+  Se il nome non si ricava (`BP109`), il comando si ferma e chiede `--tag`.
 - **`list`** — l'ultima versione di ogni modello, con che cosa crea. Con `--company`, anche che
   cosa ha installato quel tenant e se nel catalogo c'è una versione più nuova.
 - **`publish`** — controlla che il file sia un **modello** (`BP100`–`BP104`: nessun tenant, nessuna
