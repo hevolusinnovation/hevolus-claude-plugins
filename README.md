@@ -20,6 +20,14 @@ mette su una cartella condivisa, o si pubblica dove si vuole.
 
 I passi per intero, in forma di documento: [§ Installare](docs/installare.md).
 
+## Come esce una versione
+
+Chi modifica un plugin alza, **nella stessa PR**, la versione in `plugins/<nome>/.claude-plugin/plugin.json`,
+la stessa nel catalogo (`.claude-plugin/marketplace.json`) e la versione del catalogo stesso.
+`./verifica-versioni.sh origin/main` lo controlla, e su ogni PR lo fa il workflow *Controlli*.
+Al merge su `main` il workflow *Release* guarda la versione del catalogo: se il tag `v<versione>` non
+esiste ancora avvia *Pacchetti*, che crea la release con gli zip aggiornati. Il tag non si crea più a mano.
+
 ## I pacchetti pronti
 
 Tutti sulla **[pagina delle release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest)**, sotto *Assets*. Non sono intercambiabili:

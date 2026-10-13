@@ -14,6 +14,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Versioni — un plugin toccato ha un numero nuovo, e il catalogo lo riporta
+        # Solo sulle PR: la release automatica (release.yml) parte dal numero del catalogo, quindi
+        # una modifica senza numero nuovo non arriverebbe mai a un tag né ai pacchetti.
+        if: github.event_name == 'pull_request'
+        run: ./verifica-versioni.sh "origin/${{ github.base_ref }}"
 
       - name: Superfici — ogni plugin dichiara dove gira, e il catalogo è d'accordo
         run: ./verifica-superfici.sh
