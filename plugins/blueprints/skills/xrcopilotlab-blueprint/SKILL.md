@@ -287,7 +287,7 @@ segnalazioni di cui parla la sezione qui sotto. **Non la scrivi tu**, e non la t
 piano di `plan`, `apply` e `pipeline`, tra le ultime operazioni, solo se il tenant non ha già il ruolo e il processo
 con quel nome. Quando mostri un piano all'utente, dì che c'è e perché (è dove atterrano le sue segnalazioni).
 
-- I nomi sono **senza prefisso** `BP-<TAG>-`: non appartengono al blueprint, e il rollback o la cancellazione del
+- I nomi sono **senza prefisso** (né `BP-<TAG>-` né `naming.prefix`): non appartengono al blueprint, e il rollback o la cancellazione del
   blueprint non li toccano.
 - I membri del ruolo vengono dalla chiave `Blueprints:Assistenza:Members` dell'App Configuration dell'ambiente
   (email separate da virgola). Se il piano avvisa con **`BP106`** (nascerebbe senza membri), non è un errore del
@@ -397,8 +397,10 @@ segnalare, non un risultato. Nei comandi qui sotto `<manifest>` indica quel file
 
 Sei errori che si fanno se non si sta attenti:
 
-1. **I nomi si scrivono senza prefisso.** Il planner antepone `BP-<TAG>-`. Scriverlo a mano produce
-   `BP-TEST-BP-TEST-…` ed è un errore segnalato.
+1. **I nomi si scrivono senza prefisso.** Il planner antepone `BP-<TAG>-`, oppure il prefisso scelto
+   in `naming.prefix` (`"Polis · "`, o `""` per nessuno — chiederlo nell'intervista, prima del primo
+   apply: poi non cambia più, `BP111`). Scriverlo a mano nei nomi produce `BP-TEST-BP-TEST-…` ed è un
+   errore segnalato.
 2. **Nella `spec` i riferimenti sono nomi, non chiavi.** `roleName: Referente agenda`, non
    `roleName: referente`. Devono coincidere con il `name` dichiarato in `businessRoles` e
    `agentTasks`.
@@ -734,9 +736,53 @@ una pagina bianca, per vedere quanto del tenant un manifest sa dire (#1173).
    `push`, piano, sì, apply.
 
 Due cose da dire sempre: i nomi escono **senza** `BP-<TAG>-` e l'apply li rimette — un agente fatto a
-mano diventa `BP-<TAG>-<nome>`; e riapplicare l'export sullo stesso tenant da cui viene **crea delle
+mano diventa `BP-<TAG>-<nome>` (se non lo si vuole, aggiungere `naming: { prefix: "" }` o un prefisso
+leggibile prima del primo apply); e riapplicare l'export sullo stesso tenant da cui viene **crea delle
 copie**, non aggiorna le entità fatte a mano (il collegamento a entità esistenti non c'è ancora). Per
 un blueprint già applicato l'aggiornamento sul posto resta la strada (§6-ter).
+
+## 6-quinquies. Installare dal catalogo di Hevolus (la partizione `default`)
+
+I modelli del catalogo sono scritti **senza persone vere**: i ruoli sono vuoti, i passi indirizzati a
+una persona citano `role:<chiave>`, e dove serve un indirizzo (owner, destinatari, una casella di
+ascolto, un testo) c'è un **segnaposto** — una mail finta (`…@esempio.invalid`, `…@esempio.it`) o,
+nei modelli più vecchi, una di `hevolus.it`. Nessuna di queste è un utente del tenant che installa, e
+il blueprint le persone le aggiunge ai ruoli, non le crea.
+
+**Prima di `catalog install` ci si ferma a chiedere, e non si sceglie al posto dell'utente:**
+
+1. Leggere il modello (`catalog list`, `pull` dalla partizione) e **elencare all'utente** ogni indirizzo
+   segnaposto e ogni ruolo con le persone che il modello gli indirizza.
+2. Chiedere, **per ognuno**, con quale utente del **tenant di destinazione** sostituirlo. Non
+   proporre `giuseppe.zileni@…`, l'utente della sessione o un collega «perché è lui che sta
+   installando»: se l'utente non lo dice, si resta in attesa. Se serve un aiuto, mostrare gli utenti
+   che il tenant ha (la CLI li elenca quando ne manca uno).
+3. Chiedere anche **come si devono chiamare le entità**: con il prefisso del modello (di norma
+   `BP-<TAG>-`), con uno leggibile (`--prefix "Studio · "`) o senza (`--no-prefix`). Un aggiornamento
+   dell'installazione tiene quello della prima volta.
+4. Lanciare l'installazione con le risposte:
+
+   ```bash
+   xrcopilotlab-bp catalog install <modello> --env <ambiente> --company <tenant> \
+       [--prefix "Studio · " | --no-prefix] \
+       --members "responsabile=marco@studio.it;segreteria=sara@studio.it" \
+       --replace "referente@esempio.invalid=marco@studio.it;capo@hevolus.it=sara@studio.it"
+   ```
+
+5. Se la CLI si ferma con **`BP108`** (un segnaposto senza sostituto) o con **3** e «Non sono utenti
+   del tenant» (una persona scelta che non c'è nel tenant): **non aggiungere `--yes` né indovinare**.
+   Riportare gli indirizzi, chiedere all'utente con chi sostituirli e ripetere con `--members` /
+   `--replace`. Una persona che non è utente del tenant non si crea da qui: va invitata nel prodotto,
+   o si sceglie un altro utente.
+
+Al terminale (nessun `--yes`) la CLI fa le stesse domande da sé. In nessun caso un indirizzo di
+`hevolus.it` o di esempio deve arrivare, tale e quale, nell'archivio di un tenant di un cliente: una
+approvazione o una mail indirizzata a una persona che non esiste non arriva a nessuno.
+
+**Scrivendo o correggendo un modello da pubblicare** (`catalog publish`, la partizione `default`): le
+persone sono `role:<chiave>`, gli altri indirizzi sono **finti** — `<nome>@esempio.invalid` — e mai un
+indirizzo di `hevolus.it` o di un cliente. `catalog publish --check` rifiuta gli indirizzi veri
+(`BP101`); la sostituzione con utenti reali la fa chi installa, come sopra.
 
 ## 7. Cancellare un blueprint
 
@@ -759,7 +805,7 @@ detto per un altro piano, o prima che il piano esistesse, non vale qui più che 
 |---|---|
 | `0` | Procedere |
 | `2` | Manifest non valido: correggerlo, non girare l'errore all'utente |
-| `3` | Piano bloccato da collisioni o segreti mancanti: riportare, non forzare. In produzione, anche: il tenant indicato non è di Hevolus — non cercare strade alternative |
+| `3` | Piano bloccato da collisioni o segreti mancanti: riportare, non forzare. In `catalog install`, anche «Non sono utenti del tenant»: chiedere all'utente con chi sostituirli (§ 6-quinquies). In produzione, anche: il tenant indicato non è di Hevolus — non cercare strade alternative |
 | `4` | Esecuzione fallita: riportare lo stato, proporre `--resume` o `rollback`. Se la causa è un difetto della webapp o della libreria, segnalarlo con `report-problem --kind defect` |
 | `5` | In attesa di un passo manuale |
 | `6` | Manca una decisione umana. Piano non approvato: **non aggiungere `--yes` di propria iniziativa**, chiedere il sì. Tenant non scelto: riportare l'elenco dei nomi e chiedere quale |

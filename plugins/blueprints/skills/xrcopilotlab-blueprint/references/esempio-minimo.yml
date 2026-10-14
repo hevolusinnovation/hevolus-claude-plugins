@@ -19,7 +19,7 @@ businessRoles:
     name: Referente agenda
     description: Presidia il calendario delle udienze e conferma le date proposte
     members:
-      - test@hevolus.it
+      - referente@esempio.invalid
 
 agents:
   - key: agenda
@@ -48,7 +48,7 @@ processes:
   - key: presa-in-carico
     publish: true
     owners:
-      - test@hevolus.it
+      - referente@esempio.invalid
     starterRoles:
       - referente
     webhook:
