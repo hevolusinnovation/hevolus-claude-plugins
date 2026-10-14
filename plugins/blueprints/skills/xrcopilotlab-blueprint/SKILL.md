@@ -426,9 +426,13 @@ Sei errori che si fanno se non si sta attenti:
    **del cliente** (`Blueprints:Secrets:<TAG>:…`): l'apply crea per il tenant la copia e la riga OAuth,
    **non autorizza**. Poi una persona esegue `xrcopilotlab-bp mcp authorize <chiave> --tag <TAG>` e
    accede con il suo account Google (la CLI stampa il link e attende, non vede mai password né token).
-   MCP Builder non può farlo: Google non concede il client credentials sul calendario. Riportare
-   all'utente, prima di applicare, i passi che restano a lui: creare l'app OAuth nel suo Google Cloud
-   (con l'URI di reindirizzamento della piattaforma), impostare i due segreti, autorizzare.
+   MCP Builder non può farlo: Google non concede il client credentials sul calendario. **Prima di
+   applicare**, riportare sempre all'utente i passi che restano a lui nella Google Cloud Console — il
+   piano li elenca con l'avviso **`BP112`** (dopo la CLI 2.21: con una CLI precedente il piano non
+   lo dice, e i passi li dai tu da qui) — e non darli per scontati: abilitare la API del servizio, schermata di consenso, ID client «Applicazione
+   web» con l'URI `…/api/auth/google/callback` dell'ambiente, i due segreti con `secrets set`,
+   poi `mcp authorize` con il link copiato **intero** (procedura completa e URI per ambiente:
+   [`references/mcp-builder.md`](references/mcp-builder.md#lapp-oauth-google-del-cliente-passo-per-passo)).
    `native` è l'**unica** strada per Google: un server MCP Google di terzi registrato a mano non
    funziona, perché l'autenticazione «OAuth 2.0 (Google Auth Code)» passa il token come **argomento
    dei tool** (`oauth_access_token`…), e solo i nostri server nativi lo leggono da lì. E se l'agente
