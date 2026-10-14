@@ -417,6 +417,21 @@ Sei errori che si fanno se non si sta attenti:
    La CLI lo collega all'agente; se il server non c'è il piano si ferma con `BP069`, che elenca
    ciò che il catalogo contiene. Non scrivere più «da collegare dalla UI» in una `description`:
    era il ripiego di quando questa forma non esisteva (fino al 29/09/2026).
+7-ter. **Google a nome di una persona è `kind: native`, mai `builder`.** Calendario, Drive o posta di
+   un account Google si leggono con il server nativo della piattaforma, ma quello di default è
+   uno solo per tutti i tenant (un solo account Google). Si dichiara `kind: native` con `service:
+   calendar|drive|gmail` e `clientId`/`clientSecret` come **riferimenti** ai segreti dell'app Google
+   **del cliente** (`Blueprints:Secrets:<TAG>:…`): l'apply crea per il tenant la copia e la riga OAuth,
+   **non autorizza**. Poi una persona esegue `xrcopilotlab-bp mcp authorize <chiave> --tag <TAG>` e
+   accede con il suo account Google (la CLI stampa il link e attende, non vede mai password né token).
+   MCP Builder non può farlo: Google non concede il client credentials sul calendario. Riportare
+   all'utente, prima di applicare, i passi che restano a lui: creare l'app OAuth nel suo Google Cloud
+   (con l'URI di reindirizzamento della piattaforma), impostare i due segreti, autorizzare.
+   `native` è l'**unica** strada per Google: un server MCP Google di terzi registrato a mano non
+   funziona, perché l'autenticazione «OAuth 2.0 (Google Auth Code)» passa il token come **argomento
+   dei tool** (`oauth_access_token`…), e solo i nostri server nativi lo leggono da lì. E se l'agente
+   deve leggere il **contenuto** di PDF o Word che stanno su Drive, la strada sicura è la knowledge
+   (file nel topic, indicizzati da un profilo — regola 8), non il server MCP.
 8. **Il topic non è il RAG.** Il topic è il repository dei file; il **profilo** è ciò che li
    indicizza e che si collega all'agente. Un agente su un topic pieno di file ma senza profilo non
    vede niente. I profili si dichiarano in `knowledge:` e sono **knowledge graph per default**; il
@@ -466,7 +481,8 @@ lavoro del passo.
 
 Un agente che deve leggere da un sistema esterno ha bisogno di un **server MCP**. Prima domanda:
 il tenant **ce l'ha già** nel catalogo? Allora è `kind: existing` (regola 7-bis) e non si costruisce
-niente. Altrimenti la domanda da farsi è una sola: quella fonte è **HTTP interrogabile**?
+niente. È un servizio Google da usare a nome di una persona? Allora è `kind: native` (regola 7-ter).
+Altrimenti la domanda da farsi è una sola: quella fonte è **HTTP interrogabile**?
 
 Se sì, non si scrive un servizio: si costruisce con **MCP Builder**, e il manifest lo **dichiara** —
 una `connections` con provider, baseUrl e autenticazione, e un `mcpServers` con `kind: builder` e i

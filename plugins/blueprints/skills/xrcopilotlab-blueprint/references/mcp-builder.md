@@ -249,6 +249,75 @@ quoted-printable si scrive a mano, e ci sta (il tool `leggi_eml` di Studio Polis
 `new Function("input", corpo)` su una risposta vera: il sandbox non dà stack trace utili, e un
 `ReferenceError` costa un rollback e un apply.
 
+## Google (calendario, Drive, posta): non si costruisce, si copia il nativo
+
+MCP Builder non è la strada per Google a nome di una persona. Le sue autenticazioni sono quelle che una
+macchina può dare da sola (`None`, `Bearer`, `Basic`, `CustomHeaders`, `OAuth2ClientCredentials`), e il
+calendario o la posta di un account Google chiedono il **consenso di quella persona**: Google non
+concede il client credentials su quelle API, e un token `Bearer` scade in un'ora.
+
+La piattaforma ha già i server MCP nativi (Google Calendar, Drive, GMail) con il flusso OAuth per
+utente. Il blueprint ne crea per il tenant una **copia**, con l'app Google del cliente:
+
+```yaml
+mcpServers:
+  - key: calendario
+    kind: native
+    name: Google Calendar
+    service: calendar                       # calendar | drive | gmail
+    clientId: Blueprints:Secrets:STUDIOPOLIS:google-client-id
+    clientSecret: Blueprints:Secrets:STUDIOPOLIS:google-client-secret
+agents:
+  - key: riscontro
+    name: Riscontro
+    systemMessage: …
+    mcp: [calendario]
+```
+
+1. **Il cliente crea l'app OAuth** nel suo Google Cloud (tipo «applicazione web»), con le API del
+   servizio abilitate e l'URI di reindirizzamento della piattaforma (`…/auth/google/callback`).
+   Non è qualcosa che il blueprint o la CLI possano fare per lui.
+2. **I segreti** `google-client-id` e `google-client-secret` si impostano con `secrets set`, per
+   tenant, nel terminale di chi ha i ruoli (mai in chat: il valore non si maneggia).
+3. **`apply`** crea la copia nel catalogo del tenant e la riga OAuth «da autorizzare». Se i segreti
+   mancano la riga nasce vuota e il piano avvisa (`BP063`), come per le connessioni.
+4. **`mcp authorize calendario --tag <TAG>`** stampa il link di consenso Google, attende che la
+   piattaforma registri l'autorizzazione e lo riferisce (exit 0). La persona accede con **il suo
+   account Google**; la CLI non vede password né token. Se scade l'attesa (exit 5) il link resta
+   valido.
+5. **Finché non è autorizzato** l'agente che lo usa non legge niente: il prompt dell'agente deve dire
+   di dichiarare la fonte «non disponibile» e proseguire sulle altre, non di insistere.
+6. **Rollback e delete** smontano la riga OAuth e la copia nel catalogo del tenant. Il server nativo
+   di piattaforma non si tocca mai.
+
+Se ne esistono già due con lo stesso nome nel catalogo di piattaforma, la causa è un duplicato da
+ripulire (migrazione 265): non si risolve con `mcpId` nel manifest.
+
+**Perché non un server Google di terzi.** Registrato a mano con «OAuth 2.0 (Google Auth Code)», il
+token arriva al server come **argomento dei tool** (`oauth_client_id`, `oauth_access_token`…), non come
+`Authorization: Bearer`: lo capiscono solo i nostri server nativi. Un server esterno risponde
+«autenticazione non disponibile» anche con l'health check verde e i tool visibili.
+
+**PDF e Word su Drive.** Se l'agente deve leggerne il contenuto, la strada sicura è la knowledge: i
+file nel topic, indicizzati da un profilo ([`knowledge.md`](knowledge.md)). Il server MCP serve a
+cercare e a elencare.
+
+## Server MCP remoti con OAuth: cosa si collega e cosa no
+
+Un server MCP **già ospitato** (`kind: external`) che chiede OAuth a nome di una persona ricade in uno
+di due casi, e va capito **prima** di scrivere il manifest:
+
+| Il server… | Si collega? |
+|---|---|
+| pubblica i metadati OAuth e accetta la **registrazione dinamica del client** (RFC 7591) | Sì, ma **dalla UI**: «OAuth 2.1 + PKCE» sul server MCP. Il manifest non lo esprime: `external` non porta autenticazione. |
+| chiede un **client OAuth statico** (client id e secret creati a mano dal provider, senza registrazione dinamica) | **No**, né dalla UI né dal blueprint. Sintomo in UI: «Failed to initiate the OAuth flow». |
+
+Il secondo caso la piattaforma lo sa fare solo sulle **Connessioni** («OAuth 2.1 + PKCE (Generic)»),
+non sui server MCP. Dirlo all'utente prima di applicare, senza scrivere un `kind: external` che
+nascerebbe senza credenziali: le alternative sono `kind: native` se è Google, MCP Builder se la fonte
+è un'API HTTP con un'autenticazione che una macchina può dare da sola, altrimenti un server da
+scrivere e ospitare.
+
 ## Posta, calendario, file: Microsoft 365 si collega così
 
 Quando la richiesta nomina una **casella**, un **calendario**, dei **contatti** o dei **file** su
