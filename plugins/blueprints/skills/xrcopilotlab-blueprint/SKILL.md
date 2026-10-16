@@ -229,6 +229,31 @@ dinamico (issue [xrcopilotlab-iac-terraform#64](https://github.com/hevolusinnova
 Se un messaggio dice che mancano comunque, non si manda l'utente a cercare chi glieli dia: si segnala
 con `report-problem --kind access`.
 
+### La consegna agli amministratori: chi chiede non è chi esegue
+
+Quando un blueprint ha passi fuori dalla piattaforma (Entra, Exchange, segreti) si scrive una
+consegna da inoltrare. Chi la chiede è spesso **fuori dall'AI Team** — un Sales che si costruisce un
+agente — e la consegna non deve trasformare la sua richiesta in privilegi per lui. Regole, senza
+eccezioni:
+
+- **Mai ruoli Azure per una persona.** Né *App Configuration Data Owner/Reader* né *Key Vault
+  Secrets Officer/User*: valgono sull'intero App Configuration e sull'intera Key Vault
+  dell'ambiente — i segreti di **tutti** i blueprint e di tutti i tenant — non sul tag di chi li
+  chiede. Se all'utente mancano, è `report-problem --kind access`, non una riga della consegna.
+- **`push`, `plan`, `apply` e `secrets set` in produzione li esegue l'AI Team.** Chi ha chiesto il
+  blueprint consegna il manifest e approva il piano; non lancia la CLI su `prod`. E prima di prod
+  c'è staging.
+- **L'app registration non è di chi chiede.** L'owner può generare credenziali nuove, quindi
+  agire come l'app senza passare da nessuno: owner è l'AI Team (o il gruppo che gestisce le
+  integrazioni), mai un utente senza ruoli amministrativi. Se l'ha creata l'assistente con
+  l'utenza di chi chiede, la consegna dice di trasferirla.
+- **Ogni passo ha un esecutore con nome di ruolo**, e la colonna «chi» non contiene mai
+  «il richiedente» per un passo che tocca Entra, Exchange o Key Vault.
+- **Il perimetro si scrive per tool**, non per argomento: quali endpoint, con quale permesso, su
+  quale casella, e se l'agente è usato da persone esterne (vedi
+  [`references/mcp-builder.md`](references/mcp-builder.md), «Quando l'agente parla con chi non è
+  il titolare della casella»).
+
 Si verificano così, senza indovinare:
 
 ```bash
@@ -349,6 +374,43 @@ Dopo la segnalazione si prosegue con ciò che si può fare senza la parte mancan
 ruolo, l'unica cosa utile è aspettare che arrivi, e dirlo.
 
 ## 1. Capire il processo
+
+### Prima di tutto: è un'agenda personale? Allora si avvisa e si propone Bookings
+
+Vale **prima** dell'intervista, prima di leggere un dossier e anche se l'utente porta già un
+manifest. Se la richiesta è una di queste —
+
+- «un agente che legge il mio calendario e mi dice / dice ai clienti gli slot liberi»;
+- «far prenotare un appuntamento, una call, una demo sul mio calendario Outlook»;
+- «un assistente che fissa incontri con i clienti al posto mio»;
+
+— **fermarsi e dirlo all'utente subito**, con parole sue e non da sviluppatore: quello che chiede
+esiste già in Microsoft 365, si chiama **Bookings** («Bookings with me», in Outlook), se lo
+configura da solo in pochi minuti e **non richiede permessi Azure, app registration, consensi
+di amministratori né segreti**. Poi dargli i passi, che sono in
+[`references/mcp-builder.md`](references/mcp-builder.md), «Come si usa Bookings: i passi da
+dare all'utente». Testo di partenza:
+
+> Prima di costruire l'agente: quello che descrivi lo fa già Microsoft Bookings, dentro Outlook.
+> Legge il tuo calendario, mostra a chi prenota solo gli orari liberi (mai i tuoi impegni), crea la
+> riunione Teams e fa le domande che vuoi tu (azienda, tema…). Si configura da solo, senza chiedere
+> permessi a nessuno. Ti scrivo i passi; poi, se vuoi, l'agente XRCopilotLab può dare il link della
+> tua pagina a chi chiede un appuntamento.
+
+Solo dopo si decide **con l'utente** come proseguire:
+
+1. **Bookings e basta**, oppure Bookings più un agente che dà il link: il manifest non ha
+   connessioni né server MCP, e non c'è niente da chiedere a DevOps;
+2. **un agente che ragiona sulla disponibilità** (proporre slot in chat insieme ad altro
+   contesto): si fa, ma con OAuth **delegato** sulla casella della persona (`OAuth2PkceGeneric`,
+   solo `Calendars.ReadBasic`, solo `getSchedule`) e **mai** con credenziali applicative, che
+   servono solo fra due tenant. La prenotazione resta comunque su Bookings.
+
+Non si salta l'avviso perché l'utente «ha già deciso»: chi non è tecnico chiede l'agente perché
+non sa che Bookings esiste, e lo scopre di solito dopo aver mandato agli amministratori una lista
+di permessi che non servivano.
+
+### Poi, il processo
 
 Se l'utente ha già un manifest, saltare al punto 2.
 
@@ -507,9 +569,34 @@ attivazione.
 farsela chiedere**: connessione a Graph con `OAuth2ClientCredentials`, server `builder` con i soli
 tool che servono, e l'identità per-utente (la casella) in `variables` e **mai** fra i parametri del
 tool — altrimenti è il modello a decidere di chi legge la posta, su un permesso che vale per tutto
-il tenant. I quattro passi che il blueprint non può fare — registrazione applicativa, consenso
-amministratore, **Application Access Policy** che limita l'app a quella casella, segreti con
-`secrets set` — si riportano all'utente prima di applicare, perché li confermi nell'interfaccia.
+il tenant.
+
+Prima di proporla, però, **tre domande**, perché la forma è una ma i permessi no:
+
+0. **di chi è la casella, e in quale tenant?** Le credenziali applicative (`OAuth2ClientCredentials`
+   con un'app nostra multi-tenant) servono **solo a far parlare due tenant**: la casella è di
+   un'altra azienda, come per Studio Polis, e nessuno di quell'azienda può autorizzare a nome
+   suo dentro XRCopilotLab. Se la casella è di **una persona di Hevolus che usa l'agente per sé**
+   — il proprio calendario, la propria posta — non si usano permessi applicativi: è OAuth
+   **delegato** (connessione `OAuth2PkceGeneric`, pulsante *Autorizza* in Connections), la persona
+   autorizza con il proprio account e il token vede solo la sua casella, senza consensi tenant-wide
+   né assegnazioni in Exchange. Il manifest non dichiara ancora questa connessione: si crea dalla
+   UI e il server si collega con `kind: existing`
+   ([`references/mcp-builder.md`](references/mcp-builder.md), «La casella è di chi usa l'agente»);
+1. **serve davvero un'app?** Chi vuole far prenotare appuntamenti sul proprio calendario ha già
+   Microsoft Bookings («Bookings with me»): slot, riunione Teams e domande al prenotante, senza
+   registrazioni applicative né consensi. L'agente porta al link; il blueprint non tocca Graph;
+2. **che cosa deve fare, esattamente?** I permessi si ricavano dai tool, non dall'argomento: gli
+   slot liberi sono `getSchedule` e bastano a `Calendars.Read`; `Calendars.ReadWrite`, `Mail.Read`
+   e `Mail.Send` si chiedono solo se c'è un tool che li usa. «È un calendario» non è un motivo per
+   chiedere di scriverlo.
+
+I passi che il blueprint non può fare — registrazione applicativa, **permesso ristretto a quella
+casella con RBAC for Applications** in Exchange (non più consenso tenant-wide + Application Access
+Policy, che Microsoft ha dichiarato legacy), credenziale, segreti con `secrets set` — si riportano
+all'utente prima di applicare. **Chi li esegue** lo dice la tabella in
+[«La consegna agli amministratori»](#la-consegna-agli-amministratori-chi-chiede-non-è-chi-esegue):
+mai chi ha chiesto il blueprint, se non è dell'AI Team.
 
 **Se è la chat a dover far partire un processo** — l'utente detta o incolla qualcosa all'agente e
 da lì deve nascere una pratica — la forma è una `connections` con `process: <chiave del processo>`

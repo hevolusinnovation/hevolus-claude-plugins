@@ -14,6 +14,11 @@ bivi, che nei dossier restano spesso a livello di intenzione.
 
 ## L'ordine delle domande
 
+**0. È un'agenda personale?** Se l'utente vuole un agente che legga il suo calendario per dare gli
+slot liberi, o che faccia prenotare appuntamenti sul suo Outlook, l'intervista non comincia: prima
+lo si avvisa che esiste Microsoft Bookings e gli si danno i passi (`SKILL.md`, «Prima di tutto: è
+un'agenda personale?»). Si riprende da qui solo se, saputo di Bookings, vuole comunque un agente.
+
 **1. Di chi è questo processo.** Tag (cliente o contesto) e tenant. Il tag è maiuscole e cifre,
 2–20 caratteri: `STUDIOPOLIS`, `LEGAL`, `MARKETING`.
 
