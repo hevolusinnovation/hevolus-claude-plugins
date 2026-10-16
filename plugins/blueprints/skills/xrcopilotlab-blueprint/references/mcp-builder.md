@@ -394,10 +394,15 @@ nell'URL così com'è, e il sintomo sarebbe un 404 che sembra «l'endpoint non e
 
 ### La domanda da fare per prima: di che tipo è l'account
 
-«Microsoft» sono due cose diverse, e sbagliarla manda a costruire l'impianto sbagliato:
+«Microsoft» sono tre cose diverse, e sbagliarla manda a costruire l'impianto sbagliato:
 
-- **Microsoft 365 aziendale** (una casella su un tenant) → permessi **applicativi**, consenso di un
-  amministratore, Application Access Policy. È il caso normale per un cliente;
+- **Microsoft 365 di un'altra azienda** (la casella è nel tenant del cliente, come per Studio
+  Polis) → permessi **applicativi** di un'app nostra multi-tenant, assegnati **ristretti alla
+  casella** in Exchange con RBAC for Applications. È l'unico caso in cui servono: due tenant che
+  devono parlarsi, e nessuno del cliente che autorizzi da dentro XRCopilotLab;
+- **Microsoft 365 di chi usa l'agente** (una persona di Hevolus, la propria casella o il proprio
+  calendario) → OAuth **delegato**, vedi [«La casella è di chi usa l'agente»](#la-casella-è-di-chi-usa-lagente-oauth-delegato).
+  Niente permessi applicativi: valgono sul tenant intero e qui non servono;
 - **account Microsoft personale** (`@outlook.com`, `@hotmail.com`, `@live.com`) → **non ha un
   tenant**, quindi le credenziali client non funzionano affatto. Serve OAuth **delegato**,
   autorizzato una volta da una persona con il pulsante *Autorizza* della pagina Connections.
@@ -408,97 +413,211 @@ pagina — vedi la issue sull'ingresso da una casella qualsiasi.
 
 Chiederlo costa una riga; assumerlo costa la riprogettazione di tutto lo scenario.
 
+### La casella è di chi usa l'agente: OAuth delegato
+
+Il caso tipico: una persona di Hevolus si costruisce un agente che legge **il suo** calendario e
+gli dice gli slot liberi. Qui i permessi applicativi sono sbagliati per costruzione — valgono su
+ogni casella del tenant e vanno poi ristretti a mano — mentre basta che **lei** autorizzi la
+piattaforma a leggere **la sua** casella.
+
+La piattaforma lo fa già: connessione **`OAuth2PkceGeneric`** (OAuth 2.1 + PKCE, «Generic» nella
+pagina Connections), su cui un server MCP Builder chiama Graph con il token della persona.
+
+| | Valore |
+|---|---|
+| Authorization endpoint | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/authorize` |
+| Token endpoint | `https://login.microsoftonline.com/<tenant-id>/oauth2/v2.0/token` |
+| Client id | dell'app registration **delegata** dell'AI Team (una sola per tutti, nel tenant Hevolus) |
+| Scope | `offline_access Calendars.ReadBasic` — il minimo per `getSchedule`; esclude corpo e allegati degli eventi, non l'oggetto |
+| Path del tool | `POST /me/calendar/getSchedule` — **`/me`**, mai `/users/{{mailbox}}` |
+
+Che cosa cambia rispetto alle credenziali applicative:
+
+- il token vede **solo** la casella di chi ha autorizzato: non c'è niente da restringere in
+  Exchange, e nessun Exchange Administrator nel giro;
+- i permessi delegati a basso impatto come `Calendars.ReadBasic` li consente la persona stessa, se
+  la policy di consenso del tenant lo permette; altrimenti è un consenso amministratore **delegato**,
+  che non dà accesso a nessuna casella in più;
+- l'app registration è **una per tutta Hevolus** e la possiede l'AI Team; ha come reindirizzamento
+  l'URI della piattaforma (`OAuthPkce:RedirectUri` dell'ambiente) ed è un client pubblico: PKCE
+  non chiede un client secret, quindi non c'è niente che scade;
+- per dire gli slot liberi il tool è `getSchedule`, che restituisce libero/occupato: un tool su
+  `calendarView` restituirebbe anche l'oggetto delle riunioni, e non serve;
+- se la persona lascia l'azienda o revoca il consenso, l'agente smette di leggere, ed è giusto.
+
+**Il manifest non sa ancora dichiararla**: `auth.kind` accetta `OAuth2ClientCredentials` ma non
+`OAuth2PkceGeneric` (issue #1514). Finché non c'è, la connessione e il server si creano dalla UI e il manifest
+collega il server con `kind: existing` (regola 7-bis). Va scritto fra i passi manuali del piano,
+con chi li fa: la connessione l'AI Team, il pulsante *Autorizza* la persona.
+
+### La seconda domanda: serve davvero un'app, e per fare cosa
+
+**Prenotazioni sul proprio calendario** — «i clienti scelgono uno slot e prenotano» — sono
+Microsoft Bookings («Bookings with me», dentro Outlook): disponibilità letta dal calendario, durata,
+orari, riunione Teams, domande al prenotante. Se lo scenario è questo, la proposta è Bookings e
+l'agente si limita a dare il link: niente app registration, niente consenso, niente segreti.
+
+#### Come si usa Bookings: i passi da dare all'utente
+
+Si danno così come sono, adattando durata, orari e domande a ciò che l'utente ha detto. Li fa lui,
+dal suo Outlook, in una decina di minuti:
+
+1. **Outlook sul web → Calendario → Bookings with me** (oppure `outlook.office.com/bookwithme`).
+2. **Crea un tipo di riunione**:
+   - un nome che il cliente capisca («Call conoscitiva con Hevolus») e la **durata** (es. 30 minuti);
+   - la **disponibilità**: giorni e fascia oraria (es. lun–ven 09:00–18:00), più un margine fra
+     un appuntamento e l'altro e il preavviso minimo;
+   - **Riunione online: Teams**, così il link arriva da solo nell'invito;
+   - **visibilità Pubblica** se deve prenotare anche chi è fuori dall'azienda, privata se il link
+     va dato solo a chi si sceglie.
+3. **Domande al prenotante**: nome ed email ci sono già; si aggiungono quelle che servono
+   (cognome, azienda, tema dell'incontro), segnando quali sono obbligatorie.
+4. **Informativa privacy**: nella descrizione del tipo di riunione va il link all'informativa
+   dell'azienda, perché Bookings raccoglie dati di persone esterne.
+5. **Copiare il link pubblico** della pagina: è ciò che l'agente darà, o che l'utente mette in firma.
+
+Che cosa dire anche, perché è la domanda successiva:
+
+- chi prenota vede **solo libero o occupato**, mai l'oggetto delle riunioni;
+- l'invito arriva a entrambi; se il cliente annulla o sposta, il calendario si aggiorna da solo;
+- se «Bookings with me» non compare in Outlook, va **abilitato** per quell'account: lo fa
+  **DevOps**, ed è un'abilitazione, non un permesso. Non è un motivo per tornare all'app registration.
+
+#### L'agente, quando c'è
+
+Se l'utente vuole anche un agente in XRCopilotLab, il manifest ha **un agente senza `mcp:`**,
+**nessuna connessione** e **nessun segreto**. Il link Bookings va nel system message, insieme a
+queste regole:
+
+- quando qualcuno chiede un incontro, proporre il link e dire che lì sceglie l'orario;
+- non promettere mai un orario preciso e non dire mai quando l'utente è occupato: l'agente non lo sa;
+- non raccogliere in chat i dati che Bookings chiede già: duplicarli vuol dire conservarli due volte.
+
+Quando un'app serve, **i permessi si ricavano dai tool**, uno per uno:
+
+| Il tool fa | Endpoint | Ruolo applicativo in Exchange |
+|---|---|---|
+| slot liberi / occupati | `POST /users/{{mailbox}}/calendar/getSchedule` | `Application Calendars.Read` |
+| legge gli eventi (oggetto, partecipanti) | `GET /users/{{mailbox}}/calendarView` | `Application Calendars.Read` |
+| crea o sposta un evento | `POST /users/{{mailbox}}/events` | `Application Calendars.ReadWrite` |
+| legge la posta | `GET /users/{{mailbox}}/messages` | `Application Mail.Read` |
+| invia, anche con allegati | `POST /users/{{mailbox}}/sendMail` | `Application Mail.Send` |
+
+Un permesso senza un tool che lo usa non si chiede. «Leggere il calendario per dare gli slot
+liberi» è la prima riga e basta: `Calendars.ReadWrite` lì è un permesso di scrittura su un agente
+che non scrive.
+
 ### Una app per tutti i clienti, non una per cliente
 
+_Da qui in giù vale per la casella **di un'altra azienda**: due tenant, permessi applicativi._
+
 L'app si crea **multi-tenant** (`--sign-in-audience AzureADMultipleOrgs`) anche quando si comincia
-con una casella interna di collaudo: è la stessa app che poi il cliente consentirà sul proprio
+con una casella interna di collaudo: è la stessa app che poi il cliente abiliterà sul proprio
 tenant. Creata single-tenant, al primo cliente va rifatta.
 
-Il modello cambia anche cosa si chiede al cliente: con il multi-tenant sono un consenso, un
-indirizzo e una restrizione — nessun segreto che viaggia fra due aziende.
+Il modello cambia anche cosa si chiede al cliente: con il multi-tenant sono un riferimento all'app,
+un indirizzo e un'assegnazione ristretta — nessun segreto che viaggia fra due aziende.
 
-### I quattro passi che il blueprint NON può fare
+### I passi che il blueprint NON può fare
 
 Procedura completa, con i comandi, chi serve per ciascun passo e il testo da inoltrare al cliente:
 [`references/microsoft365-setup.md`](microsoft365-setup.md).
 
 
 Il blueprint crea connessione, server, tool e collegamento agli agenti. I permessi no — vivono in
-Entra e in Exchange. Vanno **riportati all'utente come passi da fare prima di applicare**, e
-verificati nell'interfaccia:
+Entra e in Exchange. Vanno **riportati all'utente come passi da fare prima di applicare**, ciascuno
+con il suo esecutore:
 
-1. **registrazione applicativa** nel tenant del cliente;
-2. **permessi applicativi Graph** con consenso amministratore, solo quelli che servono:
-   `Mail.Read` per leggere · `Mail.Send` per rispondere, allegati compresi ·
-   `Calendars.ReadWrite` per il calendario;
-3. ⚠️ **Application Access Policy in Exchange Online**, che limita l'app a quella sola casella:
+1. **registrazione applicativa**, **senza** permessi Graph dichiarati in Entra (AI Team, che ne
+   resta owner);
+2. ⚠️ **permesso ristretto alla casella con RBAC for Applications** in Exchange Online (Exchange
+   Administrator): una *management scope* che contiene solo quella casella e un'assegnazione del
+   ruolo applicativo che serve, e nessun altro:
    ```powershell
-   New-ApplicationAccessPolicy -AppId <appId> -PolicyScopeGroupId <casella> -AccessRight RestrictAccess
+   New-ServicePrincipal -AppId <appId> -ObjectId <objectId del service principal> -DisplayName "<nome>"
+   New-ManagementScope -Name "<nome>-casella" -RecipientRestrictionFilter "PrimarySmtpAddress -eq '<casella>'"
+   New-ManagementRoleAssignment -App <appId> -Role "Application Calendars.Read" -CustomResourceScope "<nome>-casella"
    ```
-   Va fatta **prima** del consenso. Senza, quei permessi leggono e scrivono la posta e il
-   calendario di **chiunque** nel tenant. Una sola policy copre posta, calendario e contatti,
-   perché vivono tutti in Exchange;
+   Il permesso **nasce già ristretto**: non c'è un consenso tenant-wide e quindi non c'è la
+   finestra in cui l'app legge le caselle di tutti. Per questo **non si dà il consenso
+   amministratore in Entra**: i permessi di Entra e quelli di Exchange si sommano, e un consenso
+   tenant-wide renderebbe inutile la restrizione;
+3. la **credenziale** dell'app — certificato se la piattaforma lo supporta, altrimenti client
+   secret con scadenza annotata (AI Team);
 4. i **segreti**, citati per nome nel manifest e impostati con `secrets set` — client id e client
-   secret. Il loro valore non si chiede e non si scrive mai.
+   secret. Il loro valore non si chiede e non si scrive mai (AI Team).
 
-### Quei quattro passi non sono un blocco unico: verificare chi può fare cosa
+L'**Application Access Policy** (`New-ApplicationAccessPolicy`) è il meccanismo legacy: Microsoft
+chiede di non crearne di nuove. Resta solo per le app già consentite in Entra prima di questo
+cambio, finché non si migrano.
 
-È l'errore che costa più tempo, e si evita con due letture. I quattro passi hanno **tre** livelli di
-privilegio diversi, e trattarli come una cosa sola manda l'utente a chiedere a un amministratore
-cose che potrebbe fare da sé — o peggio, a cercare scorciatoie che non esistono.
+### Quei passi non sono un blocco unico: verificare chi può fare cosa
+
+I passi hanno livelli di privilegio diversi, e trattarli come una cosa sola manda a chiedere a un
+amministratore cose che non servono — o peggio, a chiedere privilegi per chi non dovrebbe averli.
 
 ```bash
-# L'utente può creare registrazioni applicative?
+# Chi sta lavorando può creare registrazioni applicative?
 az rest --method GET --url "https://graph.microsoft.com/v1.0/policies/authorizationPolicy" \
   --query "defaultUserRolePermissions.allowedToCreateApps"
-
-# Ha ruoli di directory, cioè può dare il consenso?
-az rest --method GET --url "https://graph.microsoft.com/v1.0/me/memberOf" --query "value[].displayName"
 ```
 
-Con `allowedToCreateApps: true` — che è il default di molti tenant — **il passo 1 lo può fare
-l'assistente**, creando l'app con i permessi *richiesti e non concessi*: in quello stato non accede a
-niente, e ciò che resta all'amministratore sono due azioni circoscritte invece di «creare tutto».
+Con `allowedToCreateApps: true` il passo 1 lo può fare l'assistente, creando l'app **senza
+permessi richiesti**: in quello stato non accede a niente.
 
 ```bash
-az ad app create --display-name "<nome>" --sign-in-audience AzureADMyOrg \
-  --required-resource-accesses @permessi.json
-az ad sp create --id <appId>     # solo l'oggetto in Enterprise applications: non concede nulla
+az ad app create --display-name "<nome>" --sign-in-audience AzureADMultipleOrgs
+az ad sp create --id <appId>     # serve a Exchange come riferimento: non concede nulla
 ```
 
-Gli id dei permessi si leggono, non si scrivono a memoria:
+**Ma chi crea l'app ne diventa owner**, e un owner può generare nuove credenziali, cioè agire come
+l'app. Se l'utenza con cui gira l'assistente non è dell'AI Team, non si crea l'app: si mette il
+passo nella consegna, con l'AI Team come esecutore. Se è già stata creata così, la consegna dice di
+aggiungere l'AI Team come owner e togliere l'utente:
 
 ```bash
-az ad sp show --id 00000003-0000-0000-c000-000000000000 \
-  --query "appRoles[?value=='Mail.Read' || value=='Mail.Send' || value=='Calendars.ReadWrite'].[value,id]" -o tsv
+az ad app owner list --id <appId> --query "[].userPrincipalName" -o tsv
 ```
 
-**Il client secret no.** Va generato dall'utente — dal portale o da `az ad app credential reset` —
-perché il valore viene stampato, e stampato dentro la sessione finirebbe nella trascrizione. Chi ha
-creato l'app ne è **owner**, quindi può generarlo senza chiedere niente a nessuno: verificarlo con
-`az ad app owner list --id <appId>` ed è un'attesa in meno.
+**Il client secret** lo genera l'owner — dal portale o da `az ad app credential reset` — fuori
+dalla sessione, perché il valore viene stampato e stampato qui finirebbe nella trascrizione.
 
-Restano all'amministratore, in quest'ordine: **prima** l'Application Access Policy, **poi** il
-consenso. E lo stato del consenso si controlla invece di darlo per fatto — zero assegnazioni vuol
-dire che l'app non accede ancora a niente, e l'applicazione si fermerebbe sulla prova del tool:
+Lo stato dell'assegnazione si controlla invece di darlo per fatto. Il test di Exchange salta la
+cache, che per l'app vera dura da 30 minuti a 2 ore: un 403 subito dopo l'assegnazione non è
+ancora un errore.
 
-```bash
-az rest --method GET \
-  --url "https://graph.microsoft.com/v1.0/servicePrincipals(appId='<appId>')/appRoleAssignments" \
-  --query "length(value)"
+```powershell
+Test-ServicePrincipalAuthorization -Identity <appId> -Resource <casella>         # InScope: True
+Test-ServicePrincipalAuthorization -Identity <appId> -Resource <un'altra casella> # InScope: False
 ```
+
+Le due verifiche insieme sono la prova: la prima dice che funziona, la seconda che è **ristretta**.
 
 **Gli allegati non richiedono permessi sui file**: viaggiano dentro la chiamata di invio, come
 contenuto codificato in base64. Chiedere `Files.Read.All` per mandare un allegato significa
-chiedere accesso a tutto SharePoint per niente — e quel permesso l'Application Access Policy non lo
-restringe.
+chiedere accesso a tutto SharePoint per niente — e quel permesso Exchange non lo restringe.
 
 ### Il tool di prova si sceglie in sola lettura
 
 `testTool` viene esercitato durante l'apply. Su Microsoft 365 si punta a una lettura su una finestra
-vuota (`cerca_eventi` fra due date del passato): esercita credenziale, permesso e policy senza
-lasciare traccia. Un tool di prova che scrivesse lascerebbe un impegno in agenda a ogni
-applicazione.
+vuota fra due date del passato: `getSchedule` per un agente che legge solo la disponibilità,
+`cerca_eventi` se il server ha già un tool che legge gli eventi. Esercita credenziale, permesso e
+restrizione senza lasciare traccia. Un tool di prova che scrivesse lascerebbe un impegno in agenda
+a ogni applicazione.
+
+### Quando l'agente parla con chi non è il titolare della casella
+
+Un agente sul calendario di Mario usato **da Mario** e lo stesso agente in una chat con **clienti
+o sconosciuti** sono due progetti diversi, anche con lo stesso manifest:
+
+- **Niente contenuto degli eventi.** Il tool restituisce solo libero/occupato (`getSchedule`), mai
+  oggetto, luogo o partecipanti: basta un prompt ben scritto da un estraneo perché l'agente gli
+  legga le riunioni con altri clienti.
+- **Niente scrittura senza difese.** Un tool che crea eventi, aperto a chiunque, è un modo per
+  riempire il calendario di prenotazioni false. Se serve prenotare, la prima risposta è Bookings;
+  un tool di scrittura si aggiunge solo con limiti di frequenza e conferma, e dicendo chi li gestisce.
+- **Dati personali.** Raccogliere nome, email e azienda di esterni chiede un'informativa e un tempo
+  di conservazione: va scritto nella consegna, non scoperto dopo.
 
 Un esempio completo — sei tool fra posta e calendario, con i prerequisiti scritti in testa — è nel
 manifest di Studio Polis.
