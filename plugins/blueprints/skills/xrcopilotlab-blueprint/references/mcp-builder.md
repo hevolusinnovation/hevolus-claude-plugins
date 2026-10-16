@@ -274,9 +274,10 @@ agents:
     mcp: [calendario]
 ```
 
-1. **Il cliente crea l'app OAuth** nel suo Google Cloud (tipo «applicazione web»), con le API del
-   servizio abilitate e l'URI di reindirizzamento della piattaforma (`…/auth/google/callback`).
-   Non è qualcosa che il blueprint o la CLI possano fare per lui.
+1. **Il cliente crea l'app OAuth** nel suo Google Cloud: passi qui sotto. Non è qualcosa che il
+   blueprint o la CLI possano fare per lui, e va detto **prima** dell'apply: dopo la CLI 2.21 il
+   piano lo ricorda con l'avviso `BP112`, che porta i passi e l'URI dell'ambiente; con una CLI
+   precedente il piano tace, e i passi li dai tu da qui.
 2. **I segreti** `google-client-id` e `google-client-secret` si impostano con `secrets set`, per
    tenant, nel terminale di chi ha i ruoli (mai in chat: il valore non si maneggia).
 3. **`apply`** crea la copia nel catalogo del tenant e la riga OAuth «da autorizzare». Se i segreti
@@ -289,6 +290,48 @@ agents:
    di dichiarare la fonte «non disponibile» e proseguire sulle altre, non di insistere.
 6. **Rollback e delete** smontano la riga OAuth e la copia nel catalogo del tenant. Il server nativo
    di piattaforma non si tocca mai.
+
+### L'app OAuth Google del cliente, passo per passo
+
+Da dare all'utente **ogni volta** che il manifest ha un server `native`, prima dell'apply. Li fa chi
+amministra il Google Cloud del cliente, con il suo account:
+
+1. **console.cloud.google.com** › selezionare (o creare) il progetto del cliente.
+2. **API e servizi › Libreria** › abilitare la API del servizio:
+
+   | `service` | API da abilitare | Scope che il server chiede |
+   |---|---|---|
+   | `drive` | Google Drive API | `https://www.googleapis.com/auth/drive` |
+   | `gmail` | Gmail API | `https://www.googleapis.com/auth/gmail.modify` |
+   | `calendar` | Google Calendar API | `https://www.googleapis.com/auth/calendar` |
+
+3. **API e servizi › Schermata consenso OAuth**: tipo «Interno» se gli account che autorizzeranno sono
+   del Workspace del cliente; altrimenti «Esterno», con quegli account fra gli **utenti di test**
+   (finché l'app non è verificata da Google, gli altri vengono rifiutati). Aggiungere lo scope.
+4. **API e servizi › Credenziali › Crea credenziali › ID client OAuth**, tipo **«Applicazione web»**.
+5. **URI di reindirizzamento autorizzati** — quello dell'ambiente su cui si applica, identico, senza
+   `/` finale (se la stessa app serve a più ambienti, si aggiungono tutti):
+
+   | Ambiente | URI di reindirizzamento |
+   |---|---|
+   | staging | `https://func-xrcopilotlab-staging-01.azurewebsites.net/api/auth/google/callback` |
+   | produzione | `https://func-xrcopilotlab-prod-01.azurewebsites.net/api/auth/google/callback` |
+
+   È `<OAuthCallbackBaseUrl>/auth/google/callback`, con `OAuthCallbackBaseUrl` dell'App Configuration
+   (etichetta `api`): se la tabella invecchia, comanda l'URI che stampano il piano (`BP112`, dopo la CLI 2.21) e
+   `mcp authorize`. **Non** è lo `/oauth/callback` della Web, che serve alle connessioni OAuth 2.1 PKCE.
+6. Copiare **ID client** e **secret** nei due segreti del manifest con `secrets set`, nel terminale di
+   chi ha i ruoli. Mai in chat.
+7. Dopo l'apply, `mcp authorize <chiave> --tag <TAG>`: il link si **copia intero e si incolla** nel
+   browser. Cliccato nel terminale si spezza al `|` dello `state`.
+
+Due errori che si incontrano, e cosa vogliono dire:
+
+| Sintomo | Causa |
+|---|---|
+| `redirect_uri_mismatch` sulla pagina di Google | L'URI dell'ambiente non è fra quelli autorizzati dell'app (passo 5) |
+| «McpOauthId could not be extracted from state» sulla pagina della piattaforma | L'URI di reindirizzamento è stato aperto a mano (lo chiama Google, non una persona), oppure il link di consenso è arrivato a Google spezzato |
+| `access_denied` / «app non verificata» | Schermata di consenso «Esterno» e account non fra gli utenti di test (passo 3) |
 
 Se ne esistono già due con lo stesso nome nel catalogo di piattaforma, la causa è un duplicato da
 ripulire (migrazione 265): non si risolve con `mcpId` nel manifest.

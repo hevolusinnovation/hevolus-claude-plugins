@@ -98,7 +98,34 @@ Subito dopo il riquadro: «**La guida d'uso, dall'installazione alla demo:**» c
 4. Se il howto è indietro rispetto alle versioni della mail (una tappa nuova, per esempio), segnalalo:
    l'aggiornamento della pagina è un'altra skill.
 
-### 2.3 Le novità, per versione
+### 2.3 L'apertura — due righe ricavate dalla tabella, non improvvisate
+
+Dopo il link alla guida e prima delle versioni: due o tre frasi che dicano in un colpo d'occhio che
+cosa è successo. **Si scrive per ultima**, quando la tabella del § 2.5 è pronta, perché ogni numero
+viene da lì e si verifica prima di scriverlo:
+
+- **Plugin e CLI hanno numerazioni diverse, e l'apertura lo dice**: «il plugin blueprints dalla
+  2.27.0 alla 2.39.0, la CLI `xrcopilotlab-bp`, che ha una numerazione sua, dalla 2.17.0 alla
+  2.20.0». Due intervalli affiancati senza il nome di che cosa sono sembrano lo stesso conto fatto
+  in due modi.
+- **Le skill nuove si contano dalle etichette *Nuova skill* delle sezioni per versione**, non a
+  memoria: nata dopo la versione «da» = nuova, anche se nella stessa finestra ha poi cambiato
+  comportamento. E una skill nata nella finestra **non si racconta come un cambiamento** («tre video
+  al posto di uno»): chi ha la versione «da» non ha mai visto la forma di prima. Si dice che cos'è
+  oggi.
+- **I rilasci si contano tutti, patch comprese**, oppure si scrive solo l'intervallo: «dalla 2.28.0
+  alla 2.39.0», non «dodici versioni» quando i rilasci sono sedici.
+- **La data è quella del primo rilascio dopo la versione «da»**, non quella della «da», che il
+  lettore ha già.
+- **Una feature si nomina come la nomina la sua release**, non con un'abbreviazione che la confonde
+  con un'altra della stessa finestra: i server MCP Google del catalogo della piattaforma (CLI
+  2.20.0) e l'accesso alla CLI con account Google (2.31.1) sono due cose.
+
+Emersa il 14/10/2026 con la mail 2.27.0 → 2.39.0, già spedita: «tre skill nuove» (erano quattro),
+«tre video al posto di uno» detto di una skill nata nella finestra, e i due intervalli affiancati
+senza dire quale fosse il plugin e quale la CLI. L'apertura era stata scritta prima della tabella.
+
+### 2.4 Le novità, per versione
 
 Dalla più vecchia alla più nuova, **una sezione per versione** con data e un titolo che dica la cosa
 («2.29.0 — nasce la skill dello storyboard»). Sotto, due-quattro righe: che cosa **puoi fare adesso
@@ -110,7 +137,7 @@ descrizioni e guida allineate»).
 Quello che **cambia un comportamento esistente** o **richiede un'azione** (riavvio, ricaricare uno zip,
 un comando nuovo da imparare) va in evidenza, non in coda.
 
-### 2.4 In fondo — il riepilogo di tutte le feature
+### 2.5 In fondo — il riepilogo di tutte le feature
 
 Una tabella sola, l'ultima cosa che si legge:
 
@@ -122,7 +149,7 @@ sopra: qui in una frase. Chiudi con una riga: «Dubbi? Ripassa dalla guida: <lin
 
 ## 3. Consegna
 
-1. Mostra all'utente **oggetto, riquadro d'aggiornamento e riepilogo** nella risposta, e chiedi se va
+1. Mostra all'utente **oggetto, riquadro d'aggiornamento, apertura e riepilogo** nella risposta, e chiedi se va
    bene prima di creare la bozza.
 2. Parti da [`references/mail-template.html`](references/mail-template.html): è già impaginato (intestazione viola, riquadri d'aggiornamento, pulsante verso la guida, versioni a schede, tabella finale). Si sostituiscono i segnaposto in doppie graffe e si ripetono i blocchi fra `<!--VERSIONI-->` e `<!--RIGHE-->`; non si rifà la grafica. Regole: stili **inline**, colonna da ~640 px, nessuna immagine esterna, i comandi in blocchi
    a larghezza fissa (su Outlook i `<pre>` perdono il formato: usa `<div>` con `font-family:Consolas,monospace`).
@@ -135,7 +162,9 @@ sopra: qui in una frase. Chiudi con una riga: «Dubbi? Ripassa dalla guida: <lin
 
 - Non scrivere novità che il § 1 non ha trovato; non dedurre una feature dal solo titolo di un commit.
 - Non mettere sha, nomi di branch, numeri di PR, né i nomi di persone del cliente nella mail.
-- Non mescolare i tre numeri di versione: plugin in primo piano, CLI e catalogo solo dove servono.
+- Non mescolare i tre numeri di versione: plugin in primo piano, CLI e catalogo solo dove servono,
+  e sempre con il nome accanto all'intervallo.
+- Non scrivere l'apertura prima delle sezioni per versione: i suoi numeri si ricavano da lì (§ 2.3).
 - Non scrivere un link all'artifact a memoria, né fingere che sia pubblico.
 - Non lanciare tu `/plugin update` o `xrcopilotlab-bp update` «per provare»: sono comandi del
   collega, sul suo computer.
