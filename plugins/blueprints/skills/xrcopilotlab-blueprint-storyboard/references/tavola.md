@@ -1,6 +1,6 @@
 # La tavola
 
-Una tavola è una pagina con **al massimo 6 riquadri** in griglia 3×2, letta da sinistra a destra e
+Una tavola è una pagina con **al massimo 6 riquadri** in griglia (3 per riga su schermo largo, 1 su schermo stretto), letta da sinistra a destra e
 dall'alto in basso. Un video da 80 s ne ha di solito tre.
 
 ## Il riquadro
@@ -8,13 +8,12 @@ dall'alto in basso. Un video da 80 s ne ha di solito tre.
 | Campo | Contenuto | Regola |
 |---|---|---|
 | **Codice** | `1`, `2`, … ; `7A`/`7B` se una scena ha due inquadrature; `B1…B5` per la parte basilare (poi si rinumera in sequenza se serve); `FINE` per la chiusura | in alto a sinistra, sul disegno |
-| **Schizzo** | disegno in bianco e nero con accenti viola/azzurro, formato 16:9 | vedi [`schizzi.md`](schizzi.md) |
-| **Titolo** | 2–6 parole, un fatto («Il Control Plane», «Venerdì · posta ↔ calendario») | in grassetto sotto lo schizzo |
+| **Descrizione** | la scena scritta per esteso: inquadratura, azione, chi agisce, schermate e scritte, camera e transizione, suono, fonte, note per chi realizza | vedi [`descrizione.md`](descrizione.md); nessun disegno |
+| **Titolo** | 2–6 parole, un fatto («Il Control Plane», «Venerdì · posta ↔ calendario») | in grassetto in testa al riquadro |
 | **Tempo** | `0:20,5–0:28` + durata `7,5 s` in un'etichetta | l'inizio di una scena è la fine della precedente |
 | **Battuta** | la voce, tra virgolette, in corsivo, con una barra viola a sinistra | senza voce: «musica · nessuna voce» |
-| **Descrizione** | che cosa si vede e come si muove, in 1–2 frasi | include le note di camera |
 | **A schermo** | le scritte che il montaggio sovrappone, separate da « · » | brevi, senza nomi veri |
-| **Camera** | nello schizzo, in corsivo: «push-in lento», «orbita lenta», «carrello laterale», «crane up», «ferma» | una per scena |
+| **Camera** | nel campo «Camera e transizione»: «push-in lento», «orbita lenta», «carrello laterale», «crane up», «ferma» | una per scena |
 
 ## I tempi
 
@@ -27,7 +26,7 @@ dall'alto in basso. Un video da 80 s ne ha di solito tre.
 
 ## Il codice colore
 
-Fisso, scritto in legenda a piè di pagina e usato negli schizzi:
+Fisso, scritto in legenda a piè di pagina, usato per il bordo del riquadro e nominato nelle descrizioni («in viola», «luce azzurra»):
 
 | Colore | Significato | Esadecimale |
 |---|---|---|
@@ -55,8 +54,14 @@ Una sezione per scena, così la prossima sessione la rilegge e la modifica:
 voce: "Poi decide una persona."
 camera: ferma
 guida: giornata-pec · D1
-disegno: la referente davanti a due schermi, testo originale e proposta; una luce azzurra parte dal dito
-a schermo: La referente verifica e assegna
+inquadratura: la referente alla scrivania, due schermi: a sinistra il testo originale, a destra la proposta dell'assistente
+azione: 1) legge la proposta; 2) corregge la data; 3) preme Conferma, una luce azzurra parte dal dito
+chi agisce: persona (azzurro) — decide; assistente (viola) — ha preparato la proposta
+schermate: compito «Convalida», campi tipo, data, ora; a schermo: La referente verifica e assegna
+camera: ferma, stacco dalla scena precedente
+suono: la battuta, poi un click
+fonte: passo «verifica» del processo · D1
+note: nessun nome vero nel testo originale
 umano: sì
 ```
 

@@ -34,9 +34,11 @@ sempre gli stessi**. Per questo ogni scheda ha due viste dello stesso processo:
 |---|---|---|
 | **La scena** (in ogni scheda, sopra il diagramma) | una scheda per passo del caso scelto, in fila, con i colori del BPMN, un'icona animata e il nome; **Avvia la simulazione** fa muovere una pratica e sotto compare che cosa succede a quel passo | calcolata dal manifest; le parole sono quelle di `passi` (§3) |
 | **La mappa** (solo con `includi: [mappa]`) | una figura isometrica di tutti i flussi insieme, in testa alla pagina | calcolata dal manifest; di default **non c'è**, perché con molti processi confonde |
+| **Il video della demo** (solo se `video` in `spiegazioni.yml`) | il filmato vero della prova dal vivo, con titolo e didascalia, sopra la scheda | i file li porti tu (dall'archivio del tenant, `files get`) e si pubblicano accanto alla pagina |
 | **Scopo** (una frase) | a che cosa serve il processo | **lo scrivi tu** (§3) |
 | **In breve** e **Quando si usa** | il racconto in pochi paragrafi, e quando sì e quando no | **lo scrivi tu** (§3) |
 | **La scheda**: come parte · che cosa arriva · che cosa si ottiene · chi partecipa · dove decide una persona · che cosa fa il sistema da solo · quanto dura | il «canvas» del processo | calcolata dal manifest; «arriva» e «si ottiene» (e, se serve, «dove decide una persona») li scrivi tu |
+| **Come funziona un compito** (se il processo ha passi di persone) | che cosa vede chi apre un compito («Dati dagli step precedenti», «Prendi», la bozza dell'assistente); il menu **Esecutore** (Solo umano · Umano + AI · Automatizzato: chi fa il passo, e se l'assistente prepara una bozza); il **Process Copilot** («Spiegami il compito» sempre, «Precompila il form» dopo «Prendi»: legge e suggerisce, non completa mai); l'interruttore **«Interattiva»** (la chat con l'assistente accanto al modulo), e quali passi del processo usano ciascuna scelta | testo fisso della skill, con le scritte dell'interfaccia; i passi «in questo processo» vengono dal manifest |
 | **Diagramma** | corsie per ruolo, attività, bivi, cicli; al clic il dettaglio; i pallini ambra **D1, D2…** segnano i punti da discutere | calcolato dal manifest |
 | **Passo per passo** | una frase per cerchio e bivio, con i numeri del disegno | **lo scrivi tu** (§3) |
 | **Domande per il cliente** (D1, D2…) | le domande da porre al cliente, con un campo per la risposta; poi **Note della sessione** | **le scrivi tu**; le risposte le scrive chi conduce, nella pagina |
@@ -51,6 +53,9 @@ che cosa succede, chi lo fa e la scelta fatta ai bivi. «Un passo» avanza a man
 «Tutti i passi» li mostra tutti). Si disegna da sola dal manifest: niente da costruire, e vale per ogni processo e ogni orchestratore.
 La **mappa isometrica** di tutti i flussi (kit della skill `anatomy`, MIT, in [`assets/iso/`](assets/iso/ORIGINE.md)) c'è solo se
 `includi` nomina `mappa`: con molti processi insieme confonde più di quanto spieghi.
+
+Il video e «Come funziona un compito» entrano nel PDF e nel Word in pagine proprie dopo la scheda (il video con titolo
+e didascalia), letti dall'HTML dei riquadri stessi (`panelBlocks`), così export e pagina non divergono.
 
 **I numeri** (in fondo alla pagina, «I numeri del blueprint, per chi configura») sono tre grafici calcolati dal manifest, costruiti con le regole
 della skill `dataviz`: *Come sono fatti i flussi* (barre impilate per tipo di passo), *Chi lavora di più* (passi per
@@ -181,6 +186,11 @@ flussi:
     passi:                                  # una frase per ogni cerchio e bivio, per id del manifest
       start: "Arriva una comunicazione in casella."
       verifica: "Il referente controlla la proposta sul testo originale."
+    video:                                  # facoltativo: i video veri della demo, in cima alla scheda
+      - file: video/<chiave>.mp4            # percorso relativo: si pubblica accanto alla pagina (§6, `files`)
+        poster: video/<chiave>.jpg          # facoltativo: il fotogramma prima del play
+        titolo: "La prova dal vivo, 86 secondi"
+        didascalia: "Che cosa si vede, e che cosa è simulato."
     figura:                                 # facoltativo, solo se c'è <chiave>.svg (references/figure-d-autore.md)
       titolo: "Presa in carico"
       didascalia: "Una frase che racconta la figura."
@@ -289,6 +299,11 @@ Come ogni artifact della famiglia: **privato**, titolo stabile, stesso `url` agl
 - `file_path`: la pagina assemblata; `icon`: `flowchart` alla prima pubblicazione; `description`: una
   riga — «Processi e orchestratori del blueprint <Scenario> disegnati come diagrammi BPMN a corsie.»
   con la versione disegnata.
+- **Con i video** (`video` in `spiegazioni.yml`): i file si pubblicano accanto alla pagina con `files`
+  (`{"video/<chiave>.mp4": "<cartella>/video/<chiave>.mp4", …}` e `root` sulla cartella di lavoro), allo stesso
+  percorso scritto in `file`. Sono file del blueprint: stanno nell'archivio del tenant (`files get`/`files put`),
+  la cartella su disco è solo un appoggio. «Scarica il video» resta: quello registra l'animazione del caso, questo
+  mostra il prodotto vero.
 - **`capabilities: {downloads: true}`**, sempre, e a ogni ripubblicazione (omettere il campo mantiene quello
   già dichiarato, ma alla prima volta è necessario). È ciò che permette ai pulsanti **PDF** e **Word**
   («di questo flusso» e «di tutti») di offrire il file a chi guarda; senza, i pulsanti restano spenti. Le pagine

@@ -73,28 +73,21 @@ Il ripiego `say` (macOS) ha solo le voci italiane base; se l'utente scarica quel
 (Impostazioni di Sistema → Accessibilità → Contenuto vocale → Voci di sistema → Gestisci voci)
 `say -v '?'` le elenca e si usa la migliore.
 
-## L'animatic
+## Niente animatic
 
-Per ogni scena un fotogramma 1280×720 (HTML con lo schizzo a tutto fotogramma e il codice scena, **senza sottotitoli**: la voce racconta; reso con Chrome senza interfaccia), poi:
-
-```bash
-# anim.txt: «ffconcat version 1.0», poi per ogni scena  file 'frames/f<n>.png'  e  duration <s>,
-# e l'ultimo file ripetuto una volta
-ffmpeg -y -f concat -safe 0 -i anim.txt -i audio/narrazione.mp3 -vf "fps=25,format=yuv420p" \
-  -c:v libx264 -crf 30 -c:a aac -b:a 80k -shortest -movflags +faststart animatic.mp4
-```
-
-La durata del video deve essere quella dello storyboard (`ffprobe`); si guarda un fotogramma a metà
-e uno verso la fine prima di pubblicare.
+Lo storyboard non ha disegni, quindi non si monta un animatic: la narrazione si ascolta nella pagina
+(traccia intera e un pulsante per scena) accanto alle descrizioni. Il video vero si fa registrando
+l'applicazione (`registrazione.md`).
 
 Dove non c'è `say` o `ffmpeg` (Windows, Claude Desktop) l'audio non si genera: si pubblica lo
 storyboard con le battute e il budget di parole controllato a mano, e lo si dice.
 
 ## Nella pagina
 
-Ogni riquadro con voce ha un pulsante «▶ voce» che riproduce `scena-<codice>.mp3`; in testata un
-lettore con `narrazione.mp3` intera. Se manca l'audio, i pulsanti non si mostrano (la pagina non
-deve avere controlli morti).
+Ogni riquadro con voce ha un pulsante «▶ voce» che riproduce `scena-<codice>.mp3`. **Nessun lettore della
+narrazione intera in testata**: nella pagina non serve (si ascolta una scena alla volta, accanto alla sua
+descrizione). `narrazione.mp3` resta un file di lavoro per il montaggio e si pubblica fra i file solo se
+qualcuno lo chiede. Se manca l'audio, i pulsanti non si mostrano (la pagina non deve avere controlli morti).
 
 ## Il testo per chi registra
 

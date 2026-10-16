@@ -493,6 +493,8 @@ scritto fra virgolette non farebbe mai scattare il ramo. Vale il core schema di 
 - `interactive` — booleano, solo con `performer: AiAssisted`. Il work item mostra la chat con
   l'agente o l'orchestratore dell'agent task, invece di eseguirlo in automatico; le risposte
   riempiono i campi del form;
+- il **Process Copilot** del compito («Spiegami il compito», «Precompila il form») non ha campi nel
+  manifest: compare da sé su ogni work item aperto non interattivo;
 - la variabile di una condizione deve essere la `key` di un campo form o un `outputVariable`, e
   se è un campo allegato l'unico operatore ammesso è `exists`;
 - un campo allegato (`type: file`) sta su un'attività umana, mai sullo `Start`.

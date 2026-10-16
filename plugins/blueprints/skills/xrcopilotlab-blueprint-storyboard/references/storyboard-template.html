@@ -3,6 +3,8 @@
   Modello dello storyboard (xrcopilotlab-blueprint-storyboard).
   Si copia, si cambia <title>/<h1>, si ripete il blocco <article class="scena"> (REPEAT)
   e un <section class="tavola"> ogni 6 riquadri. Non cambiare palette e struttura.
+  Nessun disegno: ogni scena è descritta per esteso (references/descrizione.md). L'unica immagine
+  ammessa è l'applicazione vera (fotogramma o clip registrato di quella scena), dentro <figure class="vero">.
   Gli <audio> si mettono solo se i file esistono: niente controlli morti.
   Lingua: italiano. Senza <html>/<head>/<body>: il guscio lo aggiunge la pubblicazione.
 -->
@@ -10,7 +12,7 @@
   :root {
     --ground: #fbfaf7; --surface: #ffffff; --ink: #1d1f24; --muted: #5f6570; --rule: #d9d6cf;
     --ai: #7c3aed; --ai-soft: #ede9fe; --umano: #0ea5e9; --umano-soft: #e0f2fe;
-    --attenzione: #d97706; --sketch-bg: #ffffff;
+    --attenzione: #d97706;
     --serif: Georgia, "Times New Roman", serif;
     --sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   }
@@ -19,14 +21,14 @@
       color-scheme: dark;
       --ground: #14151a; --surface: #1c1e25; --ink: #eceef2; --muted: #a0a6b1; --rule: #343843;
       --ai: #a78bfa; --ai-soft: #2a2347; --umano: #38bdf8; --umano-soft: #17303f;
-      --attenzione: #fbbf24; --sketch-bg: #20222a;
+      --attenzione: #fbbf24;
     }
   }
   :root[data-theme="dark"] {
     color-scheme: dark;
     --ground: #14151a; --surface: #1c1e25; --ink: #eceef2; --muted: #a0a6b1; --rule: #343843;
     --ai: #a78bfa; --ai-soft: #2a2347; --umano: #38bdf8; --umano-soft: #17303f;
-    --attenzione: #fbbf24; --sketch-bg: #20222a;
+    --attenzione: #fbbf24;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--ground); color: var(--ink); font: 15px/1.5 var(--sans); }
@@ -37,27 +39,28 @@
   header.testata h1 { font: 600 15px var(--sans); letter-spacing: .08em; text-transform: uppercase;
     color: var(--muted); margin: 0; flex: 1 1 280px; }
   header.testata .meta { color: var(--muted); font-size: 13px; letter-spacing: .08em; }
-  .voce-intera { margin: 0 0 18px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
-    color: var(--muted); font-size: 13px; }
-  .voce-intera audio { height: 36px; max-width: 100%; }
   .tavola { margin-bottom: 36px; }
   .tavola > h2 { font: 600 12px var(--sans); letter-spacing: .14em; text-transform: uppercase;
     color: var(--muted); margin: 0 0 8px; }
-  .griglia { display: grid; gap: 22px 22px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .griglia { display: grid; gap: 22px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   @media (max-width: 900px) { .griglia { grid-template-columns: 1fr; } }
-  .scena { display: flex; flex-direction: column; gap: 4px; }
-  .quadro { position: relative; border: 2px solid var(--ink); border-radius: 3px; background: var(--sketch-bg);
-    aspect-ratio: 16 / 9; overflow: hidden; color: var(--ink); }
-  .quadro svg { width: 100%; height: 100%; display: block; }
-  .quadro .codice { position: absolute; top: 0; left: 0; background: var(--ink); color: var(--surface);
-    font-weight: 700; padding: 3px 10px; font-size: 15px; z-index: 1; border-bottom-right-radius: 6px; }
-  .quadro .camera { position: absolute; top: 6px; right: 10px; font: italic 11px var(--serif);
-    color: var(--muted); }
-  .quadro .segnaposto { position: absolute; inset: 12%; border: 2px dashed var(--muted); border-radius: 4px;
-    display: flex; align-items: center; justify-content: center; text-align: center; padding: 12px;
-    font: italic 13px var(--serif); color: var(--muted); }
-  .riga-titolo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-top: 4px; }
-  .riga-titolo h3 { margin: 0; font-size: 16px; }
+  .scena { display: flex; flex-direction: column; gap: 8px; min-width: 0; background: var(--surface);
+    border: 1px solid var(--rule); border-left: 4px solid var(--ai); border-radius: 4px; padding: 14px 16px; }
+  .scena[data-umano="si"] { border-left-color: var(--umano); }
+  .testa { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .testa .codice { background: var(--ink); color: var(--surface); font-weight: 700; padding: 2px 9px;
+    font-size: 14px; border-radius: 4px; }
+  .testa h3 { margin: 0; font-size: 17px; flex: 1 1 200px; }
+  .testa .esempio { font: italic 12px var(--serif); color: var(--attenzione); border: 1px dashed var(--attenzione);
+    border-radius: 999px; padding: 0 8px; }
+  figure.vero { margin: 0; } figure.vero img, figure.vero video { width: 100%; height: auto; display: block;
+    border: 1px solid var(--rule); border-radius: 4px; }
+  figure.vero figcaption { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  dl.desc { display: grid; grid-template-columns: 9.5em minmax(0, 1fr); gap: 6px 12px; margin: 0; font-size: 13.5px; }
+  dl.desc dt { font: 600 11px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+  dl.desc dd { margin: 0; min-width: 0; }
+  dl.desc ol { margin: 0; padding-left: 18px; }
+  @media (max-width: 600px) { dl.desc { grid-template-columns: 1fr; } dl.desc dt { margin-top: 4px; } }
   .tempo { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
   .durata { background: var(--ai); color: #fff; border-radius: 999px; padding: 1px 9px; font-weight: 600;
     font-size: 12px; margin-left: 6px; }
@@ -65,9 +68,6 @@
   .battuta { margin: 2px 0; padding-left: 10px; border-left: 3px solid var(--ai); font-style: italic; }
   .scena[data-umano="si"] .battuta { border-left-color: var(--umano); }
   .battuta.muta { border-left-color: var(--rule); color: var(--muted); }
-  .descrizione { margin: 0; font-size: 13.5px; }
-  .schermo { margin: 0; font-size: 12.5px; color: var(--muted); }
-  .schermo b { color: var(--ink); }
   .play { font: 600 12px var(--sans); border: 1px solid var(--ai); color: var(--ai); background: transparent;
     border-radius: 999px; padding: 2px 10px; cursor: pointer; margin-top: 2px; width: fit-content; }
   .play:focus-visible { outline: 3px solid var(--ai); outline-offset: 2px; }
@@ -83,7 +83,6 @@
   details.interno table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 13.5px; }
   details.interno th, details.interno td { border-bottom: 1px solid var(--rule); text-align: left; padding: 5px 8px; }
   .a11y { position: absolute; left: -9999px; }
-  .animatic{display:block;width:100%;max-width:960px;margin:0 auto 6px;background:#14151a;border-radius:4px;aspect-ratio:16/9}
 </style>
 
 
@@ -94,36 +93,34 @@
     <span class="meta">80 s · 3 tavole</span>
   </header>
 
-  <!-- Solo se c'è l'animatic (video di lavoro: schizzi + voce guida di prova). -->
-  <video class="animatic" controls preload="metadata" src="animatic.mp4"></video>
-  <p class="voce-intera"><span>Animatic: schizzi e voce guida di prova (sintetica) in sequenza.</span></p>
 
   <!-- REPEAT: una tavola ogni 6 riquadri -->
   <section class="tavola">
     <h2>Tavola 1/3</h2>
     <div class="griglia">
 
-      <!-- REPEAT: una scena. data-umano="si" se in scena decide una persona. -->
+      <!-- REPEAT: una scena. data-umano="si" se in scena decide una persona (bordo azzurro). -->
       <article class="scena" data-umano="no">
-        <div class="quadro">
+        <div class="testa">
           <span class="codice">1</span>
-          <span class="camera">camera: push-in lento</span>
-          <!-- lo schizzo SVG (viewBox 0 0 640 360, role="img", aria-label) oppure il segnaposto: -->
-          <svg viewBox="0 0 640 360" role="img" aria-label="Descrizione dello schizzo in una riga">
-            <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
-              <!-- forme dello schizzo -->
-            </g>
-          </svg>
-          <!-- <div class="segnaposto">Descrizione di disegno qui, se lo schizzo non rende la scena</div> -->
-        </div>
-        <div class="riga-titolo">
           <h3>Titolo della scena</h3>
+          <!-- scena didattica: <span class="esempio">esempio</span> -->
           <span class="tempo">0:00–0:05<span class="durata">5 s</span></span>
         </div>
+        <!-- Solo se esiste l'applicazione vera per questa scena:
+        <figure class="vero"><img src="frames/scena-1.jpg" alt="…"><figcaption>Fotogramma reale, tenant di collaudo</figcaption></figure> -->
         <p class="battuta">“La battuta della voce.”</p>
         <!-- scena senza voce: <p class="battuta muta">musica · nessuna voce</p> -->
-        <p class="descrizione">Che cosa si vede e come si muove.</p>
-        <p class="schermo"><b>A schermo:</b> Scritta uno · Scritta due</p>
+        <dl class="desc">
+          <dt>Inquadratura</dt><dd>Che cosa si vede all'apertura: luogo o schermata, soggetti e dove stanno.</dd>
+          <dt>Azione</dt><dd><ol><li>Prima cosa che succede.</li><li>Poi…</li></ol></dd>
+          <dt>Chi agisce</dt><dd>Assistente (viola): … · Persona (azzurro): …</dd>
+          <dt>Schermate e scritte</dt><dd>Pagina, campi e valori d'esempio · A schermo: Scritta uno · Scritta due</dd>
+          <dt>Camera e transizione</dt><dd>push-in lento; stacco dalla scena precedente</dd>
+          <dt>Suono</dt><dd>La battuta; un click alla conferma</dd>
+          <dt>Fonte</dt><dd>Passo del processo, assistente, compito, slide della guida, punto di demo Dn</dd>
+          <dt>Note per chi realizza</dt><dd>Che cosa evitare; che cosa non è ancora provato.</dd>
+        </dl>
         <!-- Solo se c'è l'audio della scena: -->
         <button class="play" type="button" data-audio="audio/scena-1.mp3">▶ voce</button>
       </article>

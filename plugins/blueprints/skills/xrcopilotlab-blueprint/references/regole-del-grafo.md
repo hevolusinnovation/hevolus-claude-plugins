@@ -53,6 +53,11 @@ Riassunto operativo di ciò che `ProcessSpecValidator` verifica sul server. Serv
 sugli altri performer): il work item mostra la chat con l'agente (o l'orchestratore) dell'agent task
 invece di eseguirlo in automatico, e le risposte compilano i campi del form.
 
+Il **Process Copilot** non si dichiara: c'è in ogni compito aperto (`HumanOnly` e `AiAssisted` non
+interattivo), con «Spiegami il compito» — il passo, la storia della pratica e i dati dei passi prima —
+e, per chi ha preso il compito, «Precompila il form». Legge e suggerisce, non completa mai: nel manifest
+non ha campi, e non serve un agente. Sui passi `interactive` lascia il posto alla chat.
+
 `shareAttachments: true` è ammesso dove lo step ha un agente — `performer: Automated` o
 `AiAssisted`, anche con `interactive` — e vietato su `HumanOnly`, Start, End e CallActivity. L'agente
 riceve fra i file della conversazione tutti gli allegati caricati nei campi `type: file` delle

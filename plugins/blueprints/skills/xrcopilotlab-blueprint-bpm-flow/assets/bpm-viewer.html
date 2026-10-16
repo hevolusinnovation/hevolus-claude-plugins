@@ -76,6 +76,23 @@ details.tech{margin-top:12px} details.tech>summary{cursor:pointer;color:var(--mu
 .scheda .plain:last-child{margin-bottom:0}
 @media (max-width:820px){.scheda{grid-template-columns:minmax(0,1fr)}}
 .card{border:1px solid var(--line);border-radius:4px;background:var(--surface);padding:12px 16px}
+.how h4{font-family:var(--font-display);font-size:16px;margin:16px 0 6px} .how p{margin:0 0 8px;max-width:90ch}
+.how-guide{margin:10px 0 0 !important;padding:10px 12px;background:var(--accent-soft);border-radius:4px;font-size:14px}
+.how-steps{margin:6px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:6px;max-width:90ch}
+.how-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.how-card{border:1px solid var(--line);border-left:3px solid var(--ai-bd);border-radius:4px;padding:10px 12px;min-width:0}
+.how-card b{display:block} .how-card small{display:block;color:var(--ai-fg);font-weight:600;margin:2px 0 6px} .how-card p{margin:0;font-size:14px}
+.how-modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px}
+.how-mode{border:1px solid var(--line);border-radius:4px;padding:12px 14px;min-width:0;background:var(--surface)}
+.how-mode.used{border-color:var(--ai-bd);box-shadow:inset 3px 0 0 var(--ai-bd)}
+.how-mh{display:flex;flex-direction:column;gap:4px;margin-bottom:6px} .how-mh b{font-size:15px}
+.how-tag{align-self:flex-start;background:var(--ai-bg);color:var(--ai-fg);border-radius:99px;padding:2px 9px;font-size:12px;font-weight:600}
+.how-mode p{font-size:14px} .how-mode dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:4px 10px;margin:0;font-size:13px}
+.how-mode dt{color:var(--muted);font-weight:600} .how-mode dd{margin:0;min-width:0}
+.vids{margin:0 0 12px} .vgrid{max-width:900px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:14px}
+.vid{margin:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.vid video{width:100%;height:auto;display:block;border-radius:6px;background:#000}
+.vid figcaption{display:flex;flex-direction:column;gap:2px;font-size:13px;color:var(--muted)} .vid figcaption b{color:var(--fg);font-size:14px}
 .card h3{font-family:var(--font-display);font-size:16px;margin:0 0 8px}
 .card dl{display:grid;grid-template-columns:minmax(96px,max-content) minmax(0,1fr);gap:8px 14px;margin:0}
 .card dt{font-weight:600;color:var(--accent)} .card dd{margin:0;min-width:0;overflow-wrap:anywhere}
@@ -477,7 +494,7 @@ function who(n){
   var r=n.raw||{};
   if(n.shape!=='task')return '';
   if(r.performer==='Automated'){var t=taskByName[r.agentTaskName];var a=t&&t.agent?(agentName[t.agent]||t.agent):'';return 'lo fa il sistema da solo'+(a?' (agente «'+a+'»)':'');}
-  if(r.performer==='AiAssisted')return 'un agente prepara e '+(r.roleName?'«'+r.roleName+'»':'una persona')+' controlla';
+  if(r.performer==='AiAssisted')return 'un agente prepara e '+(r.roleName?'«'+r.roleName+'»':'una persona')+' controlla'+(r.interactive?', in chat con l’assistente':'');
   if(r.performer==='HumanOnly')return r.roleName?'lo fa «'+r.roleName+'»':'lo fa la persona scelta al momento';
   var s=r.type;
   if(s==='agent')return 'lavora l’agente «'+(agentName[r.agent]||r.agent)+'»';
@@ -564,7 +581,7 @@ function schedaRows(gf){
   add('Chi partecipa',roles.map(function(r){return r==='Persona scelta al momento'?'una persona scelta al momento':r;}));
   var ctl=Array.isArray(e.controlli)?e.controlli.map(flat):tasks.filter(function(n){return n.cls==='human'||n.cls==='ai';}).map(function(n){
     var who=n.lane==='Persona scelta al momento'?'una persona scelta al momento':n.lane;
-    return '«'+n.name+'» - '+who+(n.cls==='ai'?' (controlla il lavoro dell’assistente)':'');});
+    return '«'+n.name+'» - '+who+(n.cls==='ai'?(n.raw&&n.raw.interactive?' (lavora in chat con l’assistente)':' (controlla il lavoro dell’assistente)'):'');});
   add('Dove decide una persona',ctl.length>8?ctl.slice(0,8).concat(['e altri '+(ctl.length-8)]):ctl);
   var aut=tasks.filter(function(n){return n.cls==='auto';}).map(function(n){return n.name;});
   add('Che cosa fa il sistema da solo',aut.length>6?aut.slice(0,6).concat(['e altri '+(aut.length-6)]):aut);
@@ -799,11 +816,37 @@ function toCanvas(svg,W,H,scale,opt){
 }
 function slugOf(s){return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');}
 /* tutto ciò che serve a un esportazione, calcolato una volta: PDF e Word leggono lo stesso modello */
+/* I riquadri della pagina (video, come funziona un compito, passi che vanno avanti da soli) come blocchi di testo
+   per il PDF e il Word: si leggono dall'HTML stesso dei riquadri, così export e pagina non divergono mai.
+   Schermate, simulatore e lettori video restano solo nella pagina: sono interattivi. */
+function panelBlocks(html){
+  var out=[],box=document.createElement('div');box.innerHTML=html;
+  function txt(e){return flat(e.textContent);}
+  function walk(e){
+    if(e.nodeType!==1)return;
+    var c=e.classList,t=e.tagName;
+    if(t==='VIDEO'||t==='TEXTAREA')return;
+    if(t==='H3'){out.push({k:'h1',t:txt(e)});return;}
+    if(t==='H4'){out.push({k:'h2',t:txt(e)});return;}
+    if((c.contains('how-mh')||c.contains('how-card')||c.contains('sup-rule'))&&t==='DIV'&&!c.contains('how-card')&&!c.contains('sup-rule')){
+      [].forEach.call(e.children,function(ch){out.push({k:ch.tagName==='B'?'h3':'note',t:txt(ch)});});return;}
+    if((t==='B'||t==='SMALL')&&e.parentNode&&(e.parentNode.classList.contains('how-card')||e.parentNode.classList.contains('sup-rule'))){out.push({k:t==='B'?'h3':'note',t:txt(e)});return;}
+    if(t==='P'){out.push({k:c.contains('hint')?'note':'p',t:txt(e)});return;}
+    if(t==='LI'){out.push({k:'li',t:txt(e)});return;}
+    if(t==='DT'){var dd=e.nextElementSibling;out.push({k:'kv',t:txt(e)+': '+(dd?txt(dd):'')});return;}
+    if(t==='DD')return;
+    if(t==='FIGCAPTION'){[].forEach.call(e.children,function(ch){out.push({k:ch.tagName==='B'?'h3':'p',t:txt(ch)});});out.push({k:'note',t:'Il video si guarda nella pagina pubblicata.'});return;}
+    [].forEach.call(e.childNodes,walk);
+  }
+  walk(box);
+  return out.filter(function(b){return b.t;});
+}
 function modelOf(g0){
   var gf=layout(g0),g=viewOf(gf);markQuestions(g);
   var qs=questionsOf(g);qs.forEach(function(q){q.note=getNote(gf,'q'+q.n);});
   return {gf:gf,g:g,title:gf.title,kind:gf.kind,scopo:flat(entryOf(gf).scopo),brevi:storiaParas(gf),quando:lineIn(gf),rows:schedaRows(gf),
     steps:authoredSteps(g)||[],qs:qs,gen:getNote(gf,'gen'),fig:figuraOf(gf),
+    extra:gf.kind==='Processo'?panelBlocks(videoBox(gf)+howBox(gf)):[],
     casi:gf.kind==='Panoramica'?[]:percorsiOf(g).map(function(c){return {caso:c,passi:casoPassi(g,c)};})};
 }
 function hex3(h){return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];}
@@ -865,6 +908,19 @@ async function buildPdf(list){
     yr=rowsH(rsz,false);
     if(m.rows.length){pdf.setDrawColor(200,204,208);pdf.setLineWidth(0.3);pdf.line(RX-5,y,RX-5,Math.max(y+10,yr-2));}
     y=Math.max(yl,yr);
+    /* come funziona un compito, i passi che vanno avanti da soli, i video: pagine proprie, testo a tutta larghezza */
+    if(m.extra.length){
+      newPage();y+=1;y+=put(m.title+' - come funziona',M,y,PW-2*M,14,'bold')+3;
+      m.extra.forEach(function(b){
+        var sz=b.k==='h1'?12.5:b.k==='h2'?11.5:b.k==='h3'?10.5:b.k==='note'?9:b.k==='kv'?9.5:10;
+        var st=b.k==='h1'||b.k==='h2'||b.k==='h3'?'bold':b.k==='note'?'italic':'normal';
+        var col=b.k==='h1'?ACC:b.k==='note'?MUT:INK,x=b.k==='li'||b.k==='kv'?M+4:M,w=PW-M-x,t=(b.k==='li'?'- ':'')+b.t;
+        var h=put(t,x,y,w,sz,st,col,true);
+        if(b.k==='h1'||b.k==='h2'||b.k==='h3')need(h+12);else need(h+1);
+        if(b.k==='h1'&&y>M+12)y+=3;
+        y+=put(t,x,y,w,sz,st,col)+(b.k==='h1'?2:b.k==='h2'?1.5:0.8);
+      });
+    }
     /* la figura d'autore, se c'è: una pagina propria */
     if(m.fig){
       newPage();y+=1;y+=put(m.title+' - la figura',M,y,PW-2*M,14,'bold')+2;
@@ -963,6 +1019,18 @@ async function buildDocx(list){
       kids.push(para('La scheda',{h:D.HeadingLevel.HEADING_2,keep:true,before:120}));
       kids.push(new D.Table({width:{size:100,type:D.WidthType.PERCENTAGE},rows:m.rows.map(function(r){
         return new D.TableRow({cantSplit:true,children:[cell([para(r.k,{bold:true,after:0})],{w:26,fill:'E3EDF3'}),cell(r.v.map(function(v){return para(v,{bullet:r.v.length>1,after:30});}),{w:74})]});})}));
+    }
+    if(m.extra.length){
+      var firstX=true;
+      m.extra.forEach(function(b){
+        if(b.k==='h1'){kids.push(para(b.t,{h:D.HeadingLevel.HEADING_2,pb:firstX,before:firstX?0:200,keep:true,after:60}));firstX=false;}
+        else if(b.k==='h2')kids.push(para(b.t,{h:D.HeadingLevel.HEADING_3,before:120,keep:true,after:40}));
+        else if(b.k==='h3')kids.push(para(b.t,{bold:true,keep:true,before:80,after:20}));
+        else if(b.k==='note')kids.push(para(b.t,{it:true,color:'59636E',size:18,after:40}));
+        else if(b.k==='li')kids.push(para(b.t,{bullet:true,after:30}));
+        else if(b.k==='kv'){var ix=b.t.indexOf(': ');kids.push(new P({spacing:{after:30},indent:{left:360},children:[new R({text:b.t.slice(0,ix+1)+' ',bold:true,size:20}),new R({text:b.t.slice(ix+2),size:20})]}));}
+        else kids.push(para(b.t,{after:60}));
+      });
     }
     if(m.fig){
       kids.push(para('La figura',{h:D.HeadingLevel.HEADING_2,pb:true,after:40}));
@@ -1074,6 +1142,49 @@ function discutereBox(g){
   h+='<h3 class="sp">Note della sessione</h3><textarea class="nota big" data-k="gen" aria-label="Note della sessione" placeholder="Decisioni, dubbi, cose da verificare…"></textarea></div>';
   return h;
 }
+/* I video della demo dal vivo, dichiarati in spiegazioni.yml (flussi.<titolo>.video) e pubblicati accanto alla pagina. */
+function videoSrc(v){var f=String(v||'');return /^(https?:|data:|blob:|\/)/i.test(f)||f.indexOf('..')>=0?'':f;}
+function videoBox(gf){
+  var vs=entryOf(gf).video;if(!vs)return '';if(!Array.isArray(vs))vs=[vs];
+  vs=vs.map(function(v){return typeof v==='string'?{file:v}:v;}).filter(function(v){return v&&videoSrc(v.file);});
+  if(!vs.length)return '';
+  return '<div class="panel vids"><h3>'+(vs.length>1?'I video della demo':'Il video della demo')+'</h3><div class="vgrid">'+vs.map(function(v){
+    return '<figure class="vid"><video controls preload="metadata" playsinline'+(videoSrc(v.poster)?' poster="'+esc(videoSrc(v.poster))+'"':'')+'><source src="'+esc(videoSrc(v.file))+'" type="'+(/\.webm$/i.test(v.file)?'video/webm':'video/mp4')+'"></video>'+
+      ((v.titolo||v.didascalia)?'<figcaption>'+(v.titolo?'<b>'+esc(flat(v.titolo))+'</b>':'')+(v.didascalia?'<span>'+esc(flat(v.didascalia))+'</span>':'')+'</figcaption>':'')+'</figure>';}).join('')+'</div></div>';
+}
+/* ───────── come funziona un compito: il pannello del work item, il Process Copilot, Esecutore e Interattiva ───────── */
+function howBox(gf){
+  if(gf.kind!=='Processo')return '';
+  var tasks=gf.nodes.filter(function(n){return n.shape==='task'&&(n.cls==='human'||n.cls==='ai');});
+  if(!tasks.length)return '';
+  var ai=tasks.filter(function(n){return n.cls==='ai'&&!(n.raw&&n.raw.interactive);});
+  var h='<div class="panel how"><h3>Come funziona un compito</h3><p class="hint">Che cosa vede chi lavora un passo di questo processo nella sua lista «Le mie attività».</p>'+
+    '<ol class="how-steps">'+
+    '<li><b>Arriva il compito.</b> Compare nella lista di chi ha il ruolo del passo, con il nome del processo e quando è stato creato.</li>'+
+    '<li><b>«Dati dagli step precedenti».</b> Sopra il modulo c’è quello che i passi prima hanno prodotto: la comunicazione, gli estremi letti dall’assistente, le scelte fatte. Non serve cercarli altrove.</li>'+
+    '<li><b>«Prendi».</b> Chi prende il compito lo toglie dalla lista degli altri e può compilare il modulo; poi lo completa e il processo va avanti.</li>'+
+    (ai.length?'<li><b>Se il passo è preparato dall’assistente</b>, il modulo arriva già compilato con la sua bozza: la persona la controlla, la corregge se serve e completa.</li>':'')+
+    '</ol>'+
+    '<h4>Il Process Copilot</h4><p>È l’assistente dentro ogni compito aperto, di qualunque processo. <b>Legge e suggerisce: non completa mai un compito al posto della persona.</b></p>'+
+    '<div class="how-cards"><div class="how-card"><b>Spiegami il compito</b><small>sempre disponibile</small><p>In poche righe dice a che cosa serve il passo, che cosa è successo prima, i dati della pratica (con i nomi dei campi del modulo), che cosa viene dopo e a quali campi fare attenzione. Se un passo precedente ha lasciato un testo che non torna, lo dice.</p></div>'+
+    '<div class="how-card"><b>Precompila il form</b><small>dopo «Prendi»</small><p>Propone i valori del modulo a partire dai dati della pratica. Riempie solo i campi vuoti, non tocca quelli già scritti, dice quanti campi ha proposto e quali obbligatori mancano ancora. La persona controlla e completa.</p></div></div>';
+  var allT=gf.nodes.filter(function(n){return n.shape==='task'&&n.cls!=='call';});
+  function inProc(cls){var l=allT.filter(function(n){return n.cls===cls;}).map(function(n){return '«'+n.name+'»';});return l.length?'<span class="how-tag">in questo processo: '+esc(l.join(', '))+'</span>':'<span class="hint">in questo processo nessun passo</span>';}
+  h+='<h4>Il menu Esecutore: chi fa il passo</h4><p>È la prima scelta di ogni passo nel designer: decide chi fa il lavoro e se l’assistente prepara una bozza. Cambiare esecutore azzera l’interruttore «Interattiva».</p><div class="how-modes">'+
+    '<div class="how-mode"><div class="how-mh"><b>Solo umano</b>'+inProc('human')+'</div><p>Il passo lo fa una persona del ruolo scelto: prende il compito, compila il modulo, lo completa.</p><dl><dt>L’assistente</dt><dd>Non prepara niente. Nel compito c’è comunque il Process Copilot, che spiega e può precompilare.</dd><dt>Quando sceglierlo</dt><dd>Per le decisioni e il lavoro che restano di una persona.</dd></dl></div>'+
+    '<div class="how-mode used"><div class="how-mh"><b>Umano + AI</b>'+inProc('ai')+'</div><p>Un task automatico (un assistente) prepara il lavoro e una persona del ruolo lo controlla. Nel designer compaiono il «Task Automatico» e l’interruttore «Interattiva».</p><dl><dt>L’assistente</dt><dd>Scrive la bozza nel modulo prima che il compito arrivi (oppure lavora in chat, se interattivo).</dd><dt>La persona</dt><dd>Prende il compito, controlla la bozza, la corregge se serve e completa: il processo va avanti solo con il suo «Completa».</dd><dt>Quando sceglierlo</dt><dd>Quando l’assistente può fare il grosso ma serve una persona che risponda del risultato.</dd></dl></div>'+
+    '<div class="how-mode"><div class="how-mh"><b>Automatizzato</b>'+inProc('auto')+'</div><p>Il passo lo esegue solo il task automatico, nella corsia «Automatico»: nessun compito arriva a una persona.</p><dl><dt>L’assistente</dt><dd>Fa tutto e mette il risultato nella variabile di output, che i passi dopo leggono.</dd><dt>La persona</dt><dd>Nessuna: il passo va sempre avanti da solo, senza nessuno da aspettare.</dd><dt>Quando sceglierlo</dt><dd>Per letture, estrazioni, registrazioni: lavoro senza decisioni.</dd></dl></div></div>'+
+    '<p class="how-guide"><b>Come scegliere.</b> Nessuna persona deve vedere il passo → <b>Automatizzato</b>. Una persona decide, senza bisogno di una bozza → <b>Solo umano</b>. L’assistente prepara e una persona risponde → <b>Umano + AI</b>; se serve un dialogo per arrivare al risultato, con «Interattiva».</p>';
+  var inter=tasks.filter(function(n){return n.cls==='ai'&&n.raw&&n.raw.interactive;});
+  h+='<h4>L’interruttore «Interattiva»</h4><div class="how-modes"><div class="how-mode'+(inter.length?' used':'')+'"><div class="how-mh"><b>Interattiva: la persona lavora in chat con l’assistente</b>'+
+    (inter.length?'<span class="how-tag">in questo processo: '+esc(inter.map(function(x){return '«'+x.name+'»';}).join(', '))+'</span>':'<span class="hint">in questo processo nessun passo è interattivo</span>')+'</div>'+
+    '<p>Nel designer, sui passi «Umano + AI», la casella «Interattiva» cambia il modo di lavorare: l’assistente non prepara una bozza da solo prima che il compito arrivi, ma lavora insieme alla persona.</p>'+
+    '<dl><dt>La persona</dt><dd>Il compito dice «Prendi il compito per avviare la chat con l’assistente». Dopo «Prendi», accanto al modulo si apre la chat: si chiede, si corregge, e le proposte dell’assistente riempiono i campi.</dd>'+
+    '<dt>Il processo</dt><dd>Va avanti quando la persona completa il compito, come in una revisione.</dd>'+
+    '<dt>Da sapere</dt><dd>Su un passo interattivo il Process Copilot lascia il posto alla chat.</dd>'+
+    '<dt>Quando sceglierla</dt><dd>Per i passi dove serve un dialogo: chiarire, scegliere fra alternative, scrivere un testo insieme.</dd></dl></div></div>';
+  return h+'</div>';
+}
 function show(i){
   plKill();scKill();current=i;scale=1;
   [].forEach.call(tabs.children,function(b,j){b.setAttribute('aria-selected',j===i?'true':'false');});
@@ -1084,7 +1195,7 @@ function show(i){
     '<div class="tools"><button class="tool" id="pdf1" type="button">PDF di questo flusso</button><button class="tool" id="doc1" type="button">Word di questo flusso</button><button class="tool" id="pdfN" type="button">PDF di tutti</button><button class="tool" id="docN" type="button">Word di tutti</button></div></div>'+
     (scopo?'<p class="scopo">'+esc(scopo)+'</p>':'')+
     figuraBox(gf)+
-    '<div class="scheda"><div>'+storyBox(gf)+'</div>'+schedaBox(gf)+'</div>'+
+    videoBox(gf)+'<div class="scheda"><div>'+storyBox(gf)+'</div>'+schedaBox(gf)+'</div>'+howBox(gf)+
     (gf.kind==='Panoramica'?'':'<div id="scena"></div>')+
     '<div class="bar">'+legend()+'<div class="tools">'+(gf.kind==='Processo'?'<span class="seg" role="group" aria-label="Livello di dettaglio"><button type="button" id="vs" aria-pressed="'+(mode==='sintetica')+'">Sintetica</button><button type="button" id="vc" aria-pressed="'+(mode!=='sintetica')+'">Completa</button></span>':'')+
     '<button class="tool" id="zo" type="button" aria-label="Riduci">−</button><button class="tool" id="zf" type="button">Adatta</button><button class="tool" id="zi" type="button" aria-label="Ingrandisci">+</button></div></div>'+
