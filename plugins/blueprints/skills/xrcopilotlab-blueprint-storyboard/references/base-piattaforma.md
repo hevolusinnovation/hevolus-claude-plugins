@@ -40,8 +40,8 @@ Succede (la prova su Studio Polis lo ha mostrato: 14 assistenti, nessun profilo,
 collegamenti a posta e calendario). La parte basilare **non salta**, ma cambia natura:
 
 - **B1, B2 e la parte skill di B4 diventano didattiche**: «come si costruisce un assistente in
-  XRCopilot», con documenti d'esempio generici (norme, schede). Lo schizzo porta in un angolo
-  l'etichetta *«esempio»*, e la voce parla della **piattaforma** («In XRCopilot…», «Un assistente
+  XRCopilot», con documenti d'esempio generici (norme, schede). La descrizione comincia con
+  «Esempio della piattaforma:» e il riquadro porta l'etichetta *«esempio»*, e la voce parla della **piattaforma** («In XRCopilot…», «Un assistente
   può avere…»), mai dello scenario («lo studio ha caricato…»), perché lo scenario non lo fa.
 - **B3 e la parte «collegamenti» di B4 restano vere**: l'assistente scelto è uno reale del manifest
   (nome e compito), e le prese sono i suoi collegamenti reali (`mcp`: posta, calendario, pratiche).

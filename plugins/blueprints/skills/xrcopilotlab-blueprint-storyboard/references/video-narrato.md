@@ -15,8 +15,8 @@ caricati nel tenant come guida ([`guida-video.md`](guida-video.md)) l'assistente
 per ultimo. Se il 2 e il 3 sembrano sovrapposti, il 2 resta l'uso degli assistenti e della knowledge e il 3
 è il solo che porta un caso fino in fondo.
 
-Niente schizzi, niente animatic, niente versioni parallele: gli schizzi (`schizzi.md`, `animazione.md`) si
-fanno solo se l'utente li chiede per un'agenzia.
+Niente animatic, niente versioni parallele: lo storyboard con le scene descritte per esteso
+([`descrizione.md`](descrizione.md)) si fa solo se l'utente lo chiede, per esempio per un'agenzia.
 
 ## Passi
 

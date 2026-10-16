@@ -23,7 +23,7 @@ su ambiente e company dichiarati, e le entità si cancellano solo con un altro s
 
 | Chi | Fa | Non fa |
 |---|---|---|
-| **Questa skill** | tavole, battute, tempi, schizzi, voce guida di prova, artifact | il video, la musica, la voce finale, i loghi |
+| **Questa skill** | tavole, battute, tempi, descrizioni dettagliate delle scene, voce guida di prova, artifact | il video, la musica, la voce finale, i loghi |
 | `xrcopilotlab-blueprint-demo` | il brief degli scenari vendibili | lo storyboard |
 | `xrcopilotlab-blueprint-guide` | guida e deck per un cliente | il video |
 | L'utente | sceglie la fonte, approva il copione, decide se un cliente può comparire | — |
@@ -35,7 +35,6 @@ Input: `$ARGS` — un tag o un manifest, un dossier, la durata, il tono; oppure 
 | Passo | Documento |
 |---|---|
 | Le scene che non possono mancare (knowledge → assistente, assistente + skill) e come si ricavano dal manifest | [`references/base-piattaforma.md`](references/base-piattaforma.md) |
-| Animare gli schizzi delle scene `Dn` (clip con voce) | [`references/animazione.md`](references/animazione.md) |
 | **Il video narrato di default**: creazione + risultato, voce, montaggio, pagina con download | [`references/video-narrato.md`](references/video-narrato.md) |
 | **Terzo video: il processo in funzione, ruolo per ruolo** (istanza vera, un utente per ruolo, piano e sì) | [`references/processo-in-funzione.md`](references/processo-in-funzione.md) |
 | **La guida video nel tenant**: topic `BP-<TAG>-Guide` creato dal manifest, video indicizzati, un agente video per manifest che risponde citando il video | [`references/guida-video.md`](references/guida-video.md) |
@@ -43,7 +42,7 @@ Input: `$ARGS` — un tag o un manifest, un dossier, la durata, il tono; oppure 
 | Partire dalla guida del cliente: da slide a scena, punti di demo `Dn` | [`references/da-guida.md`](references/da-guida.md) |
 | Formato di una tavola, codici scena, tempi, colori | [`references/tavola.md`](references/tavola.md) |
 | Scrivere la voce, misurarla, generare l'audio di prova | [`references/narrazione.md`](references/narrazione.md) |
-| Disegnare gli schizzi in SVG e scrivere la descrizione di disegno | [`references/schizzi.md`](references/schizzi.md) |
+| Scrivere la descrizione dettagliata di ogni scena (inquadratura, azione, chi agisce, schermate, camera, suono, fonte, note) | [`references/descrizione.md`](references/descrizione.md) |
 | Modello della pagina | [`references/storyboard-template.html`](references/storyboard-template.html) |
 | Fonti, riservatezza, stato provato (della skill gemella) | [`../xrcopilotlab-blueprint-demo/references/fonti.md`](../xrcopilotlab-blueprint-demo/references/fonti.md), [`riservatezza.md`](../xrcopilotlab-blueprint-demo/references/riservatezza.md), [`scenari.md`](../xrcopilotlab-blueprint-demo/references/scenari.md) |
 | Vocabolario | [`../xrcopilotlab-blueprint-guide/references/linguaggio.md`](../xrcopilotlab-blueprint-guide/references/linguaggio.md), con l'eccezione qui sotto |
@@ -136,12 +135,15 @@ I tempi: la somma delle durate è **esattamente** la durata richiesta; le scene 
 battuta rispetta il budget di parole di [`narrazione.md`](references/narrazione.md).
 
 **Si mostra il copione all'utente** — tabella scena · titolo · secondi · battuta, non le tavole — e
-si attende un sì: è più economico correggere una riga che ridisegnare sei schizzi.
+si attende un sì: è più economico correggere una riga che riscrivere sei scene.
 
 ## 4. Le tavole
 
-Per ogni scena: tutti i campi di [`tavola.md`](references/tavola.md), lo schizzo SVG o, dove non
-basta, la descrizione di disegno ([`schizzi.md`](references/schizzi.md)).
+Per ogni scena: tutti i campi di [`tavola.md`](references/tavola.md) e la **descrizione dettagliata**
+di [`descrizione.md`](references/descrizione.md): inquadratura, azione in ordine, chi agisce (AI o persona),
+schermate e scritte, camera e transizione, suono, fonte, note per chi realizza. **Non si disegna**: niente
+schizzi SVG né segnaposto. L'unica immagine ammessa in un riquadro è l'applicazione vera — un fotogramma o un
+clip registrato di quella scena — quando c'è.
 
 **Il linguaggio.** Vale quello della guida per il cliente, con **una eccezione voluta**: nelle scene
 della parte basilare compaiono le parole **assistente/agente**, **knowledge** e **skill**, perché
@@ -188,7 +190,7 @@ Si fanno in quest'ordine; il 3 scrive istanze sul tenant e ha il suo piano e il 
 fare (di default tutti e tre, ciascuno quando le sue condizioni ci sono) e si pubblica una pagina con un
 `<video>` per ciascuno, il pulsante di download e il **tempo di creazione**. Procedura in
 [`references/video-narrato.md`](references/video-narrato.md); montaggio con `compose-video.py`, un file
-per video. Gli schizzi e l'animatic qui sotto restano solo per chi li chiede.
+per video.
 
 ## 5-quater-bis. Il processo in funzione, ruolo per ruolo (il terzo video)
 
@@ -216,17 +218,11 @@ versione nuova; procedura e frammento in [`references/guida-video.md`](reference
   e una fuori argomento che risponde «non c'è». La consegna riporta nome dell'agente, topic e versione
   del manifest.
 
-## 5-bis. Il video: l'animatic (solo su richiesta)
+## 5-bis. Lo schermo reale: `xrcopilotlab-demo`
 
-Lo storyboard da solo non si «guarda»: dai fotogrammi e dalla voce si monta un **animatic**, un video
-vero (MP4, 1280×720) in cui ogni scena resta a schermo per i suoi secondi, con lo schizzo a tutto fotogramma e, sotto, la traccia guida. **Nessun sottotitolo**, né nei video
-animati né in quelli registrati. Pesa circa 1 MB per 80 secondi. Le scene con un punto di demo `Dn` che il recorder non sa registrare si **animano**
-([`references/animazione.md`](references/animazione.md)): un clip per scena, con la sua battuta. Procedura in
-[`narrazione.md`](references/narrazione.md) § «L'animatic». Si incorpora in cima all'artifact con
-`<video controls>` e si pubblica come file di supporto (`animatic.mp4`).
-
-L'animatic è un **video di lavoro** — schizzi e voce — non il video finale. Il video con lo schermo
-reale dell'applicazione si registra con **`xrcopilotlab-demo`**, il banco di registrazione in forma di comando
+Lo storyboard non produce un animatic: le scene sono descritte, non disegnate. Per le scene che devono
+diventare video si **registra l'applicazione vera** e il riquadro mostra quel clip o un suo fotogramma.
+Il video con lo schermo reale dell'applicazione si registra con **`xrcopilotlab-demo`**, il banco di registrazione in forma di comando
 (come `xrcopilotlab-bp`: il lanciatore sta nel plugin `blueprints` e scarica il pacchetto al primo uso).
 Questa skill **assorbe** `xrcopilotlab-demo-video`: la panoramica di un blueprint applicato è
 `xrcopilotlab-demo tour`, le scene `Dn` sono `xrcopilotlab-demo record`. Tutto in
@@ -236,18 +232,20 @@ del piano, uscita (`video.mp4`, `scene-timings.json`, un clip per scena) e monta
 Regole che non si derogano: l'**ambiente** è quello scelto al §1 e si passa sempre con `--env`; la
 registrazione apre conversazioni e istanze sul tenant, quindi si **chiede il sì** prima di lanciarla; le
 credenziali dell'account demo non passano mai dalla skill; una scena senza selettori verificati resta
-uno schizzo e lo si dichiara.
+una scena descritta, e lo si dichiara.
 
 ## 6. Controlli bloccanti prima di pubblicare
 
 1. **Tempi**: somma delle scene = durata; nessuna battuta oltre la sua scena (durata dell'audio
    misurata, non stimata, se c'è).
 2. **Riservatezza**: l'elenco di [`riservatezza.md`](../xrcopilotlab-blueprint-demo/references/riservatezza.md)
-   sulle tavole, sulle battute **e sulle scritte negli schizzi** (un calendario con un nome vero è un
-   nome vero). Cerca nel file i nomi propri della fonte.
+   sulle tavole, sulle battute **e sui valori d'esempio delle descrizioni** (una schermata con un nome vero è
+   un nome vero). Cerca nel file i nomi propri della fonte.
 3. **Linguaggio**: nessuna parola vietata fuori dall'eccezione del §4.
 4. **Promesse**: nessuna scena fa decidere l'AI al posto di una persona, nessun numero non misurato.
 5. **Copertura**: ogni sezione del manifest ha il suo riquadro o il suo «non rappresentata, perché».
+6. **Descrizioni**: ogni scena ha tutti i campi di [`descrizione.md`](references/descrizione.md), e nessun
+   riquadro contiene un disegno.
 
 Se uno fallisce si corregge e si ripete: non si pubblica «con riserva».
 
@@ -258,8 +256,9 @@ Se uno fallisce si corregge e si ripete: non si pubblica «con riserva».
    `<title>` e `<h1>`: «<Scenario> — storyboard» (senza il prefisso `DEMO-`, che è del brief).
 3. Cartella di lavoro della sessione (o `../hevolus-assessment/marketing/` se l'utente la indica).
    **Stesso percorso a ogni versione**: il link dato non cambia.
-4. `files`: `storyboard.md` (la sorgente, con battute e descrizioni di disegno) e, se generati,
-   `audio/scena-<codice>.mp3`, `audio/narrazione.mp3` e `animatic.mp4`. La pagina li incorpora con `<audio>`. Gli
+4. `files`: `storyboard.md` (la sorgente, con battute e descrizioni dettagliate) e, se generati,
+   `audio/scena-<codice>.mp3` e i clip o fotogrammi registrati delle scene. La pagina incorpora le voci
+   scena per scena (pulsante «▶ voce»); **niente lettore della narrazione intera in testata**. Gli
    audio vanno **solo nell'artifact**, mai in un repository.
 5. Privato alla nascita; aprirlo subito nel browser dell'utente, **sempre in una nuova finestra a
    tutto schermo**, mai in una scheda della finestra che sta usando: lo storyboard si guarda una

@@ -77,16 +77,14 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-demo/references/riservatezza.md", DEST_DEMO / "references"),
     (".claude/skills/xrcopilotlab-blueprint-demo/references/brief.md", DEST_DEMO / "references"),
     (".claude/skills/xrcopilotlab-blueprint-demo/references/brief-template.html", DEST_DEMO / "references"),
-    # Lo storyboard di un video breve da un manifest: tavole, voce e audio guida. Legge, non esegue.
+    # Lo storyboard di un video breve da un manifest: scene descritte, voce e audio guida. Legge, non esegue.
     (".claude/skills/xrcopilotlab-blueprint-storyboard/SKILL.md", DEST_STORYBOARD / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/base-piattaforma.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/da-guida.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/registrazione.md", DEST_STORYBOARD / "references"),
-    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/animazione.md", DEST_STORYBOARD / "references"),
-    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/anima-schizzi.mjs", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/tavola.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/narrazione.md", DEST_STORYBOARD / "references"),
-    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/schizzi.md", DEST_STORYBOARD / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-storyboard/references/descrizione.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/storyboard-template.html", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/video-narrato.md", DEST_STORYBOARD / "references"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/references/processo-in-funzione.md", DEST_STORYBOARD / "references"),

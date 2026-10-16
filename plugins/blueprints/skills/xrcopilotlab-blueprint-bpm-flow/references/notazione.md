@@ -20,6 +20,16 @@ compensazioni, perché il motore non li ha.
 | `flows[].label` | etichetta sulla freccia, se c'è, **al posto** della condizione |
 | un ciclo (freccia verso un passo già percorso) | freccia **tratteggiata**, che scende sotto le corsie e risale al passo, con «ritorno» |
 
+### Il riquadro «Come funziona un compito»
+
+Testo fisso, uguale per ogni blueprint, che spiega il work item: l'arrivo nella lista, «Dati dagli step precedenti»,
+«Prendi», la bozza dell'assistente; il Process Copilot (`WorkItemCopilotPanel`: «Spiegami il compito» in ogni compito
+aperto o preso e non interattivo, «Precompila il form» solo per chi ha preso il compito, riempie solo i campi vuoti);
+il menu Esecutore (`performer`: HumanOnly «Solo umano», AiAssisted «Umano + AI», Automated «Automatizzato»; cambiarlo
+azzera «Interattiva»); l'interruttore «Interattiva» (`interactive: true`: dopo «Prendi» si apre la chat, al posto del
+Copilot). Dal manifest viene solo quali passi usano ciascuna scelta. Se cambia il comportamento del work item, si
+aggiorna `howBox` nel visualizzatore.
+
 ### Le corsie
 
 Una corsia per ruolo: quella che il manifest scrive in `roleName`. Le attività con

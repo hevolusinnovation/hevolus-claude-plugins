@@ -31,7 +31,7 @@ conduce la demo ritrova i punti `D1…Dn`.
 Una slide `demo-Dn` o un `esempio-*` con `demo: Dn` è un punto in cui la sessione **mostra l'ambiente
 dal vivo**. Nello storyboard la scena corrispondente porta il codice `Dn` (campo `guida:` nel
 Markdown, etichetta «dalla guida» nella pagina): è la scena che, nel video finale, può diventare una
-**registrazione dello schermo reale** invece di uno schizzo (§ «Il video» di `SKILL.md`).
+**registrazione dello schermo reale** invece della sola descrizione (§ «Il video» di `SKILL.md`).
 
 ## Regole prese dalla guida
 

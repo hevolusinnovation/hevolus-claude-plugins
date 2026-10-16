@@ -98,7 +98,7 @@ Ogni scena `Dn` dello storyboard diventa un gruppo di step che comincia con `"sc
 
 I selettori dipendono dalla pagina e **non si inventano**: si prendono da un piano che già gira (gli
 esempi del banco) o dall'esplorazione dell'app. Una scena di cui non si hanno selettori verificati resta
-uno schizzo e lo storyboard lo dichiara. Il giro delle scene `Dn` è in **sola lettura**; la **chat con un assistente** (video 2, «come si usa») è
+una scena descritta e lo storyboard lo dichiara. Il giro delle scene `Dn` è in **sola lettura**; la **chat con un assistente** (video 2, «come si usa») è
 ammessa alle condizioni qui sotto, l'avvio di processi (video 3) no finché il banco non sa farlo con
 garanzie.
 
@@ -146,7 +146,7 @@ si sovrapporrebbero. `--captions` li accende, solo se serve un video da guardare
 ## Il montaggio
 
 Con `scene-timings.json` e i clip la skill monta il video finale con `ffmpeg`: per ogni scena del
-copione, il clip registrato (se c'è) oppure il fotogramma dello schizzo, per la durata della scena, con
+copione, il clip registrato (se c'è) oppure una scheda di testo con il titolo della scena, per la durata della scena, con
 sopra la traccia della voce (`narrazione.mp3`). Le scene registrate durano quanto il loro clip: se il clip
 è più lungo della scena si accelera o si taglia, mai si altera la voce; se è più corto si tiene
 l'ultimo fotogramma.
