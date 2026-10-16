@@ -925,23 +925,28 @@ solo in produzione).
 #### `catalog install`
 
 ```
-xrcopilotlab-bp catalog install <modello> [--version <n>] [--tag <TAG>] [--topic <nome> | --existing-topic <nome>] [--members "<ruolo>=<email>,…;…"] [--yes] [--overwrite] [--env] [--company]
+xrcopilotlab-bp catalog install <modello> [--version <n>] [--tag <TAG>] [--prefix "<testo>" | --no-prefix] [--topic <nome> | --existing-topic <nome>] [--members "<ruolo>=<email>,…;…"] [--replace "<segnaposto>=<utente>;…"] [--yes] [--overwrite] [--env] [--company]
 ```
 
 | Argomento / opzione | Default | Significato |
 |---|---|---|
 | `<modello>` | obbligatorio | l'identificativo del modello (da `catalog list`) |
 | `--version <n>` | l'ultima | quale versione del modello |
-| `--tag <TAG>` | quello del modello più il codice del nome del tenant (`LEGAL` su «Pippo SRL» → `LEGALPIPPOSRL`, max 20 caratteri), o quello dell'installazione precedente | il tag con cui installarlo, se valido e libero; non può essere già di un altro blueprint del tenant (3). Se dal nome del tenant non si ricava un tag, `BP109` e serve `--tag` |
+| `--tag <TAG>` | quello del modello, o quello dell'installazione precedente | il tag con cui installarlo; non può essere già di un altro blueprint del tenant (3). *Dopo la 2.21: senza `--tag`, il tag del modello più il codice del nome del tenant (`LEGAL` su «Pippo SRL» → `LEGALPIPPOSRL`), `BP109` se non si ricava (#1427).* |
+| `--prefix "<testo>"` | quello del modello (di norma `BP-<TAG>-`), o quello dell'installazione precedente | il prefisso dei nomi delle entità, così com'è: `--prefix "Studio · "` → «Studio · Agenda». Diventa `naming.prefix` del manifest installato. Oltre 40 caratteri, di soli spazi o su più righe: `BP110` (2) |
+| `--no-prefix` | spento | le entità si chiamano come nel modello, senza prefisso. Esclude `--prefix` |
 | `--topic <nome>` | quello del modello, o dell'installazione precedente | il topic da creare |
 | `--existing-topic <nome>` | — | un topic già presente da riusare, al posto di `--topic` |
 | `--members "…"` | quelli dell'installazione precedente | le persone di ogni ruolo: `referente=a@studio.it,b@studio.it;segreteria=c@studio.it` |
+| `--replace "…"` | — | con quale utente del tenant sostituire ogni indirizzo segnaposto del modello (di esempio o `hevolus.it`): `referente@esempio.invalid=marco@studio.it;…`. Un segnaposto senza sostituto ferma l'installazione (`BP108`) |
 | `--yes` | spento | approva la copia **e** salta le domande sulle persone al terminale |
 | `--overwrite` | spento | riscrive una versione già presente nell'archivio del tenant |
 
 Al terminale, per ogni ruolo rimasto senza persone, chiede le email; un ruolo a cui il modello
 indirizza dei passi non può restare vuoto (`BP105`). Una seconda installazione dello stesso modello
-riparte dalle scelte della prima: è così che si **aggiorna**. Copia la versione nell'archivio del
+riparte dalle scelte della prima — tag, prefisso dei nomi, topic, persone: è così che si **aggiorna**.
+Il prefisso si sceglie alla prima installazione: su un blueprint già applicato una versione con un
+prefisso diverso ferma il piano (`BP111`). Copia la versione nell'archivio del
 tenant (con un'intestazione che dice da dove viene), elenca le credenziali da impostare con
 `secrets set` e il `plan` da lanciare dopo. **Sul tenant non crea niente.**
 
@@ -951,7 +956,7 @@ tenant (con un'intestazione che dice da dove viene), elenca le credenziali da im
 ```bash
 xrcopilotlab-bp catalog list    --env staging --company 4da69cbc-d935-4050-f410-08d8392ca08f
 xrcopilotlab-bp catalog publish blueprints/catalogo/legal-agenda.yml --check
-xrcopilotlab-bp catalog install legal-agenda --env staging --company <tenant> \
+xrcopilotlab-bp catalog install legal-agenda --env staging --company <tenant> --prefix "Studio · " \
     --members "referente=avvocato@esempio.it;segreteria=segreteria@esempio.it"
 ```
 
@@ -1458,7 +1463,7 @@ xrcopilotlab-bp schedule logs   <task> --tag <TAG> [--last <n>] [--run <runId>] 
 
 | Argomento / opzione | Default | Significato |
 |---|---|---|
-| `<task>` | obbligatorio per `pause`, `resume`, `logs` | la chiave del manifest (`agentTasks[].key`), il nome, o il nome qualificato `BP-<TAG>-…` |
+| `<task>` | obbligatorio per `pause`, `resume`, `logs` | la chiave del manifest (`agentTasks[].key`), il nome, o il nome qualificato dal prefisso del blueprint (`BP-<TAG>-…` o il suo `naming.prefix`) |
 | `--tag <TAG>` | obbligatorio | il blueprint |
 | `--run <runId>` | l'ultimo run completato | da quale inventario prendere i task |
 | `--last <n>` | 10 (fra 1 e 100) | in `logs`, quante esecuzioni mostrare |
@@ -1525,7 +1530,7 @@ xrcopilotlab-bp mcp test <server> --tag <TAG> [--tool <nome>] [--args <json>] [-
 
 | Argomento / opzione | Sottocomando | Default | Significato |
 |---|---|---|---|
-| `<server>` | `publish`, `test` | obbligatorio | la chiave del manifest (`mcpServers[].key`), il nome, o `BP-<TAG>-…` |
+| `<server>` | `publish`, `test` | obbligatorio | la chiave del manifest (`mcpServers[].key`), il nome, o il nome con il prefisso del blueprint |
 | `--tag <TAG>` | tutti | obbligatorio | il blueprint |
 | `--run <runId>` | `check`, `publish`, `test` | l'ultimo run completato | da quale inventario |
 | `--remove` | `orphans` | spento | cancella le voci orfane che nessun agente carica |
@@ -1538,11 +1543,13 @@ xrcopilotlab-bp mcp test <server> --tag <TAG> [--tool <nome>] [--args <json>] [-
   catalogo, letto dal gateway come lo legge la chat (quanti tool, o «non raggiungibile»); e, per ogni
   agente collegato in inventario, se in chat lo carica davvero. Esce **0** se tutto coincide, **4**
   altrimenti, con il suggerimento di `mcp publish`.
-- **`orphans`** — il caso opposto: voci del catalogo con il prefisso `BP-<TAG>-` il cui server **non
+- **`orphans`** — il caso opposto: voci del catalogo con il prefisso del blueprint (`BP-<TAG>-`, o il
+  suo `naming.prefix`) il cui server **non
   esiste più** nel Builder (lasciate dai rollback di prima di fine settembre 2026), e quali agenti le
   caricano, in **tutti** i topic. Non serve un run. Senza `--remove` elenca soltanto (0). Con
   `--remove` cancella solo le orfane che nessun agente carica; senza `--yes` si ferma con **6**; se i
-  collegamenti di qualche agente non si sono letti, non cancella niente (**3**).
+  collegamenti di qualche agente non si sono letti, non cancella niente (**3**). Un blueprint senza
+  prefisso (`naming.prefix: ""`) non si può cercare per nome: il comando si rifiuta (**1**).
 - **`publish`** — ripubblica il server nel catalogo con lo stesso id, così i collegamenti tornano a
   risolversi. **Ruota la chiave del gateway**: quella precedente smette di valere. Esce 4 se il server
   non è pubblicabile o se l'id pubblicato non è quello che i collegamenti citano (in quel caso la
@@ -1581,7 +1588,7 @@ xrcopilotlab-bp connections refresh [<connessione>] --tag <TAG> [--run <runId>] 
 
 | Argomento / opzione | Default | Significato |
 |---|---|---|
-| `<connessione>` | tutte | in `refresh`, la chiave del manifest, il nome o `BP-<TAG>-…` |
+| `<connessione>` | tutte | in `refresh`, la chiave del manifest, il nome o il nome con il prefisso del blueprint |
 | `--tag <TAG>` | obbligatorio | il blueprint |
 | `--run <runId>` | l'ultimo run completato | da quale inventario |
 
@@ -1856,6 +1863,9 @@ risponderà male o non verrà applicato.
 | `BP103` | Un riferimento a un segreto porta già un tenant |
 | `BP104` | Il modello porta documenti e nessuno ne ha dichiarato rivista l'origine |
 | `BP105` | All'installazione, un ruolo a cui il modello indirizza dei passi è rimasto senza persone |
+| `BP108` | All'installazione, un indirizzo segnaposto del modello non ha un sostituto (`--replace`) |
+| `BP110` | Il prefisso dei nomi (`naming.prefix`, `--prefix`) non si può usare: oltre 40 caratteri, di soli spazi o su più righe |
+| `BP111` | La versione nuova cambia il prefisso dei nomi di un blueprint già applicato: un aggiornamento non rinomina. Rimettere quello di prima, o `rollback` e `apply` di nuovo |
 
 I codici del collaudo (`BT0xx`) sono nel
 [riferimento del collaudo](../skills/xrcopilotlab-blueprint-test/references/testing.md). Il significato
@@ -1991,6 +2001,14 @@ restano valide in lettura).
 
 La CLI del plugin è la **2.18.0** (release `bp-v2.18.0`, 06/10/2026). Tutto ciò che questa guida
 descrive è lì.
+
+### Cosa è arrivato con la 2.21.0
+
+| Novità | Dove se ne parla |
+|---|---|
+| Il prefisso dei nomi si sceglie: `naming.prefix` nel manifest (`"Studio · "`, o `""` per nessuno); senza, resta `BP-<TAG>-`. `BP110` prefisso non valido, `BP111` prefisso cambiato su un blueprint già applicato (#1447) | [manifest](../skills/xrcopilotlab-blueprint/references/manifest-reference.md) |
+| `catalog install --prefix "<testo>" \| --no-prefix`, e `--replace` per gli indirizzi segnaposto (`BP108`) | [`catalog install`](#catalog-install) |
+| Il piano dice con che prefisso nomina le entità; `schedule`, `mcp`, `connections` riconoscono i nomi con il prefisso scelto | [`plan`](#plan) |
 
 ### Cosa è arrivato con la 2.18.0, rispetto alla 2.17.0
 

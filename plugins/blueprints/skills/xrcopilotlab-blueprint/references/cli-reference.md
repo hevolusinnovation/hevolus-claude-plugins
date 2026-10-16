@@ -521,28 +521,43 @@ modello: [`catalogo.md`](catalogo.md).
 
 ```bash
 xrcopilotlab-bp catalog list --env staging [--company <tenant>]
+xrcopilotlab-bp catalog pull legal-agenda --env staging --out <file> [--version <n>] [--with-files]
 xrcopilotlab-bp catalog publish ~/.xrcopilotlab/blueprints/LEGAL/legal-agenda.yml --env staging [--documents-reviewed]
 xrcopilotlab-bp catalog install legal-agenda --env staging --company <tenant> \
-    [--version <n>] [--tag <TAG>] [--topic <nome> | --existing-topic <nome>] \
-    [--members "referente=a@studio.it,b@studio.it;segreteria=c@studio.it"]
+    [--version <n>] [--tag <TAG>] [--prefix "<testo>" | --no-prefix] \
+    [--topic <nome> | --existing-topic <nome>] \
+    [--members "referente=a@studio.it,b@studio.it;segreteria=c@studio.it"] \
+    [--replace "segnaposto@esempio.invalid=utente@studio.it;capo@hevolus.it=altro@studio.it"]
 ```
 
-- **`install`** — senza `--tag`, il tag della copia è quello del modello seguito dal codice del nome
-  del tenant (`LEGAL` su «Pippo SRL» → `LEGALPIPPOSRL`); un aggiornamento tiene il tag già installato.
-  Se il nome non si ricava (`BP109`), il comando si ferma e chiede `--tag`.
 - **`list`** — l'ultima versione di ogni modello, con che cosa crea. Con `--company`, anche che
   cosa ha installato quel tenant e se nel catalogo c'è una versione più nuova.
+- **`pull`** — riscrive su disco un modello del catalogo (sola lettura), per rivederlo o correggerlo
+  e ripubblicarlo con una versione nuova. `pull` normale non lo raggiunge: il catalogo non è un tenant.
 - **`publish`** — controlla che il file sia un **modello** (`BP100`–`BP104`: nessun tenant, nessuna
   persona né email, segreti senza tenant, documenti rivisti) e che, installato per finta, sia un
   manifest valido; poi lo scrive nel catalogo. In produzione chiede conferma. Con `--check` si ferma
   al controllo, senza rete e senza scrivere: è il modo di provare una bozza. È riservato a Hevolus:
   scrive nella partizione che ogni tenant legge.
 - **`install`** — copia una versione del modello nell'archivio del tenant con le scelte di chi
-  installa: tag (default quello del modello), topic, persone di ogni ruolo. Le persone si danno con
+  installa: tag (default quello del modello), prefisso dei nomi, topic, persone di ogni ruolo.
+  Il **prefisso** si sceglie con `--prefix "Studio · "` (le entità si chiamano «Studio · Agenda») o
+  `--no-prefix` (si chiamano come nel modello); senza, resta quello del modello — di norma
+  `BP-<TAG>-` — o quello dell'installazione precedente. Diventa `naming.prefix` del manifest
+  installato: vedi [manifest-reference.md](manifest-reference.md#naming-come-si-chiamano-le-entità). Le persone si danno con
   `--members` o, al terminale, rispondendo a una domanda per ruolo; un ruolo a cui il modello
   indirizza dei passi non può restare vuoto (`BP105`). Una seconda installazione dello stesso modello
   riparte dalle scelte della prima: è così che si **aggiorna** — la versione nuova arriva con lo
   stesso tag e il piano la applica sul posto (#1126).
+
+  **Persone che nel tenant non ci sono.** Il blueprint le persone le aggiunge ai ruoli, non le crea,
+  e un modello del catalogo non ne nomina di vere: può però portare indirizzi **segnaposto** (di
+  esempio, `…@esempio.invalid`, o di Hevolus, `…@hevolus.it`) in owner, destinatari e testi. `install`
+  **si ferma e chiede con quale utente del tenant sostituire ciascuno**: al terminale con una domanda
+  per indirizzo, altrimenti esce con `BP108` e l'elenco, e chi guida la CLI lo chiede a chi installa e
+  ripete con `--replace`. Lo stesso per i membri dei ruoli e per i sostituti che non sono utenti del
+  tenant: `install` legge gli utenti, e per ognuno che manca elenca quelli che ci sono (exit **3**,
+  oppure la domanda al terminale). Mai scegliere un utente al posto di chi installa.
 
 Come `promote`, **`install` non crea niente sul tenant**: dopo servono `plan` e `apply` con la loro
 approvazione; le credenziali che il comando elenca si precaricano con `secrets set`, oppure si
@@ -885,7 +900,7 @@ xrcopilotlab-bp schedule resume sorveglianza-posta   --tag STUDIOPOLIS --env sta
 ```
 
 Il task si indica con la **chiave del manifest** (`agentTasks[].key`), con il nome o con il nome
-qualificato `BP-<TAG>-…`, e si risolve dall'inventario dell'ultimo run completato del tag (`--run`
+qualificato dal prefisso del blueprint (`BP-<TAG>-…`, o il suo `naming.prefix`), e si risolve dall'inventario dell'ultimo run completato del tag (`--run`
 per sceglierne un altro). La pausa non tocca il manifest né l'inventario: l'espressione cron resta,
 e `resume` riprende da lì ricalcolando la prossima esecuzione.
 
@@ -1030,7 +1045,7 @@ L'annullamento passa dall'API, che registra `InstanceCancelledByUser` con chi l'
 lo esegue in coda. Emerso il **2026-09-24**: un collaudo di Studio Polis aveva lasciato una quarantina
 di istanze ferme ai compiti del referente, chiudibili solo a mano una per una.
 
-## `mcp check` · `mcp publish <server>` · `mcp test <server> [--tool] [--args]`
+## `mcp check` · `mcp publish <server>` · `mcp test <server> [--tool] [--args]` · `mcp authorize <server>`
 
 Un server MCP applicato da blueprint vive in tre posti: la **definizione** nel Builder, la
 **pubblicazione** nel catalogo del tenant (la riga che l'agente carica in chat, con lo stesso id del
@@ -1054,6 +1069,27 @@ quando l'agente dice «errore di autorizzazione» e il log dice solo `ok: true`:
 del sistema di terze parti — per esempio l'`AADSTS…` di Entra — senza passare dal modello. Senza
 `--tool` usa il `testTool` del manifest, in sola lettura.
 
+### `mcp authorize <server>` — l'accesso a Google di un server nativo
+
+Un server `kind: native` (vedi il manifest) è la copia, per il tenant, di un server nativo Google, con
+l'app OAuth del cliente. L'apply lo crea ma **non lo autorizza**: il consenso lo dà una persona con il
+suo account Google.
+
+```bash
+xrcopilotlab-bp mcp authorize calendario --tag STUDIOPOLIS --env staging          # stampa il link e attende
+xrcopilotlab-bp mcp authorize calendario --no-wait --tag STUDIOPOLIS              # stampa il link e basta
+```
+
+Il comando: completa la riga OAuth con client id e secret del cliente se l'apply l'aveva lasciata
+vuota (segreti non ancora impostati); chiede alla piattaforma il link di consenso Google per quel
+servizio; lo stampa, e **attende fino a 5 minuti** che l'autorizzazione risulti registrata. La CLI non
+vede mai password né token. Se il server è già autorizzato lo dice ed esce **0**.
+
+Esce **0** a consenso registrato; **4** se Google lo rifiuta o l'API non risponde; **5** se il consenso
+non arriva entro 5 minuti (il link resta valido: si completa e si ripete il comando); **3** se i segreti
+dell'app Google non sono impostati (`secrets set`). Non lancia il browser: si apre il link a mano, con
+l'account Google da collegare.
+
 Emerso il **2026-09-14**: sul tenant di Studio Polis la riga del catalogo del server Microsoft 365
 era sparita fra due collaudi, con i quattro collegamenti ancora in piedi; la causa non è stata
 trovata (telemetria di staging non interrogabile), la riparazione è stata `mcp publish`.
@@ -1068,11 +1104,14 @@ xrcopilotlab-bp mcp orphans --tag STUDIOPOLIS --env staging                  # s
 xrcopilotlab-bp mcp orphans --tag STUDIOPOLIS --env staging --remove --yes   # cancella le orfane non usate
 ```
 
-Elenca le voci del catalogo con il prefisso `BP-<TAG>-`, dice per ciascuna se il server esiste e
+Elenca le voci del catalogo con il prefisso del blueprint (`BP-<TAG>-`, o il `naming.prefix`
+dell'ultima versione), dice per ciascuna se il server esiste e
 quali agenti la caricano — in **tutti** i topic del tenant, non solo in quello del blueprint. Non
 serve un run: le orfane sono proprio quelle che nessun run elenca più. `--remove --yes` cancella
 solo le orfane che **nessun agente** carica; se i collegamenti di un agente non si leggono, non
-cancella niente (**3**). Senza `--yes` si ferma con **6**.
+cancella niente (**3**). Senza `--yes` si ferma con **6**. Un blueprint **senza prefisso**
+(`naming.prefix: ""`) non si può cercare per nome — ogni voce del tenant sembrerebbe sua — e il
+comando si rifiuta (**1**): le sue voci si controllano dall'interfaccia.
 
 Emerso il **2026-09-24**: fino a quel giorno `rollback` lasciava la pubblicazione nel catalogo,
 convinto che se ne andasse col server. L'API cancella solo la definizione, e dopo una trentina di

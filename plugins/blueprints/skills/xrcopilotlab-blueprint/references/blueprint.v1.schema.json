@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://xrcopilotlab.hevolus.it/schemas/blueprint.v1.schema.json",
   "title": "XRCopilotLab Blueprint manifest v1",
-  "description": "Descrizione dichiarativa di tutto ciò che un blueprint crea su un tenant XRCopilotLab. I nomi si scrivono senza prefisso: il planner antepone BP-<TAG>-. I segreti non compaiono mai come valore, solo come nome di una chiave di App Configuration.",
+  "description": "Descrizione dichiarativa di tutto ciò che un blueprint crea su un tenant XRCopilotLab. I nomi si scrivono senza prefisso: il planner antepone naming.prefix, o BP-<TAG>- se il manifest non ne sceglie uno. I segreti non compaiono mai come valore, solo come nome di una chiave di App Configuration.",
   "type": "object",
   "required": [
     "blueprint",
@@ -24,10 +24,22 @@
     "tag": {
       "type": "string",
       "pattern": "^[A-Z0-9]{2,20}$",
-      "description": "Contesto o cliente: entra nel prefisso di ogni entità creata."
+      "description": "Contesto o cliente. Senza naming.prefix entra nel prefisso BP-<TAG>- di ogni entità creata."
     },
     "description": {
       "type": "string"
+    },
+    "naming": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Come si chiamano le entità create. Senza, il prefisso è BP-<TAG>-.",
+      "properties": {
+        "prefix": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Testo anteposto a ogni nome, così com'è (spazi compresi), es. \"Polis · \". Stringa vuota: nessun prefisso, le entità si chiamano come nel manifest. Non si cambia su un blueprint già applicato (BP111)."
+        }
+      }
     },
     "extends": {
       "type": [
@@ -204,7 +216,7 @@
     },
     "mcpServers": {
       "type": "array",
-      "description": "Server MCP: costruiti con l'MCP Builder (builder), registrati nel catalogo (external), oppure già nel catalogo del tenant e soltanto collegati agli agenti (existing).",
+      "description": "Server MCP: costruiti con l'MCP Builder (builder), registrati nel catalogo (external), già nel catalogo del tenant e soltanto collegati agli agenti (existing), oppure copie per il tenant di un server nativo Google con l'app OAuth del cliente (native).",
       "items": {
         "type": "object",
         "required": [
@@ -221,7 +233,8 @@
             "enum": [
               "builder",
               "external",
-              "existing"
+              "existing",
+              "native"
             ]
           },
           "name": {
@@ -231,6 +244,18 @@
           "mcpId": {
             "type": "string",
             "description": "kind=existing: id del server nel catalogo del tenant. Serve solo se più server hanno lo stesso nome; se c'è, vince sul nome."
+          },
+          "service": {
+            "type": "string",
+            "description": "kind=native: il servizio Google da collegare (calendar, drive o gmail). Dice quale server nativo copiare e quale rotta di autorizzazione usare."
+          },
+          "clientId": {
+            "type": "string",
+            "description": "kind=native: riferimento al segreto con il client id dell'app Google del cliente (Blueprints:Secrets:<TAG>:<nome>)."
+          },
+          "clientSecret": {
+            "type": "string",
+            "description": "kind=native: riferimento al segreto con il client secret dell'app Google del cliente. Il valore non sta mai nel manifest."
           },
           "description": {
             "type": "string"

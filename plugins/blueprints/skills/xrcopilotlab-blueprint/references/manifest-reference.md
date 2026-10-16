@@ -6,8 +6,9 @@ Esempio completo: [`esempio-minimo.yml`](esempio-minimo.yml).
 
 Due regole valgono ovunque nel file:
 
-- **I nomi si scrivono senza prefisso.** Il planner antepone `BP-<TAG>-`. Scriverlo a mano è un
-  errore segnalato (`BP014`), perché produrrebbe `BP-TEST-BP-TEST-…`.
+- **I nomi si scrivono senza prefisso.** Il planner antepone `BP-<TAG>-`, oppure il prefisso scelto in
+  [`naming.prefix`](#naming-come-si-chiamano-le-entità). Scriverlo a mano è un errore segnalato
+  (`BP014`), perché produrrebbe `BP-TEST-BP-TEST-…`.
 - **I segreti si citano, non si scrivono.** Ogni campo che conterrebbe una credenziale porta il
   **nome di una chiave** di App Configuration (`Blueprints:Secrets:<TAG>:<nome>`), creata con
   `xrcopilotlab-bp secrets set`. `<TAG>` è il tag del manifest: un valore in chiaro, o la chiave di
@@ -20,14 +21,41 @@ Due regole valgono ovunque nel file:
 ```yaml
 blueprint: test-agenda      # slug minuscolo, stabile fra le versioni
 version: 1                  # progressiva; una versione pubblicata è immutabile
-tag: TEST                   # ^[A-Z0-9]{2,20}$ — entra nel prefisso di ogni entità
+tag: TEST                   # ^[A-Z0-9]{2,20}$ — senza naming, entra nel prefisso di ogni entità
 description: ...
 extends: null               # riservato: accettato ma non ancora applicato
+naming:                     # facoltativo: senza, il prefisso è BP-TEST-
+  prefix: "Studio · "       # «Studio · Agenda»; "" = nessun prefisso
 
 tenant:
   companyId: 1111...        # GUID del tenant
   topic: Agenda di Studio   # crea un topic nuovo: diventa BP-TEST-Agenda di Studio
 ```
+
+### `naming`: come si chiamano le entità
+
+Senza `naming` ogni entità creata si chiama `BP-<TAG>-<nome>`. Con `naming.prefix` si sceglie il
+testo da anteporre, così com'è, spazi compresi:
+
+| `naming.prefix` | `name: Agenda` diventa |
+|---|---|
+| *(assente)* | `BP-TEST-Agenda` |
+| `"Studio · "` | `Studio · Agenda` |
+| `"Legal - "` | `Legal - Agenda` |
+| `""` | `Agenda` |
+
+Il prefisso è cosmetico: che un'entità sia del blueprint lo dice l'inventario del run, non il nome.
+Tre cose da sapere prima di sceglierlo:
+
+- **Si decide prima del primo apply.** Su un blueprint già applicato una versione con un prefisso
+  diverso si ferma (`BP111`): un aggiornamento non rinomina, e creerebbe un doppione di ogni entità.
+  Per cambiarlo: `rollback` e `apply` di nuovo.
+- **Senza prefisso le collisioni sono più probabili.** Un agente fatto a mano che si chiama come uno
+  del manifest ferma il piano (`BP060`), come sempre: il blueprint non sovrascrive.
+- **Al massimo 40 caratteri, su una riga, non di soli spazi** (`BP110`): finisce nel nome di ogni
+  entità.
+
+I segreti restano legati al **tag** (`Blueprints:Secrets:<TAG>:<nome>`), non al prefisso.
 
 ### Dove finiscono gli agenti: tre modi, uno per volta
 
@@ -587,6 +615,37 @@ mcpServers:
     name: Web Search                       # il nome ESATTO del catalogo, senza prefisso
     # mcpId: 8f1c…                         # solo se più server hanno lo stesso nome
 ```
+
+#### `kind: native` — un server nativo Google, con l'app del cliente
+
+Per leggere o scrivere su un servizio Google **a nome di una persona** (calendario, Drive, posta). La
+piattaforma ha per questi servizi un server MCP nativo; ma è uno solo, di tutti i tenant, e l'account
+Google collegato sarebbe uno solo. Con `native` il blueprint crea per il tenant una **copia**, con la
+sua riga OAuth e l'app Google del cliente, e l'autorizzazione la dà una persona del tenant.
+
+```yaml
+mcpServers:
+  - key: calendario
+    kind: native
+    name: Google Calendar                   # riceve il prefisso BP-<TAG>-
+    service: calendar                       # calendar | drive | gmail
+    clientId: Blueprints:Secrets:STUDIOPOLIS:google-client-id
+    clientSecret: Blueprints:Secrets:STUDIOPOLIS:google-client-secret
+```
+
+- **L'app Google è del cliente**: `clientId` e `clientSecret` sono riferimenti a segreti
+  (`BP047` rifiuta un valore in chiaro), che si impostano con `secrets set`. Il valore finisce solo
+  nella riga OAuth del server, non nel manifest.
+- **Non si configura**: `connection`, `tools`, `url`, `auth`, `mcpId` e simili appartengono al server
+  nativo, e su un `native` sono un errore (`BP043`). Un servizio senza server nativo è `BP107`.
+- **L'apply non autorizza**: crea il server e la riga OAuth «da autorizzare». Poi una persona esegue
+  `xrcopilotlab-bp mcp authorize <chiave> --tag <TAG>` (o lo fa dalla UI, Interoperabilità ›
+  MCP Servers) e accede con il suo account Google. Finché non lo fa, l'agente che lo usa dichiara la
+  fonte non disponibile. Se i segreti dell'app mancano all'apply, la riga nasce vuota e il piano avvisa
+  (`BP063`): `mcp authorize` la completa.
+- **Si smonta col blueprint**: il rollback toglie la riga OAuth e poi il server dal catalogo del tenant.
+  Il server nativo di piattaforma non si tocca mai.
+- Gli agenti lo citano in `mcp:` come qualunque altro server.
 
 #### `kind: existing` — un server che è già sul tenant
 

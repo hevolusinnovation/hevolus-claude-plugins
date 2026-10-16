@@ -17,6 +17,12 @@ bivi, che nei dossier restano spesso a livello di intenzione.
 **1. Di chi è questo processo.** Tag (cliente o contesto) e tenant. Il tag è maiuscole e cifre,
 2–20 caratteri: `STUDIOPOLIS`, `LEGAL`, `MARKETING`.
 
+Subito dopo, **come si devono chiamare le cose che il blueprint crea.** Senza scelta gli agenti, i
+processi, il topic escono come `BP-STUDIOPOLIS-Agenda`: chiedere se va bene o se l'utente preferisce
+un prefisso leggibile (`naming.prefix: "Polis · "` → «Polis · Agenda») o nessun prefisso
+(`prefix: ""` → «Agenda»). Va deciso **ora**: dopo il primo apply il prefisso non si cambia più
+(`BP111`). Senza prefisso dirlo chiaramente: un nome già usato sul tenant ferma il piano (`BP060`).
+
 **2. Come comincia.** Cosa fa partire il lavoro — una email, una telefonata, una richiesta a voce,
 una scadenza — e quali dati si conoscono in quel momento. Da qui esce il **modulo di avvio**.
 

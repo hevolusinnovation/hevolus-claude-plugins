@@ -63,7 +63,7 @@ finché un compito aspetta, non c'è niente da cercare nel calendario. Guida al 
 Le entità del blueprint si trovano **dall'inventario del run**: sono gli id che il blueprint ha
 creato, per chiave del manifest (`agents[].key`, `orchestrators[].key`, `processes[].key`). Senza
 `--run` si usa l'ultimo run completato del tag; se non ce n'è nessuno e il manifest è pubblicato,
-si cercano per nome qualificato (`BP-<TAG>-…`) sul tenant.
+si cercano per nome qualificato (`BP-<TAG>-…`, o il `naming.prefix` del manifest) sul tenant.
 
 Un caso la cui entità non esiste sul tenant esce in **errore** («non trovato»): succede quando la
 suite è scritta per una versione del manifest più nuova di quella applicata. È l'informazione
