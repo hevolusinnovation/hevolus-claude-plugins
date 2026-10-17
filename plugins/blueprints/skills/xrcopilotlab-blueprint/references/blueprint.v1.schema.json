@@ -48,6 +48,35 @@
       ],
       "description": "RISERVATO: accettato ma non ancora applicato."
     },
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Chi vede il blueprint, se si può copiare e chi lo governa (#1518).",
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "public",
+            "staging",
+            "tenant"
+          ],
+          "description": "public: catalogo ufficiale; staging: solo dentro staging; tenant: copia legata al suo tenant."
+        },
+        "locked": {
+          "type": "boolean",
+          "description": "Se vero non si copia, non si esporta, non si promuove né si pubblica."
+        },
+        "owners": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "email"
+          },
+          "minItems": 1,
+          "description": "Email di chi governa il blueprint: cambiano access, pubblicano e applicano se è bloccato."
+        }
+      }
+    },
     "tenant": {
       "type": "object",
       "required": [
@@ -264,7 +293,11 @@
             "type": "string"
           },
           "promptMode": {
-            "enum": ["append", "replace", "skip"],
+            "enum": [
+              "append",
+              "replace",
+              "skip"
+            ],
             "description": "Cosa fare del prompt suggerito sull'agente che usa il server: append (default) lo mette in coda al system message, replace lo sostituisce, skip lo lascia solo sul server."
           },
           "connection": {
@@ -370,7 +403,11 @@
                   }
                 },
                 "responseFormat": {
-                  "enum": ["json", "xml", "text"],
+                  "enum": [
+                    "json",
+                    "xml",
+                    "text"
+                  ],
                   "description": "Come leggere la risposta. 'text' per le chiamate che rispondono senza corpo (sendMail, reply): un 202 vuoto non è un JSON."
                 },
                 "contentType": {
@@ -696,6 +733,35 @@
                   ],
                   "description": "Assente = reference: è il tipo che la skill spreadsheet legge."
                 }
+              }
+            }
+          },
+          "embed": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Embed dell'endpoint di chat (#1518), applicato a ogni versione.",
+            "properties": {
+              "public": {
+                "type": "boolean"
+              },
+              "domains": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Origini autorizzate: https://sito.it o https://*.sito.it."
+              },
+              "identity": {
+                "type": "string",
+                "enum": [
+                  "declared",
+                  "jwt-hs256",
+                  "jwt-rs256",
+                  "session"
+                ]
+              },
+              "requireIdentity": {
+                "type": "boolean"
               }
             }
           }
@@ -1105,6 +1171,35 @@
               }
             },
             "description": "Archi fra gli step. Si chiamano flows e non connections: connections, nel manifest, sono le connessioni verso i sistemi di terze parti."
+          },
+          "embed": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Embed dell'endpoint di chat (#1518), applicato a ogni versione.",
+            "properties": {
+              "public": {
+                "type": "boolean"
+              },
+              "domains": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Origini autorizzate: https://sito.it o https://*.sito.it."
+              },
+              "identity": {
+                "type": "string",
+                "enum": [
+                  "declared",
+                  "jwt-hs256",
+                  "jwt-rs256",
+                  "session"
+                ]
+              },
+              "requireIdentity": {
+                "type": "boolean"
+              }
+            }
           }
         }
       }

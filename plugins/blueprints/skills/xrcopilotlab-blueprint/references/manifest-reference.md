@@ -26,6 +26,10 @@ description: ...
 extends: null               # riservato: accettato ma non ancora applicato
 naming:                     # facoltativo: senza, il prefisso è BP-TEST-
   prefix: "Studio · "       # «Studio · Agenda»; "" = nessun prefisso
+access:                     # facoltativo (#1518): chi lo vede, se si copia, chi lo governa
+  scope: staging            # public | staging | tenant
+  locked: false             # true: non si installa, non si promuove, non si esporta, non si pubblica
+  owners: [giuseppe.zileni@hevolus.it]
 
 tenant:
   companyId: 1111...        # GUID del tenant
@@ -114,6 +118,55 @@ agents:
 - La chiave `topic` è riservata al topic di `tenant`. I nomi di agenti e profili si confrontano con
   quelli già presenti **nel topic in cui finiscono**.
 - Se ogni agente e profilo dichiara il proprio topic, `tenant` può non indicarne uno.
+
+### `embed`: l'endpoint di chat in un sito (#1518)
+
+Su un agente (`agents[].embed`) o su un orchestratore (`orchestrators[].embed`):
+
+```yaml
+embed:
+  public: true                          # embed pubblico in iframe
+  domains: [https://sito.it, http://localhost:4280]   # origini autorizzate (anche https://*.sito.it)
+  identity: jwt-hs256                   # declared | jwt-hs256 | jwt-rs256 | session (facoltativa)
+  requireIdentity: true                 # senza identità l'embed non risponde
+```
+
+L'apply porta l'endpoint di chat a questo stato a **ogni versione** (operazione `ConfigureEmbed`): lo attiva, imposta
+l'embed pubblico, aggiunge i domini mancanti e toglie quelli dell'endpoint non più dichiarati (quelli dell'azienda
+non si toccano), salva la modalità d'identità. Il segreto HS256 o la chiave pubblica RS256 si impostano dalla UI e
+restano. Alla fine stampa l'indirizzo dell'iframe, relativo al sito della webapp, e per `session` la chiave API,
+mostrata una sola volta. Domini e identità sbagliati: `BP129`, `BP130`.
+
+Ogni dominio dell'endpoint entra nell'inventario del run (tipo `EmbedDomain`): la riga non se ne va con l'agente,
+e il `rollback` la toglie prima di lui.
+
+### `access`: scope, blocco e owner
+
+Facoltativa: senza, il blueprint resta com'era (nessun owner, nessun blocco). Con la chiave:
+
+| Campo | Valori | Che cosa decide |
+|---|---|---|
+| `scope` | `public` · `staging` · `tenant` | `public`: catalogo ufficiale, si installa in qualunque tenant. `staging`: si usa e si copia solo dentro staging. `tenant`: copia legata al tenant in cui sta, non si ripubblica né si porta altrove. |
+| `locked` | `true` · `false` | Se vero non si installa, non si promuove, non si esporta e non si pubblica (`BP123`); solo un owner lo applica (`BP125`). |
+| `owners` | email | Chi governa il blueprint: solo loro cambiano `access` (`BP124`), pubblicano nel catalogo (`BP127`) e, se è bloccato, portano nuove versioni. Almeno uno (`BP121`). |
+
+- **Le copie prendono `scope: tenant`**: l'installazione dal catalogo lo scrive nel manifest installato; la
+  promozione, che copia il manifest identico, lo registra nell'archivio (campo `scope` del documento). Da staging
+  a staging lo scope resta quello dell'originale.
+- **Valgono gli owner della versione in vigore**: una nuova versione che li cambia la porta un owner. Chi toglie sé
+  stesso riceve `BP126` e conferma con `--release-ownership`: da lì non governa più il blueprint.
+- **Chi sei** si legge dall'identità verificata (oggi il token Azure con cui la CLI scrive, con #1333 il token del
+  prodotto), mai da un profilo o da un'opzione. La CLI avvisa e si ferma prima; il controllo che conta è del server.
+- **Solo membri di Hevolus.** Oggi ogni operazione sui blueprint è riservata ai membri di Hevolus, anche
+  l'installazione dei modelli pubblici. Lo decide `HevolusIdentity`, un punto solo: dal token, tenant Entra di
+  Hevolus, email `@hevolus.it` e nessun segno d'ospite (`acct = 1`, `#EXT#` nell'`upn`, un `idp` esterno); dall'utente
+  registrato (le chiamate della webapp, che passano solo l'id), email `@hevolus.it` e, se c'è, il tenant salvato al
+  primo accesso. Nessun ruolo nuovo. Configurazione: sezione `BlueprintAccess` (`HevolusTenantId`,
+  `HevolusEmailDomain`), con i valori di Hevolus come predefiniti.
+- **Dove lo applica il server.** Le rotte `cli/*` rispondono 403 `hevolus_only` a chi non è membro; il catalogo
+  della webapp e i backup del tenant rispondono 403; la chat dei blueprint della webapp non si apre. Il catalogo
+  (CLI e webapp) mostra solo i modelli `public` e non bloccati, e quelli ancora senza `access`. La chat applica le
+  stesse regole degli owner prima di pubblicare o applicare una versione.
 
 ## `businessRoles`
 
@@ -932,3 +985,6 @@ variante a polling: quella il blueprint la crea per intero, questa no.
 | `BP060`–`BP065` | Preflight: collisione di nome, skill, utente, segreto o topic mancante; modello fuori catalogo (`BP065`) |
 | `BP070` | Sezione dichiarata ma non ancora applicata |
 | `BP090`–`BP092` | Orchestratori: tipo di step, campi, grafo |
+| `BP120`–`BP127` | `access` (#1518): scope non valido (`BP120`), owner mancanti o non email (`BP121`, `BP122`), blueprint bloccato o export che ne contiene entità (`BP123`), `access` cambiato da chi non è owner (`BP124`), nuova versione di un bloccato da chi non è owner (`BP125`), owner che toglie sé stesso (`BP126`, avviso), catalogo solo `public` e da un owner (`BP127`) |
+| `BP128` | Ruolo della webapp mancante nel tenant per alcune operazioni del piano: avviso nel piano, `apply` non parte |
+| `BP129`–`BP130` | `embed`: dominio non valido (`BP129`), modalità d'identità sconosciuta (`BP130`) |
