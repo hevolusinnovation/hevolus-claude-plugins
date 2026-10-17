@@ -258,6 +258,12 @@ come `Blueprints:Secrets:<TAG>:<nome>`; la chiave vera porta anche il **tenant**
 tenant che installano lo stesso modello del catalogo con lo stesso tag non devono scriversi addosso
 (#1185).
 
+**Con il token (#1518).** Se la CLI ha una sessione (`login`), il valore va all'API (`POST cli/{companyId}/secrets`),
+che lo scrive in Key Vault con la sua identità gestita: non servono ruoli su Key Vault né su App Configuration, solo
+essere utente Hevolus e amministratore del tenant. La risposta porta la chiave, mai il valore. Un blueprint bloccato lo
+aggiorna solo un suo owner. Senza sessione resta la strada con i ruoli Azure. Allo stesso modo `secrets check` chiede
+all'API solo se ogni segreto c'è (`POST cli/{companyId}/secrets/check`).
+
 ```bash
 xrcopilotlab-bp secrets set --company <tenant> --tag STUDIOPOLIS graph-client-secret
 # Valore per Blueprints:Secrets:STUDIOPOLIS:graph-client-secret: ●●●●●●●●
@@ -299,6 +305,12 @@ Cosmos. Stampa identificativo, versione, percorso del blob e impronta SHA-256.
 
 Una versione pubblicata è **immutabile**: ripubblicare la stessa viene rifiutato. Si alza `version:`
 nel manifest, oppure — solo per iterare in sviluppo — si usa `--overwrite`.
+
+**Accesso (#1518).** Se la versione in vigore dichiara `access`, valgono i suoi owner: chi non è fra loro non
+cambia `access` (`BP124`) e non porta una versione nuova di un blueprint bloccato (`BP125`). Chi toglie sé stesso
+dagli owner riceve `BP126` e ripete con `--release-ownership` per confermare. Allo stesso modo `apply` di un
+blueprint bloccato è solo per un owner, e `promote`, `catalog install`, `export` e `catalog publish` di un
+blueprint bloccato li fa solo un suo owner (`BP123`).
 
 ## `pull --tag <TAG> [--version <n>] [--out <file>] [--with-files]`
 
@@ -457,6 +469,45 @@ Senza `--out` la cartella è `export-<tag>`; se contiene già un manifest non si
 Provato su staging con `--scope blueprint STUDIOPOLIS` contro il manifest di `STUDIOPOLIS` (`pull --tag STUDIOPOLIS`):
 stesse chiavi in tutte le sezioni; ruoli, agenti, agent task e processi identici, a meno dei dati
 personali; le differenze che restano sono quelle che il rapporto dichiara.
+
+**Blueprint bloccati (#1518).** L'export di un orchestratore, di un topic o del tenant intero si rifiuta (`BP123`)
+se porta con sé entità create da un blueprint bloccato applicato sul tenant, e chi esporta non è un suo owner: sarebbe
+una copia per un'altra strada. Contano solo le entità create dal blueprint, non quelle che ha adottato (un topic
+esistente). Vale anche per l'export di un orchestratore dalla CLI con il token; dall'editor della webapp, che non
+conosce gli owner, l'export di quelle entità non si fa.
+
+## `access migrate --owners <email,…> [--all | --catalog | --company <tenant>] [--apply] [--yes]`
+
+La migrazione una tantum di `access` (#1518): alle versioni archiviate prima che esistesse dà scope e owner,
+**nei soli campi d'accesso del documento d'archivio** — il manifest e la sua impronta non cambiano.
+
+| Dove sta la versione | Scope |
+|---|---|
+| catalogo (`--catalog`), su staging o in produzione | `public` |
+| un tenant di staging, copie comprese | `staging` |
+| un tenant di produzione, copie comprese | `tenant` |
+
+Con `--all` passa ogni archivio dell'ambiente che ha almeno una versione, catalogo compreso, in un comando solo: è
+la forma da usare per migrare un ambiente intero. Lo scope lo decide l'archivio in cui sta la versione, qualunque cosa
+dichiari il manifest: le versioni senza scope o con uno scope diverso si correggono, con i loro owner (quelli della
+versione, poi quelli del manifest, poi `--owners`). Da #1518 ogni scrittura — `push`, chat, `promote`, installazione —
+scrive già lo scope del posto, quindi la migrazione serve solo per l'archivio di prima. Senza `--apply` mostra solo
+l'elenco; in produzione scrivere chiede anche `--yes`. `--owners` è obbligatorio: una versione con accesso ha almeno
+un owner (`BP121`).
+
+**Collegamento al catalogo.** Nello stesso giro `access migrate` segna (`catalogModel`) le versioni di un tenant che hanno
+lo stesso identificativo di un modello del catalogo dell'ambiente: ne derivano, o il modello è nato da loro. È una
+marcatura: un'installazione dal catalogo la dice `promotedFrom`, come prima.
+
+## `access retag --tag <VECCHIO> --to <NUOVO> --company <tenant> [--blueprint <id>] [--apply] [--yes]`
+
+Cambia il tag delle versioni archiviate di un blueprint (#1518): la riga `tag:` e i riferimenti
+`Blueprints:Secrets:<TAG>:` nel testo del manifest, il documento d'archivio e l'impronta; il tag di prima resta in
+`previousTags`. Solo l'archivio, quindi si rifiuta se il tag vecchio ha **entità vive** sul tenant (i loro nomi
+`BP-<TAG>-…` e i segreti portano il tag): lì il tag si cambia con una versione nuova e un nuovo apply, dopo il rollback.
+Si rifiuta anche se il tag nuovo è di un altro blueprint del tenant; quello dello stesso blueprint va bene (due tag per
+un blueprint si riuniscono così). I segreti già impostati per il tag vecchio non si spostano: si rifanno con
+`secrets set`. Senza `--apply` mostra solo l'elenco; in produzione scrivere chiede anche `--yes`.
 
 ## `promote --tag <TAG> [--version <n>] [--from-env <e>] [--to-env <e>] [--from-company <guid>] [--to-company <guid>]`
 
@@ -668,6 +719,8 @@ nuova.
 - **Resta com'è** tutto il resto, e il piano lo dice: «N entità del blueprint restano come sono».
   I profili di knowledge esistenti **non si riattivano** (riaccoderebbe l'indicizzazione di tutti i
   file) e i processi BPM non si aggiornano sul posto, owner a parte.
+  I **file nuovi** di un profilo esistente invece si aggiungono (#1518): si caricano nel topic, si collegano al
+  profilo uno per uno senza riscrivere gli altri e si indicizzano solo loro (operazione `AddKnowledgeFiles`).
 - **Non si cancella niente.** Ciò che la versione nuova non dichiara più è segnalato (`BP068`) e
   resta. Ciò che non si può fare sul posto ferma il piano (`BP067`).
   Dal 12/10/2026 vale anche per la **definizione di un processo**: i processi non si riscrivono sul posto (si
@@ -697,6 +750,11 @@ All'esecuzione le entità del run di partenza **passano al run nuovo**, che da l
 da riprendere, collaudare o smontare; il run di partenza resta come storico, nello stato
 `Superseded`, e `rollback` su di lui rimanda al run nuovo. Il run nuovo registra anche che cosa ha
 aggiornato e com'era prima (`status --run <runId>`).
+
+**Ruoli nel tenant (#1518).** Prima dell'approvazione `plan` e `apply` leggono i tuoi ruoli della webapp nel tenant
+di destinazione e confrontano ogni operazione con il ruolo che la webapp chiede per farla a mano (`BP128`): i ruoli
+mancanti si vedono come avvisi nel piano, e `apply` non parte finché ne manca uno — meglio fermarsi prima che a metà,
+quando l'API rifiuterebbe. L'amministratore del tenant passa ogni controllo.
 
 ## `profile init-local [--port <porta>] [--key-env <VARIABILE>] [--yes]`
 
@@ -1047,6 +1105,13 @@ Durable usa Azurite con un task hub suo (`XRCopilotLabLocalHub`). Due cautele:
 
 Emerso il **2026-09-27**: la libreria 3.10.2 salva per intero il conto economico dei 548 bilanci di
 Confindustria Como, che la 3.10.1 riduceva a una riga, e il worker di staging era ancora sulla 3.10.1.
+
+**`knowledge add <profilo> <file…> --tag <TAG> [--yes]`** (#1518) aggiunge file dal disco a un profilo già
+indicizzato, senza una nuova versione del manifest: li carica nel topic, li collega al profilo uno per uno senza
+riscrivere gli altri e fa indicizzare solo loro (a grafo lo mette in coda il server, vettoriale chiede la
+reindicizzazione del file). Un file che il profilo ha già si riindicizza con `knowledge reingest --only`. Chiede un sì
+come l'apply. Per tenere il manifest allineato, aggiungere gli stessi file a `knowledge[].files` alla versione dopo:
+il piano li riconoscerà come già presenti.
 
 ## `instances list` · `instances show <id>` · `instances cancel`
 
