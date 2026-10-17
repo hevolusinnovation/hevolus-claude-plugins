@@ -263,6 +263,7 @@ possa capire cosa sta succedendo, e perché a volte è comodo lanciarli a mano.
 | `status --run <id>` | Dettaglio di un'esecuzione: chi ha approvato, cosa è stato creato |
 | `environments` | Su quali ambienti la **tua** utenza può davvero lavorare, e cosa manca dove non può |
 | `promote --tag <TAG> --to-env prod` | Copia una versione già pubblicata nell'archivio di un altro ambiente o di un altro cliente. Non crea niente sul tenant: dopo servono `plan` e `apply` |
+| `copies [--tag <TAG>]` | Quali blueprint si usano di più: copie fra tenant e ambienti, firmate, ordinate per copie applicate. Solo lettura, solo per lo staff |
 | `pull --tag <TAG>` | Riscrive su disco il manifest di una versione pubblicata, com'era stato scritto. Serve a recuperarlo e a confrontare due ambienti |
 | `secrets set --tag <TAG> <nome>` | Salva il valore di un segreto. Nel manifest ci sono solo i nomi |
 | `secrets check <file>` | Elenca i segreti che il file cita e quali mancano nell'ambiente |

@@ -49,7 +49,7 @@ Cosa riportare, in quest'ordine:
    ([«Quando non lo risolvi tu»](#quando-non-lo-risolvi-tu-ruoli-mancanti-e-difetti)): i due ruoli li
    dà in automatico il gruppo `@hevolus.it`, e se qui mancano il team deve saperlo.
 4. **I blueprint che esistono già**: non stanno nel repository né su disco ma solo
-   nell'archivio del tenant (`xrcopilotlab-bp status` sull'ambiente indicato): elencarli con tag e versione. È la risposta più utile, perché quasi sempre chi chiede aiuto vuole ripartire da uno.
+   nell'archivio del tenant (`xrcopilotlab-bp status` sull'ambiente indicato): elencarli con tag e versione. È la risposta più utile, perché quasi sempre chi chiede aiuto vuole ripartire da uno. Se la domanda è quali si usano di più, la risposta è `copies` (§ 6-sexies), solo per lo staff.
 5. **Cosa c'è già sul tenant**, se l'utente ha indicato un ambiente: `xrcopilotlab-bp status` lo
    dice in una riga per blueprint. Non lanciarlo di propria iniziativa su un ambiente non indicato.
 6. **I tre percorsi possibili**, come domanda finale: partire da un dossier di assessment, fare
@@ -797,6 +797,12 @@ Quattro cose da dire all'utente, perché sono le quattro che sorprendono:
 4. **I segreti non viaggiano** — nel manifest ci sono solo i nomi. Quelli che la destinazione non
    ha, `promote` li elenca: vanno impostati con `secrets set --env <destinazione>` prima del
    `plan`.
+5. **La copia è firmata e contata** (#1516): la CLI registra chi l'ha fatta, da dove a dove e
+   quando, e la riga `firmata` del risultato lo dice. La firma è l'identità Entra del terminale: se
+   la riga dice «firma non verificata», la copia è firmata con il nome utente del computer — fare
+   entrare l'utente (`az login` dal suo terminale, è un passo suo) **prima** di copiare, non dopo:
+   la firma di una copia già fatta non si corregge. Il registro è ciò da cui `copies` ricava i
+   blueprint più usati (§ 6-sexies).
 
 Per rileggere un manifest archiviato — anche senza il file, anche da un altro computer — c'è
 `pull --tag <TAG> [--out <file>] [--with-files]`. Due `pull` e un `diff` dicono senza
@@ -870,10 +876,43 @@ Al terminale (nessun `--yes`) la CLI fa le stesse domande da sé. In nessun caso
 `hevolus.it` o di esempio deve arrivare, tale e quale, nell'archivio di un tenant di un cliente: una
 approvazione o una mail indirizzata a una persona che non esiste non arriva a nessuno.
 
+Come `promote`, anche l'installazione è **firmata e contata** (#1516): la riga `firmata` del
+risultato va riportata, e se dice «non verificata» si ripete la regola del §6-bis — l'accesso Entra
+si fa prima di installare. Un'installazione dalla webapp la firma l'utente che l'ha approvata.
+
 **Scrivendo o correggendo un modello da pubblicare** (`catalog publish`, la partizione `default`): le
 persone sono `role:<chiave>`, gli altri indirizzi sono **finti** — `<nome>@esempio.invalid` — e mai un
 indirizzo di `hevolus.it` o di un cliente. `catalog publish --check` rifiuta gli indirizzi veri
 (`BP101`); la sostituzione con utenti reali la fa chi installa, come sopra.
+
+## 6-sexies. Quali blueprint si usano di più
+
+Quando l'utente chiede «quali blueprint si usano di più», «quante volte è stato copiato», «chi l'ha
+portato su quel cliente», «su quali investire»: il registro delle copie (#1516) lo dice, in sola
+lettura.
+
+```bash
+xrcopilotlab-bp copies                         # tutti gli ambienti, classifica intera
+xrcopilotlab-bp copies --env prod --top 10
+xrcopilotlab-bp copies --tag <TAG>             # ogni copia di un blueprint: firma, origine, destinazione
+xrcopilotlab-bp copies --since 2026-10-01
+```
+
+Come leggerla, e come riferirla:
+
+1. **L'ordine è per copie applicate**: una copia che nessuno ha mai applicato è un tentativo, non un
+   uso. Riportare sempre anche le copie totali e i tenant distinti accanto — la differenza fra le due
+   colonne è spesso la notizia (un blueprint copiato molto e applicato poco ha un problema).
+2. **Una riga è un blueprint d'origine**: staging → produzione → catalogo → clienti contano insieme.
+3. **Una firma con `*` non è verificata** (nome del computer, o una copia di prima del #1516): dirlo,
+   non presentarla come l'autore certo.
+4. **È un'informazione dello staff.** La classifica dice dove sono finite le copie di ogni cliente:
+   non va in un documento, in una guida, in una mail o in una pagina per un cliente, né nel
+   marketplace pubblico. Il nome di un altro cliente non si riferisce a un cliente.
+
+Senza `--env` legge tutti gli ambienti; se uno risulta illeggibile la CLI lo dichiara — riportarlo,
+perché un ambiente mancante sembrerebbe un ambiente senza copie. Per un uso in uno script c'è
+`--json`.
 
 ## 7. Cancellare un blueprint
 
@@ -889,6 +928,10 @@ Il cancello è **più duro** di quello di `apply`: `--yes` non vale, serve `--co
 tag esatto del blueprint. Si riporta all'utente l'avviso che il comando stampa — quante entità,
 quante versioni, e che non esiste un annulla — e si attende un sì che nomini quel blueprint. Un sì
 detto per un altro piano, o prima che il piano esistesse, non vale qui più che altrove.
+
+**Le copie restano nel registro** (#1516): `delete` non toglie gli eventi di copia, e il blueprint
+cancellato continua a contare in `copies`. È voluto — la classifica non deve dimenticare chi ha
+disinstallato — e va detto se l'utente chiede «cosa resta» dopo un `delete`.
 
 ## Codici di uscita
 
