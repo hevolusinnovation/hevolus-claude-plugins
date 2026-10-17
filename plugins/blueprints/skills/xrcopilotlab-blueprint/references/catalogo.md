@@ -67,6 +67,14 @@ La strada più corta parte da un tenant su cui lo scenario già funziona:
    documenti con la checklist della #807;
 3. `catalog publish <file> --documents-reviewed`, prima su staging.
 
+## Chi pubblica e che cosa si copia (#1518)
+
+Un modello con la chiave `access` entra nel catalogo solo se ha `scope: public`, non è bloccato e lo pubblica uno
+dei suoi `owners` (`BP127`, `BP123`). La copia installata in un tenant prende `scope: tenant` e conserva gli owner
+del modello; gli owner non contano come persone del modello (`BP101`) né come segnaposto da sostituire. Un modello
+senza `access` si pubblica come prima, finché la migrazione non lo dichiara. Dettagli: `manifest-reference.md`,
+sezione `access`.
+
 ## Installare e aggiornare
 
 `catalog install` copia il modello nell'archivio del tenant con le scelte di chi installa e

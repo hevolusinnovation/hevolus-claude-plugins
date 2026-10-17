@@ -691,6 +691,12 @@ Se il blueprint è già applicato su quel tenant, il piano **non** riporta colli
 Se il piano riporta collisioni, spiegare quale nome è già occupato e le tre strade — rinominare,
 cambiare tag, rimuovere l'entità esistente — senza sceglierne una.
 
+Se il piano riporta **`BP128`**, a chi applica manca nel tenant un ruolo della webapp che quelle operazioni
+chiedono (`topic-manager`, `agent-manager`, `process-manager`, oppure l'amministratore del tenant per
+orchestratori, agent task, connessioni, server MCP e ruoli aziendali). `apply` non parte finché ne manca uno:
+riportare quali ruoli e per quante operazioni, e che li assegna l'amministratore del tenant dalla webapp. Non
+proporre di applicare «solo il resto».
+
 ## 6. Applicare, solo dopo il sì
 
 ```bash
@@ -759,7 +765,11 @@ Cosa riportare all'utente prima di chiedere il sì, perché è su questo che dec
 - **che non si cancella niente**: ciò che la versione nuova non dichiara più è un avviso `BP068` e
   resta sul tenant;
 - se il piano si ferma con **`BP067`**, la modifica non si può fare sul posto (un'entità tolta a
-  mano, file nuovi su un profilo già indicizzato): riportare il messaggio, non cercare strade intorno.
+  mano): riportare il messaggio, non cercare strade intorno;
+- i **file nuovi** di un profilo già indicizzato non fermano più il piano (#1518): diventano l'operazione
+  «aggiungi file e reindicizza», che li carica, li collega al profilo e indicizza solo loro. Per aggiungere
+  documenti **senza una versione nuova** c'è `knowledge add <profilo> <file…> --tag <TAG>`, con lo stesso sì
+  dell'apply; poi si aggiungono gli stessi file a `knowledge[].files` alla versione dopo.
 
 Se il piano dice che **il tenant è già come la versione lo vuole**, non c'è niente da approvare e il
 comando esce `0`.
@@ -913,6 +923,39 @@ Come leggerla, e come riferirla:
 Senza `--env` legge tutti gli ambienti; se uno risulta illeggibile la CLI lo dichiara — riportarlo,
 perché un ambiente mancante sembrerebbe un ambiente senza copie. Per un uso in uno script c'è
 `--json`.
+
+## 6-septies. Chi governa un blueprint: `access`, embed
+
+**`access`** (#1518, [`manifest-reference.md`](references/manifest-reference.md#access-scope-blocco-e-owner)) è
+facoltativo e dice tre cose: dove può andare il blueprint (`scope: public | staging | tenant`), se si può copiare
+(`locked`) e chi lo governa (`owners`, per email). Quando proporlo, scrivendo il manifest:
+
+- per un modello che andrà nel **catalogo ufficiale**: `scope: public`, `locked: false`, gli owner che l'utente
+  indica — mai indovinati;
+- per un blueprint **riservato** (un assistente interno, un ambiente che non deve uscire dal tenant):
+  `scope: tenant`, `locked: true`;
+- per il lavoro su staging: `scope: staging`, oppure niente, finché non serve.
+
+Che cosa riportare quando una regola ferma un comando, invece di cercare strade intorno:
+
+- **`BP123`** — il blueprint è bloccato: non si installa, non si promuove, non si esporta, non si pubblica, e non si
+  esporta nemmeno un orchestratore, un topic o il tenant che ne contiene entità. Lo sblocca solo un owner, con una
+  versione nuova;
+- **`BP124`/`BP125`** — chi lancia il comando non è fra gli owner della versione in vigore: lo deve fare uno di
+  loro. Gli owner si riconoscono dall'email dell'identità verificata, non da un'opzione;
+- **`BP126`** — la versione nuova toglie dagli owner chi la porta: chiedere all'utente se vuole davvero cedere il
+  blueprint, e solo con un sì ripetere con `--release-ownership`. Da lì non lo governa più;
+- **`403 hevolus_only`** — oggi ogni operazione sui blueprint è riservata ai membri di Hevolus, anche
+  l'installazione dal catalogo: un account esterno o ospite non passa, e non c'è un ruolo da chiedere.
+
+Per i blueprint archiviati prima di `access` c'è `access migrate` (anteprima senza `--apply`, in produzione anche
+`--yes`): è un'operazione del team, da non proporre a chi sta scrivendo un manifest.
+
+**`embed`** su un agente o un orchestratore porta il suo endpoint di chat in un sito: embed pubblico, domini
+autorizzati (`https://sito.it`, senza percorso), modalità d'identità. L'apply lo configura a ogni versione e stampa
+l'indirizzo dell'iframe; per `identity: session` stampa anche la chiave API **una sola volta**: va riportata
+all'utente perché la conservi, e non va scritta in file, manifest o messaggi. Il segreto di `jwt-hs256` e la
+chiave pubblica di `jwt-rs256` si impostano dall'interfaccia. Il `rollback` toglie anche i domini autorizzati.
 
 ## 7. Cancellare un blueprint
 
