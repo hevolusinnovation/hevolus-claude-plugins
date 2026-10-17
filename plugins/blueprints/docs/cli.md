@@ -36,7 +36,7 @@ Elenco dei comandi, per saltare subito dove serve:
 |---|---|
 | Scrivere e controllare il file | [`validate`](#validate) · [`suggest`](#suggest) · [`external`](#external) |
 | Segreti | [`secrets set`](#secrets-set) · [`secrets check`](#secrets-check) |
-| Archivio delle versioni | [`push`](#push) · [`pull`](#pull) · [`export`](#export) · [`promote`](#promote) · [`catalog`](#catalog-list--publish--install) |
+| Archivio delle versioni | [`push`](#push) · [`pull`](#pull) · [`export`](#export) · [`promote`](#promote) · [`copies`](#copies) · [`catalog`](#catalog-list--publish--install) |
 | Applicare e smontare | [`plan`](#plan) · [`apply`](#apply) · [`pipeline`](#pipeline) · [`status`](#status) · [`rollback`](#rollback) · [`delete`](#delete) |
 | Collaudo | [`test init`](#test-init) · [`test validate`](#test-validate) · [`test run`](#test-run) · [`test push`](#test-push) · [`test reports`](#test-reports) |
 | Un blueprint già applicato | [`schedule`](#schedule-list--pause--resume--logs) · [`mcp`](#mcp-check--orphans--publish--test) · [`connections`](#connections-list--refresh) · [`instances`](#instances-list--show--cancel) · [`knowledge`](#knowledge-list--reingest) |
@@ -378,7 +378,7 @@ L'ordine in cui si usano i comandi, dal file al tenant e ritorno:
 ```
 validate → suggest → secrets check / secrets set → push → plan → apply → status → test run
                                                                      ↘ rollback / delete
-e, fra archivi: pull · promote · export · catalog
+e, fra archivi: pull · promote · copies · export · catalog
 ```
 
 | Passo | Comando | Cosa fa | Tocca il tenant? |
@@ -880,6 +880,22 @@ xrcopilotlab-bp promote --env staging --tag LEGAL --from-company <cliente-A> --t
 ```
 
 ---
+
+### `copies`
+
+**Quali blueprint si usano di più** (CLI 2.22.0): la classifica delle copie fra tenant e ambienti. Ogni
+`promote` e ogni `catalog install` — anche dalla webapp — è **firmata** (l'email Entra del terminale;
+senza `az login`, il nome del computer, segnato come non verificato) e lascia una traccia che `delete`
+non cancella.
+
+```bash
+xrcopilotlab-bp copies [--tag <TAG>] [--env <e>|all] [--since <aaaa-mm-gg>] [--top <n>] [--json]
+```
+
+Ordina per **copie applicate** (una copia mai applicata non è un uso), poi per copie totali; mostra
+i tenant distinti e l'ultima copia con la firma. Staging → produzione → catalogo → clienti è una riga
+sola. Solo lettura, e **solo per lo staff**: dice dove sono finite le copie di ogni cliente, quindi non
+va in materiali per un cliente.
 
 ### `catalog list | publish | install`
 

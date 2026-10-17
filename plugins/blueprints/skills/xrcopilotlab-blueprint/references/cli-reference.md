@@ -513,6 +513,44 @@ Il tenant di destinazione passa dallo stesso filtro di tutti gli altri comandi: 
 tenant che l'API non elenca viene rifiutato con `3`, perché l'archivio non diventi la porta di
 servizio di quella protezione.
 
+**Ogni copia è firmata e registrata** (#1516). Oltre a `promotedFrom` sul documento, la copia lascia
+un evento nella partizione della destinazione: chi l'ha fatta, da dove a dove (ambiente, tenant con
+il nome della company), quando, per quale strada e da quale **origine prima** — una copia di una
+copia porta l'origine della prima. La firma è l'email Entra del token con cui la CLI parla con
+Azure; senza (nessun `az login`), il campo `actor` del profilo o il nome utente del computer, e il
+comando lo dice: `firmata gzileni (firma non verificata: …)`. L'evento non si riscrive e `delete`
+non lo porta via: è la misura di quanto il blueprint si usa (`copies`).
+
+## `copies [--tag <TAG>] [--env <e>|all] [--since <aaaa-mm-gg>] [--top <n>] [--json]`
+
+**Quali blueprint si usano di più**: la classifica delle copie fra tenant e ambienti (#1516). Legge
+e basta, da tutte le partizioni di ogni ambiente — per questo è un comando dello **staff**: dice dove
+sono finite le copie di un cliente, che è un'informazione degli altri clienti. La chat dei blueprint
+non lo esegue, e nessuna pagina della webapp lo mostra.
+
+```bash
+xrcopilotlab-bp copies                         # tutti gli ambienti noti, classifica intera
+xrcopilotlab-bp copies --env prod --top 10     # solo produzione, i primi dieci
+xrcopilotlab-bp copies --tag FINBANK           # ogni copia di un blueprint, con firma e destinazione
+xrcopilotlab-bp copies --since 2026-10-01 --json
+```
+
+| Colonna | Che cosa conta |
+|---|---|
+| applicate | copie con un `apply` completato sulla destinazione — è **l'ordine** della classifica: una copia mai applicata non è un uso |
+| copie | tutte le copie, anche due della stessa versione sullo stesso tenant |
+| tenant | destinazioni distinte (ambiente e tenant: lo stesso cliente su staging e produzione conta due) |
+| ultima copia | data, firma (`*` = non verificata) e destinazione |
+
+Le copie si raggruppano per **blueprint d'origine**: staging → produzione → catalogo → tenant dei
+clienti è una riga sola, anche se il modello del catalogo, pubblicato da un file, è un'origine nuova
+(lo slug resta lo stesso). `--tag` accetta lo slug o il tag che la copia ha sulla destinazione. Le
+copie fatte prima del #1516 si contano da `promotedFrom`, senza scrivere niente sui tenant: firmate
+con ciò che c'era (di norma il nome del computer) e applicate se un run completato le segue.
+
+Senza `--env` si leggono tutti gli ambienti noti; uno illeggibile non ferma gli altri, ma la
+classifica lo dichiara. `--since` restringe le copie, non i run.
+
 ## `catalog list` · `catalog publish <modello.yml>` · `catalog install <modello>`
 
 Il **catalogo** dei blueprint pronti, curati da Hevolus e installabili da qualunque tenant (#1185).
@@ -564,6 +602,8 @@ approvazione; le credenziali che il comando elenca si precaricano con `secrets s
 inseriscono dalla UI dopo l'apply. Il tag scelto non
 può essere già di un altro blueprint del tenant. La copia ricorda da dove viene (`promotedFrom`
 con `catalogVersion`), ed è da lì che `catalog list --company` sa dire se c'è di più nuovo.
+Come ogni copia, l'installazione è firmata e contata da `copies` (#1516), anche quando la fa la
+webapp: lì la firma è l'utente che ha approvato.
 
 `default` non è un tenant: ogni altro comando lo rifiuta con `1`.
 
