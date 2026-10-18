@@ -704,7 +704,10 @@ nuova.
 - **Si aggiorna sul posto** ciò che il blueprint possiede ed è cambiato, confrontandolo con il
   **tenant** — non con il manifest precedente, perché fra una versione e l'altra le cose possono
   essere state ritoccate a mano:
-  - gli **agenti**: istruzioni, descrizione, temperatura, modello. Identità, knowledge e strumenti
+  - gli **agenti**: istruzioni, descrizione, temperatura, modello e i **profili di knowledge** collegati (#1526):
+    si collegano quelli dichiarati che mancano e si scollegano quelli del blueprint che la versione non dichiara
+    più; un profilo collegato a mano, fuori dal blueprint, resta. Fino al 18/10/2026 i profili non si
+    confrontavano: HEVBPMKT v7 creava il profilo nuovo e la guida restava sul vecchio. Identità e strumenti
     restano quelli che hanno;
   - gli **orchestratori**: step, flussi, ciò che ogni step passa al successivo, messaggio di
     benvenuto. L'id e l'endpoint di chat — quindi i link già dati — restano gli stessi, e gli step
@@ -1106,11 +1109,13 @@ Durable usa Azurite con un task hub suo (`XRCopilotLabLocalHub`). Due cautele:
 Emerso il **2026-09-27**: la libreria 3.10.2 salva per intero il conto economico dei 548 bilanci di
 Confindustria Como, che la 3.10.1 riduceva a una riga, e il worker di staging era ancora sulla 3.10.1.
 
-**`knowledge add <profilo> <file…> --tag <TAG> [--yes]`** (#1518) aggiunge file dal disco a un profilo già
-indicizzato, senza una nuova versione del manifest: li carica nel topic, li collega al profilo uno per uno senza
+**`knowledge add <profilo> <file…> --tag <TAG> [--replace] [--yes]`** (#1518) aggiunge file dal disco a un profilo
+già indicizzato, senza una nuova versione del manifest: li carica nel topic, li collega al profilo uno per uno senza
 riscrivere gli altri e fa indicizzare solo loro (a grafo lo mette in coda il server, vettoriale chiede la
-reindicizzazione del file). Un file che il profilo ha già si riindicizza con `knowledge reingest --only`. Chiede un sì
-come l'apply. Per tenere il manifest allineato, aggiungere gli stessi file a `knowledge[].files` alla versione dopo:
+reindicizzazione del file). Un file che il profilo ha già si rifiuta, a meno di **`--replace`** (#1525): il contenuto
+nuovo va nel topic al posto del vecchio, con lo stesso nome, e il file si reindicizza, che toglie dal grafo il
+contenuto vecchio. È l'unico modo di aggiornare un documento: il piano confronta i file per nome e non vede un
+contenuto cambiato, e `knowledge reingest --only` rilegge il contenuto che c'è. Chiede un sì come l'apply. Per tenere il manifest allineato, aggiungere gli stessi file a `knowledge[].files` alla versione dopo:
 il piano li riconoscerà come già presenti.
 
 ## `instances list` · `instances show <id>` · `instances cancel`
