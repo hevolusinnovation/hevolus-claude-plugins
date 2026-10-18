@@ -123,9 +123,10 @@ xrcopilotlab-bp whoami --env staging     # chi sei, su quali tenant, e se sei am
 xrcopilotlab-bp login  --env staging     # se serve: si apre il browser
 ```
 
-Funziona oggi, con l'identità, per: `whoami`, `status`, `plan`, `pull` (senza `--with-files`), `catalog list` ed
-`export <orchestratore>` (quest'ultimo solo se la persona è **amministratrice** del tenant; `export --scope …` no).
-**Tutto il resto** — `apply`, `push`, `rollback`, `delete`, `test run`, `secrets set`, … — usa ancora i
+Funziona oggi, con l'identità, per: `whoami`, `status`, `plan`, `pull` (senza `--with-files`), `catalog list`,
+`export <orchestratore>` e `secrets set`/`secrets check` (questi ultimi tre solo se la persona è **amministratrice** del
+tenant, tranne `secrets check`; `export --scope …` no). Con l'identità il segreto lo scrive l'API con la sua identità
+gestita: nessun ruolo su Key Vault. **Tutto il resto** — `apply`, `push`, `rollback`, `delete`, `test run`, … — usa ancora i
 ruoli Azure: per quelli vale la strada 2. Non dire all'utente che «ormai non servono più i ruoli»: servono ancora
 per scrivere.
 
@@ -849,6 +850,19 @@ copie**, non aggiorna le entità fatte a mano (il collegamento a entità esisten
 un blueprint già applicato l'aggiornamento sul posto resta la strada (§6-ter).
 
 ## 6-quinquies. Installare dal catalogo di Hevolus (la partizione `default`)
+
+**Il catalogo è il tenant `default` di ogni ambiente**, la convenzione della webapp: un modello pubblicato non ha un
+tenant suo, e ogni tenant di quell'ambiente lo vede insieme ai propri blueprint. Staging e produzione hanno ciascuno il
+suo catalogo, nel proprio database. Un modello si prepara e si collauda nel catalogo di staging
+(`catalog publish <file> --env staging`); portarlo in produzione vuol dire pubblicare **la stessa versione** nel
+catalogo di produzione (`catalog pull <modello> --env staging --out <file>`, poi `catalog publish <file> --env prod`),
+cioè copiarla nel database di produzione. Una correzione è una versione nuova che fa lo stesso giro. `promote` non
+scrive nel catalogo: lo rifiuta. Chi applica un modello nel suo tenant ne riceve una copia nel proprio archivio.
+
+**Si propone sempre l'ultima versione.** `catalog list` mostra solo quella, e `catalog install` installa quella se
+non si indica `--version`: non elencare all'utente le versioni precedenti e non proporre `--version` di propria
+iniziativa. Se un tenant ha installato una versione più vecchia, `catalog list --company <tenant>` lo dice, e
+l'aggiornamento è un nuovo `catalog install` dell'ultima.
 
 I modelli del catalogo sono scritti **senza persone vere**: i ruoli sono vuoti, i passi indirizzati a
 una persona citano `role:<chiave>`, e dove serve un indirizzo (owner, destinatari, una casella di

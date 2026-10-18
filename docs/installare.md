@@ -215,10 +215,9 @@ plugin usa se lo scarica da solo al primo utilizzo — una cinquantina di megaby
 versione, con l'impronta SHA-256 verificata prima di eseguirlo.
 
 L'avviatore sa chiedere sei binari — **macOS** (Apple Silicon e Intel), **Windows** (x64 e ARM) e
-**Linux** (x64 e ARM) — ma li porta la release che li pubblica: l'ultima,
-[`bp-v2.15.1`](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/tag/bp-v2.15.1),
-ne ha quattro, e Windows ARM e Linux ARM arrivano con la prossima. Su quelle due macchine, per ora,
-si usa il binario x64 in emulazione.
+**Linux** (x64 e ARM), e l'ultima release,
+[`bp-v2.23.0`](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/tag/bp-v2.23.0),
+li pubblica tutti e sei. La versione che il plugin chiede è in `plugins/blueprints/bin/version.txt`.
 
 ### Aggiornare
 
@@ -285,7 +284,9 @@ passare da Claude, chi deve **fissare una versione precisa**, e chi lavora su un
 primo avvio non può raggiungere GitHub.
 
 I binari stanno fra gli allegati della release
-[`bp-v2.15.1`](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/tag/bp-v2.15.1).
+[`bp-v2.23.0`](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/tag/bp-v2.23.0), la
+stessa che chiede il plugin (`plugins/blueprints/bin/version.txt`). Per una versione più recente, il
+numero è nell'elenco delle [release `bp-v*`](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases).
 Accanto a ciascuno c'è un file `.sha256` che contiene **solo l'impronta**: si confronta, non si dà
 in pasto a `shasum -c`.
 
@@ -294,14 +295,16 @@ in pasto a `shasum -c`.
 | macOS Apple Silicon (M1/M2/M3/M4) | `xrcopilotlab-bp-osx-arm64` |
 | macOS Intel | `xrcopilotlab-bp-osx-x64` |
 | Windows x64 | `xrcopilotlab-bp-win-x64.exe` |
+| Windows ARM | `xrcopilotlab-bp-win-arm64.exe` |
 | Linux x64 | `xrcopilotlab-bp-linux-x64` |
+| Linux ARM | `xrcopilotlab-bp-linux-arm64` |
 
 Non c'è niente da installare: è **un file solo**, autosufficiente. Non serve .NET.
 
 ### macOS
 
 ```bash
-gh release download bp-v2.15.1 --repo hevolusinnovation/hevolus-claude-plugins \
+gh release download bp-v2.23.0 --repo hevolusinnovation/hevolus-claude-plugins \
     --pattern 'xrcopilotlab-bp-osx-arm64*' --dir ~/Downloads
 
 # L'impronta si confronta prima di eseguire ciò che si è appena scaricato.
@@ -332,7 +335,7 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 ### Windows (PowerShell)
 
 ```powershell
-gh release download bp-v2.15.1 --repo hevolusinnovation/hevolus-claude-plugins `
+gh release download bp-v2.23.0 --repo hevolusinnovation/hevolus-claude-plugins `
     --pattern 'xrcopilotlab-bp-win-x64.exe*' --dir $HOME\Downloads
 
 $atteso   = (Get-Content $HOME\Downloads\xrcopilotlab-bp-win-x64.exe.sha256).Trim()

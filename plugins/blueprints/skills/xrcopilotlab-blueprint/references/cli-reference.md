@@ -258,6 +258,12 @@ come `Blueprints:Secrets:<TAG>:<nome>`; la chiave vera porta anche il **tenant**
 tenant che installano lo stesso modello del catalogo con lo stesso tag non devono scriversi addosso
 (#1185).
 
+**Con il token (#1518).** Se la CLI ha una sessione (`login`), il valore va all'API (`POST cli/{companyId}/secrets`),
+che lo scrive in Key Vault con la sua identità gestita: non servono ruoli su Key Vault né su App Configuration, solo
+essere utente Hevolus e amministratore del tenant. La risposta porta la chiave, mai il valore. Un blueprint bloccato lo
+aggiorna solo un suo owner. Senza sessione resta la strada con i ruoli Azure. Allo stesso modo `secrets check` chiede
+all'API solo se ogni segreto c'è (`POST cli/{companyId}/secrets/check`).
+
 ```bash
 xrcopilotlab-bp secrets set --company <tenant> --tag STUDIOPOLIS graph-client-secret
 # Valore per Blueprints:Secrets:STUDIOPOLIS:graph-client-secret: ●●●●●●●●
@@ -303,8 +309,8 @@ nel manifest, oppure — solo per iterare in sviluppo — si usa `--overwrite`.
 **Accesso (#1518).** Se la versione in vigore dichiara `access`, valgono i suoi owner: chi non è fra loro non
 cambia `access` (`BP124`) e non porta una versione nuova di un blueprint bloccato (`BP125`). Chi toglie sé stesso
 dagli owner riceve `BP126` e ripete con `--release-ownership` per confermare. Allo stesso modo `apply` di un
-blueprint bloccato è solo per un owner, e `promote`, `catalog install`, `export --scope blueprint` e
-`catalog publish` rifiutano un blueprint bloccato (`BP123`).
+blueprint bloccato è solo per un owner, e `promote`, `catalog install`, `export` e `catalog publish` di un
+blueprint bloccato li fa solo un suo owner (`BP123`).
 
 ## `pull --tag <TAG> [--version <n>] [--out <file>] [--with-files]`
 
@@ -465,25 +471,43 @@ stesse chiavi in tutte le sezioni; ruoli, agenti, agent task e processi identici
 personali; le differenze che restano sono quelle che il rapporto dichiara.
 
 **Blueprint bloccati (#1518).** L'export di un orchestratore, di un topic o del tenant intero si rifiuta (`BP123`)
-se porta con sé entità create da un blueprint bloccato applicato sul tenant: sarebbe una copia per un'altra strada.
-Contano solo le entità create dal blueprint, non quelle che ha adottato (un topic esistente). Vale anche per l'export
-di un orchestratore dalla CLI con il token e dall'editor della webapp.
+se porta con sé entità create da un blueprint bloccato applicato sul tenant, e chi esporta non è un suo owner: sarebbe
+una copia per un'altra strada. Contano solo le entità create dal blueprint, non quelle che ha adottato (un topic
+esistente). Vale anche per l'export di un orchestratore dalla CLI con il token; dall'editor della webapp, che non
+conosce gli owner, l'export di quelle entità non si fa.
 
-## `access migrate --owners <email,…> [--catalog | --company <tenant>] [--apply] [--yes]`
+## `access migrate --owners <email,…> [--all | --catalog | --company <tenant>] [--apply] [--yes]`
 
 La migrazione una tantum di `access` (#1518): alle versioni archiviate prima che esistesse dà scope e owner,
 **nei soli campi d'accesso del documento d'archivio** — il manifest e la sua impronta non cambiano.
 
 | Dove sta la versione | Scope |
 |---|---|
-| catalogo (`--catalog`) | `public` |
-| copiata da un altro archivio (`promotedFrom`) | `tenant` |
-| archivio di un tenant su staging | `staging` |
-| archivio di un tenant fuori da staging | `tenant` |
+| catalogo (`--catalog`), su staging o in produzione | `public` |
+| un tenant di staging, copie comprese | `staging` |
+| un tenant di produzione, copie comprese | `tenant` |
 
-Le versioni che hanno già un accesso (nel documento o nel manifest) restano come sono. Senza `--apply` mostra solo
+Con `--all` passa ogni archivio dell'ambiente che ha almeno una versione, catalogo compreso, in un comando solo: è
+la forma da usare per migrare un ambiente intero. Lo scope lo decide l'archivio in cui sta la versione, qualunque cosa
+dichiari il manifest: le versioni senza scope o con uno scope diverso si correggono, con i loro owner (quelli della
+versione, poi quelli del manifest, poi `--owners`). Da #1518 ogni scrittura — `push`, chat, `promote`, installazione —
+scrive già lo scope del posto, quindi la migrazione serve solo per l'archivio di prima. Senza `--apply` mostra solo
 l'elenco; in produzione scrivere chiede anche `--yes`. `--owners` è obbligatorio: una versione con accesso ha almeno
 un owner (`BP121`).
+
+**Collegamento al catalogo.** Nello stesso giro `access migrate` segna (`catalogModel`) le versioni di un tenant che hanno
+lo stesso identificativo di un modello del catalogo dell'ambiente: ne derivano, o il modello è nato da loro. È una
+marcatura: un'installazione dal catalogo la dice `promotedFrom`, come prima.
+
+## `access retag --tag <VECCHIO> --to <NUOVO> --company <tenant> [--blueprint <id>] [--apply] [--yes]`
+
+Cambia il tag delle versioni archiviate di un blueprint (#1518): la riga `tag:` e i riferimenti
+`Blueprints:Secrets:<TAG>:` nel testo del manifest, il documento d'archivio e l'impronta; il tag di prima resta in
+`previousTags`. Solo l'archivio, quindi si rifiuta se il tag vecchio ha **entità vive** sul tenant (i loro nomi
+`BP-<TAG>-…` e i segreti portano il tag): lì il tag si cambia con una versione nuova e un nuovo apply, dopo il rollback.
+Si rifiuta anche se il tag nuovo è di un altro blueprint del tenant; quello dello stesso blueprint va bene (due tag per
+un blueprint si riuniscono così). I segreti già impostati per il tag vecchio non si spostano: si rifanno con
+`secrets set`. Senza `--apply` mostra solo l'elenco; in produzione scrivere chiede anche `--yes`.
 
 ## `promote --tag <TAG> [--version <n>] [--from-env <e>] [--to-env <e>] [--from-company <guid>] [--to-company <guid>]`
 

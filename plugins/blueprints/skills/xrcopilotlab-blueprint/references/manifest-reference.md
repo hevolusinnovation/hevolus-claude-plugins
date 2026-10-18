@@ -28,7 +28,7 @@ naming:                     # facoltativo: senza, il prefisso è BP-TEST-
   prefix: "Studio · "       # «Studio · Agenda»; "" = nessun prefisso
 access:                     # facoltativo (#1518): chi lo vede, se si copia, chi lo governa
   scope: staging            # public | staging | tenant
-  locked: false             # true: non si installa, non si promuove, non si esporta, non si pubblica
+  locked: false             # true: si vede, ma lo copiano e lo aggiornano solo gli owner
   owners: [giuseppe.zileni@hevolus.it]
 
 tenant:
@@ -146,13 +146,20 @@ Facoltativa: senza, il blueprint resta com'era (nessun owner, nessun blocco). Co
 
 | Campo | Valori | Che cosa decide |
 |---|---|---|
-| `scope` | `public` · `staging` · `tenant` | `public`: catalogo ufficiale, si installa in qualunque tenant. `staging`: si usa e si copia solo dentro staging. `tenant`: copia legata al tenant in cui sta, non si ripubblica né si porta altrove. |
-| `locked` | `true` · `false` | Se vero non si installa, non si promuove, non si esporta e non si pubblica (`BP123`); solo un owner lo applica (`BP125`). |
+| `scope` | `public` · `staging` · `tenant` | Dove sta. `public`: nel catalogo dell'ambiente (il tenant `default`), lo vedono tutti i tenant. `staging`: in un tenant di staging. `tenant`: in un tenant di produzione. Gli ultimi due li vede solo il loro tenant. Lo scrive l'archivio quando la versione arriva (push, chat, promozione, installazione): nel manifest è solo una dichiarazione, che `catalog publish` vuole `public`. |
+| `locked` | `true` · `false` | Se vero si vede come gli altri, ma lo copiano (installazione, promozione, esportazione, pubblicazione) e lo aggiornano solo i suoi owner (`BP123`, `BP125`). |
 | `owners` | email | Chi governa il blueprint: solo loro cambiano `access` (`BP124`), pubblicano nel catalogo (`BP127`) e, se è bloccato, portano nuove versioni. Almeno uno (`BP121`). |
 
-- **Le copie prendono `scope: tenant`**: l'installazione dal catalogo lo scrive nel manifest installato; la
-  promozione, che copia il manifest identico, lo registra nell'archivio (campo `scope` del documento). Da staging
-  a staging lo scope resta quello dell'originale.
+- **Chi vede che cosa.** Ogni ambiente, staging e produzione, è multi-tenant e ha il suo database. In ciascuno un
+  tenant vede il catalogo dell'ambiente (il tenant `default`, convenzione della webapp) e i propri blueprint, mai
+  quelli di un altro tenant. Pubblicare in produzione un modello collaudato nel catalogo di staging vuol dire copiarne
+  la versione nel catalogo di produzione (`catalog pull --env staging`, poi `catalog publish --env prod`); una
+  correzione è una versione nuova che fa lo stesso giro.
+- **Le copie prendono lo scope della destinazione**, in qualunque verso — da un tenant a un altro, da staging a
+  produzione e viceversa: `public` nel catalogo, `staging` in un tenant di staging, `tenant` in un tenant di
+  produzione. Le fanno solo gli utenti Hevolus. L'installazione dal catalogo lo scrive nel manifest installato; la
+  promozione, che copia il manifest identico, lo registra nell'archivio (campo `scope` del documento). Una copia di
+  un blueprint bloccato resta bloccata, con gli stessi owner.
 - **Valgono gli owner della versione in vigore**: una nuova versione che li cambia la porta un owner. Chi toglie sé
   stesso riceve `BP126` e conferma con `--release-ownership`: da lì non governa più il blueprint.
 - **Chi sei** si legge dall'identità verificata (oggi il token Azure con cui la CLI scrive, con #1333 il token del
@@ -165,7 +172,7 @@ Facoltativa: senza, il blueprint resta com'era (nessun owner, nessun blocco). Co
   `HevolusEmailDomain`), con i valori di Hevolus come predefiniti.
 - **Dove lo applica il server.** Le rotte `cli/*` rispondono 403 `hevolus_only` a chi non è membro; il catalogo
   della webapp e i backup del tenant rispondono 403; la chat dei blueprint della webapp non si apre. Il catalogo
-  (CLI e webapp) mostra solo i modelli `public` e non bloccati, e quelli ancora senza `access`. La chat applica le
+  (CLI e webapp) mostra i modelli `public`, anche bloccati (li installa solo un owner), e quelli ancora senza `access`. La chat applica le
   stesse regole degli owner prima di pubblicare o applicare una versione.
 
 ## `businessRoles`
@@ -985,6 +992,3 @@ variante a polling: quella il blueprint la crea per intero, questa no.
 | `BP060`–`BP065` | Preflight: collisione di nome, skill, utente, segreto o topic mancante; modello fuori catalogo (`BP065`) |
 | `BP070` | Sezione dichiarata ma non ancora applicata |
 | `BP090`–`BP092` | Orchestratori: tipo di step, campi, grafo |
-| `BP120`–`BP127` | `access` (#1518): scope non valido (`BP120`), owner mancanti o non email (`BP121`, `BP122`), blueprint bloccato o export che ne contiene entità (`BP123`), `access` cambiato da chi non è owner (`BP124`), nuova versione di un bloccato da chi non è owner (`BP125`), owner che toglie sé stesso (`BP126`, avviso), catalogo solo `public` e da un owner (`BP127`) |
-| `BP128` | Ruolo della webapp mancante nel tenant per alcune operazioni del piano: avviso nel piano, `apply` non parte |
-| `BP129`–`BP130` | `embed`: dominio non valido (`BP129`), modalità d'identità sconosciuta (`BP130`) |

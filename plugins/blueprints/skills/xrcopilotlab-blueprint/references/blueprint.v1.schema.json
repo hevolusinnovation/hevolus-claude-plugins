@@ -60,7 +60,7 @@
             "staging",
             "tenant"
           ],
-          "description": "public: catalogo ufficiale; staging: solo dentro staging; tenant: copia legata al suo tenant."
+          "description": "public: nel catalogo (tenant default), lo vedono tutti i tenant dell'ambiente; staging: in un tenant di staging; tenant: in un tenant di produzione. Un tenant vede il catalogo e i propri."
         },
         "locked": {
           "type": "boolean",
