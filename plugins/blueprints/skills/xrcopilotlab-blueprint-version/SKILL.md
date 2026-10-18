@@ -1,16 +1,20 @@
 ---
 name: xrcopilotlab-blueprint-version
-description: Scrive la mail che annuncia ai colleghi le novità delle skill dei blueprint XRCopilotLab fra due versioni del plugin (es. dalla 2.27.0 alla 2.30.2). In testa i comandi per aggiornare, sia da terminale (Claude Code) sia da Claude Desktop; poi il link all'artifact «Dall'intervista alla demo» (la guida d'uso, della skill xrcopilotlab-blueprint-howto); le novità raccontate per versione; in fondo il riepilogo di tutte le feature. Lascia una bozza in Outlook (o un .eml), mai inviata. Usa quando l'utente chiede "la mail delle novità delle skill blueprint", "avvisa il team che c'è una versione nuova", "cosa è cambiato dalla 2.x alla 2.y", "mail di aggiornamento del plugin blueprints". NON per le release del prodotto (xrcopilot-release-email), per le release notes (xrcopilot-release-notes) né per aggiornare davvero un'installazione.
+description: Scrive il report che annuncia ai colleghi, nel canale Teams del team, le novità delle skill dei blueprint XRCopilotLab fra due versioni del plugin (es. dalla 2.27.0 alla 2.30.2). In testa i comandi per aggiornare, sia da terminale (Claude Code) sia da Claude Desktop; poi le novità raccontate per versione, gli ultimi blueprint pubblicati nel catalogo di produzione, il riepilogo di tutte le feature, e i link alla guida «Dall'intervista alla demo» e al Blueprint Marketplace. È una Adaptive Card pubblicata nel canale con il flusso Power Automate, solo dopo che l'utente l'ha vista e ha detto sì. Usa quando l'utente chiede "il report delle novità delle skill blueprint", "avvisa il team che c'è una versione nuova", "cosa è cambiato dalla 2.x alla 2.y", "messaggio di aggiornamento del plugin blueprints", anche se dice "la mail". NON per le release del prodotto (xrcopilot-release-email), per le release notes (xrcopilot-release-notes) né per aggiornare davvero un'installazione.
 ---
 
 # xrcopilotlab-blueprint-version
 
 Chi usa le skill dei blueprint non legge le release del catalogo: le versioni salgono quasi ogni
-giorno e le novità stanno nei messaggi di commit. Questa skill le trasforma in **una mail** che si
-legge in due minuti e dice, nell'ordine: *come aggiorno*, *dove trovo la guida*, *cosa è cambiato*,
-*in breve, tutto quello che c'è di nuovo*.
+giorno e le novità stanno nei messaggi di commit. Questa skill le trasforma in **un messaggio nel
+canale Teams del team** che si legge in due minuti e dice, nell'ordine: *come aggiorno*, *cosa è
+cambiato*, *quali blueprint sono appena arrivati in produzione*, *in breve, tutto quello che c'è di
+nuovo*, e *dove trovo il resto* (la guida e il Blueprint Marketplace).
 
-**Scrive una bozza. Non invia, non aggiorna nessuna installazione, non tocca il tenant.**
+Teams e non la mail: nel canale lo leggono tutti senza che nessuno debba incollare indirizzi.
+
+**Pubblica nel canale solo dopo il sì dell'utente sull'anteprima. Non aggiorna nessuna installazione,
+non tocca il tenant.**
 
 ## 0. Cosa serve
 
@@ -18,11 +22,11 @@ legge in due minuti e dice, nell'ordine: *come aggiorno*, *dove trovo la guida*,
 |---|---|
 | **da** | la versione del plugin che i destinatari hanno adesso (esclusa). Se l'utente non la dice, **chiedila**: non si indovina. Dove leggerla: `/plugin` in Claude Code, oppure il nome dello zip caricato su Desktop |
 | **a** | la versione di arrivo (inclusa). Vuota = l'ultima del catalogo |
-| **destinatari** | chiedili; senza un indirizzo la mail resta una bozza senza «A:». Non dedurli |
+| **canale** | il flusso Power Automate del canale Teams del team. Il suo indirizzo porta la firma (`sig=…`) ed è un **segreto**: non sta nella skill né nel repository, ma in `~/.xrcopilotlab/teams/blueprint-version-webhook` (permessi 600) o nella variabile `XRCOPILOTLAB_BP_TEAMS_WEBHOOK`. Se manca, chiedi all'utente di crearlo; **non scriverlo mai** in un file del repository, in un commit, in un artifact o nella risposta |
 
 I numeri sono **tre e diversi**: *plugin* `blueprints` (quello che ci interessa, `2.x.y`), *CLI*
 `xrcopilotlab-bp` (`version.txt` del plugin) e *catalogo* (`v1.x.0`, il tag della release). Nella
-mail il numero in primo piano è sempre quello del plugin; la CLI si cita dove cambia.
+report il numero in primo piano è sempre quello del plugin; la CLI si cita dove cambia.
 
 ## 1. Le novità, dalla fonte
 
@@ -44,11 +48,28 @@ dice poco). Per ogni versione con un messaggio scarno, leggi la fonte:
 - per una skill **nuova**, il suo `SKILL.md`.
 
 Se una fonte non c'è (nessun `gh`, nessun clone), dillo in una riga all'utente invece di scrivere
-novità a memoria. **Non inventare feature**: ogni riga della mail deve poter indicare dove l'hai letta.
+novità a memoria. **Non inventare feature**: ogni riga del report deve poter indicare dove l'hai letta.
 
-## 2. Scrivere la mail
+## 1-bis. Gli ultimi blueprint pubblicati in produzione
 
-Oggetto: `Blueprint: nuove versioni delle skill — dalla <da> alla <a>`. Italiano, tono da collega,
+Dal catalogo dei modelli di produzione, la fonte unica di «che cosa c'è in produzione»:
+
+```bash
+xrcopilotlab-bp catalog list --env prod
+```
+
+Una riga per modello: id, versione, tag e data. Prendi i **pubblicati dopo il primo rilascio della
+finestra** (la data del § 2.3); se sono meno di tre, gli ultimi tre per data. Per ognuno una frase su
+**a che cosa serve**, presa dalla `description` del manifest (`catalog pull <id> --env prod --out
+<scratchpad>`) o dalla sua scheda sul Blueprint Marketplace, mai inventata. È una lettura: non serve
+nessun `--yes`, e non si scrive niente.
+
+Se il comando non si può lanciare (nessuna CLI, nessun accesso a produzione), dillo all'utente e
+lascia fuori la sezione: non la si riempie a memoria, e non si mettono blueprint di staging.
+
+## 2. Scrivere il report
+
+Titolo: `Blueprint: nuove versioni delle skill — dalla <da> alla <a>`. Italiano, tono da collega,
 frasi corte, niente gergo di sviluppo (niente «sync», «mirror», sha). Struttura fissa, **in questo ordine**:
 
 ### 2.1 In testa — come si aggiorna
@@ -86,16 +107,17 @@ vince il README.
 
 ### 2.2 Il link alla guida
 
-Subito dopo il riquadro: «**La guida d'uso, dall'installazione alla demo:**» con il link all'artifact
+In fondo alla card c'è il pulsante «Guida: dall'intervista alla demo», con il link all'artifact
 «Dall'intervista alla demo» (la pagina della skill `xrcopilotlab-blueprint-howto`).
 
 1. `Artifact` con `action: "list"` e cerca il titolo «Dall'intervista alla demo». **Il link è quello
    che trovi, mai uno scritto a mano.**
 2. Se non c'è, dillo all'utente e proponi di pubblicarlo con `xrcopilotlab-blueprint-howto` **prima**
-   di chiudere la mail; non lasciare un segnaposto.
-3. Una pagina è **privata alla nascita**: chi riceve la mail può non riuscire ad aprirla. Dillo
+   di pubblicare il report; non lasciare un segnaposto. Se l'utente preferisce non pubblicarlo, togli il
+   pulsante: il link al Blueprint Marketplace resta.
+3. Una pagina è **privata alla nascita**: chi legge il canale può non riuscire ad aprirla. Dillo
    all'utente e lascia a lui la scelta di condividerla; **non cambiare tu i permessi**.
-4. Se il howto è indietro rispetto alle versioni della mail (una tappa nuova, per esempio), segnalalo:
+4. Se il howto è indietro rispetto alle versioni del report (una tappa nuova, per esempio), segnalalo:
    l'aggiornamento della pagina è un'altra skill.
 
 ### 2.3 L'apertura — due righe ricavate dalla tabella, non improvvisate
@@ -145,23 +167,48 @@ Una tabella sola, l'ultima cosa che si legge:
 |---|---|---|---|
 
 Una riga per feature **dell'intervallo**, raggruppate per skill, senza duplicare i testi delle sezioni
-sopra: qui in una frase. Chiudi con una riga: «Dubbi? Ripassa dalla guida: <link>».
+sopra: qui in una frase. Nella card la tabella diventa un `FactSet` (titolo = feature, valore = cosa fa,
+da quale versione, skill o comando): Teams non disegna tabelle.
 
-## 3. Consegna
+### 2.6 Il Blueprint Marketplace
 
-1. Mostra all'utente **oggetto, riquadro d'aggiornamento, apertura e riepilogo** nella risposta, e chiedi se va
-   bene prima di creare la bozza.
-2. Parti da [`references/mail-template.html`](references/mail-template.html): è già impaginato (intestazione viola, riquadri d'aggiornamento, pulsante verso la guida, versioni a schede, tabella finale). Si sostituiscono i segnaposto in doppie graffe e si ripetono i blocchi fra `<!--VERSIONI-->` e `<!--RIGHE-->`; non si rifà la grafica. Regole: stili **inline**, colonna da ~640 px, nessuna immagine esterna, i comandi in blocchi
-   a larghezza fissa (su Outlook i `<pre>` perdono il formato: usa `<div>` con `font-family:Consolas,monospace`).
-3. Se c'è il connettore Microsoft 365: `outlook_create_draft` con il corpo HTML. Altrimenti scrivi un
-   `.eml` e un `.html` di anteprima nello scratchpad e dai il percorso.
-4. **Mai `outlook_send_*`**, nemmeno se l'utente dice «mandala»: prima gli si fa vedere la bozza,
-   poi invia lui, o lo chiede esplicitamente dopo averla vista.
+L'ultima riga e il primo pulsante della card portano al **Blueprint Marketplace**,
+<https://yellow-river-0ad4d3203.6.azurestaticapps.net/>, dove stanno schede, guide, processi e video
+di ogni blueprint: «Tutte le informazioni sui blueprint sono sul Blueprint Marketplace». È già nel
+modello della card; non toglierlo.
+
+## 3. Consegna, nel canale Teams
+
+1. Mostra all'utente **titolo, riquadro d'aggiornamento, apertura, blueprint di produzione e
+   riepilogo** nella risposta, e chiedi se va bene.
+2. Parti da [`references/teams-card.json`](references/teams-card.json): è una Adaptive Card 1.4 già
+   impaginata (intestazione, riquadro d'aggiornamento, una scheda per versione, blueprint di
+   produzione, feature, link al Marketplace, pulsanti). Sostituisci i segnaposto in doppie graffe e
+   **ripeti l'elemento d'esempio** dove ce n'è uno solo: il `Container` della versione (uno per
+   versione), il fatto del `FactSet` dei blueprint (uno per blueprint), quello delle feature (uno per
+   feature). Non rifare la grafica. I comandi stanno in `TextBlock` con `fontType: Monospace`, una
+   riga vuota fra un comando e l'altro (Teams unisce le righe singole). Scrivi la card nello scratchpad.
+3. Controlla la card, senza inviare:
+   ```bash
+   scripts/teams.sh --check <scratchpad>/card.json
+   ```
+   Fallisce se il JSON non è valido, se restano segnaposto `{{…}}` o se supera il limite di Teams
+   (~28 KB): in quel caso accorcia le sezioni per versione, non togliere i comandi d'aggiornamento.
+4. **Solo dopo un sì esplicito dell'utente sull'anteprima** pubblica:
+   ```bash
+   scripts/teams.sh --send <scratchpad>/card.json
+   ```
+   Un «mandala» detto prima di aver visto l'anteprima non vale: prima la si mostra. Una sola
+   pubblicazione: se va a buon fine non si ripete, e per correggere un errore si pubblica un messaggio
+   di rettifica breve, non il report di nuovo.
+5. Se `--send` fallisce (indirizzo mancante, HTTP diverso da 200/202, rete), riporta l'errore così com'è
+   e lascia all'utente il percorso della card e un testo Markdown dello stesso report da incollare a
+   mano nel canale. Non provare altre strade (la mail, un altro canale) senza chiederlo.
 
 ## Cosa non fare
 
 - Non scrivere novità che il § 1 non ha trovato; non dedurre una feature dal solo titolo di un commit.
-- Non mettere sha, nomi di branch, numeri di PR, né i nomi di persone del cliente nella mail.
+- Non mettere sha, nomi di branch, numeri di PR, né i nomi di persone del cliente nel report, e mai l'indirizzo del flusso Teams.
 - Non mescolare i tre numeri di versione: plugin in primo piano, CLI e catalogo solo dove servono,
   e sempre con il nome accanto all'intervallo.
 - Non scrivere l'apertura prima delle sezioni per versione: i suoi numeri si ricavano da lì (§ 2.3).
