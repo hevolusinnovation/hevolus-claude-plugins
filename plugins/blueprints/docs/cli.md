@@ -353,7 +353,8 @@ differenza conta quando la CLI la lancia un assistente (niente terminale):
 | `delete` | chiede di **scrivere il tag** | si ferma con **6** | `--confirm <TAG>`; `--yes` **non vale** |
 | `promote` | chiede solo se la destinazione è la produzione | verso la produzione si ferma con **6**; altrove copia | `--yes` |
 | `catalog publish`, `catalog install` | chiede sempre | in produzione si ferma con **6**; altrove procede | `--yes` |
-| `knowledge reingest` | chiede `[s/N]` | si ferma con **6** | `--yes` |
+| `knowledge reingest`, `knowledge add` | chiede `[s/N]` | si ferma con **6** | `--yes` |
+| `access migrate` | senza `--apply` mostra soltanto | idem | `--apply`, e in produzione anche `--yes` |
 | `instances cancel` | stampa l'elenco e si ferma con **6** — non chiede | idem | `--yes` |
 | `mcp orphans --remove` | stampa l'elenco e si ferma con **6** — non chiede | idem | `--yes` |
 | `schedule pause`/`resume`, `mcp publish`, `connections refresh`, `secrets set` | nessuna conferma: sono reversibili o sostituiscono un valore | idem | — |
@@ -1690,7 +1691,13 @@ ciò che era già indicizzato va rifatto.
 ```
 xrcopilotlab-bp knowledge list [<profilo>] --tag <TAG> [--run <runId>] [--env] [--company]
 xrcopilotlab-bp knowledge reingest <profilo> --tag <TAG> [--only <file1,file2>] [--pending] [--yes] [--run <runId>] [--env] [--company]
+xrcopilotlab-bp knowledge add <profilo> <file…> --tag <TAG> [--yes] [--run <runId>] [--env] [--company]
 ```
+
+`knowledge add` (#1518) aggiunge documenti dal disco a un profilo già indicizzato, senza una versione nuova del
+manifest: li carica nel topic, li collega al profilo senza riscrivere gli altri e fa indicizzare solo loro. Un file
+che il profilo ha già si rifà con `reingest --only`. Per tenere il manifest allineato, aggiungere gli stessi file a
+`knowledge[].files` alla versione dopo.
 
 | Argomento / opzione | Sottocomando | Default | Significato |
 |---|---|---|---|
@@ -1761,6 +1768,17 @@ vecchio viene rimosso solo a sostituzione riuscita; se qualcosa va storto, viene
 **Esce:** 0 · 4 download fallito o impronta non corrispondente.
 
 ---
+
+### `access migrate`
+
+```
+xrcopilotlab-bp access migrate --owners <email,…> [--catalog | --company <tenant>] [--apply] [--yes] [--env]
+```
+
+Operazione del team, una tantum (#1518): dà scope e owner alle versioni archiviate prima che esistesse la chiave
+`access`, nei soli campi d'accesso dell'archivio — il manifest e la sua impronta non cambiano. Il catalogo diventa
+`public`, una copia da un altro archivio `tenant`, l'archivio di un tenant su staging `staging`, altrove `tenant`. Le
+versioni che hanno già un accesso restano com'erano.
 
 ### `help`
 
