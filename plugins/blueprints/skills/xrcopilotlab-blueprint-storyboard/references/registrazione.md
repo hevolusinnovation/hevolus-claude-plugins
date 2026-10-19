@@ -159,3 +159,21 @@ l'ultimo fotogramma.
 | Il piano non regge alla riesecuzione a freddo | la UI è cambiata: vanno aggiornati i selettori nel banco, non il brief |
 | La pagina torna su `/company-selection` | la company indicata non è fra quelle dell'account demo |
 | `Mancano le credenziali` | manca `~/.xrcopilotlab-demo/auth.json`: lo mette chi mantiene il banco |
+| `non sono riuscito a scaricare … (release demo-vX.Y.Z)` | la release che il plugin chiede non è nel catalogo pubblico, o la rete blocca github.com: non è un problema della persona. Segnalarlo all'AI Team (`report-problem --kind defect`); intanto si può indicare una cartella già estratta con `XRCOPILOTLAB_DEMO_DIR` |
+| una macro di creazione (`createTopic`, `createAgent`, `createProfile`, `createOrchestrator`…) non trova un campo, un pulsante o una sezione | il banco non è allineato all'interfaccia dell'ambiente (di solito dopo un redesign di una pagina). Si ferma lì: vedi sotto |
+
+### Quando una macro di creazione non trova la pagina
+
+Il video 1 crea davvero topic, assistenti e orchestratore sul tenant, una macro dopo l'altra. Se una macro non trova
+un elemento, quelle dopo non hanno su che cosa lavorare: il tenant resta costruito a metà (per esempio il topic sì,
+gli assistenti no). In quel caso:
+
+1. **Non riprovare la registrazione**, né «aggiustare» il piano scrivendo un selettore a mano: il selettore giusto
+   sta nel banco, e un secondo tentativo crea un altro topic accanto al primo.
+2. **Dire alla persona che cosa è rimasto sul tenant**, per nome, e proporre di toglierlo: `xrcopilotlab-demo cleanup`
+   (scrive sul tenant, quindi solo dopo un sì) oppure dalla UI.
+3. **Segnalarlo all'AI Team** con `report-problem --kind defect`, con: ambiente e sua versione, versione del
+   registratore (`xrcopilotlab-demo version`), la macro e la fase in cui si è fermato, il messaggio esatto.
+   Si corregge nel banco con una release nuova del registratore, che arriva con un aggiornamento del plugin.
+4. **Il video 2 e il video 3** non usano le macro di creazione delle pagine ridisegnate: si possono registrare, se
+   le entità che mostrano esistono già sul tenant, con il sì della persona (consumano token veri).
