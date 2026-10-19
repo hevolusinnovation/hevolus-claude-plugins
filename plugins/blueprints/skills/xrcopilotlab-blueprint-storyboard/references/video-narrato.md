@@ -34,7 +34,8 @@ Niente animatic, niente versioni parallele: lo storyboard con le scene descritte
    tempo del video tagliato).
 5. **Voce.** Una battuta per momento (apertura, topic, conoscenza, ogni assistente: istruzioni, modello,
    collegamento; orchestratore e passi; processo: elementi, collegamenti, salvataggio; chiusura), 1,5 parole
-   al secondo, con `xrcopilotlab-bp voice say --lines righe.json --out-dir voce --env <amb>`.
+   al secondo, con `xrcopilotlab-bp voice say --lines righe.json --out-dir voce --voice "<voce scelta>" --env <amb>` (la voce
+   scelta con il campione, SKILL.md §5-bis).
 6. **Montaggio.** Un elenco `{t, mp3}` con `t` dall'inizio della fase in `timings.json`; si lancia
    `compose-video.py` (configurazione JSON: `video`, `items`, `out`). Il video si taglia da un momento al
    successivo; se la voce è più lunga si tiene fermo l'ultimo fotogramma, mai si accelera la voce.

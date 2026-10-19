@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-storyboard
-description: Da un blueprint XRCopilotLab (manifest) produce, di default, TRE VIDEO NARRATI dell'applicazione vera (staging o prod): come si crea da zero (topic, conoscenza, assistenti, orchestratore, processo BPM disegnato a mano), come si usa il risultato già creato, e il processo in funzione ruolo per ruolo con un'istanza vera. Voce neurale italiana della piattaforma (`xrcopilotlab-bp voice`, senza chiavi Azure), senza sottotitoli, pagina con download e tempo di creazione. Poi crea nel tenant del manifest un agente video con i video generati (topic Guide; saltabile solo se non consegnabili). Su richiesta scrive lo storyboard a tavole. Chiede ambiente e sì prima di registrare: la creazione e il video 3 scrivono sul tenant. Usa per "il video del blueprint", "il video di come si crea", "lo storyboard", "la voce fuori campo". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (-blueprint-test) o il manifest (xrcopilotlab-blueprint).
+description: Da un blueprint XRCopilotLab (manifest) produce, di default, TRE VIDEO NARRATI dell'applicazione vera (staging o prod): come si crea da zero (topic, conoscenza, assistenti, orchestratore, processo BPM disegnato a mano), come si usa il risultato già creato, e il processo in funzione ruolo per ruolo con un'istanza vera. Voce neurale italiana della piattaforma (`xrcopilotlab-bp voice`, senza chiavi Azure), scelta fra Isabella HD, Alessio HD, Fabiola e Diego (default) dopo un campione sulla prima battuta, senza sottotitoli, pagina con download e tempo di creazione. Poi crea nel tenant del manifest un agente video con i video generati (topic Guide; saltabile solo se non consegnabili). Su richiesta scrive lo storyboard a tavole. Chiede ambiente e sì prima di registrare: la creazione e il video 3 scrivono sul tenant. Usa per "il video del blueprint", "il video di come si crea", "lo storyboard", "la voce fuori campo". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (-blueprint-test) o il manifest (xrcopilotlab-blueprint).
 ---
 
 # xrcopilotlab-blueprint-storyboard
@@ -71,7 +71,8 @@ Si chiede, **tutto in una volta**, e si attende la risposta:
 3. **per chi è**: l'agenzia o il mercato (cliente anonimo, regola di default) oppure un cliente
    specifico che ha **autorizzato** di comparire (lo conferma l'utente, non si deduce);
 4. il **tono** (sereno, incalzante) e se c'è una **frase chiave** da far arrivare in fondo;
-5. se vuole la **voce guida** di prova (audio).
+5. se vuole la **voce guida** di prova (audio). La **voce** (Isabella HD, Alessio HD, Fabiola o Diego) non si
+   chiede qui a parole: si sceglie al §5-bis, dopo averle ascoltate sulla prima battuta.
 
 Nessun marchio o logo a piè di tavola: se l'utente ne vuole uno nel video, lo aggiunge il montaggio.
 
@@ -153,17 +154,52 @@ manifest, YAML, id, tag, prompt, token, endpoint, nomi di step, versioni.
 
 ## 5. La voce
 
-Si scrive la battuta di ogni scena e si genera la voce **neurale della piattaforma** con la CLI:
+Si scrive la battuta di ogni scena e si genera la voce **neurale della piattaforma** con la CLI, con la
+**voce che l'utente ha scelto** (§5-bis):
 
 ```bash
-xrcopilotlab-bp voice say --lines righe.json --out-dir audio --env <ambiente>
+xrcopilotlab-bp voice say --lines righe.json --out-dir audio --voice "<voce scelta>" --env <ambiente>
 ```
 
 (`righe.json` è un elenco `[{"name":"scena-1","text":"…"}]`; l'ambiente è quello scelto al §1.) Usa
 l'endpoint `common/speech` con l'accesso che ogni utente della CLI ha già: **nessuna chiave Azure,
 nessun ruolo da chiedere**, quindi funziona per chiunque in Hevolus abbia il plugin, non solo per il
-team AI. La voce di default è quella che la piattaforma ha scelto per l'italiano; `voice list` mostra
-le altre (esistono anche voci HD più naturali), e se l'utente ne vuole una si passa `--voice`.
+team AI.
+
+### 5-bis. La scelta della voce, con un campione
+
+La voce predefinita della piattaforma (Diego) è la più meccanica delle quattro che si propongono. **Prima di
+generare la narrazione** si fa scegliere all'utente, facendogliele ascoltare:
+
+| Voce | Identificativo (`--voice`) | |
+|---|---|---|
+| Isabella (HD) | `it-IT-Isabella:DragonHDLatestNeural` | femminile, la più naturale |
+| Alessio (HD) | `it-IT-Alessio:DragonHDLatestNeural` | maschile, la più naturale |
+| Fabiola | `it-IT-FabiolaNeural` | femminile |
+| Diego | `it-IT-DiegoNeural` | maschile, **il default** della piattaforma |
+
+1. **Il campione è la prima battuta del blueprint**, non una frase di prova: si sente la voce sul testo
+   vero, con i nomi e il ritmo del video. Una battuta sola, la stessa per tutte e quattro:
+   ```bash
+   for v in "it-IT-Isabella:DragonHDLatestNeural" "it-IT-Alessio:DragonHDLatestNeural" "it-IT-FabiolaNeural" "it-IT-DiegoNeural"; do
+     xrcopilotlab-bp voice say "<prima battuta>" --out "<scratch>/voci/$(echo $v | tr ':' '-').mp3" --voice "$v" --env <ambiente>
+   done
+   ```
+   Su Windows lo stesso ciclo in PowerShell (`foreach ($v in @(…)) { … }`).
+2. **Si fanno ascoltare**: si apre la cartella (`open <scratch>/voci` su macOS, `explorer <cartella>` su
+   Windows) e si scrivono i quattro file con il nome della voce accanto. Se una voce non si genera
+   sull'ambiente (una voce HD non disponibile in quella regione), lo si dice e si propongono le altre.
+3. **Si chiede quale usare**, con la domanda a scelta (le quattro voci, Diego indicata come default). **Non
+   si va avanti finché l'utente non sceglie**: generare la narrazione di tre video con una voce che non
+   piace costa tempo e chiamate al servizio vocale.
+4. **La voce scelta vale per tutto**: le battute di tutti e tre i video, l'audio di servizio e l'agente
+   video. Si scrive nella pagina finale («voce: Isabella HD») e nello `storyboard.md`. Se l'utente cambia
+   idea a metà, si rigenerano tutte le battute, non solo le successive: due voci nello stesso video si
+   sentono.
+5. Se l'utente non vuole scegliere («vai con quella di default»), si usa Diego e lo si scrive.
+
+Le voci HD hanno un passo diverso da Diego: dopo la scelta si **rimisurano** le battute (sotto), non si
+riusano i tempi calcolati con un'altra voce.
 
 Se la CLI non ha `voice` (plugin più vecchio) si ripiega sulla voce di sistema (`say`, solo macOS) e
 lo si dice: suona molto più artificiale, vedi [`narrazione.md`](references/narrazione.md). Il testo
