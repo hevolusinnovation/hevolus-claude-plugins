@@ -18,8 +18,8 @@ La lingua è l'**italiano**, per ora la sola: battute, scritte e voce guida (`Al
 
 ```bash
 xrcopilotlab-bp voice list --env <ambiente>                         # le voci, con il loro identificativo
-xrcopilotlab-bp voice say "<testo>" --out scena-1.mp3 --env <ambiente>
-xrcopilotlab-bp voice say --lines righe.json --out-dir audio --env <ambiente>
+xrcopilotlab-bp voice say "<testo>" --out scena-1.mp3 --voice "<voce scelta>" --env <ambiente>
+xrcopilotlab-bp voice say --lines righe.json --out-dir audio --voice "<voce scelta>" --env <ambiente>
 ```
 
 Formato MP3 mono 16 kHz. Poi si misura e si monta come qui sotto (la parte «Traccia unica»), con la
@@ -64,9 +64,10 @@ ffprobe -v error -show_entries format=duration -of csv=p=0 scena-<codice>.mp3   
 
 ## Voci migliori della predefinita
 
-`voice list` elenca anche le voci **HD** della piattaforma (per l'italiano, per esempio, quelle con
-`DragonHD` nell'identificativo): più naturali, ma si **provano** prima di sceglierle e si ricontrollano
-i tempi. Si passano con `--voice "<identificativo>"`. Per un video da consegnare, la strada resta una
+La voce si sceglie fra quattro, ascoltandole sulla prima battuta (SKILL.md §5-bis): Isabella HD e Alessio HD
+(`DragonHD` nell'identificativo, le più naturali), Fabiola, e Diego, il default della piattaforma. Dopo la
+scelta si ricontrollano i tempi: ogni voce ha il suo passo. `voice list` elenca le altre voci della
+piattaforma, se l'utente ne chiede una che non è fra le quattro; si passano con `--voice "<identificativo>"`. Per un video da consegnare, la strada resta una
 **voce umana** a partire dal «Copione della voce» in fondo allo `storyboard.md`.
 
 Il ripiego `say` (macOS) ha solo le voci italiane base; se l'utente scarica quelle Premium
