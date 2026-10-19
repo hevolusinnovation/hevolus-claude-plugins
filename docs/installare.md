@@ -189,11 +189,28 @@ il plugin porta le skill e si procura da solo lo strumento a riga di comando.
 | **L'app Claude, scheda Code** | è lì che gira il plugin | [installer per macOS e Windows](#unapp-sola-due-schede) — poi accedi e clicca **Code** |
 | **`git`** | registrare il catalogo è un clone di questo repository | chiedi a Claude, nella scheda Code: «`git --version` funziona?» |
 | **I ruoli Azure** | la CLI legge App Configuration e Key Vault dell'ambiente | [§ L'accesso ad Azure](accesso-azure.md) |
+| **Google Chrome come browser predefinito, con l'estensione Claude in Chrome** | serve a `xrcopilotlab-blueprint-storyboard`: apre lo storyboard e l'applicazione in Chrome e, con l'estensione, guarda le pagine come le vede il cliente | [§ Chrome per lo storyboard](#chrome-per-lo-storyboard) |
 
 > **Nessun account GitHub.** Questo catalogo è pubblico: registrarlo e scaricare la CLI, che sta
 > fra gli allegati delle sue release, non richiedono né un accesso all'organizzazione né `gh`.
 > L'avviatore scarica con un semplice `curl` (o `Invoke-WebRequest` su Windows) e verifica l'impronta
 > SHA-256. Serve solo che il computer raggiunga `github.com`.
+
+### Chrome per lo storyboard
+
+`xrcopilotlab-blueprint-storyboard` lavora nel browser: apre lo storyboard pubblicato in una finestra nuova a tutto
+schermo e, quando deve guardare l'applicazione vera (il benvenuto di un orchestratore, una pagina, un compito), lo fa
+con **Claude in Chrome**. Senza Chrome predefinito e senza l'estensione la skill scrive lo storyboard lo stesso, ma non
+lo apre e non può controllare ciò che vede il cliente. Una volta per macchina:
+
+1. Installa [Google Chrome](https://www.google.com/chrome/) e rendilo il **browser predefinito**: su macOS
+   *Impostazioni di Sistema → Desktop e Dock → Browser web predefinito*, su Windows *Impostazioni → App → App
+   predefinite → Google Chrome → Imposta come predefinito*.
+2. In Chrome installa l'estensione **Claude in Chrome** dal Chrome Web Store e accedi con lo stesso account Claude.
+3. Nella scheda Code collega l'estensione: digita `/chrome` e segui le istruzioni. Chrome deve restare aperto
+   mentre la skill lavora.
+
+Le altre skill del plugin non ne hanno bisogno.
 
 ### Le due righe
 

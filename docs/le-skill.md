@@ -481,6 +481,10 @@ e poi il processo del manifest.
 | «Mostra come si crea» · «il video reale» | Con `xrcopilotlab-demo create` registra nell'interfaccia, davanti alla camera, ciò che dichiara il manifest (1920×1080, cursore rosso con l'onda del clic); `tour` e `record` mostrano invece il risultato. Prima di lanciare chiede il sì, dicendo ambiente, company ed entità che nascono |
 | — | Pubblica l'artifact «<Scenario> — storyboard» con la sorgente `storyboard.md` e l'audio, e lo apre in una nuova finestra a tutto schermo |
 
+**Prima di usarla**: Google Chrome come browser predefinito, con l'estensione **Claude in Chrome** collegata alla
+scheda Code (`/chrome`). La skill apre lo storyboard e l'applicazione in Chrome e, con l'estensione, guarda le pagine
+come le vede il cliente; come si prepara sta in [Installare · Chrome per lo storyboard](installare.md#chrome-per-lo-storyboard).
+
 Che cosa **non** fa:
 
 - non produce la musica né la voce finale: l'audio è di servizio, serve a sentire i tempi. Il video
