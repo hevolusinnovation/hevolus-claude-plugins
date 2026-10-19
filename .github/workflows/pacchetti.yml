@@ -18,6 +18,13 @@ on:
 permissions:
   contents: write
 
+# Un tag spinto a mano e l'avvio da «Release» possono partire nello stesso secondo: due
+# `gh release create` in parallelo si contendono gli asset (ReleaseAsset.name already exists).
+# In fila, il secondo trova la Release e la aggiorna con --clobber.
+concurrency:
+  group: pacchetti
+  cancel-in-progress: false
+
 jobs:
   pacchetti:
     runs-on: ubuntu-24.04
