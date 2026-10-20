@@ -1346,6 +1346,106 @@
           "type": "string"
         }
       }
+    },
+    "modules": {
+      "type": "array",
+      "description": "Scenari installabili separatamente (plan/apply --modules). Ogni entità elencata appartiene a quel modulo; ciò che nessun modulo elenca — e sempre topic, tenant ed external — sta nel modulo implicito 'core', che si installa sempre. Senza moduli il blueprint si installa tutto insieme. Un modulo deve richiedere (anche in modo transitivo) ogni modulo di cui cita un'entità (BP135); niente cicli (BP136); un'entità sta in un modulo solo (BP134). La versione è del blueprint: sul tenant tutti i moduli installati sono alla stessa versione.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "not": {
+              "const": "core"
+            },
+            "description": "Chiave del modulo, quella che si scrive in --modules. 'core' è riservato."
+          },
+          "title": {
+            "type": "string",
+            "description": "Titolo mostrato nel piano e nello stato."
+          },
+          "description": {
+            "type": "string"
+          },
+          "requires": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "Chiavi dei moduli da cui questo dipende. 'core' è implicito e non si scrive. Le dipendenze transitive valgono: se A richiede B e B richiede C, A può citare entità di C."
+          },
+          "agents": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "Chiavi degli agenti del modulo."
+          },
+          "knowledge": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "Chiavi dei profili di knowledge del modulo."
+          },
+          "businessRoles": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "Chiavi dei ruoli aziendali del modulo."
+          },
+          "agentTasks": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "Chiavi degli agent task del modulo."
+          },
+          "processes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "Chiavi dei processi del modulo."
+          },
+          "orchestrators": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "Chiavi degli orchestratori del modulo."
+          },
+          "connections": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "Chiavi delle connessioni del modulo."
+          },
+          "mcpServers": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string"
+            },
+            "description": "Chiavi dei server MCP del modulo."
+          }
+        }
+      }
     }
   },
   "$defs": {

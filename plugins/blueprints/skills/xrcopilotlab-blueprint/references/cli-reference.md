@@ -171,7 +171,9 @@ Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 | `--watch` | In `status`, attende la conclusione del run. |
 | `--files <cartella>` | In `suggest`, i documenti da ripartire. Senza, quelli già dichiarati nel manifest. |
 | `--manifest <file>` | In `test validate`, il manifest contro cui verificare i riferimenti. Senza, quello accanto alla suite. |
-| `--only <k1,k2>` | In `test run`, i casi da eseguire: chiavi, tag o entità. |
+| `--modules <k1,k2>` | In `plan`, `apply` e `pipeline`, i moduli da installare; le dipendenze si aggiungono da sole. Vedi [Moduli](#moduli-installazione-parziale-e-incrementale). |
+| `--module <k>` | In `rollback`, smonta solo quel modulo. |
+| `--only <k1,k2>` | In `test run`, i casi da eseguire: chiavi, tag, entità o moduli. |
 | `--out <percorso>` | In `test init` il file da scrivere; in `test run` la cartella del report. |
 | `--compare <reportId>` | In `test reports`, confronta quel report con il precedente della stessa suite. |
 | `--report <reportId>` | In `test judge`, il report che si giudica. |
@@ -658,7 +660,7 @@ webapp: lì la firma è l'utente che ha approvato.
 
 `default` non è un tenant: ogni altro comando lo rifiuta con `1`.
 
-## `plan --tag <TAG> [--version <n>]`
+## `plan --tag <TAG> [--version <n>] [--modules <k1,k2>]`
 
 Mostra cosa verrebbe creato, cosa manca e cosa collide, **senza modificare nulla**. Legge lo stato
 del tenant: nomi già occupati, skill a catalogo, utenti, segreti presenti.
@@ -678,7 +680,7 @@ operazioni sono quelle, con i nomi già qualificati.
 
 Esce con `0` se applicabile, `3` altrimenti.
 
-## `apply --tag <TAG> [--version <n>] [--resume <runId>]`
+## `apply --tag <TAG> [--version <n>] [--modules <k1,k2>] [--resume <runId>]`
 
 Stampa il piano, **ne chiede l'approvazione** e solo dopo esegue. In un terminale la domanda si
 risponde; dove non c'è un terminale — uno script, un assistente che esegue comandi — non c'è nessuno
@@ -754,6 +756,41 @@ da riprendere, collaudare o smontare; il run di partenza resta come storico, nel
 `Superseded`, e `rollback` su di lui rimanda al run nuovo. Il run nuovo registra anche che cosa ha
 aggiornato e com'era prima (`status --run <runId>`).
 
+### Moduli: installazione parziale e incrementale
+
+Un blueprint che dichiara `modules` ([`manifest-reference.md`](manifest-reference.md#modules-scenari-installabili-separatamente))
+si installa per intero, in parte o un modulo alla volta. Il modulo implicito `core` — ciò che nessun
+modulo elenca — si installa sempre.
+
+| Comando | Che cosa installa |
+|---|---|
+| `apply --tag T` alla prima installazione | tutto |
+| `apply --tag T --modules civile` | `core` e `civile` |
+| `apply --tag T --modules penale` | `core`, `penale` e le sue dipendenze (`civile`), che il piano mostra: «civile (richiesto da penale)» |
+| `apply --tag T --modules penale` su un tenant che ha già `civile` | solo le entità di `penale` che mancano: quelle di `core` e `civile` sono del blueprint, non collisioni |
+| `apply --tag T` su un tenant che ha già una parte | i moduli già installati, alla versione nuova; gli altri restano fuori e il piano li elenca come «Non installati» |
+
+L'ultima riga è voluta: una versione nuova non installa di nascosto moduli che nessuno ha scelto (e che
+consumerebbero licenza). Si aggiungono con `--modules`.
+
+Un'installazione incrementale **non toglie** niente: ai moduli chiesti si aggiungono sempre quelli già
+installati. Un modulo si toglie solo con `rollback --module`. Le collisioni con entità estranee restano
+errori (`BP060`); le entità dei moduli che il piano non installa non si confrontano col tenant.
+
+Il run registra i moduli installati (`modules`); `status` li mostra. Un run ripreso con `--resume` finisce
+i moduli con cui è partito, e `--modules` insieme a `--resume` è rifiutato.
+
+```
+Piano · studio v3 · tag STUDIO
+  Moduli: core, civile (già installato), penale
+  Non installati: tributario — si aggiungono con --modules <chiave>.
+  Aggiornamento della v3 applicata (run 8f2c…): si crea ciò che manca e si aggiorna ciò che è cambiato.
+```
+
+Una CLI precedente ai moduli ignora la sezione `modules` e installa tutto; se riscrive un run, i moduli
+che vi erano registrati si perdono e il run torna a valere «tutti». Con i manifest a moduli serve la CLI
+che li conosce.
+
 **Ruoli nel tenant (#1518).** Prima dell'approvazione `plan` e `apply` leggono i tuoi ruoli della webapp nel tenant
 di destinazione e confrontano ogni operazione con il ruolo che la webapp chiede per farla a mano (`BP128`): i ruoli
 mancanti si vedono come avvisi nel piano, e `apply` non parte finché ne manca uno — meglio fermarsi prima che a metà,
@@ -788,8 +825,16 @@ xrcopilotlab-bp test run <suite.yml> --tag <TAG> --env locale
 
 ## `status [--run <runId>] [--watch]`
 
-Senza `--run`, elenca i blueprint pubblicati sul tenant e le ultime esecuzioni. Con `--run`, mostra
-stato, fasi e inventario di quel run. `--watch` attende la conclusione.
+Senza `--run`, elenca i blueprint pubblicati sul tenant, quelli **installati** — per ognuno l'ultimo run
+completato, con versione e moduli (`tutti` per un blueprint senza moduli o un run precedente ai moduli) — e
+le ultime esecuzioni. Con `--run`, mostra stato, moduli, fasi e inventario di quel run. `--watch` attende la
+conclusione.
+
+```
+Installati (2)
+  STUDIO         studio                           v3   moduli: core, civile, penale  (run 8f2c41a07b1e)
+  LEGAL          legal                            v1   moduli: tutti  (run 9b03989a730b)
+```
 
 ## `environments [--env <nome>]`
 
@@ -834,10 +879,15 @@ Quello che questo comando **non** dice è quali *tenant* vedrai dentro un ambien
 filtra il server sulla chiave `Companies:ListingFilter`, ed è uguale per tutti — in produzione, il
 solo tenant di Hevolus. Il permesso personale riguarda l'ambiente, non il tenant.
 
-## `rollback --run <runId>`
+## `rollback --run <runId> [--module <k>]`
 
 Smonta ciò che il run ha creato, leggendo l'inventario **a ritroso**. Rimuove solo le voci con
 azione `Created`: un'entità adottata perché già presente non è nostra e resta dov'è.
+
+Con `--module <k>` smonta solo le entità di quel modulo, ricavate dal manifest della versione applicata;
+il run resta completato con gli altri moduli. È rifiutato (`BP138`) se un altro modulo installato dipende
+da `k` — si smonta prima quello —, e (`BP137`) per `core`, per un modulo che non esiste o che il run non ha
+installato. Se una rimozione fallisce, il modulo resta fra gli installati e il comando si ripete.
 
 Un fallimento su una singola entità non ferma il resto: è meglio un rollback completato saltando
 ciò che non si riesce a togliere, che uno lasciato a metà. Le entità non rimosse vengono elencate.
@@ -928,7 +978,7 @@ xrcopilotlab-bp test reports  --tag TEST --compare 0123456789ab --env staging --
 ```
 
 `init` non sovrascrive una suite esistente (`--overwrite`, o `--out`); `validate` accetta
-`--manifest`; `run` accetta `--tag`, `--run <runId>`, `--only <chiavi,tag,entità>`, `--out
+`--manifest`; `run` accetta `--tag`, `--run <runId>`, `--only <chiavi,tag,entità,moduli>`, `--out
 <cartella>`. Le entità si risolvono dall'inventario dell'ultimo run completato del tag. Il report
 va nella cartella locale, `<temporanea>/xrcopilotlab-bp/workspace/<TAG>/reports/<aaaammgg-hhmmss>/` — mai
 nel repository: contiene risposte e id del tenant — e nell'archivio del tenant, dove lo trovano
