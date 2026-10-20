@@ -506,13 +506,19 @@ Sei errori che si fanno se non si sta attenti:
    vede niente. I profili si dichiarano in `knowledge:` e sono **knowledge graph per default**; il
    tipo dei file **non si scrive** se non lo chiede l'utente. Prima di scrivere quella sezione:
    [`references/knowledge.md`](references/knowledge.md).
-9. **Un profilo per agente, e i nomi dei file contano.** Dentro un profilo le sorgenti si
-   selezionano confrontando le parole della domanda con il **nome del file**, e se qualcuna
-   corrisponde le altre sono escluse: un riferimento comune che nessuno nomina sparisce, e in una
-   catena orchestrata — dove il messaggio contiene l'output del passo precedente — la selezione non
-   discrimina più e si carica tutto. Un profilo con tutti i documenti collegato a tutti gli agenti è
-   la forma che sbaglia. `xrcopilotlab-bp suggest <file.yml> --files <cartella>` propone la
-   partizione e calcola i vincoli; il validatore li segnala con `BP028`.
+9. **Un profilo per dominio, non per agente — e i nomi dei file contano.** Ogni profilo attivo
+   consuma una licenza, e un profilo per agente su un blueprint grande la supera (FINBANK: 20
+   profili, `BP071`). Gli agenti che lavorano sugli stessi documenti condividono un profilo; in un
+   blueprint a moduli, **un profilo per segmento**, in un modulo che i moduli del segmento
+   richiedono. Due cose restano: un profilo **unico** per tutto il blueprint è la forma che sbaglia
+   (ogni agente carica i documenti di domini che non sono suoi), e il **passo a valle di una catena
+   orchestrata** — il cui messaggio contiene l'output del precedente, quindi fa corrispondere quasi
+   ogni nome file — vuole un profilo con i soli file che deve leggere (`BP028`). Dentro un profilo
+   le sorgenti si selezionano confrontando le parole della domanda con il **nome del file**: in un
+   profilo condiviso il nome porta il dominio (`finbank-reclami-…`, `finbank-dora-…`), così una
+   domanda su un dominio esclude i file degli altri. `xrcopilotlab-bp suggest` propone un profilo per
+   agente come punto di partenza da **accorpare** per dominio. Dettagli in
+   [`references/knowledge.md`](references/knowledge.md).
 10. **Il modello si dichiara.** Senza `model:` l'agente nasce su `gpt-5.4` (`BP015` lo avvisa), e un
     nome fuori catalogo ferma il piano (`BP065`). La fascia dipende dal lavoro del passo, non dalla
     sua importanza: [`references/modelli.md`](references/modelli.md).
@@ -609,6 +615,46 @@ processo, e va istruito a rileggere, chiedere conferma e chiamare il tool **una*
 Procedura completa, la scelta di un tool di prova in sola lettura, l'errore del path duplicato che
 costa un 404, il ponte dalla chat al processo e le regole di prompt sui gap:
 [`references/mcp-builder.md`](references/mcp-builder.md).
+
+### Dati di collaudo: si dichiarano in `testData`, e in produzione si chiedono
+
+Un blueprint si mette a punto sul tenant di prova, e lì porta valori che in produzione non valgono:
+la stessa persona in tutti i ruoli, una soglia scelta per esercitare i rami di un gateway, il server
+MCP che c'è solo sul tenant di prova, un indirizzo di callback che il cliente non ha ancora dato.
+Sono legittimi **solo dichiarati**: un valore finto lasciato in un commento arriva in produzione con
+la prima copia del manifest.
+
+- **Fuori dalla produzione** — se la persona non ha deciso persone o valori, proponi un dato di
+  collaudo e **scrivi la voce** in `testData`: che cosa è finto (`what`), il valore (`value`), dove
+  compare (`where`) e **la domanda da fare prima della produzione** (`production`). Il piano le
+  elenca come avvisi (`BP141`): riportale all'utente insieme al piano.
+- **In produzione** — nessun dato di collaudo. Si chiede **ruolo per ruolo** quali utenti del tenant
+  ne fanno parte (`AskUserQuestion` va bene: un ruolo per domanda, le email degli utenti del tenant
+  fra le opzioni quando la CLI le ha elencate), e ogni valore che in prova era fittizio. Un manifest
+  che porta ancora `testData` in produzione si ferma (`BP140`): fai le domande scritte nelle voci,
+  sostituisci i valori, togli le voci, alza `version`.
+- **Portare in produzione un blueprint collaudato** (`promote`, `catalog publish`) vuol dire prima
+  fare le domande di `testData`: è la lista di ciò che va chiesto al cliente, già scritta.
+- **La documentazione segue la sezione**: il README del blueprint (`files put --kind doc`) ha un
+  paragrafo «Dati di collaudo» con le stesse voci, in parole semplici, e per ogni voce che cosa si
+  chiederà in produzione. Non è un secondo posto da tenere allineato a mano: si riscrive dal
+  manifest ogni volta che `testData` cambia.
+
+```yaml
+testData:
+  - key: persone
+    what: Membri di tutti i ruoli, owner dei processi e destinatari delle approvazioni
+    value: utente-di-prova@hevolus.it
+    where: [businessRoles, processes.*.owners]
+    production: Per ogni ruolo aziendale, quali utenti del tenant ne fanno parte?
+  - key: soglia-fido
+    what: Soglia oltre la quale un fido lo approva il CFO
+    value: "50000"
+    where: [processes.affidamento-clienti.chiApprova]
+    production: Sopra quale importo di fido decide il CFO invece del responsabile credito?
+```
+
+Il campo è descritto in [`manifest-reference.md`](references/manifest-reference.md#testdata-i-dati-di-collaudo).
 
 ## 3. Validare
 
@@ -1020,6 +1066,9 @@ disinstallato — e va detto se l'utente chiede «cosa resta» dopo un `delete`.
 | `8` | Serve l'accesso con l'identità: manca la sessione (lanciare `login`, vedi [«Come si entra»](#come-si-entra-prima-lidentità-poi-azure)), il token non è accettato, oppure la persona non è utente del tenant (403). **Non è un ruolo Azure mancante**: non usare `report-problem --kind access`, e non passare alla strada Azure per aggirare un 403 su un tenant |
 
 ## Cosa non fare
+
+- Non mettere in un manifest di produzione persone o valori di collaudo, e non lasciarne in prova senza
+  la loro voce in `testData`: in produzione si chiedono, ruolo per ruolo.
 
 - Non chiamare l'API direttamente: tutto passa dalla CLI. Vale anche per le rotte `cli/*` con il token: non
   estrarre il token dalla cache e non usarlo con `curl`.

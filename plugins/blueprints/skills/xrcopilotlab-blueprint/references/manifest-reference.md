@@ -261,10 +261,15 @@ contiene l'output del precedente: centinaia di parole, quindi quasi ogni nome fi
 dataset si caricano interi. Per quegli agenti il profilo deve contenere **solo** ciò che devono
 leggere — quello che arriva dal passo precedente è già nel messaggio.
 
-La forma che ne risulta, e che conviene come punto di partenza, è **un profilo per agente**. Il
-comando `xrcopilotlab-bp suggest` la propone e segnala i tre casi qui sopra; il validatore li
-segnala con `BP028` — sempre come avvisi, perché la decisione richiede di sapere che cosa fa ciascun
-agente, e quello il manifest non lo dice.
+La forma che ne risulta è **un profilo per dominio** (dal 20/10/2026; prima era un profilo per
+agente): gli agenti che lavorano sugli stessi documenti condividono un profilo, perché ogni profilo
+attivo consuma una licenza e un profilo per agente su un blueprint grande la supera (`BP071`). In un
+blueprint a moduli è un profilo per segmento, in un modulo che i moduli del segmento richiedono. Due
+eccezioni restano: mai un profilo unico per tutto il blueprint, e il passo a valle di una catena ha
+un profilo con i soli file che deve leggere (caso 3). I nomi dei file portano il dominio, così in un
+profilo condiviso la selezione per nome esclude gli altri. `xrcopilotlab-bp suggest` propone un
+profilo per agente come punto di partenza da accorpare; il validatore segnala i casi qui sopra con
+`BP028` — sempre come avvisi, perché la decisione richiede di sapere che cosa fa ciascun agente.
 
 ## `agents`
 
@@ -1027,6 +1032,45 @@ Le regole:
   versione. Un modulo aggiunto con una versione più nuova porta a quella versione anche gli altri, e il piano
   lo dice.
 
+## `testData`: i dati di collaudo
+
+Un blueprint si mette a punto su un tenant di prova, e per girare lì porta valori che in produzione non
+valgono: la stessa persona in tutti i ruoli, una soglia scelta per far passare il processo da tutti i rami,
+il server MCP del tenant di prova, un indirizzo di callback che non esiste ancora. `testData` li dichiara,
+uno per voce, con la domanda da fare prima della produzione:
+
+```yaml
+testData:
+  - key: persone
+    what: Membri di tutti i ruoli, owner dei processi e destinatari delle approvazioni
+    value: giuseppe.zileni@hevolus.it
+    where: [businessRoles, processes.*.owners, orchestrators.comunicazione-investitori.approvazione]
+    production: Per ogni ruolo aziendale, quali utenti del tenant ne fanno parte?
+  - key: soglia-affidamento
+    what: Soglia oltre la quale un fido lo approva il CFO
+    value: "50000"
+    where: [processes.affidamento-clienti.chiApprova]
+    production: Sopra quale importo di fido decide il CFO invece del responsabile credito?
+```
+
+| Campo | Significato |
+|---|---|
+| `key` | Chiave della voce, unica nella sezione. |
+| `what` | Che cosa è fittizio, in parole semplici. |
+| `value` | Il valore usato in collaudo, così com'è nel manifest. |
+| `where` | Dove compare: sezioni, chiavi di entità, campi. Testo libero, serve a chi lo sostituisce. |
+| `production` | La domanda da fare alla persona prima della produzione. Obbligatoria. |
+
+Che cosa ne fa il piano:
+
+- **fuori dalla produzione** elenca ogni voce come avviso (`BP141`), così chi approva sa che cosa è finto;
+- **in produzione** ogni voce è un errore (`BP140`) e il piano non si applica: si fa la domanda, si scrive il
+  valore vero nel manifest e si toglie la voce. Una persona segnaposto riceverebbe i compiti di un cliente vero.
+
+Un valore finto lasciato solo in un commento si perde alla prima copia del manifest; nella sezione viaggia
+con la versione, con `promote` e con il catalogo. La skill `xrcopilotlab-blueprint` e la chat dei blueprint
+la riempiono mentre scrivono il manifest per un ambiente di prova, e ne fanno le domande prima della produzione.
+
 ## Codici dei rilievi
 
 | Intervallo | Area |
@@ -1042,3 +1086,4 @@ Le regole:
 | `BP070` | Sezione dichiarata ma non ancora applicata |
 | `BP090`–`BP092` | Orchestratori: tipo di step, campi, grafo |
 | `BP132`–`BP138` | Moduli: chiavi, entità elencate, appartenenza unica, dipendenze chiuse, cicli, scelta con `--modules`, rollback di un modulo richiesto |
+| `BP139`–`BP141` | Dati di collaudo: voce incompleta, dato di collaudo in produzione (errore), elenco fuori dalla produzione (avviso) |

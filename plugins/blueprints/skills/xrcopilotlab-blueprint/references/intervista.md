@@ -36,6 +36,13 @@ responsabile». Ogni ruolo diventa un `businessRole`, e servono gli indirizzi em
 parte. Chiedi anche **chi sostituisce chi**: nel BPM un sostituto è semplicemente un altro membro
 dello stesso ruolo.
 
+Le email dipendono dall'**ambiente**. In **produzione** si chiedono sempre, ruolo per ruolo, e devono
+essere utenti di quel tenant: niente segnaposto, niente «metto me intanto». **Fuori dalla produzione**,
+se la persona non le sa ancora, si può mettere un utente del tenant di prova — ma solo dichiarandolo
+in `testData`, con la domanda da fare prima della produzione (§ «Dati di collaudo» della skill). Vale
+lo stesso per ogni valore che la persona non ha deciso e che il collaudo richiede: una soglia, un
+server MCP del tenant di prova, un indirizzo di callback che ancora non c'è.
+
 **4. I passi, in ordine.** Per ognuno: chi lo esegue, quanto dura di solito, e cosa produce.
 Distingui tre casi, perché diventano tre cose diverse:
 
