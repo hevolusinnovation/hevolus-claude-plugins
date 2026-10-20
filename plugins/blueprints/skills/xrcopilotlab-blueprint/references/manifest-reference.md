@@ -978,6 +978,55 @@ external:
 `xrcopilotlab-bp external <manifest>` elenca i passi manuali ed esce **5**. La differenza con la
 variante a polling: quella il blueprint la crea per intero, questa no.
 
+## `modules`: scenari installabili separatamente
+
+Un blueprint può dichiarare **moduli**: scenari che si installano da soli, tutti insieme, una parte o
+uno alla volta nel tempo sullo stesso tenant (`plan`/`apply --modules`, vedi
+[`cli-reference.md`](cli-reference.md#moduli-installazione-parziale-e-incrementale)). Un manifest senza
+`modules` si comporta come prima: tutto insieme.
+
+```yaml
+modules:
+  - key: civile                      # kebab-case; si scrive in --modules
+    title: Diritto civile
+    description: Agenda e promemoria delle cause civili
+    agents: [agente-civile]
+    agentTasks: [promemoria-civile]
+  - key: penale
+    title: Diritto penale
+    requires: [civile]               # i moduli da cui dipende
+    agents: [agente-penale]
+    knowledge: [kb-penale]
+    businessRoles: [cancelleria-penale]
+    orchestrators: [smistamento]
+    processes: [verifica-calendario]
+    connections: [pec-penale]
+    mcpServers: [mcp-pec]
+```
+
+| Campo | Significato |
+|---|---|
+| `key` | Chiave del modulo, kebab-case. `core` è riservato. |
+| `title`, `description` | Ciò che il piano e `status` mostrano. |
+| `requires` | Le chiavi dei moduli da cui dipende. Le dipendenze transitive valgono: se `udienze` richiede `penale` e `penale` richiede `civile`, `udienze` può citare entità di `civile`. |
+| `agents`, `knowledge`, `businessRoles`, `agentTasks`, `processes`, `orchestrators`, `connections`, `mcpServers` | Le **chiavi** delle entità del modulo, sezione per sezione. |
+
+Le regole:
+
+- **Il modulo `core` è implicito**: contiene tutte le entità che nessun modulo elenca, e sempre topic,
+  `tenant` ed `external`. Si installa sempre.
+- **Un'entità appartiene a un modulo solo** (`BP134`). Ciò che serve a più moduli va in `core`, o in un
+  modulo che tutti richiedono.
+- **Ogni modulo è chiuso rispetto alle dipendenze** (`BP135`): se una sua entità ne cita una di un altro
+  modulo — un agente il suo profilo o server MCP, uno step il suo agente, un agent task l'agente,
+  l'orchestratore o il webhook di processo a cui consegna, un processo i suoi ruoli, agent task e
+  sotto-processi, un server MCP la sua connessione, una connessione `process:` il suo processo — quel modulo
+  deve stare in `requires`. `core` non può citare entità dei moduli.
+- **Niente cicli** fra i moduli (`BP136`).
+- **La versione è del blueprint, non del modulo**: sul tenant tutti i moduli installati sono alla stessa
+  versione. Un modulo aggiunto con una versione più nuova porta a quella versione anche gli altri, e il piano
+  lo dice.
+
 ## Codici dei rilievi
 
 | Intervallo | Area |
@@ -992,3 +1041,4 @@ variante a polling: quella il blueprint la crea per intero, questa no.
 | `BP060`–`BP065` | Preflight: collisione di nome, skill, utente, segreto o topic mancante; modello fuori catalogo (`BP065`) |
 | `BP070` | Sezione dichiarata ma non ancora applicata |
 | `BP090`–`BP092` | Orchestratori: tipo di step, campi, grafo |
+| `BP132`–`BP138` | Moduli: chiavi, entità elencate, appartenenza unica, dipendenze chiuse, cicli, scelta con `--modules`, rollback di un modulo richiesto |

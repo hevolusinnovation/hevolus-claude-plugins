@@ -938,6 +938,23 @@ Senza `--env` legge tutti gli ambienti; se uno risulta illeggibile la CLI lo dic
 perché un ambiente mancante sembrerebbe un ambiente senza copie. Per un uso in uno script c'è
 `--json`.
 
+## 6-octies. Moduli: installare un blueprint per parti
+
+**`modules`** ([`manifest-reference.md`](references/manifest-reference.md#modules-scenari-installabili-separatamente)) è
+facoltativo. Si propone quando il cliente ha **scenari distinti** che può volere in momenti diversi (es. civile e penale
+in uno studio legale): ogni modulo elenca per chiave le sue entità e i moduli che `requires`; ciò che nessun modulo
+elenca — e sempre topic, tenant ed `external` — è `core`, che si installa sempre. Un blueprint con un solo scenario
+non ne ha bisogno.
+
+- Scrivendoli: un'entità sta in un modulo solo (`BP134`); se serve a più moduli va in `core`. Ogni riferimento verso
+  un altro modulo vuole quel modulo in `requires` (`BP135`), e niente cicli (`BP136`). `validate` lo verifica.
+- Applicando: `plan`/`apply --modules <k1,k2>`; le dipendenze entrano da sole e il piano le mostra. Senza il flag, alla
+  prima installazione si installa tutto; su un tenant che ha già una parte si tengono i moduli installati e il piano
+  elenca gli altri come «Non installati». Aggiungere un modulo dopo è un altro `apply --modules`: crea solo ciò che manca.
+- `status` mostra versione e moduli installati; `rollback --run <id> --module <k>` smonta un modulo solo, ed è rifiutato
+  (`BP138`) se un altro modulo installato ne dipende. `test run --only <modulo>` collauda un modulo.
+- Riportare all'utente che la versione è del blueprint: tutti i moduli installati sono alla stessa versione.
+
 ## 6-septies. Chi governa un blueprint: `access`, embed
 
 **`access`** (#1518, [`manifest-reference.md`](references/manifest-reference.md#access-scope-blocco-e-owner)) è
