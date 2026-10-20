@@ -177,23 +177,40 @@ nel messaggio, e riaverlo dalla knowledge è puro costo.
 
 ### La forma che ne risulta
 
-**Un profilo per agente.** Non è un'estetica: è ciò che rende minima la superficie di query di
-ciascun passo, che è l'unica leva disponibile quando la selezione per nome non discrimina.
+**Un profilo per dominio, non per agente** (regola cambiata il 20/10/2026). Fino ad allora la
+forma era un profilo per agente, che rende minima la superficie di query di ciascun passo. Ma **ogni
+profilo attivo consuma una licenza** (§ le quattro cose che vanno male), e su un blueprint grande un
+profilo per agente supera la licenza del tenant prima di creare qualsiasi cosa: FINBANK, 17 moduli,
+chiedeva 20 profili su un tenant che ne aveva 7 liberi (`BP071`). Una regola che rende un blueprint
+non applicabile non è una regola: il vincolo vero è la licenza, e la partizione si adatta a lei.
+
+Come si accorpa:
+
+- **gli agenti che lavorano sugli stessi documenti condividono un profilo** — il dominio è l'unità,
+  non l'agente;
+- **in un blueprint a moduli, un profilo per segmento** (FINBANK: banca, intermediari, uffici
+  finanza, più quello del `core`). Un profilo condiviso da più moduli sta in un modulo che tutti
+  richiedono (`BP134`/`BP135`): per FINBANK sono tre moduli `segmento-*` che contengono solo il
+  profilo, richiesti dai moduli del segmento. Installare un modulo porta con sé il profilo del
+  suo segmento, e nessun agente legge i documenti di un altro segmento;
+- **i nomi dei file portano il dominio** (`finbank-reclami-…`, `finbank-dora-…`): dentro un profilo
+  condiviso è il nome a far escludere i file degli altri domini quando la domanda nomina il proprio.
+
+Che cosa resta da evitare:
 
 | Da evitare | Perché |
 |---|---|
-| Un profilo con tutto dentro, collegato a tutti | Ogni agente carica i documenti degli altri; sul passo a valle il file che gli serve viene superato in classifica da quelli che non gli servono |
+| Un profilo **unico** con tutto il blueprint, collegato a tutti | Ogni agente carica i documenti di domini che non sono suoi; sul passo a valle il file che gli serve viene superato in classifica da quelli che non gli servono |
+| Un profilo condiviso sul **passo a valle di una catena** con file grandi o tabellari | Il messaggio contiene l'output del passo prima: quasi ogni nome corrisponde e i dataset si caricano interi (`BP028`). Lì il profilo resta suo |
 | File specifici e riferimenti comuni nello stesso profilo | I riferimenti vengono esclusi appena una domanda nomina i primi |
-| Lo stesso profilo su due agenti che leggono cose diverse | Nessuno dei due può dire «questo no» |
 | Nomi file generici | Il selettore non ha niente su cui agganciarsi |
 
 `IsDescriptionFiltered` **non** è la soluzione per un agente di catena: il filtro è una chiamata al
-modello sul messaggio, e lì il messaggio è enorme. Su un profilo per agente, poi, non c'è niente da
-filtrare.
+modello sul messaggio, e lì il messaggio è enorme.
 
-**Ogni profilo attivo consuma una licenza** (§ le quattro cose che vanno male): tre profili sono tre
-attivazioni. È il limite che fa da contrappeso allo split, e va verificato prima di proporre una
-partizione fine.
+Prima di proporre la partizione si guarda la licenza: il piano la confronta (`BP071` blocca, `BP072`
+avvisa), e se un profilo per dominio non basta ancora si accorpa di più — mai fino al profilo unico —
+oppure si chiedono più licenze.
 
 ### Il comando che la propone
 
@@ -201,7 +218,8 @@ partizione fine.
 xrcopilotlab-bp suggest <manifest> --files <cartella> --env staging
 ```
 
-Propone un profilo per agente, assegna i file dove il nome lo giustifica, lascia **non assegnato**
+Propone un profilo per agente — un punto di partenza da **accorpare per dominio**, non la forma
+finale —, assegna i file dove il nome lo giustifica, lascia **non assegnato**
 il resto, e calcola i vincoli: quali file il selettore non distinguerà, e quali dentro il loro
 profilo non hanno parole proprie. Non scrive niente.
 

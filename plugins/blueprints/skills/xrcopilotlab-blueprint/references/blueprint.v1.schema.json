@@ -1446,6 +1446,44 @@
           }
         }
       }
+    },
+    "testData": {
+      "type": "array",
+      "description": "Dati di collaudo: valori che servono a far girare il blueprint su un ambiente di prova e che in produzione vanno sostituiti (persone segnaposto, soglie fittizie, fonti del tenant di prova, callback che non esistono). Il piano li elenca (BP141); in produzione si ferma finché ce n'è uno (BP140).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "what",
+          "production"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Chiave simbolica, unica nella sezione."
+          },
+          "what": {
+            "type": "string",
+            "description": "Che cosa è fittizio, in parole semplici."
+          },
+          "value": {
+            "type": "string",
+            "description": "Il valore usato in collaudo."
+          },
+          "where": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Dove compare nel manifest: sezioni, chiavi, campi."
+          },
+          "production": {
+            "type": "string",
+            "description": "La domanda da fare alla persona prima della produzione, per sostituire il valore."
+          }
+        }
+      }
     }
   },
   "$defs": {

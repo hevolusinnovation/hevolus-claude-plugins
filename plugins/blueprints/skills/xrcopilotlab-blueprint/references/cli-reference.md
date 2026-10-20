@@ -242,6 +242,10 @@ messaggio, il giornale non deve stare fra i suoi file — e questo i nomi non lo
 vengono assegnati dove il nome lo giustifica e dichiarati **non assegnati** dove non lo giustifica:
 una casella vuota costa meno di un'assegnazione inventata.
 
+La proposta è un **punto di partenza da accorpare**: la forma di un manifest è un profilo per dominio,
+condiviso dagli agenti che lavorano sugli stessi documenti, perché ogni profilo attivo consuma una
+licenza (vedi [`manifest-reference.md`](manifest-reference.md#come-si-dividono-i-file-fra-i-profili)).
+
 Quello che invece calcola in modo esatto sono i vincoli: quali file il selettore non riuscirà a
 distinguere, e quali, dentro il profilo in cui finiscono, non hanno parole proprie — e verranno
 quindi esclusi appena una domanda nomina uno degli altri.
