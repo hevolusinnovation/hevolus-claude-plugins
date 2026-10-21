@@ -715,6 +715,11 @@ nuova.
     più; un profilo collegato a mano, fuori dal blueprint, resta. Fino al 18/10/2026 i profili non si
     confrontavano: HEVBPMKT v7 creava il profilo nuovo e la guida restava sul vecchio. Identità e strumenti
     restano quelli che hanno;
+  - le **skill** di un agente (#1565): una skill che il blueprint ha assegnato e che la versione nuova non dichiara
+    più si **toglie** (operazione `RemoveAgentSkill`, «Toglie la skill «x» dall'agente «y»» nel piano) ed esce
+    dall'inventario del run. Il confine è l'inventario: una skill aggiunta a mano resta, e un agente che la
+    versione nuova non dichiara affatto non si tocca (lo segnala `BP068`). Fino al 21/10/2026 un aggiornamento
+    aggiungeva skill ma non ne toglieva: la `spreadsheet` di STUDIOPOLIS v64 si poteva togliere solo dalla UI;
   - gli **orchestratori**: step, flussi, ciò che ogni step passa al successivo, messaggio di
     benvenuto. L'id e l'endpoint di chat — quindi i link già dati — restano gli stessi, e gli step
     che c'erano già tengono la loro posizione nel designer;
