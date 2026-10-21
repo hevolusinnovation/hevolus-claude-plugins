@@ -1086,6 +1086,9 @@ portano la versione nuova **sopra** quella applicata (#1126), dopo la stessa app
   modello; degli orchestratori step, flussi, passaggi di dati e messaggio di benvenuto (id e link di
   chat restano gli stessi); degli agent task prompt e descrizione (pianificazione e
   uscite restano come sono);
+- **si tolgono** (dalla CLI 2.26.0, #1565) le skill che il blueprint ha assegnato a un agente e che la
+  versione nuova non dichiara più: nel piano «Toglie la skill «x» dall'agente «y»». Una skill aggiunta
+  a mano resta, e un agente che la versione nuova non dichiara affatto non si tocca;
 - **resta com'è** tutto il resto, e il piano dice quante entità sono: i profili non si
   reindicizzano, i processi BPM non si aggiornano sul posto;
 - **non si cancella niente**: ciò che la versione nuova non dichiara più è un avviso **`BP068`** e
