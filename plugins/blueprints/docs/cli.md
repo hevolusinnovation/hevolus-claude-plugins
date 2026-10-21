@@ -354,6 +354,7 @@ differenza conta quando la CLI la lancia un assistente (niente terminale):
 | `promote` | chiede solo se la destinazione è la produzione | verso la produzione si ferma con **6**; altrove copia | `--yes` |
 | `catalog publish`, `catalog install` | chiede sempre | in produzione si ferma con **6**; altrove procede | `--yes` |
 | `knowledge reingest`, `knowledge add` | chiede `[s/N]` | si ferma con **6** | `--yes` |
+| `knowledge rm` | chiede di **scrivere il tag** | si ferma con **6** | `--confirm <TAG>`; `--yes` **non vale** |
 | `access migrate` | senza `--apply` mostra soltanto | idem | `--apply`, e in produzione anche `--yes` |
 | `instances cancel` | stampa l'elenco e si ferma con **6** — non chiede | idem | `--yes` |
 | `mcp orphans --remove` | stampa l'elenco e si ferma con **6** — non chiede | idem | `--yes` |
@@ -1695,12 +1696,19 @@ ciò che era già indicizzato va rifatto.
 xrcopilotlab-bp knowledge list [<profilo>] --tag <TAG> [--run <runId>] [--env] [--company]
 xrcopilotlab-bp knowledge reingest <profilo> --tag <TAG> [--only <file1,file2>] [--pending] [--yes] [--run <runId>] [--env] [--company]
 xrcopilotlab-bp knowledge add <profilo> <file…> --tag <TAG> [--yes] [--run <runId>] [--env] [--company]
+xrcopilotlab-bp knowledge rm <profilo> --tag <TAG> [--confirm <TAG>] [--run <runId>] [--env] [--company]
 ```
 
 `knowledge add` (#1518) aggiunge documenti dal disco a un profilo già indicizzato, senza una versione nuova del
 manifest: li carica nel topic, li collega al profilo senza riscrivere gli altri e fa indicizzare solo loro. Un file
 che il profilo ha già si rifà con `reingest --only`. Per tenere il manifest allineato, aggiungere gli stessi file a
 `knowledge[].files` alla versione dopo.
+
+`knowledge rm` (dalla CLI 2.27.0, #1567) toglie dal tenant **un solo** profilo che il blueprint ha creato, e lo toglie
+dall'inventario del run. Serve per un profilo che una versione nuova non dichiara più: l'aggiornamento lo scollega
+dagli agenti ma lo lascia sul tenant (`BP068`), e `rollback` smonterebbe il blueprint intero. Sparisce il profilo con
+il suo indice; i file restano nel topic. Rifiuta (exit 3) un profilo adottato e uno ancora collegato a un agente del
+topic. La conferma è quella di `delete`: si scrive il tag, o `--confirm <TAG>`.
 
 | Argomento / opzione | Sottocomando | Default | Significato |
 |---|---|---|---|
