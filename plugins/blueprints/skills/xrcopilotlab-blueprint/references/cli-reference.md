@@ -715,6 +715,11 @@ nuova.
     più; un profilo collegato a mano, fuori dal blueprint, resta. Fino al 18/10/2026 i profili non si
     confrontavano: HEVBPMKT v7 creava il profilo nuovo e la guida restava sul vecchio. Identità e strumenti
     restano quelli che hanno;
+  - le **skill** di un agente (#1565): una skill che il blueprint ha assegnato e che la versione nuova non dichiara
+    più si **toglie** (operazione `RemoveAgentSkill`, «Toglie la skill «x» dall'agente «y»» nel piano) ed esce
+    dall'inventario del run. Il confine è l'inventario: una skill aggiunta a mano resta, e un agente che la
+    versione nuova non dichiara affatto non si tocca (lo segnala `BP068`). Fino al 21/10/2026 un aggiornamento
+    aggiungeva skill ma non ne toglieva: la `spreadsheet` di STUDIOPOLIS v64 si poteva togliere solo dalla UI;
   - gli **orchestratori**: step, flussi, ciò che ogni step passa al successivo, messaggio di
     benvenuto. L'id e l'endpoint di chat — quindi i link già dati — restano gli stessi, e gli step
     che c'erano già tengono la loro posizione nel designer;
@@ -1121,7 +1126,7 @@ Configuration non è bastato — la connessione aveva i valori dell'apply — e 
 mostrare `AADSTS700016`. Il valore giusto è stato recuperato dalla **versione precedente** del
 segreto in Key Vault, senza ruotare nulla.
 
-## `knowledge list [<profilo>]` · `knowledge reingest <profilo>`
+## `knowledge list [<profilo>]` · `knowledge reingest <profilo>` · `knowledge rm <profilo>`
 
 I profili di knowledge che il blueprint ha creato, lo stato di indicizzazione dei loro file, e la
 richiesta di **reindicizzarli**: servono quando la libreria della knowledge graph cambia il modo di
@@ -1171,6 +1176,21 @@ nuovo va nel topic al posto del vecchio, con lo stesso nome, e il file si reindi
 contenuto vecchio. È l'unico modo di aggiornare un documento: il piano confronta i file per nome e non vede un
 contenuto cambiato, e `knowledge reingest --only` rilegge il contenuto che c'è. Chiede un sì come l'apply. Per tenere il manifest allineato, aggiungere gli stessi file a `knowledge[].files` alla versione dopo:
 il piano li riconoscerà come già presenti.
+
+**`knowledge rm <profilo> --tag <TAG> [--confirm <TAG>]`** (#1567) toglie dal tenant **un solo** profilo che il
+blueprint ha creato, e lo toglie dall'inventario del run. Serve per un profilo che una versione nuova non dichiara
+più: l'aggiornamento lo scollega dagli agenti ma lo lascia sul tenant (`BP068`), e `rollback` smonterebbe il run
+intero. Sparisce il profilo con il suo indice; i file restano nel topic.
+
+```bash
+xrcopilotlab-bp knowledge rm storico-civile --tag STUDIOPOLIS --env staging --company <guid>
+```
+
+- Rifiuta (exit **3**) un profilo **adottato** — c'era già sul tenant, non è del blueprint — e un profilo ancora
+  collegato a un agente del topic: prima si scollega, con un aggiornamento che non lo dichiara più o dalla UI.
+- La conferma è quella di `delete`: si scrive il **tag** del blueprint al terminale, o si passa `--confirm <TAG>`.
+  `--yes` non vale. Senza terminale e senza `--confirm` si ferma con **6**.
+- Un profilo già tolto a mano dal tenant si toglie solo dall'inventario, senza errore.
 
 ## `instances list` · `instances show <id>` · `instances cancel`
 
