@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-storyboard
-description: Da un blueprint XRCopilotLab (manifest) produce, di default, TRE VIDEO NARRATI dell'applicazione vera (staging o prod): come si crea da zero (topic, conoscenza, assistenti, orchestratore, processo BPM disegnato a mano), come si usa il risultato già creato, e il processo in funzione ruolo per ruolo con un'istanza vera. Voce neurale italiana della piattaforma (`xrcopilotlab-bp voice`, senza chiavi Azure), a scelta fra quattro dopo un campione, senza sottotitoli, pagina con download e tempo di creazione. Poi crea nel tenant del manifest un agente video con i video generati (topic Guide; saltabile solo se non consegnabili). Su richiesta scrive lo storyboard a tavole. Chiede ambiente e sì prima di registrare: la creazione e il video 3 scrivono sul tenant. Usa per "il video del blueprint", "il video di come si crea", "lo storyboard", "la voce fuori campo". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (-blueprint-test) o il manifest (xrcopilotlab-blueprint).
+description: Da un blueprint XRCopilotLab (manifest) produce, di default, TRE VIDEO NARRATI dell'applicazione vera (staging o prod): come si crea da zero (topic, conoscenza, assistenti, orchestratore, processo BPM disegnato a mano), come si usa il risultato già creato, e il processo in funzione ruolo per ruolo con un'istanza vera. Voce ElevenLabs se nell'ambiente c'è ELEVENLABS_API_KEY (altrimenti mostra come salvarla su Mac e Windows, mai in chat) o la voce neurale italiana della piattaforma (`xrcopilotlab-bp voice`, senza chiavi), scelta dopo un campione; su richiesta lo short verticale 9:16, senza sottotitoli, pagina con download e tempo di creazione. Poi crea nel tenant del manifest un agente video con i video generati (topic Guide; saltabile solo se non consegnabili). Su richiesta scrive lo storyboard a tavole. Chiede ambiente e sì prima di registrare: la creazione e il video 3 scrivono sul tenant. Usa per "il video del blueprint", "il video di come si crea", "lo storyboard", "la voce fuori campo". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (-blueprint-test) o il manifest (xrcopilotlab-blueprint).
 ---
 
 # xrcopilotlab-blueprint-storyboard
@@ -29,6 +29,21 @@ su ambiente e company dichiarati, e le entità si cancellano solo con un altro s
 | L'utente | sceglie la fonte, approva il copione, decide se un cliente può comparire | — |
 
 Input: `$ARGS` — un tag o un manifest, un dossier, la durata, il tono; oppure niente.
+
+## Prima di partire: Chrome predefinito con Claude in Chrome
+
+La skill lavora nel browser: apre lo storyboard e i video in **Google Chrome**, in una finestra nuova a tutto schermo
+(§7), e guarda l'applicazione vera — il benvenuto di un orchestratore, una pagina, un compito — con l'estensione
+**Claude in Chrome**. Quindi, prima di cominciare:
+
+1. Chrome dev'essere il **browser predefinito** della macchina e restare aperto;
+2. l'estensione Claude in Chrome dev'essere installata e collegata alla sessione (`/chrome` nella scheda Code); se
+   gli strumenti `mcp__claude-in-chrome__*` non rispondono, dirlo all'utente con questi due passi invece di
+   ripiegare in silenzio su un altro browser.
+
+Senza, la skill scrive lo storyboard e i video lo stesso, ma non li apre e non controlla ciò che vede il cliente: lo
+dice nel riepilogo. Come si prepara la macchina, per chi installa: la pagina «Installare» del Blueprint Marketplace
+(§ «Chrome per lo storyboard»), copia di `docs/installare.md` del plugin.
 
 ## Riferimenti
 
@@ -154,22 +169,36 @@ manifest, YAML, id, tag, prompt, token, endpoint, nomi di step, versioni.
 
 ## 5. La voce
 
-Si scrive la battuta di ogni scena e si genera la voce **neurale della piattaforma** con la CLI, con la
-**voce che l'utente ha scelto** (§5-bis):
+Si scrive la battuta di ogni scena e si genera la voce con la **voce che l'utente ha scelto** (§5-bis): ElevenLabs
+se c'è la chiave, altrimenti la voce neurale della piattaforma. Stesso file di righe, stessa uscita:
 
 ```bash
-xrcopilotlab-bp voice say --lines righe.json --out-dir audio --voice "<voce scelta>" --env <ambiente>
+python3 -I voce-elevenlabs.py say --lines righe.json --out-dir audio --voice "<voce scelta>"              # ElevenLabs
+xrcopilotlab-bp voice say --lines righe.json --out-dir audio --voice "<voce scelta>" --env <ambiente>     # piattaforma
 ```
 
-(`righe.json` è un elenco `[{"name":"scena-1","text":"…"}]`; l'ambiente è quello scelto al §1.) Usa
-l'endpoint `common/speech` con l'accesso che ogni utente della CLI ha già: **nessuna chiave Azure,
+(`righe.json` è un elenco `[{"name":"scena-1","text":"…"}]`; l'ambiente è quello scelto al §1.) La voce della
+piattaforma usa l'endpoint `common/speech` con l'accesso che ogni utente della CLI ha già: **nessuna chiave Azure,
 nessun ruolo da chiedere**, quindi funziona per chiunque in Hevolus abbia il plugin, non solo per il
 team AI.
 
 ### 5-bis. La scelta della voce, con un campione
 
-La voce predefinita della piattaforma (Diego) è la più meccanica delle quattro che si propongono. **Prima di
-generare la narrazione** si fa scegliere all'utente, facendogliele ascoltare:
+**Prima di generare la narrazione** si sceglie la voce, facendola ascoltare. Due famiglie, e **ElevenLabs viene
+prima quando c'è la chiave**:
+
+1. **C'è la chiave?** `python3 -I voce-elevenlabs.py controlla` (accanto a `compose-video.py`; dice solo «presente»
+   o «assente», mai il valore).
+2. **Se c'è → ElevenLabs.** `python3 -I voce-elevenlabs.py voci --lang it` elenca le voci dell'account; si
+   propongono **Liam** (il default, la stessa voce dei reel del registratore) e due o tre voci italiane dell'elenco.
+3. **Se non c'è → si chiede di impostarla, non di darla.** Si mostrano le istruzioni di
+   [`narrazione.md` § «La chiave ElevenLabs»](references/narrazione.md#la-chiave-elevenlabs-come-si-salva-una-volta-per-macchina)
+   per **macOS e Windows** (la persona salva la chiave nel proprio terminale, poi riavvia Claude Code) e si chiede,
+   con la domanda a scelta: **«L'ho impostata, riprova»** oppure **«Continua con le voci della piattaforma»**.
+   **Mai** chiedere di incollare la chiave in chat, e se qualcuno la incolla lo si avvisa di revocarla e crearne
+   un'altra: è finita nella conversazione. Dopo «L'ho impostata» si rilancia `controlla`; se è ancora assente, la
+   sessione non è stata riavviata: lo si dice.
+4. **Le voci della piattaforma** (senza chiave, o per scelta):
 
 | Voce | Identificativo (`--voice`) | |
 |---|---|---|
@@ -178,25 +207,33 @@ generare la narrazione** si fa scegliere all'utente, facendogliele ascoltare:
 | Fabiola | `it-IT-FabiolaNeural` | femminile |
 | Diego | `it-IT-DiegoNeural` | maschile, **il default** della piattaforma |
 
+Poi, per l'una o l'altra famiglia:
+
 1. **Il campione è la prima battuta del blueprint**, non una frase di prova: si sente la voce sul testo
-   vero, con i nomi e il ritmo del video. Una battuta sola, la stessa per tutte e quattro:
+   vero, con i nomi e il ritmo del video. Una battuta sola, la stessa per tutte le voci proposte:
    ```bash
+   # ElevenLabs
+   for v in Liam "<voce 2>" "<voce 3>"; do
+     python3 -I voce-elevenlabs.py say "<prima battuta>" --out "<scratch>/voci/$v.mp3" --voice "$v"
+   done
+   # piattaforma
    for v in "it-IT-Isabella:DragonHDLatestNeural" "it-IT-Alessio:DragonHDLatestNeural" "it-IT-FabiolaNeural" "it-IT-DiegoNeural"; do
      xrcopilotlab-bp voice say "<prima battuta>" --out "<scratch>/voci/$(echo $v | tr ':' '-').mp3" --voice "$v" --env <ambiente>
    done
    ```
-   Su Windows lo stesso ciclo in PowerShell (`foreach ($v in @(…)) { … }`).
+   Su Windows lo stesso ciclo in PowerShell (`foreach ($v in @(…)) { … }`). I campioni neutri delle quattro voci
+   della piattaforma sono anche nel Blueprint Marketplace (finestra «Crea i video», «Le voci»).
 2. **Si fanno ascoltare**: si apre la cartella (`open <scratch>/voci` su macOS, `explorer <cartella>` su
-   Windows) e si scrivono i quattro file con il nome della voce accanto. Se una voce non si genera
-   sull'ambiente (una voce HD non disponibile in quella regione), lo si dice e si propongono le altre.
-3. **Si chiede quale usare**, con la domanda a scelta (le quattro voci, Diego indicata come default). **Non
-   si va avanti finché l'utente non sceglie**: generare la narrazione di tre video con una voce che non
-   piace costa tempo e chiamate al servizio vocale.
+   Windows) e si scrivono i file con il nome della voce accanto. Se una voce non si genera (una voce HD non
+   disponibile nella regione, una voce ElevenLabs a pagamento), lo si dice e si propongono le altre.
+3. **Si chiede quale usare**, con la domanda a scelta. **Non si va avanti finché l'utente non sceglie**: generare
+   la narrazione di tre video con una voce che non piace costa tempo e crediti.
 4. **La voce scelta vale per tutto**: le battute di tutti e tre i video, l'audio di servizio e l'agente
-   video. Si scrive nella pagina finale («voce: Isabella HD») e nello `storyboard.md`. Se l'utente cambia
-   idea a metà, si rigenerano tutte le battute, non solo le successive: due voci nello stesso video si
-   sentono.
-5. Se l'utente non vuole scegliere («vai con quella di default»), si usa Diego e lo si scrive.
+   video. Si scrive nella pagina finale («voce: Liam · ElevenLabs», «voce: Isabella HD») e nello `storyboard.md`.
+   Se l'utente cambia idea a metà, si rigenerano tutte le battute, non solo le successive: due voci nello stesso
+   video si sentono.
+5. Se l'utente non vuole scegliere («vai con quella di default»): **Liam** se c'è la chiave, altrimenti **Diego**,
+   e lo si scrive.
 
 Le voci HD hanno un passo diverso da Diego: dopo la scelta si **rimisurano** le battute (sotto), non si
 riusano i tempi calcolati con un'altra voce.
@@ -221,6 +258,13 @@ Il prodotto sono **tre video reali** della piattaforma, separati, con voce e sen
 
 Chiusi i video, il prodotto **non è finito**: c'è il quarto passo, l'**agente video nel tenant del manifest**
 ([§5-quater](#5-quater-la-guida-video-nel-tenant-lagente-video)).
+
+**Facoltativo, su richiesta: lo short 9:16** (`04-short.mp4`), il video verticale per i social, montato dal
+registratore a partire dal video 2 (banco ≥ 1.4.0): `xrcopilotlab-demo reel --in <uscita del video 2> --lang it`
+scrive prima la bozza del copione (`--draft`, si fa leggere), poi il reel con la stessa voce (`--provider elevenlabs
+--voice "<voce scelta>"` se c'è la chiave, altrimenti `--provider edge`). Non registra niente e non tocca il tenant.
+Quando la funzionalità non si può mostrare sul tenant, `xrcopilotlab-demo animate --describe "<funzionalità>"` fa lo
+short dai frame della libreria Figma. Si archivia accanto agli altri (`creazione-umana/video/04-short.mp4`).
 
 Si fanno in quest'ordine; il 3 scrive istanze sul tenant e ha il suo piano e il suo sì. Si chiede quali
 fare (di default tutti e tre, ciascuno quando le sue condizioni ci sono) e si pubblica una pagina con un
@@ -311,9 +355,24 @@ Se uno fallisce si corregge e si ripete: non si pubblica «con riserva».
 6. Il piè di pagina riporta solo **versione · data · giro di feedback**. Una correzione dopo un
    giro di feedback incrementa la versione e **ripubblica allo stesso `url`**.
 
+## 7-bis. Nel Blueprint Marketplace
+
+I video non finiscono nella pagina dell'artifact: il posto dove Sales e AI Specialist li cercano è la scheda del
+blueprint nel **Blueprint Marketplace**. Perché ci arrivino da soli:
+
+1. nell'archivio del tenant i video hanno **i nomi fissi** `creazione-umana/video/01-come-si-crea.mp4`,
+   `02-come-si-usa.mp4`, `03-processo-in-funzione.mp4`, ciascuno con il suo **`.capitoli.json`** (titolo,
+   descrizione, capitoli, e le stesse voci in inglese): [`references/video-narrato.md`](references/video-narrato.md) passo 8;
+2. alla fine si propone `/xrcopilotlab-blueprint-marketplace video <TAG>`, che li copia nel sito e scrive la scheda.
+   Se la storyboard è stata lanciata **da** quella skill (che l'ha chiamata perché i video mancavano), si torna a lei
+   e lei riprende da sola.
+
+Non si caricano video nello storage del sito da qui, e non si toccano le schede: è il lavoro dell'altra skill.
+
 ## 8. Il messaggio finale
 
-Breve: il link, durata e numero di scene, **quali sezioni del manifest non sono rappresentate e
+Breve: il link, durata e numero di scene, se i video sono nell'archivio con i nomi e i capitoli del §7-bis e il
+comando per portarli nel marketplace, **quali sezioni del manifest non sono rappresentate e
 perché**, se l'audio è di servizio, e che cosa serve decidere (un cliente nominato? una scena
 troppo densa?). Se esiste il brief di `blueprint-demo` per lo stesso scenario, dire che lo storyboard
 ne usa gli stessi stati e limiti.
@@ -331,6 +390,8 @@ ne usa gli stessi stati e limiti.
 - Non assumere l'ambiente: se l'utente non lo dice, lo si chiede (staging predefinito). E non assumere che
   la versione letta sia l'ultima: si controlla l'archivio di ogni ambiente e tenant (§1-bis).
 - Non chiedere all'utente chiavi o ruoli Azure per la voce: c'è `xrcopilotlab-bp voice`.
+- Non chiedere la chiave ElevenLabs in chat, non leggerla e non stamparla: si mostrano le istruzioni per salvarla
+  (`narrazione.md`), e senza chiave si va avanti con la voce della piattaforma.
 - Non pubblicare audio o tavole in un repository: contengono lo scenario di un cliente.
 - Non avviare un'istanza per il terzo video senza il sì sul piano, né con dati veri o effetti esterni accesi.
 - Non consegnare i video senza l'agente video nel tenant del manifest, né saltarlo senza dirlo.
