@@ -36,7 +36,7 @@ Elenco dei comandi, per saltare subito dove serve:
 |---|---|
 | Scrivere e controllare il file | [`validate`](#validate) · [`suggest`](#suggest) · [`external`](#external) |
 | Segreti | [`secrets set`](#secrets-set) · [`secrets check`](#secrets-check) |
-| Archivio delle versioni | [`push`](#push) · [`pull`](#pull) · [`export`](#export) · [`promote`](#promote) · [`copies`](#copies) · [`catalog`](#catalog-list--publish--install) |
+| Archivio delle versioni | [`push`](#push) · [`pull`](#pull) · [`export`](#export) · [`promote`](#promote) · [`copies`](#copies) · [`catalog`](#catalog-list--publish--install--prune) |
 | Applicare e smontare | [`plan`](#plan) · [`apply`](#apply) · [`pipeline`](#pipeline) · [`status`](#status) · [`rollback`](#rollback) · [`delete`](#delete) |
 | Collaudo | [`test init`](#test-init) · [`test validate`](#test-validate) · [`test run`](#test-run) · [`test push`](#test-push) · [`test reports`](#test-reports) |
 | Un blueprint già applicato | [`schedule`](#schedule-list--pause--resume--logs) · [`mcp`](#mcp-check--orphans--publish--test) · [`connections`](#connections-list--refresh) · [`instances`](#instances-list--show--cancel) · [`knowledge`](#knowledge-list--reingest) |
@@ -240,7 +240,7 @@ Le regole, nell'ordine in cui la CLI le applica:
    tutti) e lo dice.
 
 > Il tenant `default` è la partizione del catalogo dei modelli,
-> non un tenant: ogni comando lo rifiuta con 1 (vedi [`catalog`](#catalog-list--publish--install)).
+> non un tenant: ogni comando lo rifiuta con 1 (vedi [`catalog`](#catalog-list--publish--install--prune)).
 
 ### I profili scritti a mano
 
@@ -899,7 +899,7 @@ i tenant distinti e l'ultima copia con la firma. Staging → produzione → cata
 sola. Solo lettura, e **solo per lo staff**: dice dove sono finite le copie di ogni cliente, quindi non
 va in materiali per un cliente.
 
-### `catalog list | publish | install`
+### `catalog list | publish | install | prune`
 
 Il **catalogo** dei blueprint pronti, curati da Hevolus e installabili da qualunque tenant. Vive
 nello stesso archivio, nella partizione `default`, che non è un tenant: nessun altro comando ci lavora.
@@ -937,8 +937,31 @@ Controlla che il file sia davvero un **modello** — nessun tenant (`BP100`), ne
 catalogo, con chi l'ha pubblicato e chi ha rivisto i documenti. **È riservato a Hevolus**: scrive
 nella partizione che ogni tenant legge.
 
-**Esce:** 0 · 2 non è un modello · 6 senza approvazione (al terminale: risposta no; senza terminale:
-solo in produzione).
+**Nel catalogo un modello ha una versione sola, l'ultima** (dalla 2.28.0, #1595): appena la versione nuova è
+scritta, `publish` toglie dal catalogo tutte le altre dello stesso modello — la domanda di conferma le elenca — e
+rifiuta una versione più vecchia di quella già pubblicata (exit 1). Si pubblica quindi solo una versione collaudata
+su staging, nella stessa versione su staging e in produzione. Le copie già installate sui tenant non cambiano.
+
+**Esce:** 0 · 1 versione più vecchia di quella nel catalogo · 2 non è un modello · 6 senza approvazione (al
+terminale: risposta no; senza terminale: solo in produzione).
+
+#### `catalog prune`
+
+```
+xrcopilotlab-bp catalog prune [<modello>] [--confirm <modello>|catalogo] [--env <nome>]
+```
+
+| Argomento / opzione | Default | Significato |
+|---|---|---|
+| `<modello>` | tutti | il modello da ripulire; senza, ogni modello del catalogo |
+| `--confirm <valore>` | nessuno | la conferma senza terminale: il nome del modello, o `catalogo` senza modello. `--yes` non vale |
+
+Lascia nel catalogo solo la versione più alta di ogni modello: serve per i modelli pubblicati prima della regola.
+Elenca che cosa resta e che cosa esce, poi chiede di **scrivere** il nome del modello (o `catalogo`), come `delete`:
+le versioni tolte non si installano più, nemmeno con `--version`, e non c'è un annulla. Le copie già installate sui
+tenant non cambiano.
+
+**Esce:** 0 · 1 conferma sbagliata o modello inesistente · 6 nessuna conferma.
 
 #### `catalog install`
 
@@ -2082,7 +2105,7 @@ descrive è lì.
 |---|---|
 | `export <orchestratore>`: un orchestratore del tenant scritto come manifest (#580) | [`export`](#export) |
 | `export --scope orchestrator \| topic \| blueprint \| tenant`, con `--keep-people`: un tenant intero o una sua parte in un manifest, con rapporto e segreti (#1173) | [`export`](#export) |
-| `catalog list`, `catalog publish` (con `--check` e `--documents-reviewed`), `catalog install` (con `--tag`, `--topic`, `--existing-topic`, `--members`), e i rilievi `BP100`–`BP105` (#1185) | [`catalog`](#catalog-list--publish--install) |
+| `catalog list`, `catalog publish` (con `--check` e `--documents-reviewed`), `catalog install` (con `--tag`, `--topic`, `--existing-topic`, `--members`), e i rilievi `BP100`–`BP105` (#1185) | [`catalog`](#catalog-list--publish--install--prune) |
 | I segreti appartengono al tenant: `secrets set` chiede il tenant e scrive `Blueprints:Secrets:<companyId>:<TAG>:<nome>`; `secrets check`, `pipeline`, `promote` e l'apply leggono prima quella chiave e poi quella vecchia; il rilievo `BP103` | [`secrets set`](#secrets-set) |
 | Il tenant `default` (la partizione del catalogo) è rifiutato da ogni comando | [§ 3](#--company-il-tenant) |
 | `knowledge list` e `knowledge reingest`, con `--only` e `--pending` | [`knowledge`](#knowledge-list--reingest) |

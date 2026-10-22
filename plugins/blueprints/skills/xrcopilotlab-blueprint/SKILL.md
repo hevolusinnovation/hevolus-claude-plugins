@@ -905,10 +905,16 @@ catalogo di produzione (`catalog pull <modello> --env staging --out <file>`, poi
 cioè copiarla nel database di produzione. Una correzione è una versione nuova che fa lo stesso giro. `promote` non
 scrive nel catalogo: lo rifiuta. Chi applica un modello nel suo tenant ne riceve una copia nel proprio archivio.
 
-**Si propone sempre l'ultima versione.** `catalog list` mostra solo quella, e `catalog install` installa quella se
-non si indica `--version`: non elencare all'utente le versioni precedenti e non proporre `--version` di propria
-iniziativa. Se un tenant ha installato una versione più vecchia, `catalog list --company <tenant>` lo dice, e
-l'aggiornamento è un nuovo `catalog install` dell'ultima.
+**Nel catalogo c'è una versione sola per modello: l'ultima che funziona** ([`references/catalogo.md`](references/catalogo.md#una-versione-sola-per-modello-1595),
+#1595). `catalog publish` toglie da sé le versioni precedenti del modello
+appena la nuova è scritta, e rifiuta una versione più vecchia di quella pubblicata; quindi **si pubblica solo una
+versione collaudata su staging**, perché quella che c'era esce. Prima di pubblicare, si dice all'utente quali versioni
+escono (la domanda di conferma le elenca). Se nel catalogo un modello ne ha ancora più d'una — pubblicato prima della
+regola — si propone `catalog prune <modello> --env <e>`: la conferma è il nome del modello, scritto dall'utente o
+passato con `--confirm` **solo dopo il suo sì esplicito**, mai di propria iniziativa. `catalog install` installa
+l'ultima, e non si propone `--version`: le versioni ritirate non si installano più. Se un tenant ha installato una
+versione più vecchia, `catalog list --company <tenant>` lo dice, e l'aggiornamento è un nuovo `catalog install`
+dell'ultima: la copia del tenant non cambia finché non lo si fa.
 
 I modelli del catalogo sono scritti **senza persone vere**: i ruoli sono vuoti, i passi indirizzati a
 una persona citano `role:<chiave>`, e dove serve un indirizzo (owner, destinatari, una casella di
