@@ -87,6 +87,18 @@ riparte dalle scelte precedenti e il piano applica la differenza sul posto (#112
 I segreti appartengono al tenant (`Blueprints:Secrets:<companyId>:<TAG>:<nome>`): due tenant che
 installano lo stesso modello con lo stesso tag non condividono niente.
 
+## Una versione sola per modello (#1595)
+
+Il catalogo non è un archivio: è ciò che si offre a chi installa. Per questo ogni modello ci sta in **una
+versione sola, l'ultima che funziona**. `catalog publish` toglie dal catalogo le versioni precedenti dello
+stesso modello appena la nuova è scritta, e rifiuta una versione più vecchia di quella già pubblicata.
+`catalog prune` fa lo stesso sui modelli pubblicati prima della regola, con la conferma forte di `delete`.
+
+Una versione che esce dal catalogo non si installa più, nemmeno con `--version`. Le copie già installate
+non cambiano: stanno nell'archivio del tenant, con la loro storia; il prossimo `catalog install` le porta
+all'ultima versione. Il motivo è emerso il 22/10/2026: nel catalogo di produzione c'erano ancora la v2 di
+FINBANK, che usava una skill ritirata, e la v20, sostituita lo stesso giorno.
+
 ## Nella webapp
 
 Catalogo e installazione compaiono nella pagina dei blueprint dell'amministrazione: specifiche nella

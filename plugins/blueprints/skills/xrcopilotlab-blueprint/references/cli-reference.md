@@ -608,7 +608,7 @@ con ciò che c'era (di norma il nome del computer) e applicate se un run complet
 Senza `--env` si leggono tutti gli ambienti noti; uno illeggibile non ferma gli altri, ma la
 classifica lo dichiara. `--since` restringe le copie, non i run.
 
-## `catalog list` · `catalog publish <modello.yml>` · `catalog install <modello>`
+## `catalog list` · `catalog publish <modello.yml>` · `catalog install <modello>` · `catalog prune`
 
 Il **catalogo** dei blueprint pronti, curati da Hevolus e installabili da qualunque tenant (#1185).
 Vive nello stesso archivio dei tenant, nella partizione `default`; perché e come si scrive un
@@ -623,6 +623,7 @@ xrcopilotlab-bp catalog install legal-agenda --env staging --company <tenant> \
     [--topic <nome> | --existing-topic <nome>] \
     [--members "referente=a@studio.it,b@studio.it;segreteria=c@studio.it"] \
     [--replace "segnaposto@esempio.invalid=utente@studio.it;capo@hevolus.it=altro@studio.it"]
+xrcopilotlab-bp catalog prune [<modello>] --env prod [--confirm <modello>|catalogo]
 ```
 
 - **`list`** — l'ultima versione di ogni modello, con che cosa crea. Con `--company`, anche che
@@ -633,7 +634,15 @@ xrcopilotlab-bp catalog install legal-agenda --env staging --company <tenant> \
   persona né email, segreti senza tenant, documenti rivisti) e che, installato per finta, sia un
   manifest valido; poi lo scrive nel catalogo. In produzione chiede conferma. Con `--check` si ferma
   al controllo, senza rete e senza scrivere: è il modo di provare una bozza. È riservato a Hevolus:
-  scrive nella partizione che ogni tenant legge.
+  scrive nella partizione che ogni tenant legge. **Nel catalogo un modello ha una versione sola** (#1595):
+  pubblicarne una toglie dal catalogo tutte le altre di quel modello — la domanda di conferma le elenca —,
+  e una versione più vecchia di quella già pubblicata si rifiuta, perché resterebbe lei e uscirebbe quella che
+  funziona. Le versioni escono solo dopo che la nuova è scritta.
+- **`prune`** — riporta a una versione per modello il catalogo pubblicato prima della regola: elenca, per
+  ogni modello, la versione che resta (la più alta) e quelle che escono, poi le toglie. Non si annulla,
+  quindi la conferma è quella di `delete`: si scrive il nome del modello (o `catalogo`, senza modello), al
+  terminale o con `--confirm`; `--yes` non vale. Le copie già installate sui tenant non cambiano: vivono
+  nella partizione del tenant.
 - **`install`** — copia una versione del modello nell'archivio del tenant con le scelte di chi
   installa: tag (default quello del modello), prefisso dei nomi, topic, persone di ogni ruolo.
   Il **prefisso** si sceglie con `--prefix "Studio · "` (le entità si chiamano «Studio · Agenda») o
