@@ -905,8 +905,8 @@ catalogo di produzione (`catalog pull <modello> --env staging --out <file>`, poi
 cioè copiarla nel database di produzione. Una correzione è una versione nuova che fa lo stesso giro. `promote` non
 scrive nel catalogo: lo rifiuta. Chi applica un modello nel suo tenant ne riceve una copia nel proprio archivio.
 
-**Nel catalogo c'è una versione sola per modello: l'ultima che funziona** (regola 10 di
-[`blueprints.md`](../../rules/blueprints.md), #1595). `catalog publish` toglie da sé le versioni precedenti del modello
+**Nel catalogo c'è una versione sola per modello: l'ultima che funziona** ([`references/catalogo.md`](references/catalogo.md#una-versione-sola-per-modello-1595),
+#1595). `catalog publish` toglie da sé le versioni precedenti del modello
 appena la nuova è scritta, e rifiuta una versione più vecchia di quella pubblicata; quindi **si pubblica solo una
 versione collaudata su staging**, perché quella che c'era esce. Prima di pubblicare, si dice all'utente quali versioni
 escono (la domanda di conferma le elenca). Se nel catalogo un modello ne ha ancora più d'una — pubblicato prima della
