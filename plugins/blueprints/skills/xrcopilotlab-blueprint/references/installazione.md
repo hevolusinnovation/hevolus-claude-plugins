@@ -30,7 +30,7 @@ L'avviatore cerca il binario in quest'ordine, e la prima risposta vince:
 
 Serve a chi non usa Claude Code, a chi deve fissare una versione precisa, o a una macchina che non
 può raggiungere GitHub al primo avvio. Gli allegati stanno nella release
-[`bp-v2.27.0`](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/tag/bp-v2.27.0)
+[`bp-v2.28.0`](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/tag/bp-v2.28.0)
 — accanto a ognuno c'è un file `.sha256` che contiene **solo l'impronta**, quindi si confronta, non
 si dà in pasto a `shasum -c`.
 
@@ -47,7 +47,7 @@ emulazione. Lo stesso per **Linux ARM**. Entrambi arrivano con la release succes
 ### macOS
 
 ```bash
-gh release download bp-v2.27.0 --repo hevolusinnovation/hevolus-claude-plugins \
+gh release download bp-v2.28.0 --repo hevolusinnovation/hevolus-claude-plugins \
     --pattern 'xrcopilotlab-bp-osx-arm64*' --dir ~/Downloads
 
 # L'impronta si confronta: il file .sha256 contiene solo il numero.
@@ -74,7 +74,7 @@ xattr -d com.apple.quarantine ~/.local/bin/xrcopilotlab-bp
 ### Windows (PowerShell)
 
 ```powershell
-gh release download bp-v2.27.0 --repo hevolusinnovation/hevolus-claude-plugins `
+gh release download bp-v2.28.0 --repo hevolusinnovation/hevolus-claude-plugins `
     --pattern 'xrcopilotlab-bp-win-x64.exe*' --dir $HOME\Downloads
 
 # Confronto dell'impronta, prima di eseguire.
