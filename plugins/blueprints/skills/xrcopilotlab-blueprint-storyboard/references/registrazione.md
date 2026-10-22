@@ -6,6 +6,22 @@ comando, come `xrcopilotlab-bp`: il plugin `blueprints` porta il lanciatore, che
 pacchetto (Node incluso) da una release `demo-v*` e ne verifica l'impronta. Questo sostituisce la skill
 `xrcopilotlab-demo-video`, che non serve più: la panoramica di un blueprint è il sottocomando `tour`.
 
+## Quale versione del banco
+
+`xrcopilotlab-demo version` dice quale pacchetto ha scaricato il plugin (il numero sta in
+`plugins/blueprints/bin/demo-version.txt` del catalogo). Le novità di questa pagina segnate **(≥ 1.4.0)** ci sono solo
+da quella release in poi; con una versione precedente si fa come prima e lo si dice nel riepilogo.
+
+| Che cosa | Da quale versione | Effetto sulla storyboard |
+|---|---|---|
+| `create`, `tour`, `record`, `cleanup`; le macro `askAgent`, `createProcess`, `startInstance`, `completeWorkItem` | 1.3.0 | i tre video |
+| **Il piano dichiara se scrive** (`"mode": "write"`) e `record` lo rifiuta senza `--allow-write`; negli altri piani il runner **blocca i clic che scriverebbero** | ≥ 1.4.0 | il video 3 e ogni `record` che avvia, prende in carico o completa: `mode: write` + `--allow-write`, sempre dopo il sì sul piano |
+| **Verifica a freddo** di ogni piano in sola lettura, in una sessione pulita, prima di registrare (`--no-verify` la salta) | ≥ 1.4.0 | registrazioni più affidabili, qualche minuto in più; un piano che scrive non si rigioca mai |
+| **`make`**, un verbo per ogni sorgente: `make --brief` (= `tour`), `make --manifest` (= `create`), `make --plan` (= `record`) | ≥ 1.4.0 | i comandi di prima restano validi: si usano quelli, `make` è un'abbreviazione |
+| **`reel --in <uscita>`**: lo short verticale 9:16 dalla registrazione | ≥ 1.4.0 | il quarto video facoltativo (SKILL.md §5-ter) |
+| **Profilo voce** (`--provider elevenlabs\|edge\|piper\|azure`, `--voice`) per `--voice-over` e per il reel | ≥ 1.4.0 | nel reel; nei tre video la voce resta quella del §5-bis, montata da `compose-video.py` |
+| Cambio di utente fra i ruoli dentro un piano (`as: <ruolo>`) | **non c'è**, né in 1.4.0 | il video 3 si registra con un utente solo, membro di tutti i ruoli, e lo si dichiara |
+
 ## Prima di registrare
 
 ```bash
@@ -27,7 +43,7 @@ conversazioni e istanze sul tenant: dire a chi la chiede su quale ambiente e qua
 |---|---|---|
 | `create --manifest m.yml [--regia r.yml]` | **Crea nell'interfaccia, davanti alla camera, ciò che dichiara il manifest**: topic, profili di conoscenza, assistenti (con istruzioni, modello, knowledge), orchestratori sul canvas e, con `drawnProcesses` nella regia, processi disegnati a mano nell'editor BPMN. Le entità nascono con un suffisso di run, `«Nome» (l1007…)`, per non toccare quelle del blueprint già applicato | **Sì** |
 | `tour --brief brief.json` | Panoramica delle entità già create, con una frase ciascuna | No |
-| `record --plan piano.json` | Registra un piano di azioni (`navigate`, `click`, `fill`, `expectVisible`, `pause`, anche con scene `Dn`) | No, salvo il piano |
+| `record --plan piano.json` | Registra un piano di azioni (`navigate`, `click`, `fill`, `expectVisible`, `pause`, anche con scene `Dn`) | No, salvo un piano `"mode": "write"` registrato con `--allow-write` (≥ 1.4.0) |
 
 `create` è la strada per «mostrare esattamente come si crea»; `tour` e `record` mostrano il **risultato**, che
 va spiegato nel dettaglio con le entità già create. `create --plan-only` calcola il piano e si ferma, senza

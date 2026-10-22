@@ -81,9 +81,11 @@ Si torna alla **vista dell'istanza** fra un ruolo e l'altro: è il filo che tien
 2. **Piano di esecuzione.** Elenco: tenant e company, processo, **gli utenti per ruolo**, le azioni in
    scrittura (avvia istanza, prendi in carico, completa con questi valori), gli **effetti esterni** e come
    sono spenti, i token stimati. Si mostra e si **attende il sì**.
-3. **Registrare.** `xrcopilotlab-demo record --plan piano.json --env <amb>`, con un passo `as: <ruolo>`
-   che cambia sessione. Dipende dal supporto del banco alle azioni in scrittura e al cambio di ruolo
-   (vedi sotto): finché non c'è, la scena resta un **piano scritto**, non un video, e lo si dichiara.
+3. **Registrare.** Il piano dichiara `"mode": "write"` e si registra con
+   `xrcopilotlab-demo record --plan piano.json --env <amb> --allow-write` (banco ≥ 1.4.0: senza la dichiarazione
+   e l'opzione il piano si rifiuta; con la 1.3.0 l'opzione non esiste e il piano si registra com'è). Il **cambio di
+   utente fra i ruoli** dentro un piano il banco non lo ha (né in 1.3.0 né in 1.4.0): si registra con un utente
+   solo, membro di tutti i ruoli, e il video lo dichiara; altrimenti la scena resta un **piano scritto**.
 4. **Controllare l'istanza.** A fine registrazione si legge lo stato dell'istanza: completata, nessun passo
    in errore. Un'istanza bloccata si **registra di nuovo**, non si monta «per farla sembrare finita».
 5. **Voce e montaggio.** Come negli altri due video; battute brevi e nel **linguaggio del cliente**, non dei
@@ -129,7 +131,8 @@ macro cerca il compito **per titolo del caso**, non il primo della griglia.
 ## Le macro del banco (scritte e **provate dal vivo su staging l'08/10/2026**)
 
 `demo-recorder-playwright` ha ora, oltre a `askAgent`, due macro per questo video. Come le macro di creazione
-scrivono sul tenant e non si rigiocano a freddo; si validano con `xrcopilotlab-demo validate --plan`.
+scrivono sul tenant e non si rigiocano a freddo; si validano con `xrcopilotlab-demo validate --plan`. Dal banco 1.4.0
+il piano che le contiene porta `"mode": "write"` in testa e si registra solo con `--allow-write`.
 
 ```json
 { "action": "startInstance", "scene": "R1",

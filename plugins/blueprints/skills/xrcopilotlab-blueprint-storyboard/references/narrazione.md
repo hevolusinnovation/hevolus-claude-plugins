@@ -14,7 +14,56 @@ La lingua è l'**italiano**, per ora la sola: battute, scritte e voce guida (`Al
 - Le parole introdotte nella parte basilare (archivio, knowledge, assistente, skill) si dicono con
   la loro spiegazione la prima volta ([`base-piattaforma.md`](base-piattaforma.md)).
 
+## La voce ElevenLabs (quando c'è la chiave)
+
+È la voce **predefinita** della storyboard quando nell'ambiente c'è `ELEVENLABS_API_KEY`: più espressiva delle
+voci neurali della piattaforma, la stessa dei reel del registratore (`demo-recorder-playwright`, stesse
+impostazioni: modello `eleven_multilingual_v2`, voce **Liam**, «espressiva e decisa»). Lo script è accanto a
+`compose-video.py` e ha la stessa interfaccia di `xrcopilotlab-bp voice say`, quindi il montaggio non cambia:
+
+```bash
+python3 -I voce-elevenlabs.py controlla                                   # c'è la chiave? (non la stampa mai)
+python3 -I voce-elevenlabs.py voci --lang it                              # le voci dell'account, con l'id
+python3 -I voce-elevenlabs.py say "<testo>" --out scena-1.mp3 --voice Liam
+python3 -I voce-elevenlabs.py say --lines righe.json --out-dir audio --voice "<voce scelta>"
+```
+
+Formato MP3 mono 16 kHz, come la voce della piattaforma. Una voce della libreria condivisa di ElevenLabs va prima
+aggiunta a «My voices» sul sito; il piano Free non ha la licenza commerciale. Errori: `401` chiave non valida,
+`402` voce o funzione a pagamento, `429` crediti esauriti o troppe richieste (si riprova, o si passa alla voce della
+piattaforma e lo si dice).
+
+ElevenLabs parla **più svelto** delle voci della piattaforma (circa 2 parole al secondo con Liam): si rimisura
+ogni battuta dopo la scelta della voce, come per qualunque cambio di voce.
+
+### La chiave ElevenLabs: come si salva (una volta per macchina)
+
+La chiave non passa **mai** dalla conversazione: la skill non la chiede, non la legge, non la stampa. La persona la
+crea su elevenlabs.io (Profile → API Keys, con il permesso *Text to Speech*; l'account è quello di Hevolus, chi lo
+gestisce la dà) e la salva **da sé**, nel proprio terminale:
+
+**macOS** — nel Portachiavi, poi resa visibile alla shell:
+```bash
+security add-generic-password -a "$USER" -s elevenlabs-api-key -w          # la chiede senza mostrarla
+echo 'export ELEVENLABS_API_KEY="$(security find-generic-password -a "$USER" -s elevenlabs-api-key -w 2>/dev/null)"' >> ~/.zshrc
+```
+
+**Windows** — nelle variabili dell'utente (PowerShell):
+```powershell
+$k = Read-Host "Chiave ElevenLabs" -AsSecureString
+[Environment]::SetEnvironmentVariable("ELEVENLABS_API_KEY", [Net.NetworkCredential]::new("", $k).Password, "User")
+```
+
+Poi si **riavvia Claude Code** (e il terminale), perché la variabile entri nell'ambiente, e si verifica con
+`python3 -I voce-elevenlabs.py controlla`. Non si mette nel blocco `env` di `settings.json` di Claude Code: lì resta
+in chiaro su disco. Per revocarla: elevenlabs.io → API Keys; poi `security delete-generic-password -s
+elevenlabs-api-key` (macOS) o `[Environment]::SetEnvironmentVariable("ELEVENLABS_API_KEY", $null, "User")` (Windows).
+
 ## La voce della piattaforma (`xrcopilotlab-bp voice`)
+
+Quando la chiave ElevenLabs non c'è (o la persona sceglie di non usarla): nessuna chiave da gestire, le quattro voci
+neurali di §5-bis.
+
 
 ```bash
 xrcopilotlab-bp voice list --env <ambiente>                         # le voci, con il loro identificativo
