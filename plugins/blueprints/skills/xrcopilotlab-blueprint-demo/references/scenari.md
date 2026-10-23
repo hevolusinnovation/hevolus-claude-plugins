@@ -15,6 +15,13 @@ prova con le fonti.
 Nel dubbio fra due stati si sceglie il più basso. Un «pronto» con limiti importanti (per esempio
 «solo testo incollato») resta pronto, e il limite va in «Da non dire».
 
+Gli stessi stati, nel Blueprint Marketplace, sono le lettere di **evidenza** della mappa di ogni contesto
+(`xrcopilotlab-blueprint-marketplace`, `references/evidenza.md`): «Realizzato per un cliente» con una produzione sul
+tenant del cliente è **A**, «Pronto da installare» e «Realizzato» solo su staging sono **B**, «Si configura» è **C**;
+«Richiede sviluppo» non ha una lettera, perché non entra né nel brief né nella mappa, salvo che l'AI Team lo
+dichiari fuori obiettivo (**D**, con il motivo). Un brief e una scheda del marketplace sullo stesso scenario devono
+dire la stessa cosa: se divergono, la fonte è la prova (manifest, catalogo, produzione), non l'uno o l'altra.
+
 ## I mattoni
 
 Sono le capacità che almeno uno scenario realizzato usa **davvero**, dette come le direbbe un sales.
