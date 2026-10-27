@@ -23,6 +23,28 @@ LINK_BP = [RADICE / "README.md", RADICE / "docs" / "installare.md",
            RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint" / "references" / "installazione.md"]
 
 
+def allinea(tipo, versione):
+    """Scrive `versione` nel file che l'avviatore legge, e ne aggiorna i link. False se era già lì."""
+    file = BIN / ("version.txt" if tipo == "bp" else "demo-version.txt")
+    prima = file.read_text(encoding="utf-8").strip()
+    if prima == versione:
+        print(f"già allineato: {file.relative_to(RADICE)} = {prima}")
+        return False
+    file.write_text(versione + "\n", encoding="utf-8")
+    print(f"{file.relative_to(RADICE)}: {prima} → {versione}")
+
+    if tipo == "bp":
+        for doc in LINK_BP:
+            if not doc.is_file():
+                continue
+            testo = doc.read_text(encoding="utf-8")
+            nuovo = testo.replace(f"bp-v{prima}", f"bp-v{versione}")
+            if nuovo != testo:
+                doc.write_text(nuovo, encoding="utf-8")
+                print(f"  link aggiornati in {doc.relative_to(RADICE)}")
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--tipo", choices=["bp", "demo"], required=True)
@@ -31,24 +53,8 @@ def main():
     if not re.fullmatch(r"\d+\.\d+\.\d+", a.versione):
         sys.exit(f"versione non valida: {a.versione} (serve X.Y.Z)")
 
-    file = BIN / ("version.txt" if a.tipo == "bp" else "demo-version.txt")
-    prima = file.read_text(encoding="utf-8").strip()
-    if prima == a.versione:
-        print(f"già allineato: {file.relative_to(RADICE)} = {prima}")
+    if not allinea(a.tipo, a.versione):
         return 0
-    file.write_text(a.versione + "\n", encoding="utf-8")
-    print(f"{file.relative_to(RADICE)}: {prima} → {a.versione}")
-
-    if a.tipo == "bp":
-        for doc in LINK_BP:
-            if not doc.is_file():
-                continue
-            testo = doc.read_text(encoding="utf-8")
-            nuovo = testo.replace(f"bp-v{prima}", f"bp-v{a.versione}")
-            if nuovo != testo:
-                doc.write_text(nuovo, encoding="utf-8")
-                print(f"  link aggiornati in {doc.relative_to(RADICE)}")
-
     subprocess.run([sys.executable, str(RADICE / "tools" / "alza_versioni.py"), "--plugin", "blueprints", "--livello", "minor"],
                    check=True, cwd=RADICE)
     return 0

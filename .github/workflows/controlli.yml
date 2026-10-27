@@ -17,9 +17,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Versioni — un plugin toccato ha un numero nuovo, e il catalogo lo riporta
-        # Solo sulle PR: la release automatica (release.yml) parte dal numero del catalogo, quindi
-        # una modifica senza numero nuovo non arriverebbe mai a un tag né ai pacchetti.
+      - name: Versioni — plugin.json e catalogo dicono lo stesso numero
+        # Solo sulle PR. Una PR che non alza i numeri passa con un avviso: li alza il merge
+        # (release.yml). Una che li alza a metà — plugin.json sì, marketplace.json no — si ferma qui.
         if: github.event_name == 'pull_request'
         run: ./verifica-versioni.sh "origin/${{ github.base_ref }}"
 
