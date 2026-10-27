@@ -1,13 +1,11 @@
-"""Una modifica a un plugin alza la sua versione, e il catalogo la riporta.
+"""Le versioni di una PR sono coerenti: plugin.json e catalogo dicono lo stesso numero.
 
     verifica-versioni <ref-di-base>     es. origin/main
 
-Per ogni plugins/<nome>/ toccato rispetto alla base controlla che:
-  1. la versione di .claude-plugin/plugin.json sia cambiata;
-  2. marketplace.json dichiari per quel plugin la stessa versione di plugin.json;
-  3. la versione del catalogo (marketplace.json) sia cambiata.
-È ciò che fa partire la release automatica (.github/workflows/release.yml): senza un numero nuovo,
-il merge non produce né tag né pacchetti.
+Per ogni plugins/<nome>/ toccato rispetto alla base controlla che marketplace.json dichiari per quel
+plugin la stessa versione di plugin.json: è un errore. Che le versioni (del plugin e del catalogo)
+siano cambiate è solo un avviso: se la PR non le alza, le alza il merge
+(.github/workflows/release.yml → tools/release_al_merge.py), che poi pubblica tag e pacchetti.
 """
 import json, subprocess, sys
 
@@ -29,7 +27,7 @@ if not plugins:
     print("Nessun plugin toccato: niente da verificare.")
     sys.exit(0)
 
-errori = []
+errori, avvisi = [], []
 market_now = json.load(open(".claude-plugin/marketplace.json"))
 market_old = show(".claude-plugin/marketplace.json") or {}
 dichiarate = {p["name"]: p.get("version") for p in market_now["plugins"]}
@@ -42,17 +40,20 @@ for nome in plugins:
         continue  # plugin rimosso
     prima = (show(path) or {}).get("version")
     if prima == ora:
-        errori.append(f"{nome}: toccato ma la versione è ancora {ora} ({path}).")
-    if dichiarate.get(nome) != ora:
+        avvisi.append(f"{nome}: la versione è ancora {ora}: la alza il merge.")
+    if nome in dichiarate and dichiarate[nome] != ora:
         errori.append(f"{nome}: plugin.json dice {ora}, marketplace.json dice {dichiarate.get(nome)}.")
 
 if market_old.get("version") == market_now.get("version"):
-    errori.append(f"la versione del catalogo è ancora {market_now.get('version')} (.claude-plugin/marketplace.json).")
+    avvisi.append(f"la versione del catalogo è ancora {market_now.get('version')}: la alza il merge.")
+
+for a in avvisi:
+    print(f"::notice::{a}")
 
 if errori:
     for e in errori:
         print(f"::error::{e}")
-    print("Alzare le versioni nella stessa PR: la release automatica parte da lì.")
+    print("plugin.json e marketplace.json devono dire lo stesso numero — oppure non toccarli e lasciarli al merge.")
     sys.exit(1)
 
-print("Versioni alzate per: " + ", ".join(plugins) + f"; catalogo {market_now['version']}.")
+print("Versioni coerenti per: " + ", ".join(plugins) + f"; catalogo {market_now['version']}.")

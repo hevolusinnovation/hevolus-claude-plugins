@@ -22,11 +22,18 @@ I passi per intero, in forma di documento: [§ Installare](docs/installare.md).
 
 ## Come esce una versione
 
-Chi modifica un plugin alza, **nella stessa PR**, la versione in `plugins/<nome>/.claude-plugin/plugin.json`,
-la stessa nel catalogo (`.claude-plugin/marketplace.json`) e la versione del catalogo stesso.
-`./verifica-versioni.sh origin/main` lo controlla, e su ogni PR lo fa il workflow *Controlli*.
-Al merge su `main` il workflow *Release* guarda la versione del catalogo: se il tag `v<versione>` non
-esiste ancora avvia *Pacchetti*, che crea la release con gli zip aggiornati. Il tag non si crea più a mano.
+Le versioni non si alzano più a mano. Al merge su `main` il workflow *Release*:
+
+1. allinea `plugins/blueprints/bin/version.txt` (e `demo-version.txt`) all'ultima release `bp-v…`
+   (`demo-v…`) rispecchiata qui con i binari di tutte le piattaforme;
+2. alza la versione di ogni plugin toccato e quella del catalogo, se la PR non l'ha già fatto —
+   *minor* se nel merge c'è un `feat` o una CLI nuova, *patch* altrimenti;
+3. committa i numeri direttamente su `main` e avvia *Pacchetti*, che crea il tag `v<versione del
+   catalogo>` e la release con gli zip aggiornati.
+
+Chi vuole un numero preciso può ancora alzarlo nella PR: il merge non lo alza una seconda volta.
+`./verifica-versioni.sh origin/main` controlla solo che `plugin.json` e il catalogo dicano lo stesso
+numero. La logica sta in [`tools/release_al_merge.py`](tools/release_al_merge.py).
 
 ## I pacchetti pronti
 

@@ -1,28 +1,79 @@
 name: Release
 
-# A ogni merge su main che cambia un plugin o il catalogo, se la versione del catalogo
-# (.claude-plugin/marketplace.json) non ha ancora il suo tag, avvia il workflow «Pacchetti», che
-# crea la Release v<versione> con gli zip aggiornati di skill e plugin Desktop.
+# A ogni merge su main:
+#   1. allinea bin/version.txt (e demo-version.txt) all'ultima release bp-v/demo-v rispecchiata qui
+#      con gli allegati di tutte le piattaforme;
+#   2. alza la versione dei plugin toccati e del catalogo, se la PR non l'ha già fatto
+#      (tools/release_al_merge.py: minor se nel merge c'è un `feat` o una CLI nuova, patch altrimenti);
+#   3. se ha cambiato qualcosa, lo committa direttamente su main;
+#   4. se la versione del catalogo non ha ancora il suo tag, avvia «Pacchetti», che crea il tag
+#      v<versione> e la Release con gli zip aggiornati di skill e plugin Desktop.
 #
-# Il numero lo alza chi fa la PR, e controlli.yml lo impone: qui non si decide niente, si pubblica.
-# Se il tag esiste già (merge che non alza la versione, o rilancio) il workflow non fa niente.
+# Il commit del punto 3 è fatto con GITHUB_TOKEN, quindi non fa ripartire questo workflow né
+# «Controlli»: «Controlli» si avvia esplicitamente, così il numero nuovo di version.txt viene
+# verificato come ogni altro push. Se il tag esiste già (rilancio) non si pubblica niente.
 on:
   push:
     branches: [main]
-    paths:
-      - 'plugins/**'
-      - '.claude-plugin/marketplace.json'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   actions: write
+
+# Due merge ravvicinati non devono alzare lo stesso numero due volte: in fila, il secondo parte dal
+# main che contiene già il commit del primo.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Alza versioni e CLI
+        id: alza
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Su un push è il commit prima del merge; su un avvio a mano non c'è, e si allinea solo la CLI.
+          BASE: ${{ github.event_name == 'push' && github.event.before || '' }}
+        run: |
+          args=(--cli-da-github "$GITHUB_REPOSITORY")
+          # Un primo push su un ramo nuovo porta come «before» una fila di zeri: niente da confrontare.
+          if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ] \
+             && git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            args+=(--base "$BASE")
+          fi
+          python3 tools/release_al_merge.py "${args[@]}"
+
+      - name: Committa su main
+        if: steps.alza.outputs.cambiato == 'true'
+        env:
+          MESSAGGIO: ${{ steps.alza.outputs.messaggio }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "$MESSAGGIO"
+          # Un merge umano arrivato nel frattempo: si rimette il commit sopra e si riprova.
+          for TENTATIVO in 1 2 3; do
+            git push origin HEAD:main && exit 0
+            echo "push rifiutato (tentativo $TENTATIVO): rebase su main."
+            git pull --rebase origin main
+          done
+          echo "::error::non riesco a portare il commit delle versioni su main."
+          exit 1
+
+      - name: Avvia i controlli sul commit delle versioni
+        if: steps.alza.outputs.cambiato == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run controlli.yml --ref main
 
       - name: Decidi il tag
         id: tag

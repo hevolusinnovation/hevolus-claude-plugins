@@ -177,14 +177,15 @@ dove sta il codice. Quattro piattaforme da un solo runner, perché la pubblicazi
 git tag bp-v1.1.2 && git push origin bp-v1.1.2
 ```
 
-Poi qui si allinea il numero, che è quello che l'avviatore cerca:
+Qui non si fa niente a mano: al primo merge su `main` dopo il mirror, il workflow *Release* trova
+la release `bp-v…` nuova (con i binari di tutte e sei le piattaforme), la scrive in
+`plugins/blueprints/bin/version.txt` — il numero che l'avviatore cerca — insieme ai link nei documenti,
+alza di una minor plugin e catalogo e pubblica. Se non c'è niente da mergiare, lo stesso si ottiene
+da **Actions → Release → Run workflow**. A mano resta possibile:
 
 ```bash
-echo "1.1.2" > plugins/blueprints/bin/version.txt
+python3 tools/alza_release.py --tipo bp --versione 1.1.2
 ```
-
-E si alza la versione del plugin in `plugins/blueprints/.claude-plugin/plugin.json` e nella voce
-corrispondente di `.claude-plugin/marketplace.json`.
 
 > **Quello che conta davvero è `version.txt`**: l'avviatore compone il tag come `bp-v$(cat
 > version.txt)` e cerca lì l'allegato. Se nomina una release che non esiste, il download muore per
@@ -315,14 +316,16 @@ Il workflow verifica le superfici, costruisce lo zip del plugin Desktop e quelli
 scrive le note — cosa scaricare, dove si carica, le versioni dentro — e li allega alla release. Se
 la release esiste già, sostituisce gli allegati invece di crearne una seconda.
 
-Il tag, se non lo passi, è `v<versione di marketplace.json>`. Quindi: **prima si alzano le
-versioni**, poi si pubblica.
+Il tag, se non lo passi, è `v<versione di marketplace.json>`. Di solito non serve nessuno dei due
+avvii a mano: **al merge su `main` il workflow *Release* alza da solo i numeri** che la PR ha lasciato
+fermi e avvia *Pacchetti* (`tools/release_al_merge.py`).
 
-| Cosa alzare | Quando |
+| Numero | Lo alza il merge quando |
 |---|---|
-| `plugins/<nome>/.claude-plugin/plugin.json` | a ogni modifica del plugin |
-| la voce in `.claude-plugin/marketplace.json` | per i plugin `code`, con lo stesso numero di `plugin.json` |
-| `version` di `.claude-plugin/marketplace.json` | quando cambia qualcosa che vale per il catalogo: è il numero che diventa il tag |
+| `plugins/<nome>/.claude-plugin/plugin.json` | il plugin è stato toccato e la PR non l'ha alzato: *minor* con un `feat` o una CLI nuova, *patch* altrimenti |
+| la voce in `.claude-plugin/marketplace.json` | insieme a `plugin.json`, per i plugin `code` |
+| `version` di `.claude-plugin/marketplace.json` | una volta per merge, se qualcosa è stato alzato: è il numero che diventa il tag |
+| `plugins/blueprints/bin/version.txt` | c'è una release `bp-v…` più nuova, completa per tutte le piattaforme |
 
 Il link che si dà a un collega è sempre lo stesso, e punta all'ultima:
 `https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest`.
