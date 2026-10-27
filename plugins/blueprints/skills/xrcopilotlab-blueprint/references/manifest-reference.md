@@ -285,7 +285,7 @@ agents:
     maxTokens: 4000
     language: it          # lingua dell'endpoint di default
     # endpoint: Anthropic Studio Polis   # solo se la company ha un endpoint AI proprio
-    skills: []            # SkillId già a catalogo, es. legal-research
+    skills: []            # SkillId già a catalogo, es. archviz
     mcp: []               # chiavi di mcpServers, anche quelli kind: existing
     knowledge: []         # chiavi di knowledge[]: i profili che l'agente interroga
     files: []             # file collegati all'agente, per le skill che li leggono (vedi sotto)

@@ -81,7 +81,7 @@ Da queste tre risposte esce il `systemMessage`. Scrivilo in italiano, all'impera
 vincolo esplicito: un prompt che dice cosa non fare produce meno sorprese di uno che elenca solo
 compiti.
 
-Se l'utente chiede una skill del catalogo (per esempio `legal-research`), verifica che esista: il
+Se l'utente chiede una skill del catalogo (per esempio `archviz`), verifica che esista: il
 blueprint non crea skill, e `plan` fallisce se non c'è.
 
 ## Come tradurre le risposte

@@ -453,10 +453,29 @@ lavoro». Un file su disco è un appoggio di pochi minuti, e ha un solo ciclo di
    applicherà. Non si aspetta il piano, il collaudo o il sì dell'utente: il manifest non è nell'archivio
    finché `push` non l'ha scritto;
 4. **dopo il `push` il file locale si elimina**. Se serve ancora, si rilegge con `pull`.
+5. **Fuori dalla produzione l'archivio tiene le ultime due versioni** (#1596): dopo ogni `push` su
+   staging restano la versione appena scritta e quella prima, e il comando dice quali sono uscite.
+   Una versione ancora installata sul tenant resta comunque; in produzione restano tutte. Se serve
+   una versione più vecchia, non c'è più: si riparte da `pull` dell'ultima. Per ripulire ciò che era
+   in archivio prima della regola: `prune --env staging` (conferma scrivendo `archivio`, o il tag con
+   `--tag`), mai in produzione.
 
 All'utente si riporta **la versione e il blob** scritti da `push` (`blueprints/<company>/<blueprint>/v<N>/…`),
 mai «salvato in cartella». Un file locale a nome del blueprint che non è nell'archivio è un difetto da
 segnalare, non un risultato. Nei comandi qui sotto `<manifest>` indica quel file temporaneo.
+
+**Le risposte degli agenti sono per persone, non per programmi.** Ogni `systemMessage` di un agente che
+risponde a qualcuno — in chat, come passo di un orchestratore con `displayOutput`, in un agent task — chiede
+prosa in paragrafi, con i titoli delle sezioni dove aiutano; un elenco solo quando le voci sono davvero un
+elenco, una tabella solo quando un confronto non si legge in prosa. **Mai** una riga «leggibile a macchina»
+(`STRATEGY_JSON: {...}`), un oggetto JSON o YAML, un blocco di codice, un punteggio numerico al posto di una
+valutazione detta a parole con il suo perché. Il formato strutturato è legittimo solo per un passo che una
+macchina legge e nessuno vede: un router con `requireStructuredOutput` e `outputSchema`, un passo senza
+`displayOutput` il cui output entra in un tool. Un blocco «Per chi scrivi» con questa regola, in ogni agente
+rivolto a una persona, costa poco e risparmia una versione (LEGAL v11, 23/10/2026: l'avvocato riceveva un memo
+a elenchi con `STRATEGY_JSON` in coda). Nello stesso blocco si dà un **tetto di parole** e, agli agenti con
+strumenti, un **tetto di ricerche e pagine**: nel collaudo LEGAL del 22/10 il passo di ricerca durava da 180 a
+446 secondi perché il prompt chiedeva cinque fonti e 3-5 precedenti senza limite.
 
 Sei errori che si fanno se non si sta attenti:
 

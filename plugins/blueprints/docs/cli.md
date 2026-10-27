@@ -36,7 +36,7 @@ Elenco dei comandi, per saltare subito dove serve:
 |---|---|
 | Scrivere e controllare il file | [`validate`](#validate) · [`suggest`](#suggest) · [`external`](#external) |
 | Segreti | [`secrets set`](#secrets-set) · [`secrets check`](#secrets-check) |
-| Archivio delle versioni | [`push`](#push) · [`pull`](#pull) · [`export`](#export) · [`promote`](#promote) · [`copies`](#copies) · [`catalog`](#catalog-list--publish--install--prune) |
+| Archivio delle versioni | [`push`](#push) · [`pull`](#pull) · [`export`](#export) · [`promote`](#promote) · [`copies`](#copies) · [`prune`](#prune) · [`catalog`](#catalog-list--publish--install--prune) |
 | Applicare e smontare | [`plan`](#plan) · [`apply`](#apply) · [`pipeline`](#pipeline) · [`status`](#status) · [`rollback`](#rollback) · [`delete`](#delete) |
 | Collaudo | [`test init`](#test-init) · [`test validate`](#test-validate) · [`test run`](#test-run) · [`test push`](#test-push) · [`test reports`](#test-reports) |
 | Un blueprint già applicato | [`schedule`](#schedule-list--pause--resume--logs) · [`mcp`](#mcp-check--orphans--publish--test) · [`connections`](#connections-list--refresh) · [`instances`](#instances-list--show--cancel) · [`knowledge`](#knowledge-list--reingest) |
@@ -719,6 +719,14 @@ xrcopilotlab-bp push blueprints/como-conoscenza-associati.yml --env staging --co
 **Da sapere.** `plan` e `apply` lavorano sulla versione **archiviata**, non sul file che hai sul
 disco: una modifica al file non conta finché non fai un `push` con un numero di versione nuovo.
 
+**Fuori dalla produzione restano le ultime due versioni** (dalla 2.29.0, #1596). Su staging e sugli altri
+ambienti di sviluppo, dopo ogni `push` l'archivio del tenant tiene la versione appena scritta e quella prima: le
+più vecchie escono con i loro file di knowledge e i loro run, e il comando lo dice. Una versione che ha ancora
+entità installate sul tenant resta, qualunque numero abbia: il suo run è l'unica cosa che sa come smontarle.
+Suite, report e documenti del blueprint non si toccano. In produzione le versioni restano tutte. La stessa
+regola vale per `pipeline`, `promote` verso un ambiente non di produzione, `catalog install` e i manifest
+scritti dalla chat; per ciò che era in archivio prima della regola c'è [`prune`](#prune).
+
 ---
 
 ### `pull`
@@ -1259,6 +1267,38 @@ assistente deve leggere l'uscita, non solo il numero.
 
 ```bash
 xrcopilotlab-bp rollback --env staging --run 790b20470820
+```
+
+---
+
+### `prune`
+
+Applica una volta la regola delle ultime due versioni (#1596) ai blueprint già nell'archivio di un tenant
+**fuori dalla produzione**.
+
+```
+xrcopilotlab-bp prune [--tag <TAG>] [--keep <n>] [--confirm <TAG|archivio>] [--env <nome>] [--company <id>]
+```
+
+| Opzione | Default | Significato |
+|---|---|---|
+| `--tag <TAG>` | tutti | il blueprint da ripulire; senza, ogni blueprint dell'archivio del tenant |
+| `--keep <n>` | 2 | quante versioni tenere |
+| `--confirm <valore>` | nessuno | la conferma senza terminale: il tag, oppure `archivio` senza `--tag`. `--yes` non vale |
+
+**Cosa fa.** Per ogni blueprint elenca le versioni che restano, quelle che restano perché ancora installate, e
+quelle che escono con i loro run; poi chiede la conferma, con il cancello di `delete`: si scrive il **tag**
+quando si pulisce un blueprint solo, la parola `archivio` quando si puliscono tutti. Da `push` in poi la regola
+vale da sola: `prune` serve per ciò che c'era prima, e per un `--keep` diverso da due.
+
+Ciò che esce non si rilegge più (`pull --version`) e non si riapplica. Suite, report, documenti e il registro
+delle copie restano: raccontano il tag, non una versione.
+
+**Scrive:** l'archivio. **Esce:** 0 · 3 in produzione (lì le versioni restano tutte) · 6 conferma mancante o
+sbagliata (senza terminale stampa l'elenco ed esce 6).
+
+```bash
+xrcopilotlab-bp prune --env staging --company <id> --tag STUDIOPOLIS --confirm STUDIOPOLIS
 ```
 
 ---
