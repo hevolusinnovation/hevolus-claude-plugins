@@ -275,9 +275,8 @@ agents:
 ```
 
 1. **Il cliente crea l'app OAuth** nel suo Google Cloud: passi qui sotto. Non è qualcosa che il
-   blueprint o la CLI possano fare per lui, e va detto **prima** dell'apply: dopo la CLI 2.21 il
-   piano lo ricorda con l'avviso `BP112`, che porta i passi e l'URI dell'ambiente; con una CLI
-   precedente il piano tace, e i passi li dai tu da qui.
+   blueprint o la CLI possano fare per lui, e va detto **prima** dell'apply: il piano lo ricorda con
+   l'avviso `BP112`, che porta i passi e l'URI dell'ambiente.
 2. **I segreti** `google-client-id` e `google-client-secret` si impostano con `secrets set`, per
    tenant, nel terminale di chi ha i ruoli (mai in chat: il valore non si maneggia).
 3. **`apply`** crea la copia nel catalogo del tenant e la riga OAuth «da autorizzare». Se i segreti
@@ -318,7 +317,7 @@ amministra il Google Cloud del cliente, con il suo account:
    | produzione | `https://func-xrcopilotlab-prod-01.azurewebsites.net/api/auth/google/callback` |
 
    È `<OAuthCallbackBaseUrl>/auth/google/callback`, con `OAuthCallbackBaseUrl` dell'App Configuration
-   (etichetta `api`): se la tabella invecchia, comanda l'URI che stampano il piano (`BP112`, dopo la CLI 2.21) e
+   (etichetta `api`): se la tabella invecchia, comanda l'URI che stampano il piano (`BP112`) e
    `mcp authorize`. **Non** è lo `/oauth/callback` della Web, che serve alle connessioni OAuth 2.1 PKCE.
 6. Copiare **ID client** e **secret** nei due segreti del manifest con `secrets set`, nel terminale di
    chi ha i ruoli. Mai in chat.

@@ -35,8 +35,9 @@ STUDIOPOLIS», «scrivi le domande di test per questi agenti», «cosa è andato
 | `xrcopilotlab-blueprints-report` | «il manuale dei blueprint», «cosa c'è nel catalogo» | l'artifact «Catalogo blueprint — manuale»: i modelli del catalogo raccontati in modo semplice, installazione del plugin, fasi per portarli su un tenant, PDF |
 | `xrcopilotlab-blueprint-version` | «la mail delle novità dei blueprint», «cosa è cambiato dalla 2.x alla 2.y» | la bozza di mail in HTML: comandi per aggiornare, link alla guida, novità per versione, riepilogo delle feature |
 | `xrcopilotlab-blueprint-howto` | «come si usano le skill dei blueprint», «da dove comincio», «l'howto dei blueprint» | l'artifact «Dall'intervista alla demo»: il percorso intero, tappa per tappa |
+| `xrcopilotlab-blueprint-app` | «un'app sul blueprint», «uno sportello / un widget / un cruscotto per questo blueprint», «un'app 3D del blueprint» | la mappa delle integrazioni, l'archetipo, 2-3 varianti di layout come mock-up e il brief per App Buddy |
 
-Si invocano anche per nome (`/xrcopilotlab-blueprint`, `/xrcopilotlab-blueprint-test`, `/xrcopilotlab-blueprint-guide`, `/xrcopilotlab-blueprint-demo`, `/xrcopilotlab-blueprint-storyboard`, `/xrcopilotlab-blueprint-bpm-flow`, `/xrcopilotlab-blueprints-report`, `/xrcopilotlab-blueprint-version`, `/xrcopilotlab-blueprint-howto`): senza
+Si invocano anche per nome (`/xrcopilotlab-blueprint`, `/xrcopilotlab-blueprint-test`, `/xrcopilotlab-blueprint-guide`, `/xrcopilotlab-blueprint-demo`, `/xrcopilotlab-blueprint-storyboard`, `/xrcopilotlab-blueprint-bpm-flow`, `/xrcopilotlab-blueprints-report`, `/xrcopilotlab-blueprint-version`, `/xrcopilotlab-blueprint-howto`, `/xrcopilotlab-blueprint-app`): senza
 argomenti si orientano e si fermano, senza partire a fare domande.
 
 Il dettaglio di ciascuna, con esempi di manifest e di suite: [§ Le
@@ -56,6 +57,7 @@ skill](../../docs/le-skill.md). Prima di usarlo serve l'accesso ad Azure:
 | `skills/xrcopilotlab-blueprints-report/` | La skill del manuale del catalogo: legge `catalog list` e i manifest, racconta ogni modello e i suoi processi, e pubblica un artifact con l'export in PDF. Legge, non installa né applica |
 | `skills/xrcopilotlab-blueprint-version/` | La skill della mail delle novità: legge lo storico del catalogo fra due versioni del plugin e compone una bozza HTML con i comandi per aggiornare, il link alla guida e il riepilogo delle feature |
 | `skills/xrcopilotlab-blueprint-howto/` | La skill della guida d'uso: pubblica allo stesso link l'artifact «Dall'intervista alla demo», con il percorso dall'installazione alla demo, dopo averne confrontato i fatti con le skill installate; porta con sé la pagina |
+| `skills/xrcopilotlab-blueprint-app/` | La skill dell'app su un blueprint applicato: legge manifest e inventario, sceglie l'archetipo, propone i layout e scrive il brief per App Buddy; non applica, e ciò che manca nel manifest torna alla skill di provisioning come proposta |
 | `bin/` | Gli avviatori della CLI (`xrcopilotlab-bp`) e del banco di registrazione video (`xrcopilotlab-demo`), che li scaricano al primo uso; il primo dice anche quando il plugin è indietro |
 | `hooks/hooks.json` | All'apertura di una sessione, una riga se c'è una versione più recente del plugin (skill o CLI nuove), con i comandi per aggiornarlo |
 | `docs/manuale.md` | Il manuale per chi lo usa |

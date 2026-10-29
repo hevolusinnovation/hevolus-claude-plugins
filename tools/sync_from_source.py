@@ -25,13 +25,12 @@ DEST_STORYBOARD = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-b
 DEST_BPMFLOW = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-bpm-flow"
 DEST_REPORT = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprints-report"
 DEST_VERSION = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-version"
+DEST_APP = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-app"
 
 # Ogni riga: dove sta nel repository di prodotto → dove va nel plugin.
 # Un riferimento nuovo in una skill va aggiunto QUI: se non compare, la copia nel plugin non esiste
 # e la skill punta a un file che chi l'ha installata non ha.
 COPIE = [
-    # La definizione dell'estensione «Assistenza XRCopilotLab», citata dalla cli-reference.
-    ("src/XRCopilotLab/XRCopilotLab.BluePrints/Extensions/assistenza-xrcopilotlab.yml", DEST / "references"),
     # La skill di provisioning e i riferimenti che le appartengono.
     (".claude/skills/xrcopilotlab-blueprint/SKILL.md", DEST / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint/references/installazione.md", DEST / "references"),
@@ -93,8 +92,16 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-storyboard/voce-elevenlabs.py", DEST_STORYBOARD / "voce-elevenlabs.py"),
     # La mail delle novità fra due versioni del plugin: legge lo storico del catalogo, lascia una bozza. Non esegue.
     (".claude/skills/xrcopilotlab-blueprint-version/SKILL.md", DEST_VERSION / "SKILL.md"),
-    (".claude/skills/xrcopilotlab-blueprint-version/references/mail-template.html", DEST_VERSION / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-version/references/teams-card.json", DEST_VERSION / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-version/scripts/teams.sh", DEST_VERSION / "scripts"),
     (".claude/skills/xrcopilotlab-blueprint-version/scripts/novita.sh", DEST_VERSION / "scripts"),
+    # L'app di App Builder su un blueprint applicato: mappa, archetipo, layout, brief per App Buddy. Non applica.
+    (".claude/skills/xrcopilotlab-blueprint-app/SKILL.md", DEST_APP / "SKILL.md"),
+    (".claude/skills/xrcopilotlab-blueprint-app/references/integrazioni.md", DEST_APP / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-app/references/archetipi.md", DEST_APP / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-app/references/layout.md", DEST_APP / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-app/references/brief.md", DEST_APP / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-app/references/collaudo.md", DEST_APP / "references"),
     # I flussi di un manifest disegnati in stile BPMN, in un artifact: la pagina legge da sola il manifest incorporato.
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/SKILL.md", DEST_BPMFLOW / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/references/notazione.md", DEST_BPMFLOW / "references"),
@@ -144,6 +151,15 @@ RISCRITTURE = {
             "](../../../docs/blueprints/cli-reference.md)",
             "](references/cli-reference.md)",
         ),
+        (
+            "](../../../docs/blueprints/manifest-reference.md#",
+            "](references/manifest-reference.md#",
+        ),
+        # La regola del catalogo sta nelle regole del repository di prodotto: nel plugin la guida del catalogo.
+        (
+            "(regola 10 di\n[`blueprints.md`](../../rules/blueprints.md), #1595)",
+            "([`references/catalogo.md`](references/catalogo.md#una-versione-sola-per-modello-1595),\n#1595)",
+        ),
         # copertura.md rimanda a file del prodotto che il plugin non ha: non viaggia, si cita senza link.
         (
             "[`copertura.md`](../../../docs/blueprints/copertura.md)",
@@ -173,10 +189,6 @@ RISCRITTURE = {
         (
             "[`testing.md`](testing.md)",
             "[`testing.md`](../../xrcopilotlab-blueprint-test/references/testing.md)",
-        ),
-        (
-            "(../../src/XRCopilotLab/XRCopilotLab.BluePrints/Extensions/assistenza-xrcopilotlab.yml)",
-            "(assistenza-xrcopilotlab.yml)",
         ),
     ],
     DEST / "references" / "manifest-reference.md": [
@@ -209,6 +221,11 @@ RISCRITTURE = {
         ),
     ],
     DEST_TEST / "SKILL.md": [
+        # La skill del marketplace è del team e non viaggia con il plugin: si cita senza link.
+        (
+            "[`xrcopilotlab-blueprint-marketplace`](../xrcopilotlab-blueprint-marketplace/SKILL.md)",
+            "`xrcopilotlab-blueprint-marketplace` (del team: chiedila a chi cura il marketplace)",
+        ),
         (
             "[`docs/blueprints/testing.md`](../../../docs/blueprints/testing.md)",
             "[`references/testing.md`](references/testing.md)",
@@ -271,7 +288,7 @@ def cerca_orfani(copiati):
     la skill non cita qualcosa che nella sorgente è cambiato mesi prima.
     """
     orfani = []
-    for dest in (DEST, DEST_TEST, DEST_GUIDE, DEST_DEMO, DEST_STORYBOARD, DEST_VERSION, DEST_BPMFLOW, DEST_REPORT):
+    for dest in (DEST, DEST_TEST, DEST_GUIDE, DEST_DEMO, DEST_STORYBOARD, DEST_VERSION, DEST_BPMFLOW, DEST_REPORT, DEST_APP):
         for p in sorted(dest.rglob("*")):
             if p.is_file() and p.name != ".DS_Store" and p.resolve() not in copiati:
                 orfani.append(p.relative_to(RADICE))

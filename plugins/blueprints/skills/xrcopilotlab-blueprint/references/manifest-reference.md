@@ -24,12 +24,12 @@ version: 1                  # progressiva; una versione pubblicata è immutabile
 tag: TEST                   # ^[A-Z0-9]{2,20}$ — senza naming, entra nel prefisso di ogni entità
 description: ...
 extends: null               # riservato: accettato ma non ancora applicato
-naming:                     # facoltativo: senza, il prefisso è BP-TEST-
-  prefix: "Studio · "       # «Studio · Agenda»; "" = nessun prefisso
 access:                     # facoltativo (#1518): chi lo vede, se si copia, chi lo governa
   scope: staging            # public | staging | tenant
   locked: false             # true: si vede, ma lo copiano e lo aggiornano solo gli owner
   owners: [giuseppe.zileni@hevolus.it]
+naming:                     # facoltativo: senza, il prefisso è BP-TEST-
+  prefix: "Studio · "       # «Studio · Agenda»; "" = nessun prefisso
 
 tenant:
   companyId: 1111...        # GUID del tenant
@@ -129,6 +129,7 @@ embed:
   domains: [https://sito.it, http://localhost:4280]   # origini autorizzate (anche https://*.sito.it)
   identity: jwt-hs256                   # declared | jwt-hs256 | jwt-rs256 | session (facoltativa)
   requireIdentity: true                 # senza identità l'embed non risponde
+  showDocuments: false                  # niente schede dei file della knowledge sotto le risposte (default: com'è)
 ```
 
 L'apply porta l'endpoint di chat a questo stato a **ogni versione** (operazione `ConfigureEmbed`): lo attiva, imposta
@@ -285,7 +286,7 @@ agents:
     maxTokens: 4000
     language: it          # lingua dell'endpoint di default
     # endpoint: Anthropic Studio Polis   # solo se la company ha un endpoint AI proprio
-    skills: []            # SkillId già a catalogo, es. archviz
+    skills: []            # SkillId già a catalogo, es. video-gen
     mcp: []               # chiavi di mcpServers, anche quelli kind: existing
     knowledge: []         # chiavi di knowledge[]: i profili che l'agente interroga
     files: []             # file collegati all'agente, per le skill che li leggono (vedi sotto)
@@ -311,6 +312,13 @@ Alcune skill lavorano sui file **dell'agente**, non su un profilo: `spreadsheet`
 fogli di tipo `reference` collegati all'agente e ci fa filtri, conteggi e aggregazioni con numeri
 verificati. È la strada per le domande che attraversano tutte le righe — «tutte le aziende della
 filiera tessile» — dove un profilo, che cerca, può perderne una parte.
+
+**Il foglio lo legge una skill solo se l'agente ne ha una che legge i fogli.** Sono le skill con
+`ReadsAgentSpreadsheets` nel catalogo (`_Skills`): oggi solo `spreadsheet` (le skill marketing che li
+leggevano sono uscite con la #1614). Se l'agente non ne ha nessuna, un foglio
+`reference` entra nel Knowledge Graph come un documento qualunque: viene indicizzato e **cercato**,
+non letto riga per riga, e le domande che attraversano tutte le righe tornano a perderne una parte.
+Il piano oggi non lo segnala: le `skills` dell'agente vanno controllate a mano accanto a `files`.
 
 L'apply carica il file nel topic con il suo tipo e lo collega all'agente (`AgentsFiles`), dopo che
 l'agente esiste: vale quindi anche su un agente che un aggiornamento sul posto non ricrea. Il `push`
@@ -379,6 +387,11 @@ agents:
 ciascuno: un agente importato con due endpoint nel tenant sorgente ne ha due anche in destinazione.
 Sempre inattivi: l'attivazione, come quella dell'agente, resta una scelta di chi importa.
 
+Il tipo e le impostazioni di risposta valgono alla creazione (ciò che non si dichiara prende il default della UI:
+Q&A, `concise`, 1.2, …) e in un aggiornamento sul posto, dove cambiano **solo** se dichiarati. Fino alla #1612
+(ottobre 2026) l'apply li ignorava e creava ogni agente Q&A: un agente `type: base` riceveva il grounding stretto
+delle Q&A e, in un dialogo a più turni, rifiutava di rispondere a un seguito come «B».
+
 ## `agentTasks`
 
 Sono i «performer» delle attività di processo non umane.
@@ -417,6 +430,41 @@ agentTasks:
 
 La casella in-app riceve **sempre** l'esito e non va dichiarata: in `outputActions` si elencano le
 destinazioni aggiuntive.
+
+#### Gli allegati del messaggio: `attachments.fromMessage`
+
+Un'uscita `webhook` verso `processes.<chiave>.webhook` porta al processo solo il **testo**. Perché il processo
+riceva anche gli **allegati** del messaggio di posta, si dichiara da dove si leggono:
+
+```yaml
+    prompt: |
+      Elenca i messaggi non letti arrivati da ieri. Per il primo, chiudi la risposta con una riga:
+      MAIL_MESSAGE_ID: <id del messaggio>
+    outputActions:
+      - type: webhook
+        url: processes.presa-in-carico.webhook
+        attachments:
+          fromMessage:
+            connection: graph-posta       # connessione del manifest, auth OAuth2ClientCredentials verso Graph
+            mailbox: gare@azienda.it      # l'indirizzo (o l'id) della casella in cui sta il messaggio
+```
+
+- L'agente nomina il messaggio con la riga `MAIL_MESSAGE_ID: <id>` alla fine del proprio testo (il `prompt` del
+  task glielo chiede). L'adattatore toglie la riga dal testo e nel corpo della POST mette **solo il riferimento**
+  (connessione, casella, id del messaggio): mai file né credenziali. Senza una riga utilizzabile il processo parte
+  lo stesso e `allegatiMailErrori` lo dice.
+- I file li scarica la piattaforma (un lavoro in background, non la richiesta HTTP) attraverso la connessione, e
+  stanno sull'istanza nel campo `allegatiMail` (la lista di file dei campi `file`): li vedono i passi con
+  `shareAttachments` e il work item interattivo.
+- **Limiti per messaggio**: 30 file, 25 MB l'uno, 100 MB in tutto. Ciò che non entra — oltre i limiti, immagini
+  «inline» (loghi e firme), link a file nel cloud — non sparisce in silenzio: una riga per file in
+  `allegatiMailErrori`. Gli ZIP e le mail allegate (anche la busta di una PEC) restano com'è: le skill delle gare li
+  aprono quando leggono.
+- **Costo**: i file importati dalla mail **non** passano da Content Understanding (che si paga a pagina) quando un
+  passo li condivide con un agente: le skill delle gare li leggono dall'URL, in locale. Un agente senza skill riceve il
+  testo di `.docx` e `.xlsx`, non quello dei PDF.
+- Vale solo con `type: webhook` verso `processes.<chiave>.webhook` e una connessione `OAuth2ClientCredentials` del
+  manifest; altrimenti `BP144`. La connessione deve avere il permesso di lettura della posta (`Mail.Read`) sulla casella.
 
 ### Quanto può girare: `executionPolicy`
 
@@ -808,6 +856,53 @@ il webhook, e il webhook dopo il processo, quindi l'agente della chat e l'agente
 del processo sono due agenti distinti. `connections refresh` sa ricostruire anche questa
 connessione: indirizzo dal webhook sul tenant, chiave dal segreto.
 
+### Una connessione verso il calendario editoriale di un agente: `calendar`
+
+Serve quando un agente, un orchestratore o un passo di processo deve **leggere o scrivere il piano editoriale (PED)** di un
+agente: slot liberi, proposta dello slot, prenotazione, conferma dopo l'approvazione, revisione settimanale, KPI nel piano,
+dashboard. Il calendario è della piattaforma; la connessione lo raggiunge attraverso l'**hook** dell'agente, che nasce all'apply,
+dopo l'agente, con una chiave che si vede una volta sola (#1614):
+
+```yaml
+connections:
+  - key: calendario
+    name: calendario-ped
+    provider: webhook
+    calendar: marketing             # chiave dell'agente che ha il PED fra i suoi file; niente baseUrl, niente auth
+
+mcpServers:
+  - key: calendario
+    kind: builder
+    name: Calendario editoriale
+    connection: calendario
+    tools:
+      - name: slot_liberi
+        method: GET
+        path: /entries
+        query: { from: "{{dal}}", to: "{{al}}" }   # giorni AAAA-MM-GG
+      - name: proponi_slot
+        method: POST
+        path: /proposal              # { channels, typology, contentRef, eventDate, requestedDate, windowStart, windowEnd }
+      - name: prenota_slot
+        method: POST
+        path: /reservations          # { channel, slotStart, contentRef, typology, topic }
+      - name: conferma_slot
+        method: POST
+        path: /reservations/{{prenotazione}}/commit
+        body: '{"approvedBy":"{{user_email}}"}'
+```
+
+- **Di quale piano si tratta lo decide l'hook**, non la richiesta: un tool non può toccare il PED di un altro agente, e il
+  modello sceglie date e canali, mai di chi è il piano.
+- **La chiave si rigenera a ogni apply** e la connessione riceve quella nuova: non va in Key Vault, nessun ruolo Azure.
+- **Chi approva** si registra nel piano: `conferma_slot` e `review/apply` vogliono `approvedBy`, che il tool riempie con
+  `{{user_email}}` del gateway, mai con un nome scelto dal modello.
+- Le **regole** (contenuti al giorno, fasce orarie, distanza fra tipologie, tipologie legate a un evento) stanno nella sezione
+  `planning` della connessione `marketing-editorial-plan-excel` del PED. Le altre rotte: `POST /review`, `POST /review/apply`,
+  `POST /performance`, `POST /dashboard`.
+- `BP143`: agente che non esiste, oppure `baseUrl`/`auth`/`process`/`config` insieme a `calendar` (errore); agente senza un
+  `.xlsx` fra i file, o nessuna connessione con il layout del PED (avviso).
+
 ### Una connessione con un proprio schema: `config`
 
 Non tutte le connessioni sono un webhook HTTP. Il **layout del piano editoriale** che legge il
@@ -846,6 +941,15 @@ step a cui nessun flusso arriva — la stessa regola del motore e del designer, 
 non si può nemmeno aggiungere: si trascina il primo agente e si parte da lì. Nel manifest quello
 step si elenca per primo, e i flussi collegano il resto. Uno step `type: start` scritto per
 abitudine è accettato, segnalato (`BP094`) e ignorato dal piano insieme ai suoi flussi.
+
+**`alwaysRunFlow: true` per un orchestratore che smista una chat.** Dopo un'esecuzione completata, per un'ora il
+messaggio successivo della stessa conversazione non riesegue il flusso: un classificatore lo prende per un seguito
+(«grazie», «ok») e un modello senza cronologia né strumenti risponde con una frase di cortesia. Va bene per un flusso
+che produce un risultato; per un router che smista ogni messaggio vuol dire che la seconda domanda non arriva mai agli
+agenti — HEVBPMKT rispondeva «proposta inviata» senza aver chiamato il processo. Con `alwaysRunFlow: true` ogni
+messaggio esegue il flusso. Non dichiarato, un aggiornamento lo lascia com'è. Per un dialogo a più turni con un solo
+agente (le domande di una proposta) serve anche `allowAgentInteraction: true` sul suo step: l'esecuzione resta in
+pausa a ogni domanda e il messaggio dopo riprende lo stesso step.
 
 **Il messaggio di benvenuto è `welcomeMessage`, non uno step.** Il blueprint crea con l'orchestratore
 il suo endpoint di chat (come «Default Agent Endpoint» per gli agenti), e `welcomeMessage` è ciò
@@ -890,16 +994,44 @@ orchestrators:
 | `type` | Cosa fa | Campi propri |
 |---|---|---|
 | `start` | **Non serve**: l'ingresso è il primo step a cui nessun flusso arriva. Accettato per i manifest già scritti, segnalato con `BP094` e ignorato dal piano | — |
-| `agent` | Esegue un agente | `agent`, `userMessageTemplate`, `requireStructuredOutput`, `outputSchema`, `skillMetadata`, `allowAgentInteraction`, `allowFileUploadOnPause`, `useTempFiles`, `maxLoopIterations`, `loopInstruction` |
-| `parallelGroup` | Più agenti insieme | `agents`, `agentOutputs`, `maxParallel`, `summarize` |
+| `agent` | Esegue un agente | `agent`, `userMessageTemplate`, `requireStructuredOutput`, `outputSchema`, `skillMetadata`, `allowAgentInteraction`, `allowFileUploadOnPause`, `useTempFiles`, `shareGeneratedFiles`, `maxLoopIterations`, `loopInstruction` |
+| `parallelGroup` | Più agenti insieme | `agents`, `agentOutputs`, `agentMessages`, `agentSkillMetadata`, `maxParallel`, `summarize` |
 | `handoffGroup` | Più agenti che si passano il turno | `agents`, `agentOutputs` |
 | `condition` | Bivio su una condizione | `condition` — **due** flussi uscenti, `condition: true` e `condition: false` |
 | `switch` | Più vie su un valore | `switchVariable`, `cases`, `defaultCase` — un flusso per ogni caso, con `label` |
 | `userQuestion` | Chiede all'utente | `question`, `contextVariable`, `ctas`, `allowFileUpload` |
 | `humanApproval` | Attende un sì o un no | `title`, `recipients`, `timeoutHours` — **due** flussi, `label: approved` e `label: rejected` |
 | `sendMessage` | Mostra un messaggio | `text` |
-| `action` | Esegue un'azione | `provider` (`email`/`webhook`/`javascript`), `action`, `connection`, `input` |
+| `action` | Esegue un'azione | `provider` (`email`/`webhook`/`javascript`), `action`, `connection`, `input`, `outputMapping` |
 | `terminate` | Uscita | — |
+
+#### Un gruppo parallelo con un compito per ciascun membro (#1691)
+
+Senza altro, ogni membro di un `parallelGroup` riceve gli stessi valori dell'`inputMapping` del gruppo, e
+nient'altro: va bene per agenti che sanno da sé che cosa farne (una news e una newsletter dallo stesso recap).
+Quando ogni ramo ha un compito diverso, o esegue una skill che vuole il suo `payload`, li si dà membro per membro:
+
+```yaml
+- key: media
+  name: Immagini e parlato
+  type: parallelGroup
+  agents: [immagini-scena, voce]
+  agentOutputs: { immagini-scena: immagini, voce: testoVoce }
+  summarize: false
+  inputMapping: { storyboard: Lo storyboard approvato. }
+  agentMessages:                    # il messaggio di ciascun membro, come userMessageTemplate
+    immagini-scena: "Genera un'immagine per scena. {{storyboard}}"
+    voce: "Scrivi il testo della voce, una riga per scena. {{storyboard}}"
+  agentSkillMetadata:               # i parametri di skill di ciascun membro, come skillMetadata
+    immagini-scena: { quality: high }
+```
+
+- `agentMessages` vuole un `inputMapping` sul gruppo, la stessa condizione per cui il motore rende lo
+  `userMessageTemplate` di uno step `agent`; senza, è un errore.
+- I file che un membro genera diventano `{variabile}_file` e `{variabile}_files` della sua variabile di
+  `agentOutputs` (o di `{AgentId}_output`), come dopo uno step `agent`: nell'esempio, `immagini_files` per le clip.
+- Valgono solo per `parallelGroup`; in un `handoffGroup` sono un avviso. Una chiave che non è fra gli `agents`
+  è un errore.
 
 **La condizione di un orchestratore non è quella di un gateway.** I gateway dei processi usano
 `{ var, op, value }`; il motore delle orchestrazioni legge invece `type` e, a seconda del tipo,
@@ -924,6 +1056,36 @@ sul server, ed è da lì che arrivano i messaggi dei rilievi `BP092`.
 
 `recipients` di `humanApproval` devono essere utenti del tenant: il preflight lo verifica.
 
+#### `outputMapping` — due direzioni, secondo il tipo di step
+
+`outputMapping` porta il risultato di uno step nel contesto, da cui i passi a valle lo leggono con
+`{{variabile}}`. Sugli step `agent` la **chiave** è la variabile e il valore la descrive. Sugli step
+`action` la direzione è **opposta**, ed è quella che il motore legge alla ripresa dell'azione: la chiave
+è il **percorso nell'output**, il valore la **variabile**.
+
+```yaml
+- key: scadenze
+  name: Giorni alle scadenze
+  type: action
+  provider: javascript
+  action: run
+  input:
+    code: |
+      return { esito: { giorni: 12, urgente: false }, righe: [{ nome: "Offerta" }] };
+  outputMapping:
+    esito.giorni: giorni_alla_scadenza   # percorso → variabile
+    righe[0].nome: prima_scadenza
+```
+
+- Per uno script `javascript` il percorso parte da ciò che lo script **restituisce**, senza prefissi:
+  `body.` è la convenzione del `webhook` (`statusCode`, `headers`, `body`), e su uno script non trova niente.
+- Il percorso ammette punti, indici (`righe.0.nome` o `righe[0].nome`) e `*` per l'intero risultato. Una
+  stringa arriva nel contesto senza apici; oggetti, array, numeri e booleani come JSON.
+- Un percorso che non esiste non ferma lo step: la variabile resta non impostata (e il motore lo registra).
+- Il valore deve essere un nome di variabile valido (`^[a-zA-Z_][a-zA-Z0-9_]*$`): altrimenti `BP093`.
+- Un aggiornamento confronta questo campo solo se il manifest lo dichiara: una mappatura messa a mano dal
+  designer su uno step che il manifest non cita non viene segnalata né tolta.
+
 #### `skillMetadata` — le chiavi che il motore riconosce
 
 `skillMetadata` è una mappa di stringhe libera: il validatore non ne controlla le chiavi. Due sono
@@ -946,6 +1108,39 @@ cambia niente; un valore sconosciuto lascia il comportamento di default.
 
 Esempio reale: il manifest di `COMO` (`xrcopilotlab-bp pull --tag COMO`). Le chiavi sono definite in
 `StepKnowledgeQuery` e `StepKnowledgeRecords` (`XRCopilotLab.Core/Services/Orchestration/`).
+
+#### `outputMapping` `skill:` — i dati strutturati di una skill diventano variabili
+
+Una skill restituisce, oltre al testo e ai file, un risultato strutturato (`Data` e `Fields` dell'envelope): il
+rapporto di compilazione di un modulo, i valori calcolati, un esito. Su uno step `agent` che la esegue, una voce di
+`outputMapping` il cui **valore** comincia con `skill:` non è una descrizione per l'agente ma un **percorso** in quel
+risultato; la **chiave** resta il nome della variabile, che i passi a valle citano con `{{variabile}}`.
+
+```yaml
+- key: compila
+  type: agent
+  agent: compilatore               # ha la skill che compila il modulo
+  outputMapping:
+    riassunto: Il riassunto per l'utente.        # come sempre: lo chiede il blocco OUTPUT all'agente
+    campi_compilati: "skill:data.filled"         # percorso nel risultato della skill
+    partita_iva: "skill:fields.partita_iva"
+```
+
+- Il percorso parte da una di queste radici: `data` (il contenuto proprio della skill), `fields` (i valori con
+  etichetta, per chiave o, senza, per etichetta), `skillId`, `kind`. Le proprietà di `data` sono in camelCase.
+- **Un valore è un percorso solo se dopo `skill:` c'è una radice valida.** Il valore di una riga è, da sempre, anche
+  un testo libero per l'agente: una descrizione che comincia per caso con «Skill: …» resta una descrizione, e
+  l'agente se la vede chiedere come prima. Per non lasciar passare un refuso, nei blueprint un valore che comincia con
+  `skill:`, non ha spazi e non parte da una radice (`skill:esito.giorni`, `skill:Data.esito`) è `BP093`
+  (`INVALID_SKILL_OUTPUT_PATH`); a runtime resterebbe una descrizione.
+- Il percorso ammette punti, indici (`rows.1.source` o `rows[1].source`) e valori annidati. Una stringa arriva senza
+  apici; un numero, un booleano, un oggetto o un array come JSON.
+- Le voci `skill:` **non sono chieste all'agente**: non entrano nelle istruzioni del blocco `OUTPUT` né nel
+  controllo «chiave non emessa». Uno step con solo voci `skill:` non chiede niente all'agente.
+- Un percorso che non esiste nel risultato non ferma lo step — la skill è riuscita — ma la variabile resta **non
+  impostata**, e la traccia dello step la elenca come `[MISSING]`.
+- Se lo step ha eseguito più skill, vale il primo risultato in cui il percorso esiste. Il risultato strutturato passa
+  fino a 256 KB; oltre, la skill non lo consegna allo step e lo scrive nel log.
 
 ## `external`
 
@@ -1071,6 +1266,165 @@ Un valore finto lasciato solo in un commento si perde alla prima copia del manif
 con la versione, con `promote` e con il catalogo. La skill `xrcopilotlab-blueprint` e la chat dei blueprint
 la riempiono mentre scrivono il manifest per un ambiente di prova, e ne fanno le domande prima della produzione.
 
+## `governance`: la governance dei sistemi che il blueprint crea
+
+Un blueprint crea agenti che mandano email, chiamano webhook e usano server MCP. La sezione `governance` fa nascere
+con il blueprint le regole che li controllano, i regolamenti che le raggruppano e la loro scheda nella pagina
+Governance › Policy › Schede degli agenti, invece di rifarle a mano su ogni tenant (#1635; riallineata ai regolamenti
+con #1652, dopo la riunione con il CTO del 26/10/2026):
+
+```yaml
+governance:
+  models:                                   # regolamenti Hevolus, mai scritti dal blueprint
+    - id: uscite-di-rete                     # per tema, o per riferimento: riferimento-gdpr, riferimento-ai-act…
+      agents: [istruttoria]                  # a chi si applica; assente = tutti gli agenti
+  rules:                                    # regole proprie, con i limiti dell'editor delle regole
+    - key: host-ammessi
+      name: Webhook solo verso il CRM
+      operation: action.webhook
+      completes: uscite-di-rete-host-fuori-elenco   # completa la regola Hevolus e ne prende il posto
+      if:
+        - { attribute: host, operator: not_in, value: [api.crm-cliente.it] }
+      then: deny
+    - key: no-delete-crm
+      name: Niente cancellazioni verso il CRM
+      operation: action.webhook              # tool.invoke | action.email | action.webhook | action.script
+      agent: istruttoria                     # chiave di un agente o di un agent task; assente = tutti
+      if:
+        - { attribute: http_method, operator: in, value: [DELETE, PUT] }
+      then: deny                             # log | warn | deny
+      priority: high                         # low | normal | high
+      message: Le cancellazioni nel CRM le fa una persona.
+  ruleGroups:                               # regolamenti del blueprint
+    - key: credito
+      title: Regole del credito
+      rules: [no-delete-crm, webhook-delete] # chiavi di governance.rules o id di regole Hevolus
+      agents: [istruttoria]
+  systems:                                  # la scheda dei suoi agenti, per chiave
+    istruttoria:
+      purpose: Prepara l'istruttoria della pratica dai documenti caricati.
+      classification: internal               # internal | people_facing | high_risk
+      alternative: Procedura manuale dell'ufficio crediti.
+  publish: true                             # pubblica dopo l'apply (default true)
+```
+
+| Campo | Significato |
+|---|---|
+| `models[].id` | Un regolamento Hevolus: per tema (`perimetro-comunicazioni`, `uscite-di-rete`) o per riferimento (`riferimento-gdpr`, `riferimento-ai-act`, `riferimento-owasp`, `riferimento-soc2`, `riferimento-cis`). Il blueprint **non scrive regolamenti Hevolus**. Che esista sull'ambiente lo dice il preflight (`BP149`). La chiave resta `models` per i manifest già scritti. |
+| `models[].agents` | Le chiavi degli agenti o agent task a cui si applica (`BP147`); senza, tutti gli agenti del tenant. |
+| `models[].values`, `models[].disabledRules` | **Ritirati** (`BP154`): i regolamenti non hanno parametri, e spegnere una regola Hevolus vale per tutto il tenant — lo decide una persona dalla pagina. Si leggono per dirlo, non si applicano. |
+| `rules[]` | Regole proprie del tenant. Si giudicano con **la stessa funzione dell'editor delle regole** (`BP146`): una regola che l'interfaccia rifiuterebbe, il manifest la rifiuta. Il nome prende il prefisso del blueprint. |
+| `rules[].agent` | La chiave di un agente o di un agent task del manifest (`BP147`); senza, la regola vale per tutti gli agenti del tenant. Dentro un regolamento conta l'ambito del regolamento. |
+| `rules[].if` | Le condizioni, tutte vere insieme: attributo del catalogo, operatore, valore. Senza condizioni la regola vale per ogni azione di quel tipo. |
+| `rules[].completes` | L'id di una regola Hevolus «da completare» (vuole un valore del cliente, come i domini ammessi): la regola del manifest ne prende il posto nei regolamenti Hevolus applicati. Senza, il piano dice quali restano da completare (`BP156`); un id che non è una regola Hevolus ferma il piano (`BP157`). |
+| `ruleGroups[]` | I regolamenti del blueprint: `key`, `title` (prende il prefisso), `description`, `rules` (chiavi di `governance.rules` o id di regole Hevolus), `agents`, `enabled`. Una regola dentro un regolamento vale dove vale il regolamento; se due ambiti si sovrappongono vince il più largo (`BP157`). |
+| `systems.<agente>` | Finalità, classificazione e alternativa dell'agente nella sua scheda. **Il responsabile non si scrive qui**: è una persona del cliente, e si indica dalla scheda dopo l'installazione. |
+| `publish` | Pubblica la copia di lavoro del tenant dopo l'apply. Se il tenant ha modifiche non pubblicate che non sono del blueprint, il piano si ferma: pubblicherebbe il lavoro di qualcun altro. |
+
+Che cosa fa il piano (`BP148`–`BP157`):
+
+- un **regolamento Hevolus** si cerca fra quelli dell'ambiente; uno già applicato **a mano** ferma il piano; le sue regole
+  da completare che nessuna regola del manifest completa si dicono (`BP156`);
+- una **regola** o un **regolamento** con lo stesso nome già sul tenant è una collisione (`BP060`); quelli del blueprint si
+  aggiornano sul posto;
+- una **scheda** già compilata a mano resta quella del tenant; il piano ricorda di indicare il responsabile;
+- se la **governance del tenant è spenta** lo dice (`BP155`): le regole si scrivono e si pubblicano, ma decidono solo dopo
+  che una persona la accende da Governance › Stato. **Il blueprint non la accende mai**;
+- la **pubblicazione** chiude il piano, e si ferma se la governance del tenant ha modifiche non pubblicate di altri;
+- un ambiente **senza governance** lascia fuori la sezione, con un avviso.
+
+Che cosa fa l'apply, con gli stessi endpoint della pagina Governance › Policy:
+
+| Operazione | Che cosa fa | Inventario |
+|---|---|---|
+| `ApplyGovernanceModel` | applica il regolamento Hevolus, a tutti o agli agenti di `agents` risolti nei loro id | `GovernanceModel` (id del regolamento) |
+| `CreateGovernanceRule` / `UpdateGovernanceRule` | crea la regola nella copia di lavoro, con `agent` risolto e `completes` come regola di origine; in un aggiornamento la modifica sul posto | `GovernanceRule` (id della regola) |
+| `CreateGovernanceRulebook` / `UpdateGovernanceRulebook` | crea il regolamento, con le chiavi delle regole risolte negli id del run e gli agenti nei loro id; in un aggiornamento lo modifica sul posto | `GovernanceRulebook` (id del regolamento) |
+| `DeclareGovernanceSystem` | scrive finalità, classificazione e alternativa; in un aggiornamento tiene il responsabile indicato da una persona | `GovernanceSystem` (id dell'agente) |
+| `PublishGovernance` | pubblica la copia di lavoro: le regole entrano in vigore (se la governance del tenant è accesa) | `GovernancePublication` (ultima versione) |
+
+Regolamento Hevolus, scheda e pubblicazione si ripetono a ogni apply (sono idempotenti): in un aggiornamento il run
+eredita le loro voci, e riconosciute lì le scelte nuove non arriverebbero sul tenant.
+
+`rollback` e `delete --with-entities` tolgono regole, regolamenti e regolamenti Hevolus applicati dalla copia di lavoro,
+svuotano la scheda e alla fine **ripubblicano**, così le regole del blueprint escono davvero dal vigore. Se la
+ripubblicazione fallisce, il rollback lo dice fra i fallimenti: si pubblica a mano da Governance › Policy.
+
+**Stato** (26/10/2026): validatore, piano e apply sono pronti sul disegno a regolamenti (#1652). Un apply con la sezione
+richiede un'API che abbia la governance (#1579): su un ambiente senza, il piano lascia fuori la sezione (`BP148`).
+
+## `apps`: le app di App Builder del blueprint (#1566)
+
+Le app che usano le entità del blueprint — un cruscotto per un ruolo, un widget per il sito del cliente, una
+procedura, una scena 3D — fanno parte del blueprint. I sorgenti stanno in una cartella accanto al manifest e
+viaggiano con la versione come la knowledge, sotto `apps/<chiave>/` nell'archivio.
+
+```yaml
+apps:
+  - key: cruscotto-cup                  # kebab-case, unica: è anche la cartella nell'archivio
+    title: Cruscotto dell'operatore CUP # senza prefisso
+    description: Posti liberati, verifica dei tempi, tutela e richiamate
+    kind: demo                          # demo | product
+    template: spa-react                 # spa-react (default) | static-site
+    layout: dashboard                   # dashboard | chat | wizard | widget | scene3d
+    uses: [copilot-cup, disdetta-riallocazione, percorso-tutela, richiamata-cup]
+    source: apps/cruscotto-cup/         # relativa al manifest
+    brief: apps/cruscotto-cup/brief.md
+  - key: totem-accoglienza              # adottata da un collega
+    title: Totem dell'accoglienza
+    kind: demo
+    layout: scene3d
+    uses: [accoglienza-cup]
+    source: apps/totem-accoglienza/
+    origin:
+      env: staging
+      company: Hevolus Innovation
+      projectId: <id del progetto App Builder>
+      createdBy: collega@hevolus.it
+      adoptedBy: giuseppe.zileni@hevolus.it
+      adoptedAt: 2026-10-27
+```
+
+| Campo | Significato |
+|---|---|
+| `kind` | `demo`: costruita sui dati di collaudo, con passi simulati, per mostrare il blueprint. `product`: la usa il cliente. Si chiede a chi l'ha fatta. |
+| `layout` | Il modo di lavorare. `scene3d` è una scena Babylon.js in cui ogni oggetto è un comando: al più **una** fra le app senza `origin` (`BP160`). |
+| `uses` | Le chiavi di agenti, orchestratori, processi e agent task che l'app chiama (`BP159`). |
+| `source` | La cartella dei sorgenti. Entra tutto tranne `node_modules`, `dist`, `.vite`, `.git` e i `.env` (resta `.env.example`). |
+| `origin` | Solo per un'app **adottata**: il progetto d'origine, che resta intatto. In un modello del catalogo niente `company` né `projectId` (`BP164`). |
+
+Le regole:
+
+- **I sorgenti si controllano prima di scrivere** (`validate`, `push`, `catalog publish`): niente che somigli a una
+  credenziale, nessun `.env`, nessuna chiamata a XRCopilot dal codice del browser (`BP161`); un id scritto nel
+  codice è un avviso (`BP162`), perché sul tenant di destinazione l'entità ha un altro id.
+- **Chi copia sceglie le app di demo**: `promote` e `catalog install` chiedono quali portare, con risposta proposta
+  tutte (`--demo-apps`, vedi [`cli-reference.md`](cli-reference.md)). Le app `product` viaggiano sempre.
+- **Le app non stanno nei moduli**: si scelgono alla copia, non all'apply.
+- **L'apply crea ogni app in App Builder**, per ultima: un progetto con il prefisso del blueprint (il nome è
+  `title`) e, come snapshot, i sorgenti della versione. Non apre una sessione e non consuma il budget del mese: la
+  prima sessione che qualcuno apre riparte da quei file, stesi sopra il template. L'app entra nell'inventario
+  (`App`), e `rollback` e `delete` tolgono il progetto con il suo snapshot. Un progetto con una sessione aperta non
+  si toglie: va chiuso prima da App Builder.
+- **Con App Builder spento sul tenant** le app non si creano e il piano lo dice (`BP165`); il resto si applica.
+  Un progetto con lo stesso nome già sul tenant è una collisione (`BP060`).
+- **Le app si creano solo in produzione** (`BP169` altrove): App Builder apre le sessioni solo lì. Fuori produzione
+  sezione e sorgenti restano nell'archivio e viaggiano con la copia; verso la produzione `promote` e `catalog install`
+  chiedono quali app di demo portare (proposta: tutte).
+- **Un aggiornamento riscrive un'app già creata solo se nessuno ci ha lavorato.** L'apply confronta il progetto in App
+  Builder con i file che aveva scritto:
+  - sorgenti uguali a quelli della versione applicata: niente da fare;
+  - mai aperta dopo l'apply, oppure aperta senza cambiare i file del blueprint: si aggiorna sul posto (`UpdateApp`);
+  - modificata (un file scritto dall'apply è cambiato o tolto): resta com'è (`BP166`). Per sostituirla
+    `apply --replace-apps <chiave>`, che prima salva l'export del progetto nell'archivio; per tenere le modifiche si
+    riportano nei sorgenti del blueprint e si fa il push di una versione nuova;
+  - sessione aperta: non si scrive (`BP167`);
+  - progetto tolto a mano: si ricrea (`BP168`).
+- **Un'app di demo lasciata all'origine da `promote`** è nel manifest ma non nell'archivio: l'apply non la crea e
+  lo dice. Lo stesso per una versione scritta senza la cartella dell'app (un push fatto lontano dai sorgenti).
+
+Come si costruisce un'app e come si adotta quella di un collega: skill `xrcopilotlab-blueprint-app`.
+
 ## Codici dei rilievi
 
 | Intervallo | Area |
@@ -1087,3 +1441,4 @@ la riempiono mentre scrivono il manifest per un ambiente di prova, e ne fanno le
 | `BP090`–`BP092` | Orchestratori: tipo di step, campi, grafo |
 | `BP132`–`BP138` | Moduli: chiavi, entità elencate, appartenenza unica, dipendenze chiuse, cicli, scelta con `--modules`, rollback di un modulo richiesto |
 | `BP139`–`BP141` | Dati di collaudo: voce incompleta, dato di collaudo in produzione (errore), elenco fuori dalla produzione (avviso) |
+| `BP145`–`BP157` | Governance: sezione malformata, regola che l'editor rifiuterebbe, agente che il manifest non dichiara; nel piano governance non letta, regolamento che l'ambiente non ha, regolamento applicato a mano, modifiche non pubblicate di altri, scheda già compilata, responsabile da indicare, valori ritirati, governance del tenant spenta, regola da completare, regolamento o `completes` che non vanno |

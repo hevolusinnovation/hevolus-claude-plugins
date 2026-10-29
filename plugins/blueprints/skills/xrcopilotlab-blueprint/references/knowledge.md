@@ -288,6 +288,24 @@ agents:
 accanto al manifest: è ciò che permette a un collega di applicare la stessa versione dalla sua
 macchina senza avere la cartella dei dati.
 
+### I fogli dell'agente (`agents[].files`), non del profilo
+
+Un foglio che deve essere **letto riga per riga** — conteggi, filtri, «tutte le aziende della
+filiera» — non va in un profilo: va in `agents[].files`, e l'agente deve avere una skill che legge i
+fogli dell'agente. Oggi è una sola, `spreadsheet` (colonna `ReadsAgentSpreadsheets` del catalogo
+delle skill; le tre skill marketing che li leggevano sono uscite con la #1614). **Senza una di queste skill il foglio entra nel Knowledge Graph** come un documento
+qualunque: viene cercato, non letto, e il piano non lo segnala. Quando scrivi `files` su un agente,
+controlla le sue `skills` nella stessa passata.
+
+```yaml
+agents:
+  - key: elenco
+    name: AgenteElenco
+    skills: [spreadsheet]             # senza, associati.xlsx finisce nel Knowledge Graph
+    files:
+      - path: ../dati/associati.xlsx
+```
+
 ## Cosa dire all'utente, e quando
 
 Prima di applicare, se il manifest dichiara knowledge: **quanti file, quanto pesano, e che
