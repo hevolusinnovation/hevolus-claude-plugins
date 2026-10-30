@@ -196,6 +196,7 @@ quando la richiesta le riguarda. Di solito non serve nominarle — si attivano d
 | `xrcopilotlab-blueprint-version` | blueprints | «la mail delle novità dei blueprint», «cosa è cambiato dalla 2.x alla 2.y», «avvisa il team che c'è una versione nuova» | la bozza di mail in HTML: comandi per aggiornare (terminale e Desktop), link alla guida, novità per versione, riepilogo delle feature |
 | `xrcopilotlab-blueprint-howto` | blueprints | «come si usano le skill dei blueprint», «da dove comincio», «l'howto dei blueprint» | l'artifact «Dall'intervista alla demo»: il percorso intero, dall'installazione alla demo, tappa per tappa |
 | `xrcopilotlab-blueprint-app` | blueprints | «un'app sul blueprint», «uno sportello / un widget / un cruscotto per questo blueprint», «un'app 3D del blueprint» | la mappa delle integrazioni, l'archetipo, 2-3 varianti di layout come mock-up e il brief per App Buddy |
+| `xrcopilotlab-blueprint-governance` | blueprints | «la governance del blueprint», «proponi le regole», «quali regolamenti servono», «che cosa manca alla governance dell'archivio» | la superficie di governance del manifest, la sezione `governance:` proposta voce per voce con il perché e le domande al cliente, scritta dopo un sì; i casi di collaudo; il report dell'archivio. Non scrive regolamenti Hevolus, non accende la governance |
 
 Il dettaglio di ciascuna, con esempi di manifest, di suite e di cosa **non** fanno:
 [§ Le skill](docs/le-skill.md).

@@ -26,6 +26,7 @@ DEST_BPMFLOW = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blue
 DEST_REPORT = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprints-report"
 DEST_VERSION = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-version"
 DEST_APP = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-app"
+DEST_GOV = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-governance"
 
 # Ogni riga: dove sta nel repository di prodotto → dove va nel plugin.
 # Un riferimento nuovo in una skill va aggiunto QUI: se non compare, la copia nel plugin non esiste
@@ -102,6 +103,11 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-app/references/layout.md", DEST_APP / "references"),
     (".claude/skills/xrcopilotlab-blueprint-app/references/brief.md", DEST_APP / "references"),
     (".claude/skills/xrcopilotlab-blueprint-app/references/collaudo.md", DEST_APP / "references"),
+    # La governance di un blueprint (#1637): legge la superficie del manifest, propone la sezione, la scrive dopo un sì.
+    (".claude/skills/xrcopilotlab-blueprint-governance/SKILL.md", DEST_GOV / "SKILL.md"),
+    (".claude/skills/xrcopilotlab-blueprint-governance/references/proposta.md", DEST_GOV / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-governance/assets/superficie.py", DEST_GOV / "assets"),
+    (".claude/skills/xrcopilotlab-blueprint-governance/assets/archivio.sh", DEST_GOV / "assets"),
     # I flussi di un manifest disegnati in stile BPMN, in un artifact: la pagina legge da sola il manifest incorporato.
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/SKILL.md", DEST_BPMFLOW / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-bpm-flow/references/notazione.md", DEST_BPMFLOW / "references"),
@@ -288,7 +294,7 @@ def cerca_orfani(copiati):
     la skill non cita qualcosa che nella sorgente è cambiato mesi prima.
     """
     orfani = []
-    for dest in (DEST, DEST_TEST, DEST_GUIDE, DEST_DEMO, DEST_STORYBOARD, DEST_VERSION, DEST_BPMFLOW, DEST_REPORT, DEST_APP):
+    for dest in (DEST, DEST_TEST, DEST_GUIDE, DEST_DEMO, DEST_STORYBOARD, DEST_VERSION, DEST_BPMFLOW, DEST_REPORT, DEST_APP, DEST_GOV):
         for p in sorted(dest.rglob("*")):
             if p.is_file() and p.name != ".DS_Store" and p.resolve() not in copiati:
                 orfani.append(p.relative_to(RADICE))
