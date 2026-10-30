@@ -312,11 +312,26 @@ Cosmos. Stampa identificativo, versione, percorso del blob e impronta SHA-256.
 Una versione pubblicata è **immutabile**: ripubblicare la stessa viene rifiutato. Si alza `version:`
 nel manifest, oppure — solo per iterare in sviluppo — si usa `--overwrite`.
 
+**Fuori dalla produzione restano le ultime due versioni (#1596).** Su staging e sugli altri ambienti di
+sviluppo, dopo ogni `push` l'archivio del tenant tiene la versione appena scritta e quella prima: le più
+vecchie escono con i loro file di knowledge e i loro run, e il comando lo dice. Una versione che ha ancora
+entità installate sul tenant resta, qualunque numero abbia: il suo run è l'unica cosa che sa come
+smontarle. Suite, report e documenti del blueprint non si toccano. In produzione le versioni restano
+tutte. La stessa regola vale per `pipeline`, `promote` verso un ambiente non di produzione, `catalog
+install` e i manifest scritti dalla chat; per ciò che era in archivio prima della regola c'è
+[`prune`](#prune---tag-tag---keep-n---confirm-tagarchivio).
+
 **Accesso (#1518).** Se la versione in vigore dichiara `access`, valgono i suoi owner: chi non è fra loro non
 cambia `access` (`BP124`) e non porta una versione nuova di un blueprint bloccato (`BP125`). Chi toglie sé stesso
 dagli owner riceve `BP126` e ripete con `--release-ownership` per confermare. Allo stesso modo `apply` di un
 blueprint bloccato è solo per un owner, e `promote`, `catalog install`, `export` e `catalog publish` di un
 blueprint bloccato li fa solo un suo owner (`BP123`).
+
+**App del blueprint (#1566).** Se il manifest ha una sezione `apps`, `push` controlla i sorgenti di ogni app
+prima di scrivere (`BP161`: niente che somigli a una credenziale, niente `.env`, nessuna chiamata a XRCopilot
+dal codice del browser; `BP162` avvisa degli id scritti nel codice) e poi li archivia con la versione, sotto
+`apps/<chiave>/`, senza `node_modules`, `dist` e cache. Lo stesso fanno `validate` (solo il controllo) e
+`catalog publish`.
 
 ## `pull --tag <TAG> [--version <n>] [--out <file>] [--with-files]`
 
@@ -447,8 +462,9 @@ sezioni passano per le chiavi, mai per gli id del tenant. Un'entità fatta a man
 all'apply lo riceve: riapplicare l'export sullo stesso tenant ne creerebbe una copia, e collegare le
 chiavi a entità che esistono già è un passo che ancora non c'è.
 
-**Nessun valore segreto esce.** L'API restituisce alcune credenziali in chiaro — le chiavi degli
-endpoint AI di un agente, gli header di un'uscita webhook — e l'export le ferma:
+**Nessun valore segreto esce.** Le chiavi degli endpoint AI e le credenziali dei server MCP l'API
+non le restituisce più (#1052: arrivano mascherate); altre credenziali — gli header di un'uscita
+webhook — sì, e l'export le ferma:
 
 - l'autenticazione di una connessione diventa riferimenti `Blueprints:Secrets:<TAG>:<chiave>-…`; dei
   suoi campi l'API restituisce **solo il tipo**, quindi `tokenUrl`, `scope`, nome utente e nome
@@ -505,6 +521,11 @@ un owner (`BP121`).
 lo stesso identificativo di un modello del catalogo dell'ambiente: ne derivano, o il modello è nato da loro. È una
 marcatura: un'installazione dal catalogo la dice `promotedFrom`, come prima.
 
+**Solo tenant vivi.** Una partizione dell'archivio non sparisce quando il suo tenant viene tolto: prima di migrarla il
+comando chiede all'API se il tenant esiste ancora (`GET companies/{companyId}/existence`), e salta con un avviso le
+partizioni orfane e quelle che non ha potuto verificare (un'API senza l'endpoint, un database che non risponde). Le
+partizioni orfane si vedono e si cancellano con `access orphans`.
+
 ## `access retag --tag <VECCHIO> --to <NUOVO> --company <tenant> [--blueprint <id>] [--apply] [--yes]`
 
 Cambia il tag delle versioni archiviate di un blueprint (#1518): la riga `tag:` e i riferimenti
@@ -514,6 +535,33 @@ Cambia il tag delle versioni archiviate di un blueprint (#1518): la riga `tag:` 
 Si rifiuta anche se il tag nuovo è di un altro blueprint del tenant; quello dello stesso blueprint va bene (due tag per
 un blueprint si riuniscono così). I segreti già impostati per il tag vecchio non si spostano: si rifanno con
 `secrets set`. Senza `--apply` mostra solo l'elenco; in produzione scrivere chiede anche `--yes`.
+
+Come `migrate`, si rifiuta (`3`) se il tenant non esiste più o se non si è potuto verificare.
+
+## `access orphans [--env <e>] [--delete <GUID> --confirm <GUID>]`
+
+Le partizioni dell'archivio e il tenant a cui appartengono (#1518): **tenant vivo**, **orfana** (il tenant non esiste
+più), **non verificata** o catalogo, con quanti blueprint e documenti contiene ognuna. Senza `--delete` legge e basta.
+
+Un tenant esiste se lo trova **almeno una** di tre prove: la vista dei prodotti di HevoHub, la riga di configurazione
+in XRCopilotLab, gli agenti con quel `CompanyId`. «Orfana» vuol dire che non lo trova nessuna, e si sbaglia per
+prudenza: un tenant senza licenze ma con agenti è vivo. Il GUID tutto a zeri è sempre orfano (`BP131`: è un
+segnaposto, e da #1518 il validatore lo rifiuta prima del `push`).
+
+`--delete <GUID>` cancella **tutta** la partizione — versioni, run, collaudi, link, eventi di copia e i file sotto
+`blueprints/<GUID>/` — solo se:
+
+- l'API conferma **adesso** che il tenant non esiste (una risposta mancata non vale come «non esiste»);
+- `--confirm` ripete il GUID esatto;
+- la partizione non contiene documenti che la cancellazione non sa togliere, come i backup di un tenant, i cui file
+  vivono in altri container.
+
+Le entità che i run avevano creato non si smontano: il tenant non c'è più, e con lui di norma i suoi dati.
+
+```bash
+xrcopilotlab-bp access orphans --env prod
+xrcopilotlab-bp access orphans --env prod --delete 0bace645-… --confirm 0bace645-…
+```
 
 ## `promote --tag <TAG> [--version <n>] [--from-env <e>] [--to-env <e>] [--from-company <guid>] [--to-company <guid>]`
 
@@ -555,7 +603,14 @@ Tre esiti, dal confronto delle impronte:
 | c'è, stesso SHA-256 | **non scrive niente**, esce `0` — la copia è ripetibile, anche da uno script |
 | c'è, SHA-256 diverso | **si ferma** (`1`): due testi sotto lo stesso numero di versione. Si alza `version:`, oppure `--overwrite` |
 
-Viaggiano gli **ingressi** della versione: il manifest e la knowledge archiviata con il push. Non
+**Le app di demo si scelgono verso la produzione (#1566).** Le app si creano solo in produzione (`BP169` altrove),
+quindi una copia verso un altro ambiente le porta tutte senza chiedere. Verso la produzione, se il manifest ha app
+`kind: demo`, `promote` le elenca e chiede «Quali app di demo copio?», con risposta proposta **tutte**; `--demo-apps all|none|<chiave,chiave>` risponde
+da riga di comando, e senza terminale e senza l'opzione il comando si ferma con **6** — la scelta è di chi
+copia. Il manifest arriva identico comunque (lo SHA è la prova): la risposta decide quali sorgenti viaggiano,
+e la copia registra le app lasciate all'origine (`demoAppsLeftOut`). Le app `kind: product` viaggiano sempre.
+
+Viaggiano gli **ingressi** della versione: il manifest, la knowledge e i sorgenti delle app archiviati con il push. Non
 viaggiano le **uscite** — i `.bpmn` esportati dall'apply — che sono il verbale di un'esecuzione
 avvenuta in quell'ambiente; né i run, gli inventari e le approvazioni, che appartengono a dove sono
 successi; né i **valori** dei segreti, che nel manifest sono solo nomi. Quelli che la destinazione
@@ -608,6 +663,40 @@ con ciò che c'era (di norma il nome del computer) e applicate se un run complet
 Senza `--env` si leggono tutti gli ambienti noti; uno illeggibile non ferma gli altri, ma la
 classifica lo dichiara. `--since` restringe le copie, non i run.
 
+## `usage [--tag <TAG>] [--env <e>|all] [--out <file>] [--json]`
+
+**Dove vive ogni blueprint** (#1665). `copies` conta solo ciò che è passato da `promote` o dal
+catalogo; un blueprint pubblicato e applicato direttamente sul tenant del cliente non lascia una copia,
+ma lascia un run. `usage` conta le **installazioni** — un blueprint su un tenant di un ambiente con un
+run completato — e mette accanto le copie. Legge e basta, da tutte le partizioni, come `copies`: è un
+comando dello **staff**, la chat non lo esegue e nessuna pagina della webapp lo mostra.
+
+```bash
+xrcopilotlab-bp usage                          # tutti gli ambienti, un blueprint per riga
+xrcopilotlab-bp usage --tag FINBANK            # le installazioni di un blueprint, tenant per tenant
+xrcopilotlab-bp usage --out uso.json           # il riepilogo in JSON (lo usa il marketplace interno)
+```
+
+| Colonna | Che cosa conta |
+|---|---|
+| vive | installazioni con un run completato oggi — è **l'ordine** |
+| dirette | installazioni vive senza una copia e che non sono l'origine di una copia |
+| copie · applicate | come in `copies` |
+| tenant | tenant distinti (ambiente e tenant) con un'installazione viva |
+
+Un'installazione è di tre tipi: **copia** (il tenant ha ricevuto una copia), **origine** (il tenant da
+cui una copia è partita) o **diretta**. È **disinstallata** quando non ha più un run completato ma ha la
+prova di esserlo stata: un run superato da un aggiornamento, o una copia timbrata come applicata. Un
+rollback di un apply fallito ha lo stesso stato di quello di un apply riuscito, quindi un'installazione
+diretta di una sola versione, poi smontata, non si conta: il numero delle disinstallate è un minimo.
+
+Il nome del tenant viene dall'evento di copia o dall'elenco dei tenant dell'ambiente (`GET companies`,
+con la chiave di funzione dell'API presa da App Configuration). In produzione quell'elenco è filtrato
+(`Companies:ListingFilter`) perché non pubblichi la lista dei clienti: per i tenant con un blueprint che
+l'elenco non nomina, il nome si chiede uno alla volta a `GET companies/{id}/existence`, come fa
+`access orphans` — solo per loro, non per enumerare l'ambiente. Un tenant senza nome nemmeno in HevoHub
+resta senza, e si conta in `totals.unnamedTenants`. Il JSON porta gli id dei tenant: chi lo pubblica altrove li toglie prima.
+
 ## `catalog list` · `catalog publish <modello.yml>` · `catalog install <modello>` · `catalog prune`
 
 Il **catalogo** dei blueprint pronti, curati da Hevolus e installabili da qualunque tenant (#1185).
@@ -626,6 +715,9 @@ xrcopilotlab-bp catalog install legal-agenda --env staging --company <tenant> \
 xrcopilotlab-bp catalog prune [<modello>] --env prod [--confirm <modello>|catalogo]
 ```
 
+- **`install`** — senza `--tag`, il tag della copia è quello del modello seguito dal codice del nome
+  del tenant (`LEGAL` su «Pippo SRL» → `LEGALPIPPOSRL`); un aggiornamento tiene il tag già installato.
+  Se il nome non si ricava (`BP109`), il comando si ferma e chiede `--tag`.
 - **`list`** — l'ultima versione di ogni modello, con che cosa crea. Con `--company`, anche che
   cosa ha installato quel tenant e se nel catalogo c'è una versione più nuova.
 - **`pull`** — riscrive su disco un modello del catalogo (sola lettura), per rivederlo o correggerlo
@@ -673,6 +765,12 @@ webapp: lì la firma è l'utente che ha approvato.
 
 `default` non è un tenant: ogni altro comando lo rifiuta con `1`.
 
+
+**App di demo (#1566).** In produzione `catalog install` chiede quali app di demo del modello portare nel tenant, con
+risposta proposta **tutte** (`--demo-apps all|none|<chiave,chiave>`; senza terminale e senza l'opzione si ferma
+con **6**). Le app lasciate fuori escono dal manifest installato e i loro sorgenti restano nel catalogo; un
+aggiornamento chiede di nuovo. Fuori produzione le porta tutte senza chiedere (non si creano comunque). L'installazione dalla webapp le porta tutte. `catalog publish` controlla i
+sorgenti come `push` e rifiuta un'app con `origin.company` o `origin.projectId` (`BP164`).
 ## `plan --tag <TAG> [--version <n>] [--modules <k1,k2>]`
 
 Mostra cosa verrebbe creato, cosa manca e cosa collide, **senza modificare nulla**. Legge lo stato
@@ -693,7 +791,7 @@ operazioni sono quelle, con i nomi già qualificati.
 
 Esce con `0` se applicabile, `3` altrimenti.
 
-## `apply --tag <TAG> [--version <n>] [--modules <k1,k2>] [--resume <runId>]`
+## `apply --tag <TAG> [--version <n>] [--modules <k1,k2>] [--replace-apps <k1,k2>] [--resume <runId>]`
 
 Stampa il piano, **ne chiede l'approvazione** e solo dopo esegue. In un terminale la domanda si
 risponde; dove non c'è un terminale — uno script, un assistente che esegue comandi — non c'è nessuno
@@ -716,10 +814,15 @@ sulle entità che quel run ha creato: le riconoscono come del blueprint e portan
 nuova.
 
 - **Si crea** ciò che la versione nuova aggiunge: agenti, skill assegnate, server MCP, step.
+- **Una connessione `process:` spostata su un processo nuovo si ricabla**: indirizzo e chiave del webhook nuovo
+  vanno nella connessione e la chiave in Key Vault. Fino al 18/10/2026 il cablaggio si saltava perché la
+  connessione esisteva già, e la chiave — mostrata una volta sola — non si salvava (HEVBPMKT v12).
 - **Si aggiorna sul posto** ciò che il blueprint possiede ed è cambiato, confrontandolo con il
   **tenant** — non con il manifest precedente, perché fra una versione e l'altra le cose possono
   essere state ritoccate a mano:
-  - gli **agenti**: istruzioni, descrizione, temperatura, modello e i **profili di knowledge** collegati (#1526):
+  - gli **agenti**: istruzioni, descrizione, temperatura, modello, **tipo e impostazioni di risposta** dichiarati
+    (#1612: «tipo smart → base», «verbosità Concise → Verbose»… — un campo non dichiarato resta com'è) e i
+    **profili di knowledge** collegati (#1526):
     si collegano quelli dichiarati che mancano e si scollegano quelli del blueprint che la versione non dichiara
     più; un profilo collegato a mano, fuori dal blueprint, resta. Fino al 18/10/2026 i profili non si
     confrontavano: HEVBPMKT v7 creava il profilo nuovo e la guida restava sul vecchio. Identità e strumenti
@@ -813,6 +916,27 @@ che li conosce.
 di destinazione e confrontano ogni operazione con il ruolo che la webapp chiede per farla a mano (`BP128`): i ruoli
 mancanti si vedono come avvisi nel piano, e `apply` non parte finché ne manca uno — meglio fermarsi prima che a metà,
 quando l'API rifiuterebbe. L'amministratore del tenant passa ogni controllo.
+
+**App del blueprint (#1566).** Per ultima, `apply` crea in App Builder ogni app di `apps`: un progetto con il
+prefisso (il nome è `title`), e come snapshot i sorgenti archiviati con la versione sotto `apps/<chiave>/`. Non apre
+una sessione né consuma il budget del mese. Il progetto va in inventario (`App`), e `rollback` e `delete` lo tolgono,
+snapshot compreso; con una sessione aperta su quel progetto si fermano e chiedono di chiuderla prima. Con App Builder
+spento sul tenant l'app non si crea (`BP165`, avviso).
+
+**Solo in produzione.** App Builder apre le sessioni solo in produzione, quindi fuori di lì il piano non crea le app
+(`BP169`, una riga per app): sezione `apps` e sorgenti restano nell'archivio e viaggiano con la copia. Quali app di
+demo portare si sceglie una volta sola, alla copia verso la produzione (`promote`, `catalog install`); l'apply in
+produzione crea tutte quelle che la copia ha portato, senza altre domande. Un'app di demo lasciata all'origine da
+`promote --demo-apps` è nel manifest ma non nell'archivio: l'apply non la crea e lo dice.
+
+**Un'app già creata, in un aggiornamento.** L'apply legge il progetto in App Builder e lo confronta con i file che
+aveva scritto (la voce d'inventario sa di quale versione: `sourceVersion`). Con sorgenti nuovi diversi, l'app si
+aggiorna sul posto (`UpdateApp`) se nessuno ci ha lavorato — mai aperta dopo l'apply, o aperta senza cambiare i file
+del blueprint. Se è stata modificata resta com'è (`BP166`, con i file cambiati e la data dell'ultima sessione), e
+`--replace-apps <chiave,chiave>` la sostituisce comunque: prima l'export del progetto va nell'archivio
+(`attachments/app-backup/<chiave>/<timbro>.zip`, si rilegge con `files get`), poi i sorgenti nuovi. Con una sessione
+aperta non si scrive (`BP167`); un progetto tolto a mano si ricrea (`BP168`). Un progetto che non si riesce a
+leggere, o la cui versione applicata non è più nell'archivio, conta come modificato.
 
 ## `profile init-local [--port <porta>] [--key-env <VARIABILE>] [--yes]`
 
@@ -911,6 +1035,29 @@ Un fallimento su una singola entità non ferma il resto: è meglio un rollback c
 ciò che non si riesce a togliere, che uno lasciato a metà. Le entità non rimosse vengono elencate.
 
 La pubblicazione di una versione non ha operazione inversa: sparisce insieme al processo.
+
+**Il rollback è la disinstallazione, non la cancellazione.** Il manifest con le sue versioni, i file
+di knowledge archiviati con la versione, suite, report e documenti restano nell'archivio: il
+blueprint si riapplica quando si vuole, con `apply`, e il piano riparte da zero — non è un
+aggiornamento, perché il run smontato non è più `Completed`. I file caricati nel topic non si
+cancellano uno per uno (sono documenti del cliente), ma se il topic era del blueprint se ne vanno
+con lui e l'inventario lo registra. Se un run smontato da una CLI precedente è rimasto
+«completato» con i soli file di un topic che non c'è più, ripetere `rollback --run` lo chiude: il
+comando verifica il topic sul tenant e toglie le voci rimaste.
+
+## `prune [--tag <TAG>] [--keep <n>] [--confirm <TAG|archivio>]`
+
+Applica una volta la regola delle ultime due versioni (#1596) ai blueprint già nell'archivio di un tenant
+**fuori dalla produzione**: per ogni blueprint elenca le versioni che restano, quelle che restano perché
+ancora installate, e quelle che escono con i loro run; poi chiede la conferma. Da `push` in poi la regola
+vale da sola: `prune` serve per ciò che c'era prima, e per un `--keep` diverso da due.
+
+Il cancello è quello di `delete`: si scrive il **tag** quando si pulisce un blueprint solo, la parola
+`archivio` quando si puliscono tutti, al terminale o con `--confirm`; `--yes` non vale. Senza terminale il
+comando stampa l'elenco ed esce **6**. In produzione si rifiuta (**3**): lì le versioni restano tutte.
+
+Ciò che esce non si rilegge più (`pull --version`) e non si riapplica. Suite, report, documenti e il
+registro delle copie restano: raccontano il tag, non una versione.
 
 ## `delete --tag <TAG> --confirm <TAG> [--version <n>] [--with-entities]`
 
@@ -1186,6 +1333,7 @@ contenuto vecchio. È l'unico modo di aggiornare un documento: il piano confront
 contenuto cambiato, e `knowledge reingest --only` rilegge il contenuto che c'è. Chiede un sì come l'apply. Per tenere il manifest allineato, aggiungere gli stessi file a `knowledge[].files` alla versione dopo:
 il piano li riconoscerà come già presenti.
 
+
 **`knowledge rm <profilo> --tag <TAG> [--confirm <TAG>]`** (#1567) toglie dal tenant **un solo** profilo che il
 blueprint ha creato, e lo toglie dall'inventario del run. Serve per un profilo che una versione nuova non dichiara
 più: l'aggiornamento lo scollega dagli agenti ma lo lascia sul tenant (`BP068`), e `rollback` smonterebbe il run
@@ -1283,6 +1431,15 @@ non arriva entro 5 minuti (il link resta valido: si completa e si ripete il coma
 dell'app Google non sono impostati (`secrets set`). Non lancia il browser: si apre il link a mano, con
 l'account Google da collegare.
 
+Prima del link il comando stampa l'**URI di reindirizzamento** dell'ambiente
+(`<OAuthCallbackBaseUrl>/auth/google/callback`, letto dall'App Configuration), che l'app Google del
+cliente deve avere fra gli «URI di reindirizzamento autorizzati»; con i segreti mancanti (exit **3**)
+stampa anche i passi nella Google Cloud Console. Gli stessi passi li riporta il piano, con l'avviso
+`BP112`, per ogni server nativo che crea. Due errori ricorrenti (14/10/2026): `redirect_uri_mismatch`
+sulla pagina di Google è l'URI mancante nell'app; «McpOauthId could not be extracted from state» è
+l'URI di reindirizzamento aperto a mano, o il link cliccato nel terminale e spezzato al carattere `|`
+dello `state`. Il link si copia intero e si incolla nel browser.
+
 Emerso il **2026-09-14**: sul tenant di Studio Polis la riga del catalogo del server Microsoft 365
 era sparita fra due collaudi, con i quattro collegamenti ancora in piedi; la causa non è stata
 trovata (telemetria di staging non interrogabile), la riparazione è stata `mcp publish`.
@@ -1373,10 +1530,9 @@ funziona anche lì.
 ## `report-problem --kind <access|defect|feature> --env <nome> --message <testo>`
 
 Segnala al team ciò che la skill non sa risolvere: un **ruolo Azure che manca** (`access`) o un
-**difetto della webapp o della libreria** (`defect`), o una **funzionalità che il blueprint chiede e il manifest o la piattaforma non hanno** (`feature`). La segnalazione diventa un'**istanza del processo
-«Assistenza XRCopilotLab»**, con un'attività «Prendi in carico la
-segnalazione» assegnata al ruolo «Assistenza XRCopilotLab»: la recapitano le notifiche dei processi già
-esistenti (card Teams 1:1, email di ripiego), senza un canale in più.
+**difetto della webapp o della libreria** (`defect`), o una **funzionalità che il blueprint chiede e il manifest o la piattaforma non hanno** (`feature`). La segnalazione è **una mail all'AI Team**, ai
+destinatari di `SupportReport:NotifyEmails`: chi risponde risponde a chi ha segnalato. Non apre processi né
+attività sul tenant.
 
 ```bash
 xrcopilotlab-bp report-problem --kind access --env staging --tag MARKETING --manifest-version 16 \
@@ -1394,23 +1550,36 @@ xrcopilotlab-bp report-problem --kind access --env staging --tag MARKETING --man
 **Funziona anche senza i ruoli** su App Configuration e Key Vault, ed è per questo che non passa da
 quelli: conosce l'indirizzo della rotta `support/report` della Function App dell'ambiente e prova chi
 sei con un token Entra del tuo account (lo stesso di `az login --tenant hevolus.it`), senza chiavi.
-Chi segnala lo ricava il server dal token: il client non lo scrive. L'attività porta chi, ambiente,
-manifest (tag, versione, file), comando, versione della CLI e il messaggio, e si legge nella pagina
-dell'attività della webapp (la card di Teams non porta i dati del caso).
+Chi segnala lo ricava il server dal token: il client non lo scrive. La mail porta chi, ambiente,
+manifest (tag, versione, file), comando, versione della CLI e il messaggio.
 
-Limiti: solo account `@hevolus.it` del tenant, sei segnalazioni all'ora per persona, company fissa nella
-configurazione dell'Api (`SupportReport:CompanyId`: il chiamante non sceglie dove atterra). Il processo non si
-configura: la rotta lo trova **per nome** («Assistenza XRCopilotLab») nella company, e il tenant Entra ha il
-default di `hevolus.it`.
+**Se la segnalazione non parte** — nessun accesso Azure, rotta non disponibile su quell'ambiente, nessun
+destinatario configurato (503), mail non spedita (502), limite orario — il comando esce con `4` e **stampa il
+testo** (oggetto e corpo) con gli indirizzi dell'AI Team a cui mandarlo a mano. La segnalazione non si perde.
 
-**L'Assistenza XRCopilotLab deve esistere** sulla company che riceve, e ce la porta ogni blueprint: il piano di
-`plan`, `apply` e `pipeline` (e la chat dei blueprint) la **aggiunge da sé** al manifest se il tenant non ha già il
-ruolo e il processo con quel nome, come ultime operazioni del piano. Non si scrive nel manifest e non va in
-nessun inventario che un `rollback` o un `delete` possa smontare. Se non c'è, la rotta risponde 409 e il comando
-lo dice. I membri del ruolo non stanno nel manifest: si leggono dalla chiave `Blueprints:Assistenza:Members`
-dell'App Configuration dell'ambiente (email separate da virgola); senza, il ruolo nasce vuoto e il piano lo
-dice (`BP106`). La definizione è la risorsa
-[`assistenza-xrcopilotlab.yml`](assistenza-xrcopilotlab.yml).
+**Dalla chat** la stessa segnalazione parte dal pannello «Segnalazione al team di XRCopilotLab», dopo il
+clic su «Invia al team» (verbo `report-problem`). **Non passa dalla rotta**: la Web, che ha già verificato che
+la persona sia un amministratore del tenant con la licenza dei blueprint, manda la mail da sé con l'ACS
+della piattaforma (`SupportMailer`: stringa `AgentTaskOutput:EmailConnectionString`, la stessa dell'Api; mittente
+fisso `donotreply@xrcopilot.ai`; destinatari `SupportReport:NotifyEmails`, la stessa chiave dell'Api). Così
+può segnalare anche chi non ha un account `@hevolus.it`, e non c'è nessun'altra identità da ammettere. Il team
+riceve la mail, con la persona e il tenant nel testo.
+
+**Se un apply fallisce per un limite di XRCopilotLab** la segnalazione parte da sola, senza chiederla: succede
+quando una fase si ferma durante l'esecuzione (codice di uscita 4, `PlatformGapReport.ShouldReport`). Non scatta
+per un piano bloccato da collisioni o licenza, un manifest non valido, un accesso mancante o una cancellazione:
+lì non c'è niente da sistemare in XRCopilotLab. Porta tag e versione del manifest, ambiente, quante entità
+erano già create, il run e l'errore ripulito da ciò che somiglia a un segreto; mai il manifest, i prompt o i dati
+del tenant. Dal terminale usa la rotta con l'account `@hevolus.it` e si spegne con
+`XRCOPILOTLAB_BP_NO_REPORT=1`; dalla chat è la mail della Web, sempre attiva (nessuna chiave di
+configurazione). Il messaggio d'errore dice che è stata segnalata.
+
+Limiti: solo account `@hevolus.it` del tenant per il terminale, sei segnalazioni all'ora per persona,
+destinatari fissi nella configurazione dell'Api (`SupportReport:NotifyEmails`: il chiamante non sceglie a chi
+arriva). Il tenant Entra ha il default di `hevolus.it`.
+
+Fino al 18/10/2026 il piano aggiungeva a ogni manifest il ruolo e il processo «Assistenza XRCopilotLab», dove la
+segnalazione diventava un'attività: sono stati tolti, e il codice `BP106` è ritirato.
 
 ## `login [--env <nome>] [--b2c]` — l'accesso senza ruoli Azure (#1333, fase 1)
 

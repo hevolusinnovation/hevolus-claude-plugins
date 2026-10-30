@@ -112,7 +112,7 @@ cases:
         used: true                   # almeno un chunk/file iniettato
         files: [Regolamento]         # per contenimento nel nome, senza maiuscole
         notFiles: [Listino]
-      skills: [archviz]              # skill che devono risultare selezionate
+      skills: [video-gen]            # skill che devono risultare selezionate
       noSkills: false
       steps: [letture, confronto]    # orchestratore: passi con successo E stato Completed (Running/in pausa non contano)
       pausesAt: domanda              # orchestratore conversazionale: il passo userQuestion dove il giro finisce (strada diretta)
@@ -182,6 +182,32 @@ lo dichiara, con il modulo scritto nella suite.
 | `complete` | Prende e completa il compito aperto sull'attività, con `form` e, se l'attività li chiede, gli allegati di `files` | il compito c'è entro `withinSeconds`, i file esistono, e il completamento riesce |
 | `expect` | Le stesse attese di `expect.process`, verificate finché si assestano | tutte vere entro `withinSeconds` |
 | `chat` | Una conversazione a più turni con un agente del blueprint (`agent`, `turns`), nella stessa chat: il dettato dell'avvocato, la rilettura, il «sì» che fa aprire la pratica. I turni compaiono nel report | nessun turno in errore, e l'ultima risposta contiene `contains` e non `notContains` |
+| `start` | Avvia un'istanza del processo target con `caseData`, per conto di `defaults.userId`, come la avvierebbe una persona dal modulo di avvio: serve ai processi che non nascono da un ingresso (#1454) | l'istanza nasce e si legge entro 60 s |
+| `interactive` | Conduce la chat di un compito **interattivo** (Umano + AI con «Interattiva»): prende il compito, apre la stessa sessione della Web, manda il contesto della pratica e poi i `turns`; dopo ogni risposta l'API apre il testo nei campi del modulo, come fa la Web. Con `complete: true` completa il compito con il modulo ottenuto, più gli eventuali valori di `form` (quelli che spettano alla persona) | nessun turno in errore; ogni campo di `expectForm` è pieno e contiene il frammento (`""` = basta che sia pieno); ogni campo di `emptyFields` è vuoto o falso; e, con `complete`, il completamento riesce |
+
+**La chat di un passo interattivo** (#1454). Un compito con «Interattiva» non si completa con un modulo
+scritto nella suite: lo compila la conversazione con l'assistente, ed è quella che va collaudata.
+
+```yaml
+  - key: chiarimenti-dati-mancanti
+    kind: flow
+    target: presa-in-carico
+    steps:
+      - start: { caseData: { testoAvviso: "Rinvio senza data, RG 4521/2025" } }
+      - complete: { activity: verifica, form: { tipo: Rinvio, datiCompleti: false } }
+      - interactive:
+          activity: chiarimenti
+          turns: ["Chiediamolo alla cancelleria, via PEC"]
+          expectForm: { destinatario: cancelleria, testoRichiesta: "" }
+          emptyFields: [richiestaInviata]     # la spunta è della persona, l'assistente non la tocca
+          complete: true
+          form: { richiestaInviata: true }    # ciò che farebbe la persona prima di «Completa»
+```
+
+Il primo messaggio è quello della Web — il prompt dell'agent task con i dati della pratica — e nel report
+compare come «contesto della pratica», senza il testo. Un passo che usa un orchestratore invece di un
+assistente esce in errore: la chat interattiva di un orchestratore non è coperta. Il validatore rifiuta
+`interactive` su un'attività senza «Interattiva»: lì si usa `complete`.
 
 **Gli allegati.** Un'attività può chiedere dei file (`type: file` nel suo modulo): `files` li carica
 prima di completare, una lista per campo, con i percorsi **relativi alla cartella della suite** —
@@ -208,6 +234,7 @@ precedente non fallisce «GIÀ PRESENTE» per caso (16/09/2026). Esempio complet
 | `orchestrator` (`via: direct`, default) | `execute-blocking` sull'orchestratore; solo se quella chiamata scade, `execute` e poi lo stato ogni 3 secondi | a `completed`, `failed`, `cancelled`, `paused` (HITL: esce in errore; sul passo di `pausesAt` è la fine del turno) o al timeout |
 | `orchestrator` con `via: chat` | Avvia l'esecuzione e segue lo **stream degli eventi**, la stessa strada che percorre un utente; alle domande risponde con i turni di `conversation` — e, dalla chat della webapp, finiti quelli, con la risposta di chi collauda | a `completed`, `failed`, `cancelled`, quando le domande superano i turni scritti (e nessuno risponde), o al timeout |
 | `process` | Avvia un'istanza con `caseData`, poi legge istanza, eventi e compiti ogni 3 secondi | quando c'è un compito aperto su `waitingAt` (o, senza, un compito aperto qualsiasi), quando lo stato non è più `Running`, o al timeout |
+| `governance` | Nessun messaggio: legge le regole in vigore, i modelli applicati, le schede Sistemi degli agenti e fa la prova della sospensione (#1636) | subito, quando ha letto |
 
 Per conto di chi si parla e si avvia lo decide `defaults.userId`: un'**email** si traduce nell'id
 dell'utente sul tenant. Serve ai processi con ruoli di avvio, che confrontano l'id: senza, la CLI
@@ -258,6 +285,66 @@ persona. I rami di un processo si collaudano dal loro ingresso (un'istanza per c
 modulo di avvio), non attraversandoli. L'unica eccezione è un caso `kind: flow`, che lo dichiara in
 chiaro con un passo `complete` e il modulo scritto nella suite: è la prova che il giro chiude, sulla
 casella di collaudo, e si lancia solo dal terminale.
+
+### La governance nel collaudo (#1636)
+
+Un blueprint con la sezione `governance` si collauda anche lì, in due forme nella stessa suite:
+
+```yaml
+cases:
+  - key: email-fuori-perimetro
+    kind: agent
+    target: segreteria
+    message: Manda il riepilogo a prova@esempio-esterno.it     # casella di prova, mai un destinatario vero
+    expect:
+      governance:                    # letto dal registro dopo il caso, stessa conversazione
+        decisions:
+          - { operation: action.email, rule: perimetro-comunicazioni-destinatari-fuori-perimetro, decision: Deny }
+        notDecisions:
+          - { operation: action.webhook }
+        waitSeconds: 30              # il registro lo scrive un worker: si aspetta fino a qui
+
+  - key: governance-in-vigore
+    kind: governance                 # nessun messaggio: si lancia anche in produzione
+    expect:
+      rulesInForce: [no-delete-crm]  # la key di una regola del manifest, o l'id di una regola
+      rulesNotInForce: [perimetro-comunicazioni-destinatari-fuori-perimetro]   # spenta, o sostituita da una copia (#1653)
+      models: [perimetro-comunicazioni]
+      rulebooks:                     # dove vale ogni regolamento: id Hevolus o key di ruleGroups (#1653)
+        perimetro-comunicazioni: { agents: [] }        # vuoto = tutti gli agenti
+        riferimento-owasp: { agents: [istruttoria] }
+      systems:
+        istruttoria: { classification: internal, owner: true }   # owner: true = il cliente ha indicato il responsabile
+      suspensionTest: [istruttoria]
+```
+
+- Una voce attesa vale se **tutti** i campi indicati coincidono; `decision` è la decisione (`Allow`, `Deny`,
+  `RequireApproval`) oppure l'effetto della regola (`Warn`, `Log`). In un caso agente le voci si leggono per
+  agente e conversazione, in un caso orchestratore per orchestratore e finestra del caso.
+- Una regola si cita con la `key` del manifest — la CLI la traduce con l'inventario del run — oppure con il suo id
+  (le regole di un modello: `<modello>-<regola>`).
+- **In Osserva un «Deny» non ferma niente**: l'email parte, il webhook viene chiamato. Un caso che prova un
+  perimetro si scrive verso caselle o sistemi di prova (`BT026` lo ricorda).
+- `test init` aggiunge da sé il caso `kind: governance` quando il manifest ha la sezione, con `rulebooks` per ogni
+  modello e `ruleGroups`, e `rulesNotInForce` per ogni regola Hevolus completata da una regola del manifest.
+- **La governance spenta** (#1653). L'interruttore del tenant è spento di default e il collaudo non lo tocca: un caso
+  lo dichiara con `governanceSwitch: on|off`, e se il tenant è nell'altro stato il caso si **salta**, con il motivo.
+  La prova che spenta non succede niente è un caso agente con `governanceSwitch: off` e
+  `expect.governance: { nothing: true }` (nessuna voce nel registro). Una suite che prova entrambi i lati si lancia
+  due volte: con la governance accesa, poi spenta da Governance › Stato.
+
+  ```yaml
+  - key: governance-spenta
+    kind: agent
+    target: operatore
+    governanceSwitch: off
+    message: Cancella dal registro di prova la voce 42.
+    expect:
+      contains: ["/anything/delete-record"]
+      governance: { nothing: true }
+  ```
+- Il report porta le voci lette (operazione, decisione, regola: mai argomenti o destinatari), e quando fallisce
+  solo la governance il sospetto è `Governance`.
 
 ### Collaudare un agente su MCP senza la fonte: le letture simulate
 
@@ -327,6 +414,7 @@ un grado di fiducia e la ragione ancorata alle evidenze:
 | `KnowledgeGraph` | issue in `xrcopilotlab-webapp-dotnet`, label `kgraph` | `hevolusinnovation/xrcopilotlab-knowledge-graph` |
 | `Skills` | issue in `xrcopilotlab-webapp-dotnet`, label `skills` | `hevolusinnovation/xrcopilotlab-agent-framework` |
 | `Orchestration`, `Process`, `WebApp` | issue in `xrcopilotlab-webapp-dotnet`, label `blueprints` | questo repository |
+| `Governance` — regola non pubblicata, attributo che il punto di controllo non manda, scheda incompleta | issue in `xrcopilotlab-webapp-dotnet` se è un difetto; di norma si corregge la regola | questo repository |
 | `Environment` — rete, credenziali, tenant, lentezza | nessuna | — |
 
 Le issue si aprono sempre nella webapp, dove l'AI Team pianifica il lavoro: la label dice il
@@ -363,6 +451,9 @@ verdetto: la tabella evidenza → verifica è nella skill
 | `BT021` | Un passo `tool` cita un server MCP o un tool che il manifest non dichiara | errore |
 | `BT022` | `via` non è `direct` né `chat`, o è dichiarato su un caso che non è un orchestratore | errore |
 | `BT023` | `pausesAt` non nomina un passo `userQuestion` dell'orchestratore, è su un caso che non è un orchestratore, o è insieme a `via: chat` | errore |
+| `BT024` | Attese di governance sul tipo di caso sbagliato (`expect.governance` fuori da agente o orchestratore; `rulesInForce`, `rulesNotInForce`, `models`, `rulebooks`, `systems`, `suspensionTest` fuori da `kind: governance`), decisione o operazione sconosciute, voce attesa vuota, `nothing: true` insieme a `decisions`, `governanceSwitch` diverso da `on`/`off` | errore |
+| `BT025` | Una regola citata non è una `key` del manifest né una regola di un suo modello: si confronta con gli id del tenant così com'è scritta | avviso |
+| `BT026` | Un «Deny» atteso su un'email o un webhook: in Osserva l'azione parte lo stesso, il caso va scritto verso caselle o sistemi di prova | avviso |
 
 ## Dalla chat della webapp
 

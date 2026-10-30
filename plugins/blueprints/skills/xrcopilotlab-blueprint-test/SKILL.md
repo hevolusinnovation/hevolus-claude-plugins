@@ -149,6 +149,27 @@ parte, da lanciare quando c'è. I casi che fanno **scrivere** fuori dal tenant s
 suite, solo con un sì. Come, in [`references/testing.md`](references/testing.md)
 § «Collaudare un agente su MCP senza la fonte». Esempio completo: le tre suite `studiopolis-agenda*`.
 
+**Se il manifest ha la sezione `governance`** (#1636), la suite la collauda anche lei — `test init` aggiunge da
+sé il caso `kind: governance`:
+
+- un caso **`kind: governance`** che chiude ogni collaudo: regole del manifest in vigore (`rulesInForce`, per
+  `key`), modelli applicati (`models`), la scheda Sistemi di ogni agente (`systems`, con `owner: true` solo
+  quando il cliente ha già indicato il responsabile) e la prova della sospensione (`suspensionTest`). Con i
+  regolamenti (#1653): `rulebooks` dice dove vale ognuno (`agents` vuoto = tutti), `rulesNotInForce` le regole
+  Hevolus spente o sostituite da una copia. Non manda messaggi: si lancia anche in produzione;
+- **`expect.governance`** sui casi agente e orchestratore che devono far scattare una regola: `decisions` (la
+  voce che deve esserci nel registro) e `notDecisions` (quella che non deve esserci);
+- **la governance spenta**: un caso agente con `governanceSwitch: off` e `expect.governance: { nothing: true }`.
+  Il collaudo non accende né spegne l'interruttore del tenant: un caso scritto per l'altro stato si salta, con il
+  motivo. Per provare entrambi i lati si lancia la suite due volte, e l'interruttore lo cambia una persona da
+  Governance › Stato — chiedi prima di farlo tu dall'API.
+
+**Prima di eseguire un caso con `expect.governance`, controlla gli effetti veri.** In Osserva una regola che
+«nega» **registra e basta**: l'email parte, il webhook viene chiamato, il tool gira. Un caso che prova un
+perimetro deve scrivere a caselle di prova o chiamare sistemi di prova (un servizio di eco, letture simulate),
+mai indirizzi o sistemi del cliente. Se il caso li tocca, fermati e riscrivilo; `BT026` te lo ricorda, ma il
+controllo è tuo. Riferimento: [`references/testing.md`](references/testing.md) § «La governance nel collaudo».
+
 In tutti e tre i casi, prima di eseguire:
 
 ```bash
@@ -448,6 +469,11 @@ aggiornano o si scrivono **le domande di prova** (l'artifact «<Scenario> — do
 dall'ultimo giudizio (✅ pronta · 🟡 da correggere · ⛔ da non mostrare come funzionante · ⏳ attende
 una fonte), le domande della suite con atteso e risposte sbagliate nella lingua del cliente, la
 scheda di valutazione, e la sezione interna per chi conduce con i difetti aperti e i numeri di issue.
+
+**Le stesse domande vanno nella scheda del Blueprint Marketplace**, senza tabella di stato e senza la sezione
+per chi conduce: dopo ogni `test push` (suite nuova o cambiata) proporre all'utente il modo `domande <TAG>` della
+skill `xrcopilotlab-blueprint-marketplace` (del team: chiedila a chi cura il marketplace), che le ricava dalla
+suite nell'archivio. La fonte resta una sola, la suite: l'artifact e la scheda sono due traduzioni della stessa.
 
 **La guida allo scenario** — il documento che racconta al cliente il flusso, dove lavora l'AI, le
 domande di esempio e come è fatto il suo ambiente, con la sua pagina web — **non** si scrive qui, e

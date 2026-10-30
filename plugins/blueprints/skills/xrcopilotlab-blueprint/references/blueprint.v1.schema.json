@@ -226,6 +226,10 @@
             "type": "string",
             "description": "Chiave di un processo di questo blueprint: la connessione punta al suo webhook di avvio. Indirizzo e chiave li mette l'apply (la chiave finisce in Key Vault come Blueprints:Secrets:<TAG>:webhook-<chiave>). Esclude baseUrl e auth."
           },
+          "calendar": {
+            "type": "string",
+            "description": "Chiave di un agente di questo blueprint: la connessione punta al calendario editoriale (PED) di quell'agente, attraverso il suo hook. Indirizzo e chiave li mette l'apply, e la chiave si rigenera a ogni apply. Esclude baseUrl, auth, process e config (BP143)."
+          },
           "headers": {
             "type": "object",
             "additionalProperties": {
@@ -762,6 +766,10 @@
               },
               "requireIdentity": {
                 "type": "boolean"
+              },
+              "showDocuments": {
+                "type": "boolean",
+                "description": "«Mostra documenti» dell'endpoint: false nasconde sotto la risposta le schede dei file della knowledge e i link web. Assente: resta com'è."
               }
             }
           }
@@ -889,6 +897,35 @@
                 "body": {
                   "type": "object",
                   "description": "Forma del corpo della POST. I valori accettano {{agentResponse}}, {{taskName}}, {{status}}, {{executionId}}, {{timestamp}}. Verso il webhook di un processo le chiavi diventano le variabili del caso: devono chiamarsi come i campi del modulo di avvio."
+                },
+                "attachments": {
+                  "type": "object",
+                  "description": "Solo con 'webhook' verso 'processes.<chiave>.webhook': il processo parte da un messaggio di posta e ne riceve gli allegati come file dell'istanza (campo allegatiMail; quelli saltati in allegatiMailErrori).",
+                  "required": [
+                    "fromMessage"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "fromMessage": {
+                      "type": "object",
+                      "description": "Gli allegati del messaggio di cui l'agente riferisce: l'agente chiude il proprio testo con una riga 'MAIL_MESSAGE_ID: <id>' (lo chiede il prompt del task). Nel corpo della POST viaggia solo il riferimento.",
+                      "required": [
+                        "connection",
+                        "mailbox"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "connection": {
+                          "type": "string",
+                          "description": "Chiave di una connessione del manifest con auth OAuth2ClientCredentials verso Microsoft Graph."
+                        },
+                        "mailbox": {
+                          "type": "string",
+                          "description": "La casella in cui sta il messaggio: un indirizzo o l'id della casella."
+                        }
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -931,6 +968,10 @@
           "welcomeMessage": {
             "type": "string",
             "description": "Messaggio mostrato all'apertura della chat dell'orchestratore, prima che l'utente scriva (max 1500 caratteri)."
+          },
+          "alwaysRunFlow": {
+            "type": "boolean",
+            "description": "true: ogni messaggio esegue il flusso, anche subito dopo un'esecuzione completata. Per un orchestratore che smista una chat; senza, il messaggio dopo una risposta riceve una frase di cortesia senza passare dagli step."
           },
           "language": {
             "type": "string",
@@ -1015,6 +1056,10 @@
                   "type": "boolean",
                   "description": "type: agent — default true."
                 },
+                "shareGeneratedFiles": {
+                  "type": "boolean",
+                  "description": "type: agent — default false. The files the step generates join the orchestration's active files: the agent steps that follow (with useTempFiles on) read them like uploaded ones."
+                },
                 "maxLoopIterations": {
                   "type": "integer",
                   "minimum": 1,
@@ -1056,6 +1101,23 @@
                     "type": "string"
                   },
                   "description": "type: parallelGroup | handoffGroup — chiave agente → variabile di contesto."
+                },
+                "agentMessages": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "description": "type: parallelGroup — chiave agente → il suo messaggio, con {{variabile}} come userMessageTemplate. Vuole un inputMapping sul gruppo. Senza, il membro riceve i valori dell'inputMapping del gruppo."
+                },
+                "agentSkillMetadata": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    }
+                  },
+                  "description": "type: parallelGroup — chiave agente → i suoi parametri di skill, come skillMetadata di uno step agent (per esempio payload)."
                 },
                 "maxParallel": {
                   "type": "integer",
@@ -1139,7 +1201,7 @@
                   "additionalProperties": {
                     "type": "string"
                   },
-                  "description": "type: agent — dove finisce la risposta: la CHIAVE è la variabile che i passi a valle citano con {{variabile}}. Senza, il risultato non entra nel contesto e la catena si passa il testo della chat."
+                  "description": "type: agent — dove finisce la risposta: la CHIAVE è la variabile che i passi a valle citano con {{variabile}}. Senza, il risultato non entra nel contesto e la catena si passa il testo della chat. type: action — direzione opposta: la CHIAVE è il percorso nell'output dell'azione (per uno script javascript, ciò che restituisce, senza prefissi; * = tutto il risultato) e il VALORE è la variabile."
                 }
               }
             }
@@ -1198,6 +1260,10 @@
               },
               "requireIdentity": {
                 "type": "boolean"
+              },
+              "showDocuments": {
+                "type": "boolean",
+                "description": "«Mostra documenti» dell'endpoint: false nasconde sotto la risposta le schede dei file della knowledge e i link web. Assente: resta com'è."
               }
             }
           }
@@ -1481,6 +1547,360 @@
           "production": {
             "type": "string",
             "description": "La domanda da fare alla persona prima della produzione, per sostituire il valore."
+          }
+        }
+      }
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "La governance dei sistemi che il blueprint crea (#1635, #1652): regolamenti Hevolus da applicare (la chiave resta 'models'), regole proprie del tenant — anche quelle che completano una regola Hevolus —, regolamenti del blueprint ('ruleGroups'), la scheda degli agenti e la pubblicazione. Le regole si controllano con la stessa funzione dell'editor delle regole (BP146). Il blueprint non accende mai la governance del tenant (BP155). Il responsabile di un agente non sta nel manifest: si scrive dalla scheda dopo l'installazione.",
+      "properties": {
+        "models": {
+          "type": "array",
+          "description": "Regolamenti Hevolus da applicare, per tema (es. uscite-di-rete) o per riferimento (es. riferimento-gdpr). Il blueprint non scrive regolamenti Hevolus: li sceglie. Che esistano lo dice il preflight.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Id del regolamento Hevolus (es. perimetro-comunicazioni, riferimento-ai-act)."
+              },
+              "agents": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Chiavi degli agenti o agent task del manifest a cui si applica (BP147). Senza: tutti gli agenti del tenant."
+              },
+              "values": {
+                "type": "object",
+                "description": "Ritirato con #1652 (BP154): i regolamenti non hanno parametri. Una regola Hevolus che vuole un valore si completa con una regola che porta 'completes'.",
+                "additionalProperties": {
+                  "oneOf": [
+                    {
+                      "type": [
+                        "string",
+                        "number",
+                        "boolean"
+                      ]
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "type": [
+                          "string",
+                          "number",
+                          "boolean"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              },
+              "disabledRules": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Ritirato con #1652 (BP154): spegnere una regola Hevolus vale per tutto il tenant e lo decide una persona."
+              }
+            }
+          }
+        },
+        "rules": {
+          "type": "array",
+          "description": "Regole proprie del tenant, con i limiti dell'editor delle regole: operazioni tool.invoke, action.email, action.webhook, action.script; effetti log, warn, deny.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "name",
+              "operation",
+              "then"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "description": "Chiave simbolica, unica nella sezione: la citano il collaudo e l'inventario."
+              },
+              "name": {
+                "type": "string",
+                "description": "Nome della regola, senza prefisso: lo antepone il planner."
+              },
+              "operation": {
+                "type": "string",
+                "enum": [
+                  "tool.invoke",
+                  "action.email",
+                  "action.webhook",
+                  "action.script"
+                ]
+              },
+              "agent": {
+                "type": "string",
+                "description": "Chiave di un agente o di un agent task del manifest (BP147). Senza: tutti gli agenti del tenant."
+              },
+              "if": {
+                "type": "array",
+                "description": "Condizioni, tutte vere insieme. Senza: ogni azione di quel tipo.",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "attribute",
+                    "operator",
+                    "value"
+                  ],
+                  "properties": {
+                    "attribute": {
+                      "type": "string",
+                      "description": "Attributo del catalogo della governance (es. recipient_domain, http_method, host, tool_name)."
+                    },
+                    "operator": {
+                      "type": "string",
+                      "description": "Operatore ammesso dall'attributo (es. is, in, not_in, contains, greater_than)."
+                    },
+                    "value": {
+                      "oneOf": [
+                        {
+                          "type": [
+                            "string",
+                            "number",
+                            "boolean"
+                          ]
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "type": [
+                              "string",
+                              "number",
+                              "boolean"
+                            ]
+                          }
+                        }
+                      ],
+                      "description": "Un valore, o una lista per in e not_in."
+                    }
+                  }
+                }
+              },
+              "then": {
+                "type": "string",
+                "enum": [
+                  "log",
+                  "warn",
+                  "deny"
+                ]
+              },
+              "priority": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "normal",
+                  "high"
+                ]
+              },
+              "message": {
+                "type": "string",
+                "description": "Che cosa leggono le persone quando la regola interviene."
+              },
+              "enabled": {
+                "type": "boolean",
+                "description": "Accesa dopo l'apply. Senza la chiave: sì."
+              },
+              "completes": {
+                "type": "string",
+                "description": "Id della regola Hevolus che questa regola completa: nei regolamenti Hevolus applicati ne prende il posto (BP156, BP157)."
+              }
+            }
+          }
+        },
+        "ruleGroups": {
+          "type": "array",
+          "description": "Regolamenti del blueprint: gruppi di regole proprie e regole Hevolus, per tutti gli agenti o per quelli scelti (BP157).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "title",
+              "rules"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "description": "Chiave simbolica, unica nella sezione."
+              },
+              "title": {
+                "type": "string",
+                "description": "Titolo, senza prefisso: lo antepone il planner."
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 2000,
+                "description": "A che cosa serve."
+              },
+              "rules": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Chiavi di 'governance.rules' o id di regole Hevolus."
+              },
+              "agents": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Chiavi degli agenti o agent task del manifest. Senza: tutti gli agenti del tenant."
+              },
+              "enabled": {
+                "type": "boolean",
+                "description": "Acceso dopo l'apply. Senza la chiave: sì."
+              }
+            }
+          }
+        },
+        "systems": {
+          "type": "object",
+          "description": "La scheda Sistemi degli agenti del blueprint, per chiave dell'agente (BP147).",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "purpose": {
+                "type": "string",
+                "maxLength": 1000,
+                "description": "A che cosa serve l'agente."
+              },
+              "classification": {
+                "type": "string",
+                "enum": [
+                  "internal",
+                  "people_facing",
+                  "high_risk"
+                ]
+              },
+              "alternative": {
+                "type": "string",
+                "maxLength": 500,
+                "description": "Che cosa si fa se l'agente si ferma."
+              }
+            }
+          }
+        },
+        "publish": {
+          "type": "boolean",
+          "description": "Pubblica la copia di lavoro del tenant dopo l'apply. Senza la chiave: sì. Se la copia ha modifiche non pubblicate che non sono del blueprint, il piano si ferma."
+        }
+      }
+    },
+    "apps": {
+      "type": "array",
+      "description": "App di App Builder del blueprint (#1566): cruscotti, widget, procedure, al più una scena 3D fra quelle create dalla skill. I sorgenti (cartella 'source', accanto al manifest) viaggiano con la versione sotto apps/<chiave>/. Chi copia il blueprint sceglie quali app di demo portare (--demo-apps); le app product viaggiano sempre. L'apply non le crea ancora in App Builder (BP165).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "key",
+          "title",
+          "kind",
+          "layout",
+          "source"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+            "description": "Chiave kebab-case, unica nella sezione: è anche la cartella nell'archivio."
+          },
+          "title": {
+            "type": "string",
+            "description": "Nome dell'app, senza prefisso."
+          },
+          "description": {
+            "type": "string",
+            "description": "A che cosa serve e per chi."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "demo",
+              "product"
+            ],
+            "description": "demo: costruita sui dati di collaudo, per mostrare il blueprint; product: la usa il cliente."
+          },
+          "template": {
+            "type": "string",
+            "enum": [
+              "spa-react",
+              "static-site"
+            ],
+            "description": "Template di App Builder. Default spa-react."
+          },
+          "layout": {
+            "type": "string",
+            "enum": [
+              "dashboard",
+              "chat",
+              "wizard",
+              "widget",
+              "scene3d"
+            ],
+            "description": "Il modo di lavorare dell'app. scene3d: una scena Babylon.js in cui ogni oggetto è un comando (BP160)."
+          },
+          "uses": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Chiavi delle entità che l'app usa: agenti, orchestratori, processi, agent task (BP159)."
+          },
+          "source": {
+            "type": "string",
+            "description": "Cartella dei sorgenti, relativa al manifest. Senza node_modules, dist e .env."
+          },
+          "brief": {
+            "type": "string",
+            "description": "Il brief per App Buddy, relativo al manifest."
+          },
+          "origin": {
+            "type": "object",
+            "additionalProperties": false,
+            "description": "Da dove viene un'app adottata da un collega: il progetto d'origine resta intatto. In un modello del catalogo niente company né projectId (BP164).",
+            "properties": {
+              "env": {
+                "type": "string",
+                "description": "Ambiente d'origine."
+              },
+              "company": {
+                "type": "string",
+                "description": "Company d'origine."
+              },
+              "projectId": {
+                "type": "string",
+                "description": "Id del progetto App Builder d'origine."
+              },
+              "createdBy": {
+                "type": "string",
+                "description": "Chi aveva creato il progetto."
+              },
+              "adoptedBy": {
+                "type": "string",
+                "description": "Chi l'ha adottato nel blueprint."
+              },
+              "adoptedAt": {
+                "type": "string",
+                "description": "Quando, aaaa-mm-gg."
+              }
+            }
           }
         }
       }

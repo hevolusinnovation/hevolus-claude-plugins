@@ -195,6 +195,7 @@ quando la richiesta le riguarda. Di solito non serve nominarle — si attivano d
 | `xrcopilotlab-blueprints-report` | blueprints | «il manuale dei blueprint», «cosa c'è nel catalogo», «il report dei blueprint del marketplace» | l'artifact «Catalogo blueprint — manuale»: i modelli del catalogo descritti per chi non conosce il prodotto, l'installazione del plugin su Claude Code e Desktop, le fasi per portare un modello su un tenant, il PDF |
 | `xrcopilotlab-blueprint-version` | blueprints | «la mail delle novità dei blueprint», «cosa è cambiato dalla 2.x alla 2.y», «avvisa il team che c'è una versione nuova» | la bozza di mail in HTML: comandi per aggiornare (terminale e Desktop), link alla guida, novità per versione, riepilogo delle feature |
 | `xrcopilotlab-blueprint-howto` | blueprints | «come si usano le skill dei blueprint», «da dove comincio», «l'howto dei blueprint» | l'artifact «Dall'intervista alla demo»: il percorso intero, dall'installazione alla demo, tappa per tappa |
+| `xrcopilotlab-blueprint-app` | blueprints | «un'app sul blueprint», «uno sportello / un widget / un cruscotto per questo blueprint», «un'app 3D del blueprint» | la mappa delle integrazioni, l'archetipo, 2-3 varianti di layout come mock-up e il brief per App Buddy |
 
 Il dettaglio di ciascuna, con esempi di manifest, di suite e di cosa **non** fanno:
 [§ Le skill](docs/le-skill.md).

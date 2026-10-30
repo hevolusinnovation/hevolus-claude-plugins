@@ -84,6 +84,21 @@ approvazione, come per ogni altro blueprint. La copia è del tenant: una version
 non la cambia da sola. `catalog list --company <tenant>` la segnala; `catalog install` di nuovo
 riparte dalle scelte precedenti e il piano applica la differenza sul posto (#1126).
 
+**Il tag della copia non è quello del modello** (#1427). Senza una scelta esplicita, la copia prende il
+tag del modello seguito da un codice ricavato dal **nome del tenant**: il nome intero, in maiuscolo,
+senza accenti, spazi né simboli — «Pippo SRL» dà `PIPPOSRL`, e il modello `LEGAL` diventa
+`LEGALPIPPOSRL`. Il tag ha al più 20 caratteri: un nome lungo si accorcia tagliando il codice. Il
+prefisso dei nomi resta `BP-<TAG>-`, con il tag nuovo. Tre casi:
+
+- **Aggiornamento**: una copia già installata tiene il tag che ha, anche se il tenant ha cambiato nome.
+- **Tag esplicito** (`--tag`, o la scelta nella webapp): è ammesso se valido e libero, anche uguale a
+  quello del modello. Serve quando si vuole un tag breve (`HEVODEMO` invece di `HEVOLUSDEMO`).
+- **Nome non disponibile** (l'ambiente non lo elenca, o non ha lettere né cifre): `BP109`, e si sceglie
+  il tag a mano.
+
+La regola vale per l'installazione dal catalogo; `promote` copia un manifest fra archivi e ne
+mantiene il tag. Le copie già installate non cambiano.
+
 I segreti appartengono al tenant (`Blueprints:Secrets:<companyId>:<TAG>:<nome>`): due tenant che
 installano lo stesso modello con lo stesso tag non condividono niente.
 

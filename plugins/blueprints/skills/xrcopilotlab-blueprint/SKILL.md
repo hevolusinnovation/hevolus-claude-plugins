@@ -305,21 +305,6 @@ Non fargli installare Azure CLI, non fargli scrivere un profilo, non fargli mane
 niente di tutto ciò è necessario, e ognuna di quelle strade ha un modo di finire male che lui non
 può riconoscere.
 
-## L'Assistenza XRCopilotLab: l'estensione che c'è in ogni piano
-
-Ogni manifest completo — con i suoi processi BPM, orchestratori, agenti e il resto — porta con sé
-**un'estensione obbligatoria**: il ruolo e il processo **«Assistenza XRCopilotLab»**, dove arrivano le
-segnalazioni di cui parla la sezione qui sotto. **Non la scrivi tu**, e non la togli: la CLI la aggiunge da sé al
-piano di `plan`, `apply` e `pipeline`, tra le ultime operazioni, solo se il tenant non ha già il ruolo e il processo
-con quel nome. Quando mostri un piano all'utente, dì che c'è e perché (è dove atterrano le sue segnalazioni).
-
-- I nomi sono **senza prefisso** (né `BP-<TAG>-` né `naming.prefix`): non appartengono al blueprint, e il rollback o la cancellazione del
-  blueprint non li toccano.
-- I membri del ruolo vengono dalla chiave `Blueprints:Assistenza:Members` dell'App Configuration dell'ambiente
-  (email separate da virgola). Se il piano avvisa con **`BP106`** (nascerebbe senza membri), non è un errore del
-  manifest: la chiave dell'ambiente è vuota, e va detto a chi amministra l'ambiente.
-- Un manifest che dichiara già un ruolo o un processo con quel nome è accettato: l'estensione non lo duplica.
-
 ## Quando non lo risolvi tu: ruoli mancanti e difetti
 
 Ci sono tre cose che questa skill non può sistemare da sola, e in entrambi i casi **il team deve
@@ -338,10 +323,9 @@ xrcopilotlab-bp report-problem --kind access --env staging --tag MARKETING --man
     --command "plan --tag MARKETING" --message "Non hai accesso a appcs-xrcopilotlab-staging-01: serve App Configuration Data Reader."
 ```
 
-La segnalazione diventa un'**attività da prendere in carico** per il ruolo «Assistenza XRCopilotLab» (processo
-«Assistenza XRCopilotLab»), che le notifiche dei processi recapitano su Teams
-o per email; porta **chi** sta usando la skill, l'**ambiente**, il **manifest** (tag, versione, file) e il
-messaggio. Funziona anche a chi non ha i ruoli: non legge l'App Configuration, prova chi è con il
+La segnalazione arriva all'**AI Team per mail** (l'Api la manda ai destinatari di `SupportReport:NotifyEmails`,
+e chi risponde risponde a chi ha segnalato); porta **chi** sta usando la skill, l'**ambiente**, il **manifest**
+(tag, versione, file) e il messaggio. Non apre processi né attività sul tenant. Funziona anche a chi non ha i ruoli: non legge l'App Configuration, prova chi è con il
 token Entra del suo account. Dettagli e limiti in [`cli-reference.md`](references/cli-reference.md).
 
 Per `feature`, nel messaggio descrivi **che cosa il cliente vuole ottenere** e quale parte del manifest non lo
@@ -360,14 +344,15 @@ Regole che non si derogano:
    che somiglia a una chiave, ma non è una ragione per passargliela.
 3. **Una segnalazione per problema**, non una per tentativo: il limite è sei all'ora per persona, e se
    si esaurisce la segnalazione non parte.
-4. **Se la rotta risponde che l'Assistenza XRCopilotLab non c'è** (409): il tenant che riceve le segnalazioni non
-   ha ancora né il ruolo né il processo. Non è un problema dell'utente, e non si scrive niente nel manifest:
-   basta il giro normale di un blueprint su quel tenant (`plan`, e `apply` **solo dopo il sì sul piano**),
-   perché il piano la aggiunge da sé. Poi si rifà la segnalazione.
-5. **Se il comando non riesce a inviare** (esce con `4` e stampa un testo), il problema non è finito:
-   dire all'utente di girare quel testo a giuseppe.zileni@hevolus.it, e non riprovare in cerca di
-   un'altra strada. Su produzione la rotta non è ancora verificata, quindi il comando lo dice e non
-   prova.
+4. **Se il comando non riesce a inviare** (esce con `4` e stampa un testo), il problema non è finito:
+   dai all'utente quel testo, così com'è, da mandare all'AI Team (giuseppe.zileni@gmail.com,
+   marcellomarchetti@hevolus.it), e non riprovare in cerca di un'altra strada. Su produzione la rotta non è
+   ancora verificata, quindi il comando lo dice e non prova.
+5. **Se la CLI non c'è o non si può lanciare** (Claude Desktop, nessun terminale, nessun `az login`), il testo lo
+   scrivi tu, nella stessa forma: una riga d'oggetto `[blueprint] <accesso|difetto|funzionalità mancante> ·
+   <ambiente> · <TAG vN>`, poi Chi, Ambiente, Manifest, Comando, Versione della CLI, «Che cosa è successo» con il
+   fatto (risorsa, errore, comando) e, per `access`, i due ruoli che sbloccano. Le regole 2 e 3 valgono uguali.
+   Lo consegni all'utente in un blocco da copiare, con i due indirizzi, e gli dici che lo mandi lui.
 6. **Non è per i problemi che puoi risolvere**: un manifest non valido, un nome occupato, un segreto
    mancante o un accesso ad Azure da fare dal terminale si risolvono qui, con l'utente.
 
@@ -477,6 +462,15 @@ a elenchi con `STRATEGY_JSON` in coda). Nello stesso blocco si dà un **tetto di
 strumenti, un **tetto di ricerche e pagine**: nel collaudo LEGAL del 22/10 il passo di ricerca durava da 180 a
 446 secondi perché il prompt chiedeva cinque fonti e 3-5 precedenti senza limite.
 
+Se un passo successivo ha bisogno di un **numero o di una scelta** ricavati dal testo di un agente (una
+probabilità per un `condition`, una via per uno `switch`), non si chiede all'agente di scrivere JSON nel
+testo: **in modo strutturato le variabili arrivano solo dal blocco `OUTPUT`**, quindi lo stesso agente non
+può dare la prosa al passo dopo e i campi al motore senza duplicare tutto il testo nel JSON. Si aggiunge un
+**passo di lettura** — un agente interno su `gpt-5.4-mini`, `requireStructuredOutput: true`, `outputSchema`
+con i soli campi, `userMessageTemplate` con le variabili dei passi in prosa — e un `condition` che li usa
+(LEGAL v12, 23/10/2026: «lettura-esito» → «bassa-probabilita» → `sendMessage` di avviso prima della bozza).
+Costa una chiamata breve, e la prosa che l'utente legge non cambia.
+
 Sei errori che si fanno se non si sta attenti:
 
 1. **I nomi si scrivono senza prefisso.** Il planner antepone `BP-<TAG>-`, oppure il prefisso scelto
@@ -510,8 +504,8 @@ Sei errori che si fanno se non si sta attenti:
    accede con il suo account Google (la CLI stampa il link e attende, non vede mai password né token).
    MCP Builder non può farlo: Google non concede il client credentials sul calendario. **Prima di
    applicare**, riportare sempre all'utente i passi che restano a lui nella Google Cloud Console — il
-   piano li elenca con l'avviso **`BP112`** (dopo la CLI 2.21: con una CLI precedente il piano non
-   lo dice, e i passi li dai tu da qui) — e non darli per scontati: abilitare la API del servizio, schermata di consenso, ID client «Applicazione
+   piano li elenca con l'avviso **`BP112`**, con l'URI di reindirizzamento dell'ambiente — e non
+   darli per scontati: abilitare la API del servizio, schermata di consenso, ID client «Applicazione
    web» con l'URI `…/api/auth/google/callback` dell'ambiente, i due segreti con `secrets set`,
    poi `mcp authorize` con il link copiato **intero** (procedura completa e URI per ambiente:
    [`references/mcp-builder.md`](references/mcp-builder.md#lapp-oauth-google-del-cliente-passo-per-passo)).
@@ -817,6 +811,26 @@ Per spiegarlo al cliente — il flusso, dove lavora l'AI, domande di esempio, co
 ambiente — la guida non tecnica, a story slides, con la sua pagina web e il deck per i sales, la
 scrive la skill `xrcopilotlab-blueprint-guide`.
 
+### Dopo l'apply: un'app per chi lo usa ogni giorno
+
+Se l'utente chiede un'app sul blueprint — uno sportello pubblico, un widget nel sito del cliente, un
+cruscotto per un ruolo, una scena 3D di un luogo — la porta la skill `xrcopilotlab-blueprint-app`:
+mappa delle integrazioni, archetipo, 2-3 varianti di layout come mock-up (al più una in 3D) e brief
+per App Buddy. Questa skill non disegna app.
+
+Il ritorno è uno solo: quando la mappa trova qualcosa che manca nel manifest (un `embed`, il webhook di
+un processo, uno step `action` che richiami l'app, un endpoint di chat dedicato), arriva qui come
+**proposta di modifica**, con il frammento YAML e il motivo. Si tratta come ogni versione nuova:
+validazione, piano, approvazione, apply (§ 6-ter). La skill dell'app non fa né `push` né `apply`.
+
+Lo stesso vale per l'app stessa, a collaudo finito: un frammento della sezione `apps` (con `kind: demo` o
+`product`) e i sorgenti, che viaggiano con la versione come la knowledge. Un manifest può avere più app di demo,
+anche adottate da colleghi (con il blocco `origin`). **Le app si creano solo in produzione**: su staging l'apply
+non le crea (`BP169`, avviso) e il resto del blueprint si applica. **Copiando verso la produzione un blueprint che
+ha app `kind: demo`** (`promote --to prod`, `catalog install` in prod) si chiede all'utente quali app di demo vuole
+— risposta proposta: tutte — e la risposta va nel comando (`--demo-apps all|none|<k1,k2>`). Le app `kind: product`
+viaggiano sempre.
+
 ## 6-ter. Una versione nuova su un blueprint già applicato
 
 Quando sul tenant c'è già un run **completato** dello stesso blueprint, `plan` e `apply` lo
@@ -941,6 +955,12 @@ ascolto, un testo) c'è un **segnaposto** — una mail finta (`…@esempio.inval
 nei modelli più vecchi, una di `hevolus.it`. Nessuna di queste è un utente del tenant che installa, e
 il blueprint le persone le aggiunge ai ruoli, non le crea.
 
+**Il tag della copia lo ricava la CLI** (#1427): senza `--tag` è il tag del modello più il nome del tenant
+in maiuscolo senza spazi né simboli (`LEGAL` su «Pippo SRL» → `LEGALPIPPOSRL`); un aggiornamento tiene il
+tag già installato. Dopo l'installazione si usa **quel** tag in `plan`, `apply` e `secrets set`, non
+quello del modello. `--tag` si passa solo se l'utente ne vuole uno suo; con `BP109` (nome del tenant non
+disponibile) si chiede all'utente quale tag usare.
+
 **Prima di `catalog install` ci si ferma a chiedere, e non si sceglie al posto dell'utente:**
 
 1. Leggere il modello (`catalog list`, `pull` dalla partizione) e **elencare all'utente** ogni indirizzo
@@ -993,6 +1013,16 @@ xrcopilotlab-bp copies --tag <TAG>             # ogni copia di un blueprint: fir
 xrcopilotlab-bp copies --since 2026-10-01
 ```
 
+Se la domanda è **dove vive** un blueprint — «su quali tenant è installato», «quale cliente lo usa in
+produzione» — le copie non bastano: un blueprint pubblicato e applicato direttamente sul tenant del
+cliente non lascia una copia. Lo dice `usage` (#1665), che conta le installazioni (un run completato
+sul tenant) con il nome del tenant, e mette le copie accanto:
+
+```bash
+xrcopilotlab-bp usage                          # tutti gli ambienti, un blueprint per riga
+xrcopilotlab-bp usage --tag <TAG>              # tenant per tenant: copia, origine o diretta, versione, date
+```
+
 Come leggerla, e come riferirla:
 
 1. **L'ordine è per copie applicate**: una copia che nessuno ha mai applicato è un tentativo, non un
@@ -1008,23 +1038,6 @@ Come leggerla, e come riferirla:
 Senza `--env` legge tutti gli ambienti; se uno risulta illeggibile la CLI lo dichiara — riportarlo,
 perché un ambiente mancante sembrerebbe un ambiente senza copie. Per un uso in uno script c'è
 `--json`.
-
-## 6-octies. Moduli: installare un blueprint per parti
-
-**`modules`** ([`manifest-reference.md`](references/manifest-reference.md#modules-scenari-installabili-separatamente)) è
-facoltativo. Si propone quando il cliente ha **scenari distinti** che può volere in momenti diversi (es. civile e penale
-in uno studio legale): ogni modulo elenca per chiave le sue entità e i moduli che `requires`; ciò che nessun modulo
-elenca — e sempre topic, tenant ed `external` — è `core`, che si installa sempre. Un blueprint con un solo scenario
-non ne ha bisogno.
-
-- Scrivendoli: un'entità sta in un modulo solo (`BP134`); se serve a più moduli va in `core`. Ogni riferimento verso
-  un altro modulo vuole quel modulo in `requires` (`BP135`), e niente cicli (`BP136`). `validate` lo verifica.
-- Applicando: `plan`/`apply --modules <k1,k2>`; le dipendenze entrano da sole e il piano le mostra. Senza il flag, alla
-  prima installazione si installa tutto; su un tenant che ha già una parte si tengono i moduli installati e il piano
-  elenca gli altri come «Non installati». Aggiungere un modulo dopo è un altro `apply --modules`: crea solo ciò che manca.
-- `status` mostra versione e moduli installati; `rollback --run <id> --module <k>` smonta un modulo solo, ed è rifiutato
-  (`BP138`) se un altro modulo installato ne dipende. `test run --only <modulo>` collauda un modulo.
-- Riportare all'utente che la versione è del blueprint: tutti i moduli installati sono alla stessa versione.
 
 ## 6-septies. Chi governa un blueprint: `access`, embed
 
@@ -1058,6 +1071,23 @@ autorizzati (`https://sito.it`, senza percorso), modalità d'identità. L'apply 
 l'indirizzo dell'iframe; per `identity: session` stampa anche la chiave API **una sola volta**: va riportata
 all'utente perché la conservi, e non va scritta in file, manifest o messaggi. Il segreto di `jwt-hs256` e la
 chiave pubblica di `jwt-rs256` si impostano dall'interfaccia. Il `rollback` toglie anche i domini autorizzati.
+
+## 6-octies. Moduli: installare un blueprint per parti
+
+**`modules`** ([`manifest-reference.md`](references/manifest-reference.md#modules-scenari-installabili-separatamente)) è
+facoltativo. Si propone quando il cliente ha **scenari distinti** che può volere in momenti diversi (es. civile e penale
+in uno studio legale): ogni modulo elenca per chiave le sue entità e i moduli che `requires`; ciò che nessun modulo
+elenca — e sempre topic, tenant ed `external` — è `core`, che si installa sempre. Un blueprint con un solo scenario
+non ne ha bisogno.
+
+- Scrivendoli: un'entità sta in un modulo solo (`BP134`); se serve a più moduli va in `core`. Ogni riferimento verso
+  un altro modulo vuole quel modulo in `requires` (`BP135`), e niente cicli (`BP136`). `validate` lo verifica.
+- Applicando: `plan`/`apply --modules <k1,k2>`; le dipendenze entrano da sole e il piano le mostra. Senza il flag, alla
+  prima installazione si installa tutto; su un tenant che ha già una parte si tengono i moduli installati e il piano
+  elenca gli altri come «Non installati». Aggiungere un modulo dopo è un altro `apply --modules`: crea solo ciò che manca.
+- `status` mostra versione e moduli installati; `rollback --run <id> --module <k>` smonta un modulo solo, ed è rifiutato
+  (`BP138`) se un altro modulo installato ne dipende. `test run --only <modulo>` collauda un modulo.
+- Riportare all'utente che la versione è del blueprint: tutti i moduli installati sono alla stessa versione.
 
 ## 7. Cancellare un blueprint
 
