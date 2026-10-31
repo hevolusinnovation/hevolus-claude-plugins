@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-version
-description: Scrive il report che annuncia ai colleghi, nel canale Teams del team, le novità delle skill dei blueprint XRCopilotLab fra due versioni del plugin (es. dalla 2.27.0 alla 2.30.2). In testa i comandi per aggiornare, sia da terminale (Claude Code) sia da Claude Desktop; poi le novità raccontate per versione, gli ultimi blueprint pubblicati nel catalogo di produzione, il riepilogo di tutte le feature, e i link alla guida «Dall'intervista alla demo» e al Blueprint Marketplace. È una Adaptive Card pubblicata nel canale con il flusso Power Automate, solo dopo che l'utente l'ha vista e ha detto sì. Usa quando l'utente chiede "il report delle novità delle skill blueprint", "avvisa il team che c'è una versione nuova", "cosa è cambiato dalla 2.x alla 2.y", "messaggio di aggiornamento del plugin blueprints", anche se dice "la mail". NON per le release del prodotto (xrcopilot-release-email), per le release notes (xrcopilot-release-notes) né per aggiornare davvero un'installazione.
+description: È l'unica skill che pubblica le notifiche dei blueprint XRCopilotLab nei canali Teams, come Adaptive Card con un flusso Power Automate e solo dopo il sì dell'utente sull'anteprima. Due modi. `versioni` (default) — il report delle novità delle skill fra due versioni del plugin (es. dalla 2.27.0 alla 2.30.2): in testa i comandi per aggiornare da Claude Code e da Claude Desktop, poi le novità per versione, gli ultimi blueprint in produzione, il riepilogo delle feature, i link alla guida e al Blueprint Marketplace; va nel canale delle versioni. `catalogo` — i blueprint disponibili nel catalogo di produzione, uno per riga con il link alla sua scheda sul Blueprint Marketplace, la governance e le app; va nel canale del catalogo. Usa quando l'utente chiede "il report delle novità delle skill blueprint", "avvisa il team che c'è una versione nuova", "cosa è cambiato dalla 2.x alla 2.y", "messaggio di aggiornamento del plugin blueprints", "avvisa il team dei blueprint nel catalogo", "cosa c'è nel catalogo", anche se dice "la mail": le notifiche non vanno per mail. NON per le release del prodotto (xrcopilot-release-email), per le release notes (xrcopilot-release-notes), per costruire il sito (xrcopilotlab-blueprint-marketplace) né per aggiornare davvero un'installazione.
 ---
 
 # xrcopilotlab-blueprint-version
@@ -13,6 +13,16 @@ nuovo*, e *dove trovo il resto* (la guida e il Blueprint Marketplace).
 
 Teams e non la mail: nel canale lo leggono tutti senza che nessuno debba incollare indirizzi.
 
+**È l'unica skill che pubblica nei canali dei blueprint.** Il sito lo costruisce
+`xrcopilotlab-blueprint-marketplace`, la CLI la allinea `xrcopilotlab-blueprint-sync`: nessuna delle due
+pubblica card. Quando una loro PR va in `main` e porta qualcosa da annunciare (un blueprint nuovo nel catalogo,
+una versione delle skill), l'annuncio si fa da qui.
+
+| Modo | Che cosa annuncia | Canale (`teams.sh --canale`) | Modello della card |
+|---|---|---|---|
+| `versioni` (default) | le novità delle skill fra due versioni del plugin (§ 1–3) | `versioni` | [`references/teams-card.json`](references/teams-card.json) |
+| `catalogo` | i blueprint disponibili nel catalogo di produzione, con il link alla scheda (§ 4) | `catalogo` | [`references/catalogo-card.json`](references/catalogo-card.json) |
+
 **Pubblica nel canale solo dopo il sì dell'utente sull'anteprima. Non aggiorna nessuna installazione,
 non tocca il tenant.**
 
@@ -22,7 +32,7 @@ non tocca il tenant.**
 |---|---|
 | **da** | la versione del plugin che i destinatari hanno adesso (esclusa). Se l'utente non la dice, **chiedila**: non si indovina. Dove leggerla: `/plugin` in Claude Code, oppure il nome dello zip caricato su Desktop |
 | **a** | la versione di arrivo (inclusa). Vuota = l'ultima del catalogo |
-| **canale** | il flusso Power Automate del canale Teams del team. Il suo indirizzo porta la firma (`sig=…`) ed è un **segreto**: non sta nella skill né nel repository, ma in `~/.xrcopilotlab/teams/blueprint-version-webhook` (permessi 600) o nella variabile `XRCOPILOTLAB_BP_TEAMS_WEBHOOK`. Se manca, chiedi all'utente di crearlo; **non scriverlo mai** in un file del repository, in un commit, in un artifact o nella risposta |
+| **canale** | il flusso Power Automate del canale. Ogni indirizzo porta la firma (`sig=…`) ed è un **segreto**: non sta nella skill né nel repository, ma in un file di `~/.xrcopilotlab/teams/` (permessi 600) o in una variabile d'ambiente — versioni: `blueprint-version-webhook` / `XRCOPILOTLAB_BP_TEAMS_WEBHOOK`; catalogo: `blueprint-catalog-webhook` / `XRCOPILOTLAB_BP_TEAMS_CATALOG_WEBHOOK`. Se manca, chiedi all'utente di crearlo (`umask 077`, una riga, `chmod 600`); **non scriverlo mai** in un file del repository, in un commit, in un artifact o nella risposta |
 
 I numeri sono **tre e diversi**: *plugin* `blueprints` (quello che ci interessa, `2.x.y`), *CLI*
 `xrcopilotlab-bp` (`version.txt` del plugin) e *catalogo* (`v1.x.0`, il tag della release). Nella
@@ -196,7 +206,7 @@ modello della card; non toglierlo.
    (~28 KB): in quel caso accorcia le sezioni per versione, non togliere i comandi d'aggiornamento.
 4. **Solo dopo un sì esplicito dell'utente sull'anteprima** pubblica:
    ```bash
-   scripts/teams.sh --send <scratchpad>/card.json
+   scripts/teams.sh --send <scratchpad>/card.json --canale versioni
    ```
    Un «mandala» detto prima di aver visto l'anteprima non vale: prima la si mostra. Una sola
    pubblicazione: se va a buon fine non si ripete, e per correggere un errore si pubblica un messaggio
@@ -204,6 +214,35 @@ modello della card; non toglierlo.
 5. Se `--send` fallisce (indirizzo mancante, HTTP diverso da 200/202, rete), riporta l'errore così com'è
    e lascia all'utente il percorso della card e un testo Markdown dello stesso report da incollare a
    mano nel canale. Non provare altre strade (la mail, un altro canale) senza chiederlo.
+
+## 4. Modo `catalogo` — i blueprint disponibili
+
+Annuncia nel canale del catalogo **che cosa si può installare oggi**, con il link alla scheda di ognuno sul
+Blueprint Marketplace. Si usa dopo che un modello è entrato o cambiato nel catalogo di produzione **e** la sua
+scheda è online (PR del sito in `main`, deploy riuscito): un link a una scheda che dice ancora la versione di prima
+manda il collega nel posto sbagliato.
+
+1. **Il catalogo, dalla fonte**: `xrcopilotlab-bp catalog list --env prod` (una lettura). Solo produzione: i modelli
+   di staging non si annunciano.
+2. **Il sito, per i link e i fatti**: l'indice pubblico
+   `https://yellow-river-0ad4d3203.6.azurestaticapps.net/schede/indice.json` dà per ogni tag il nome, la frase,
+   `governance` (`manifest` → «governato», `suggeriti` → «regolamenti suggeriti», `base` → «regole di base») e
+   `apps[]`. Il link è `https://yellow-river-0ad4d3203.6.azurestaticapps.net/catalogo/<TAG>`. Un modello del
+   catalogo senza scheda pubblica si dice all'utente e resta fuori dalla card: non si linka una pagina che non c'è.
+   La versione nella scheda (`/schede/<TAG>.json`, `origine.versione`) deve essere quella del catalogo; se non lo è,
+   la scheda è indietro: lo si dice e si aspetta il sito.
+3. **Una riga per blueprint**, ordinati per data di pubblicazione, il più recente in alto. `NOVITA` = che cosa è
+   cambiato con questa versione in una frase («ora governato: GDPR e OWASP, 13 schede dei sistemi», «nuovo nel
+   catalogo»), oppure «nessuna novità da …» con la data; `IN_UNA_FRASE` = la frase della scheda; `APP` = i titoli
+   delle app o «nessuna». Si ripete il `Container` d'esempio, uno per blueprint. L'apertura dice quanti sono e quali
+   sono cambiati, contati dalle righe.
+4. Consegna come al § 3, con il canale giusto:
+   ```bash
+   scripts/teams.sh --check <scratchpad>/catalogo.json
+   scripts/teams.sh --send  <scratchpad>/catalogo.json --canale catalogo     # solo dopo il sì sull'anteprima
+   ```
+
+Niente tenant, id, email o nomi di clienti: il catalogo è fatto di modelli, e la card li descrive come tali.
 
 ## Cosa non fare
 
@@ -216,3 +255,5 @@ modello della card; non toglierlo.
 - Non lanciare tu `/plugin update` o `xrcopilotlab-bp update` «per provare»: sono comandi del
   collega, sul suo computer.
 - Non usare questa skill per l'annuncio di una release del **prodotto** (è `xrcopilot-release-email`).
+- Non mandare una card nel canale sbagliato: le versioni delle skill vanno in `versioni`, il catalogo in `catalogo`.
+- Non mandare le notifiche per mail, neanche se la richiesta dice «la mail».

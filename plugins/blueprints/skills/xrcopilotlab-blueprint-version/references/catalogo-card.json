@@ -1,0 +1,46 @@
+{
+  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+  "type": "AdaptiveCard",
+  "version": "1.4",
+  "msteams": { "width": "Full" },
+  "body": [
+    {
+      "type": "Container",
+      "style": "accent",
+      "bleed": true,
+      "items": [
+        { "type": "TextBlock", "text": "Blueprint disponibili nel catalogo — {{DATA}}", "weight": "Bolder", "size": "Large", "wrap": true },
+        { "type": "TextBlock", "text": "{{APERTURA}}", "wrap": true, "spacing": "Small" }
+      ]
+    },
+    {
+      "type": "Container",
+      "separator": true,
+      "spacing": "Medium",
+      "items": [
+        { "type": "TextBlock", "text": "**[{{NOME}}]({{LINK_SCHEDA}})** · {{TAG}} v{{VERSIONE}}", "wrap": true },
+        { "type": "TextBlock", "text": "{{NOVITA}}", "wrap": true, "isSubtle": true, "size": "Small", "spacing": "None" },
+        { "type": "TextBlock", "text": "{{IN_UNA_FRASE}}", "wrap": true, "spacing": "Small" },
+        {
+          "type": "FactSet",
+          "spacing": "Small",
+          "facts": [
+            { "title": "Governance", "value": "{{GOVERNANCE}}" },
+            { "title": "App", "value": "{{APP}}" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "TextBlock",
+      "text": "Ogni blueprint si installa dalla sua scheda sul Blueprint Marketplace: il prompt per Claude Code, per Claude Desktop e la riga di comando.",
+      "wrap": true,
+      "isSubtle": true,
+      "spacing": "Large"
+    }
+  ],
+  "actions": [
+    { "type": "Action.OpenUrl", "title": "Il catalogo sul Blueprint Marketplace", "url": "https://yellow-river-0ad4d3203.6.azurestaticapps.net/catalogo" },
+    { "type": "Action.OpenUrl", "title": "Le app dei blueprint", "url": "https://yellow-river-0ad4d3203.6.azurestaticapps.net/app" }
+  ]
+}

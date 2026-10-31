@@ -94,6 +94,7 @@ COPIE = [
     # La mail delle novità fra due versioni del plugin: legge lo storico del catalogo, lascia una bozza. Non esegue.
     (".claude/skills/xrcopilotlab-blueprint-version/SKILL.md", DEST_VERSION / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-version/references/teams-card.json", DEST_VERSION / "references"),
+    (".claude/skills/xrcopilotlab-blueprint-version/references/catalogo-card.json", DEST_VERSION / "references"),
     (".claude/skills/xrcopilotlab-blueprint-version/scripts/teams.sh", DEST_VERSION / "scripts"),
     (".claude/skills/xrcopilotlab-blueprint-version/scripts/novita.sh", DEST_VERSION / "scripts"),
     # L'app di App Builder su un blueprint applicato: mappa, archetipo, layout, brief per App Buddy. Non applica.
