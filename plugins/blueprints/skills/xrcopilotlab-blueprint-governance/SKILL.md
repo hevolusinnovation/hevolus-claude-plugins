@@ -130,6 +130,14 @@ la cintura di sicurezza per quando il modello sbaglia: che sia **in vigore** lo 
 `expect.governance.notDecisions` sull'operazione — non come prova della regola. Un caso che fa scattare davvero una
 regola serve un agente che quell'azione la fa: un'email, un webhook, un tool che il prompt non vieta.
 
+**Si lancia per chiave, non per tag**: `test run … --only governance-in-vigore,<chiave del caso>`. `--only governance`
+seleziona anche i casi di un **modulo** che si chiama `governance` (SCHOOL ce l'ha: l'«AI consapevole»), e su SCHOOL ha
+aperto due processi veri sul tenant di collaudo (30/10/2026).
+
+**Un regolamento condiviso fra blueprint** (#1740): se un altro blueprint del tenant ha già applicato lo stesso regolamento
+Hevolus, il piano lo **estende** con gli agenti di questo (`BP174`) o lo dà per coperto se vale per tutti (`BP172`); il caso
+`kind: governance` controlla che gli agenti del blueprint siano **inclusi**, non che siano i soli.
+
 Si parte dalla suite nell'archivio (`files get tests/<nome>.v<k>.tests.yml --tag <TAG> …`), altrimenti da `test init`;
 si aggiungono i casi, si controlla la suite con `test validate`, si mostrano, e dopo un sì `test push`. L'esecuzione e il giudizio sono della skill `xrcopilotlab-blueprint-test`, in
 **due giri**: governance in Osserva (le decisioni compaiono come «avrebbe negato», niente si ferma) e poi in Applica,

@@ -1796,6 +1796,16 @@
             }
           }
         },
+        "owner": {
+          "type": "string",
+          "format": "email",
+          "description": "Email del responsabile della governance del tenant: un amministratore del tenant, riceve gli avvisi e può cambiare le impostazioni. Il blueprint non cambia mai il modo della governance."
+        },
+        "ownerNotices": {
+          "type": "string",
+          "enum": ["all", "denies", "off"],
+          "description": "Quali avvisi riceve per email il responsabile: all (negazioni, approvazioni, avvisi e cambi delle impostazioni), denies (senza gli avvisi), off (nessuna email). Assente: resta com'è sul tenant."
+        },
         "publish": {
           "type": "boolean",
           "description": "Pubblica la copia di lavoro del tenant dopo l'apply. Senza la chiave: sì. Se la copia ha modifiche non pubblicate che non sono del blueprint, il piano si ferma."

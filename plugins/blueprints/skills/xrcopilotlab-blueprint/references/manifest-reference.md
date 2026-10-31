@@ -387,6 +387,13 @@ agents:
 ciascuno: un agente importato con due endpoint nel tenant sorgente ne ha due anche in destinazione.
 Sempre inattivi: l'attivazione, come quella dell'agente, resta una scelta di chi importa.
 
+Nell'**apply** di un blueprint l'agente ha un solo endpoint, quello di default, attivo: è su quello che si chatta, e
+riceve `welcomeMessage`, `enableSuggestions`, `suggestionMode` e `manualSuggestions` del **primo** elemento di
+`chatEndpoints`, alla creazione e in un aggiornamento sul posto. Valgono solo i campi dichiarati: uno assente resta
+com'è sul tenant (per esempio un benvenuto scritto dalla UI). Il piano dice «messaggio di benvenuto» o
+«suggerimenti» quando cambiano. Fino alla #1700 (ottobre 2026) l'apply li ignorava, e l'endpoint nasceva con il
+benvenuto vuoto e senza suggerimenti.
+
 Il tipo e le impostazioni di risposta valgono alla creazione (ciò che non si dichiara prende il default della UI:
 Q&A, `concise`, 1.2, …) e in un aggiornamento sul posto, dove cambiano **solo** se dichiarati. Fino alla #1612
 (ottobre 2026) l'apply li ignorava e creava ogni agente Q&A: un agente `type: base` riceveva il grounding stretto
@@ -1275,6 +1282,8 @@ con #1652, dopo la riunione con il CTO del 26/10/2026):
 
 ```yaml
 governance:
+  owner: responsabile@cliente.it            # amministratore del tenant: riceve gli avvisi; il modo non cambia
+  ownerNotices: denies                      # all (default) | denies (senza gli avvisi) | off (nessuna email)
   models:                                   # regolamenti Hevolus, mai scritti dal blueprint
     - id: uscite-di-rete                     # per tema, o per riferimento: riferimento-gdpr, riferimento-ai-act…
       agents: [istruttoria]                  # a chi si applica; assente = tutti gli agenti
@@ -1319,9 +1328,11 @@ governance:
 | `rules[].completes` | L'id di una regola Hevolus «da completare» (vuole un valore del cliente, come i domini ammessi): la regola del manifest ne prende il posto nei regolamenti Hevolus applicati. Senza, il piano dice quali restano da completare (`BP156`); un id che non è una regola Hevolus ferma il piano (`BP157`). |
 | `ruleGroups[]` | I regolamenti del blueprint: `key`, `title` (prende il prefisso), `description`, `rules` (chiavi di `governance.rules` o id di regole Hevolus), `agents`, `enabled`. Una regola dentro un regolamento vale dove vale il regolamento; se due ambiti si sovrappongono vince il più largo (`BP157`). |
 | `systems.<agente>` | Finalità, classificazione e alternativa dell'agente nella sua scheda. **Il responsabile non si scrive qui**: è una persona del cliente, e si indica dalla scheda dopo l'installazione. |
+| `owner` | L'email del **responsabile della governance** del tenant (#1710): un **amministratore del tenant**, che riceve gli avvisi e può cambiare le impostazioni della governance; è anche il responsabile predefinito delle schede Sistemi che non ne hanno uno. Un indirizzo non valido ferma il piano (`BP170`), e lo stesso codice dice che l'indirizzo non è un amministratore del tenant. **Il blueprint non cambia mai il modo della governance**: scrive solo il responsabile, a ogni apply (anche negli aggiornamenti), e un rollback non lo toglie. |
+| `ownerNotices` | Quali avvisi riceve per email il responsabile: `all` (negazioni — in Applica e, in Osserva, «avrebbe negato» —, approvazioni, avvisi e cambi delle impostazioni), `denies` (senza gli avvisi, che sono i più frequenti) oppure `off` (nessuna email: il registro registra comunque tutto). Assente: resta com'è sul tenant, dove si cambia anche dalla Dashboard. Un valore diverso ferma il piano (`BP170`). |
 | `publish` | Pubblica la copia di lavoro del tenant dopo l'apply. Se il tenant ha modifiche non pubblicate che non sono del blueprint, il piano si ferma: pubblicherebbe il lavoro di qualcun altro. |
 
-Che cosa fa il piano (`BP148`–`BP157`):
+Che cosa fa il piano (`BP148`–`BP157`, `BP170`):
 
 - un **regolamento Hevolus** si cerca fra quelli dell'ambiente; uno già applicato **a mano** ferma il piano; le sue regole
   da completare che nessuna regola del manifest completa si dicono (`BP156`);
@@ -1331,6 +1342,9 @@ Che cosa fa il piano (`BP148`–`BP157`):
 - se la **governance del tenant è spenta** lo dice (`BP155`): le regole si scrivono e si pubblicano, ma decidono solo dopo
   che una persona la accende da Governance › Stato. **Il blueprint non la accende mai**;
 - la **pubblicazione** chiude il piano, e si ferma se la governance del tenant ha modifiche non pubblicate di altri;
+- un **aggiornamento** che non cambia la sezione `governance`, con tutto ancora sul tenant, non la riapplica e non la ripubblica (`BP173`, #1731);
+- un **regolamento già applicato a mano** a tutti gli agenti, e acceso, copre già il blueprint: avviso (`BP172`, #1730), il blueprint non lo riapplica e non lo prende in carico;
+- un **regolamento già applicato ad altri agenti** — da un altro blueprint dello stesso tenant o da una persona — si **estende** con gli agenti del blueprint, se il manifest ne nomina (`BP174`, #1740): l'inventario registra quali sono, un aggiornamento cambia solo quelli e un rollback toglie solo quelli;
 - un ambiente **senza governance** lascia fuori la sezione, con un avviso.
 
 Che cosa fa l'apply, con gli stessi endpoint della pagina Governance › Policy:
@@ -1341,6 +1355,7 @@ Che cosa fa l'apply, con gli stessi endpoint della pagina Governance › Policy:
 | `CreateGovernanceRule` / `UpdateGovernanceRule` | crea la regola nella copia di lavoro, con `agent` risolto e `completes` come regola di origine; in un aggiornamento la modifica sul posto | `GovernanceRule` (id della regola) |
 | `CreateGovernanceRulebook` / `UpdateGovernanceRulebook` | crea il regolamento, con le chiavi delle regole risolte negli id del run e gli agenti nei loro id; in un aggiornamento lo modifica sul posto | `GovernanceRulebook` (id del regolamento) |
 | `DeclareGovernanceSystem` | scrive finalità, classificazione e alternativa; in un aggiornamento tiene il responsabile indicato da una persona | `GovernanceSystem` (id dell'agente) |
+| `SetGovernanceOwner` | scrive il responsabile della governance, prima della pubblicazione; il modo non si tocca. Si ripete a ogni apply | nessuna: il rollback non lo cancella |
 | `PublishGovernance` | pubblica la copia di lavoro: le regole entrano in vigore (se la governance del tenant è accesa) | `GovernancePublication` (ultima versione) |
 
 Regolamento Hevolus, scheda e pubblicazione si ripetono a ogni apply (sono idempotenti): in un aggiornamento il run
@@ -1441,4 +1456,5 @@ Come si costruisce un'app e come si adotta quella di un collega: skill `xrcopilo
 | `BP090`–`BP092` | Orchestratori: tipo di step, campi, grafo |
 | `BP132`–`BP138` | Moduli: chiavi, entità elencate, appartenenza unica, dipendenze chiuse, cicli, scelta con `--modules`, rollback di un modulo richiesto |
 | `BP139`–`BP141` | Dati di collaudo: voce incompleta, dato di collaudo in produzione (errore), elenco fuori dalla produzione (avviso) |
+| `BP170` | Governance: il responsabile (`governance.owner`) non è un indirizzo email, oppure non è un amministratore del tenant (in quel caso lo dice l'API all'apply, con un 400); oppure `ownerNotices` non è `all`, `denies` o `off` |
 | `BP145`–`BP157` | Governance: sezione malformata, regola che l'editor rifiuterebbe, agente che il manifest non dichiara; nel piano governance non letta, regolamento che l'ambiente non ha, regolamento applicato a mano, modifiche non pubblicate di altri, scheda già compilata, responsabile da indicare, valori ritirati, governance del tenant spenta, regola da completare, regolamento o `completes` che non vanno |

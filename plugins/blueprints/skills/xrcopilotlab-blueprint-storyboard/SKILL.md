@@ -1,6 +1,6 @@
 ---
 name: xrcopilotlab-blueprint-storyboard
-description: Da un blueprint XRCopilotLab (manifest) produce, di default, TRE VIDEO NARRATI dell'applicazione vera (staging o prod): come si crea da zero (topic, conoscenza, assistenti, orchestratore, processo BPM disegnato a mano), come si usa il risultato già creato, e il processo in funzione ruolo per ruolo con un'istanza vera; su richiesta lo short 9:16. Voce ElevenLabs se c'è ELEVENLABS_API_KEY (altrimenti spiega come salvarla, mai in chat) o la voce della piattaforma (`xrcopilotlab-bp voice`), scelta dopo un campione; pagina con download e tempo di creazione. Poi crea nel tenant un agente video con i video generati (topic Guide). Su richiesta scrive lo storyboard a tavole. Chiede ambiente e sì prima di registrare: la creazione e il video 3 scrivono sul tenant. Usa per "il video del blueprint", "il video di come si crea", "lo storyboard", "la voce fuori campo". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (-blueprint-test) o il manifest (xrcopilotlab-blueprint).
+description: Da un blueprint XRCopilotLab (manifest) produce, di default, TRE VIDEO NARRATI dell'applicazione vera (staging o prod): come si crea da zero (topic, conoscenza, assistenti, orchestratore, processo BPM disegnato a mano), come si usa il risultato già creato, e il processo in funzione ruolo per ruolo con un'istanza vera; su richiesta lo short 9:16. Voce ElevenLabs se c'è ELEVENLABS_API_KEY (altrimenti spiega come salvarla, mai in chat) o la voce della piattaforma (`xrcopilotlab-bp voice`), scelta dopo un campione; pagina con download e tempo di creazione. Poi crea nel tenant un agente video con i video generati allegati all'agente (mai in un profilo di knowledge). Su richiesta scrive lo storyboard a tavole. Chiede ambiente e sì prima di registrare: la creazione e il video 3 scrivono sul tenant. Usa per "il video del blueprint", "il video di come si crea", "lo storyboard", "la voce fuori campo". NON per la guida del cliente (xrcopilotlab-blueprint-guide), il collaudo (-blueprint-test) o il manifest (xrcopilotlab-blueprint).
 ---
 
 # xrcopilotlab-blueprint-storyboard
@@ -52,7 +52,7 @@ dice nel riepilogo. Come si prepara la macchina, per chi installa: la pagina «I
 | Le scene che non possono mancare (knowledge → assistente, assistente + skill) e come si ricavano dal manifest | [`references/base-piattaforma.md`](references/base-piattaforma.md) |
 | **Il video narrato di default**: creazione + risultato, voce, montaggio, pagina con download | [`references/video-narrato.md`](references/video-narrato.md) |
 | **Terzo video: il processo in funzione, ruolo per ruolo** (istanza vera, un utente per ruolo, piano e sì) | [`references/processo-in-funzione.md`](references/processo-in-funzione.md) |
-| **La guida video nel tenant**: topic `BP-<TAG>-Guide` creato dal manifest, video indicizzati, un agente video per manifest che risponde citando il video | [`references/guida-video.md`](references/guida-video.md) |
+| **La guida video nel tenant**: un agente video per manifest con i video allegati (file dell'agente, non un profilo), che risponde citando video e minuto | [`references/guida-video.md`](references/guida-video.md) |
 | Registrare l'applicazione vera (`xrcopilotlab-demo`): panoramica, scene `Dn`, montaggio | [`references/registrazione.md`](references/registrazione.md) |
 | Partire dalla guida del cliente: da slide a scena, punti di demo `Dn` | [`references/da-guida.md`](references/da-guida.md) |
 | Formato di una tavola, codici scena, tempi, colori | [`references/tavola.md`](references/tavola.md) |
@@ -282,21 +282,25 @@ ciò che manca al banco in [`references/processo-in-funzione.md`](references/pro
 
 ## 5-quater. La guida video nel tenant: l'agente video
 
-**Parte del prodotto, non un extra.** Dopo i video la skill crea, **nel tenant del manifest**, un topic
-`BP-<TAG>-Guide`, un profilo di knowledge che indicizza gli `.mp4` generati e **un agente video per manifest**
-(«Agente video - <Scenario>») che risponde citando il video che spiega. Si aggiunge al manifest come
-versione nuova; procedura e frammento in [`references/guida-video.md`](references/guida-video.md).
+**Parte del prodotto, non un extra.** Dopo i video la skill crea, **nel tenant del manifest**, **un agente
+video per manifest** («Agente video - <Scenario>») con gli `.mp4` generati **allegati all'agente**
+(`agents[].files`), che risponde citando il video e il minuto. Si aggiunge al manifest come versione nuova;
+procedura e frammento in [`references/guida-video.md`](references/guida-video.md).
 
-- **Piano e sì**: scrive sul tenant, quindi si mostra il piano (topic, profilo con N file, agente) e si
-  attende il sì prima dell'apply. Il sì sul piano dei video non vale per questo.
+- **I video sull'agente, mai in un profilo di knowledge.** Sull'agente, l'attivazione li manda all'analisi dei
+  video, che ne trascrive tutti i segmenti. In un profilo la libreria del knowledge graph ne legge solo il primo
+  segmento (15–30 secondi), e l'agente risponde «nei video non c'è» a ciò che la voce dice dopo (SCHOOL v17,
+  29/10/2026). Niente topic «Guide» e niente profilo.
+- **Piano e sì**: scrive sul tenant, quindi si mostra il piano (l'agente, N video caricati e collegati,
+  l'attivazione) e si attende il sì prima dell'apply. Il sì sul piano dei video non vale per questo.
 - **Si salta solo se i video non sono consegnabili** (nelle liste compaiono nomi di altri clienti o
   dell'utente): lo si **dichiara** nel riepilogo finale con il motivo, e si propone di registrare di nuovo
   su un tenant pulito. Mai saltarlo in silenzio.
-- **Licenza**: profilo e agente consumano licenza; se il piano si ferma con `BP071` lo si riferisce,
+- **Licenza**: l'agente consuma una licenza; se il piano si ferma con `BP071` lo si riferisce,
   non si procede e non si dichiara il lavoro finito.
-- **Si chiude solo dopo la prova**: indicizzazione terminata, una domanda per video con risposta nel video
-  e una fuori argomento che risponde «non c'è». La consegna riporta nome dell'agente, topic e versione
-  del manifest.
+- **Si chiude solo dopo la prova**: analisi dei video terminata, una domanda per video la cui risposta sta
+  oltre il primo minuto, e una fuori argomento che risponde «non c'è». La consegna riporta nome
+  dell'agente e versione del manifest.
 
 ## 5-bis. Lo schermo reale: `xrcopilotlab-demo`
 

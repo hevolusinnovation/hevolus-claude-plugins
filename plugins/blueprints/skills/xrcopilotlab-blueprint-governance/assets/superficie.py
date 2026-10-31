@@ -117,7 +117,8 @@ def analizza(m):
         agenti.append({"chiave": k, "nome": nome(v, k),
                        "persone": bool(v.get("chatEndpoints") or v.get("embed")),
                        "skill": list(v.get("skills") or []),
-                       "mcp": list(v.get("mcp") or []),
+                       # i server MCP di un agente si dichiarano con `mcp` o con `mcpServers`: valgono tutti e due
+                       "mcp": list(v.get("mcp") or []) + list(v.get("mcpServers") or []),
                        "descrizione": (v.get("description") or "").strip()[:240]})
     s["agenti"] = agenti
 

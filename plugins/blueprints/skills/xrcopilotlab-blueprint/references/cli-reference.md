@@ -351,6 +351,9 @@ di ripubblicare da quel file.
 
 Se la versione è arrivata lì per copia, stampa anche da dove.
 
+
+Con `--with-files` arrivano anche i file della versione, dove il manifest li dichiara (#1732): la knowledge nei suoi `path` (relativi alla cartella del manifest) e i sorgenti di ogni app nella sua `source`. La cartella si valida e si ripubblica così com'è. Un file di knowledge il cui percorso non si può usare — assoluto, fuori dalla cartella, o dichiarato due volte con percorsi diversi — finisce in `files/`, e il comando lo dice. Vale anche per `catalog pull --with-files`.
+
 ## `files ls` · `files put <file>` · `files get <percorso>` · `files rm <percorso>` · `files open <percorso>` · `files share <percorso>` · `files consolidate`
 
 Tutto ciò che un blueprint produce o richiede, oltre al manifest, sta nell'archivio nel cloud accanto
@@ -374,7 +377,7 @@ si leggono ancora, e `files consolidate` li porta nei posti di oggi.
 |---|---|
 | `files ls --tag <TAG> [--kind <specie>]` | Elenca ogni file del blueprint: specie, percorso, dimensione, data, impronta (SHA-256) e autore |
 | `files put <file> --tag <TAG> --kind <suite\|report\|doc\|draft\|attachment> [--name <nome>] [--version <n>] [--stamp <aaaammgg-hhmmss>]` | Archivia un file. Una suite diventa una versione nuova fra le suite del tag, come con `test push` ma senza la verifica contro il manifest; un report va sotto il timbro (default: adesso). Con una **cartella** archivia tutti i file con un solo accesso all'ambiente, ciascuno con il suo percorso relativo: per i report la prima sottocartella è il timbro (`20261006-141450/report.md`), a meno di `--stamp`. I file identici a quelli già archiviati si saltano, quelli nascosti anche |
-| `files get <percorso> --tag <TAG> [--out <cartella>] [--overwrite]` | Scarica un file, col percorso che mostra `files ls` |
+| `files get <percorso> --tag <TAG> [--out <cartella>\|<file>] [--overwrite]` | Scarica un file, col percorso che mostra `files ls`. `--out` è la cartella di lavoro (il file va in `<cartella>/<TAG>/<percorso>`); se invece è il nome di un file (ha un'estensione e non è una cartella che esiste), il file va esattamente lì (#1734). Si scaricano anche i file nascosti che il push ha archiviato, come `.env.example` di un'app (#1733) |
 | `files get --all --tag <TAG> [--kind <specie>] [--out <cartella>]` | Scarica tutto, o una specie |
 | `files rm <percorso> --tag <TAG> [--yes]` | Toglie **un solo** file. Solo suite, report, guide, bozze e allegati: il manifest, la knowledge e ciò che un apply ha prodotto fanno parte di una versione, e si tolgono con `delete --version`. Chiede `[s/N]`; senza terminale si ferma con **6** finché non c'è `--yes`. Non si annulla |
 | `files open <percorso> --tag <TAG>` | Scarica il file (sempre una copia fresca) e lo apre con l'applicazione predefinita; senza terminale stampa solo il percorso |
@@ -1044,6 +1047,31 @@ cancellano uno per uno (sono documenti del cliente), ma se il topic era del blue
 con lui e l'inventario lo registra. Se un run smontato da una CLI precedente è rimasto
 «completato» con i soli file di un topic che non c'è più, ripetere `rollback --run` lo chiude: il
 comando verifica il topic sul tenant e toglie le voci rimaste.
+
+## `undeclared --tag <TAG> [--version <n>] [--remove] [--confirm <TAG>]`
+
+Elenca le entità che il blueprint ha creato e che l'**ultima versione dell'archivio** (o quella di `--version`, non più
+vecchia di quella applicata) **non dichiara più** (#1702): sono quelle
+dell'avviso `BP068`, che un aggiornamento lascia sul tenant. Con `--remove` le toglie dal tenant e dall'inventario
+del run, con lo stesso codice del rollback.
+
+- **Contro l'ultima versione, non contro quella del run**: una versione che toglie soltanto non ha niente da applicare,
+  l'`apply` non registra un run nuovo e il run resta alla versione di prima. Si fa `push`, poi `undeclared`.
+- **Solo ciò che il blueprint ha creato**: il confine è l'inventario del run completato del tag, come per
+  `rollback`. Un'entità fatta a mano, anche con il prefisso del blueprint, non compare.
+- **Anche i topic in più** (`topics`): un topic che la versione non dichiara esce con i file caricati dentro di lui.
+- **Né per chiave né per nome**: un'entità esce solo se la versione non la dichiara in nessuno dei due modi. Una
+  chiave rinominata con lo stesso nome, o un nome cambiato sulla stessa chiave, è la stessa entità e resta.
+- **Con ciò che la accompagna**: skill, server MCP, file ed endpoint di un agente; pianificazione e uscite di un
+  agent task; versione, ruoli di avvio e webhook di un processo; pubblicazione di un server MCP.
+- **La conferma è quella di `delete`**: si scrive il tag, al terminale o con `--confirm <TAG>`; `--yes` non vale e
+  senza terminale il comando esce **6**. Sotto lease il run si rilegge: se l'elenco è cambiato nel frattempo non si
+  toglie niente (**3**).
+- Le istanze già chiuse di un processo tolto e i file caricati nel topic restano. Se una rimozione fallisce il
+  comando esce **4**: l'inventario elenca ciò che resta, e si ripete.
+
+Il caso tipico è un processo da ridisegnare: un aggiornamento non riscrive un processo (`BP067`), quindi la versione
+nuova ne dichiara uno con un'altra chiave e un altro nome; dopo l'`apply`, `undeclared --remove` toglie il vecchio.
 
 ## `prune [--tag <TAG>] [--keep <n>] [--confirm <TAG|archivio>]`
 
