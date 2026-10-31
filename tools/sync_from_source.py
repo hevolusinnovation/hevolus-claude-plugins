@@ -24,7 +24,6 @@ DEST_HOWTO = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-bluepr
 DEST_STORYBOARD = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-storyboard"
 DEST_BPMFLOW = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-bpm-flow"
 DEST_REPORT = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprints-report"
-DEST_VERSION = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-version"
 DEST_APP = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-app"
 DEST_GOV = RADICE / "plugins" / "blueprints" / "skills" / "xrcopilotlab-blueprint-governance"
 
@@ -92,10 +91,6 @@ COPIE = [
     (".claude/skills/xrcopilotlab-blueprint-storyboard/compose-video.py", DEST_STORYBOARD / "compose-video.py"),
     (".claude/skills/xrcopilotlab-blueprint-storyboard/voce-elevenlabs.py", DEST_STORYBOARD / "voce-elevenlabs.py"),
     # La mail delle novità fra due versioni del plugin: legge lo storico del catalogo, lascia una bozza. Non esegue.
-    (".claude/skills/xrcopilotlab-blueprint-version/SKILL.md", DEST_VERSION / "SKILL.md"),
-    (".claude/skills/xrcopilotlab-blueprint-version/references/teams-card.json", DEST_VERSION / "references"),
-    (".claude/skills/xrcopilotlab-blueprint-version/scripts/teams.sh", DEST_VERSION / "scripts"),
-    (".claude/skills/xrcopilotlab-blueprint-version/scripts/novita.sh", DEST_VERSION / "scripts"),
     # L'app di App Builder su un blueprint applicato: mappa, archetipo, layout, brief per App Buddy. Non applica.
     (".claude/skills/xrcopilotlab-blueprint-app/SKILL.md", DEST_APP / "SKILL.md"),
     (".claude/skills/xrcopilotlab-blueprint-app/references/integrazioni.md", DEST_APP / "references"),
@@ -294,7 +289,7 @@ def cerca_orfani(copiati):
     la skill non cita qualcosa che nella sorgente è cambiato mesi prima.
     """
     orfani = []
-    for dest in (DEST, DEST_TEST, DEST_GUIDE, DEST_DEMO, DEST_STORYBOARD, DEST_VERSION, DEST_BPMFLOW, DEST_REPORT, DEST_APP, DEST_GOV):
+    for dest in (DEST, DEST_TEST, DEST_GUIDE, DEST_DEMO, DEST_STORYBOARD, DEST_BPMFLOW, DEST_REPORT, DEST_APP, DEST_GOV):
         for p in sorted(dest.rglob("*")):
             if p.is_file() and p.name != ".DS_Store" and p.resolve() not in copiati:
                 orfani.append(p.relative_to(RADICE))

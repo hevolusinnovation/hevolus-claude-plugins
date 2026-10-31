@@ -59,7 +59,6 @@ invece su **Claude Desktop oppure Claude Code**, quella che usi — cambia cosa 
 | `xrcopilotlab-blueprint-storyboard` | la skill da sola: scrive lo storyboard e lo pubblica — **funziona anche qui**, ma senza l'audio guida, che vuole un terminale con `say` e `ffmpeg` | il plugin `blueprints@hevolus` |
 | `xrcopilotlab-blueprint-bpm-flow` | la skill da sola: disegna i flussi di un manifest e li pubblica come artifact — **funziona anche qui**; il PDF si esporta dalla pagina aperta in claude.ai | il plugin `blueprints` |
 | `xrcopilotlab-blueprints-report` | la skill da sola: legge il catalogo e pubblica il manuale dei modelli — **funziona anche qui** per la lettura e la scrittura; il PDF si esporta dalla pagina aperta in claude.ai; installare i modelli e collaudarli vuole la scheda Code | il plugin `blueprints@hevolus` |
-| `xrcopilotlab-blueprint-version` | la skill da sola: scrive la mail delle novità fra due versioni — **funziona anche qui**, ma `novita.sh` vuole un terminale con `git` e `gh`: da Desktop si incollano le novità a mano | il plugin `blueprints@hevolus` |
 | `xrcopilotlab-blueprint-howto` | la skill da sola: pubblica la guida d'uso del percorso — **funziona anche qui** | il plugin `blueprints@hevolus` |
 
 Una regola sola governa tutta la tabella, e non è una preferenza: **applicare e collaudare passano
@@ -401,7 +400,7 @@ Il punto di partenza è lo stesso: dalla
 [pagina delle release](https://github.com/hevolusinnovation/hevolus-claude-plugins/releases/latest)
 scarica il file con il nome della skill — `xrcopilotlab-assessment.zip`,
 `xrcopilotlab-blueprint.zip`, `xrcopilotlab-blueprint-test.zip`, `xrcopilotlab-blueprint-guide.zip`,
-`xrcopilotlab-blueprint-demo.zip`, `xrcopilotlab-blueprint-storyboard.zip`, `xrcopilotlab-blueprint-bpm-flow.zip`, `xrcopilotlab-blueprints-report.zip`, `xrcopilotlab-blueprint-version.zip`, `xrcopilotlab-blueprint-howto.zip`.
+`xrcopilotlab-blueprint-demo.zip`, `xrcopilotlab-blueprint-storyboard.zip`, `xrcopilotlab-blueprint-bpm-flow.zip`, `xrcopilotlab-blueprints-report.zip`, `xrcopilotlab-blueprint-howto.zip`.
 
 ### Su Claude Desktop (e claude.ai)
 
