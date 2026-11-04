@@ -46,7 +46,7 @@ La pagina **non contiene numeri di versione** di proposito, come `sito/index.htm
 | Le frasi che attivano ogni skill, cosa produce, cosa non fa | la `description` e il § 0 del `SKILL.md` di ciascuna skill (`xrcopilotlab-assessment`, `xrcopilotlab-blueprint`, `-test`, `-guide`, `-demo`, `-storyboard`), che sono fra le skill della sessione |
 | I nomi dei pacchetti e dove si caricano | il README del catalogo `hevolus-claude-plugins`, § «I pacchetti pronti» — se il clone c'è; altrimenti `references/installazione.md` della skill `xrcopilotlab-blueprint` |
 | Le due righe di installazione e i comandi di aggiornamento | idem |
-| I ruoli Azure e le risorse per ambiente | `docs/accesso-azure.md` del catalogo, se c'è |
+| L'accesso (`login`) e i ruoli nel prodotto | `SKILL.md` di `xrcopilotlab-blueprint`, § «Come si entra» |
 | I comandi della CLI e i codici di uscita | `xrcopilotlab-bp --help`, **se** la CLI è disponibile; altrimenti le tabelle di `cli-reference.md` della skill `xrcopilotlab-blueprint` |
 | I tre video (come si crea, come si usa, il processo in funzione), la guida video nel tenant (topic Guide, un agente video per manifest) e le condizioni di sicurezza del video 3 (caselle di prova, ruoli senza persone del cliente) | `SKILL.md` della skill `-storyboard` § 5-ter, § 5-quater, § 5-quater-bis e § 1-bis, `references/guida-video.md`, `references/processo-in-funzione.md` |
 | Le skill di servizio (`-sync`, `-version`) e cosa fanno | la `description` del loro `SKILL.md` |

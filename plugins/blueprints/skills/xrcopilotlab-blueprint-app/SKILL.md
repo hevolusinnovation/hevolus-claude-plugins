@@ -201,8 +201,8 @@ porta sezione e sorgenti nell'archivio, ma l'apply non crea il progetto (`BP169`
 demo locale (§ mock-up), non in App Builder di staging.
 
 **Alla copia verso la produzione** di un manifest con app `kind: demo` (`promote --to prod`, `catalog install` in
-prod) la CLI chiede «Quali app di demo copio?», con risposta proposta **tutte**; l'apply in produzione crea quelle
-copiate, senza altre domande. Fuori produzione la copia porta tutto senza chiedere. Quando la skill guida una copia
+prod) la CLI chiede «Quali app di demo copio?», con risposta proposta **tutte**; l'apply in produzione propone quelle
+copiate, e crea quelle che chi applica sceglie alla fine dell'apply. Fuori produzione la copia porta tutto senza chiedere. Quando la skill guida una copia
 verso la produzione senza terminale, la domanda si fa all'utente in chat, elencando le app, e la risposta va nel
 comando (`--demo-apps all|none|<k1,k2>`): mai scegliere al suo posto.
 
@@ -214,18 +214,19 @@ comando (`--demo-apps all|none|<k1,k2>`): mai scegliere al suo posto.
 - `promote` e `catalog install` verso la produzione fanno la domanda delle app di demo (`BP163` per una chiave sbagliata);
 - `catalog publish` rifiuta un'app con `origin.company` o `origin.projectId` (`BP164`).
 
-- l'apply crea ogni app in App Builder, per ultima: il progetto con il prefisso (nome = `title`) e i sorgenti della
-  versione come snapshot, senza aprire una sessione. L'app va in inventario (`App`): `rollback` e `delete` la
-  tolgono. Solo in produzione: altrove il piano lo dice e non la crea (`BP169`). Con App Builder spento sul tenant
-  l'app non si crea e il piano lo dice (`BP165`).
+- le app sono **facoltative** (31/10/2026): l'apply crea il blueprint senza di loro e alla fine chiede quali
+  installare. Senza terminale la domanda si fa all'utente in chat, elencando le app, e la risposta va nel comando
+  (`--apps all|none|<k1,k2>`, oppure `extras --tag <TAG> --apps …` dopo): mai scegliere al suo posto. Un'app scelta
+  diventa il progetto con il prefisso (nome = `title`) e i sorgenti della versione come snapshot, senza aprire una
+  sessione. L'app va in inventario (`App`): `rollback` e `delete` la tolgono. Solo in produzione: altrove non si
+  propone e non si crea (`BP169`). Con App Builder spento sul tenant l'app non si crea e il piano lo dice (`BP165`).
 
 **Che cosa non fa**:
-- un aggiornamento non riscrive un'app già creata se qualcuno l'ha modificata in App Builder dopo l'apply (`BP166`,
-  con i file cambiati). Si chiede all'utente quale strada vuole: **sostituirla** (`apply --replace-apps <chiave>`:
-  l'export del progetto va prima nell'archivio, `attachments/app-backup/<chiave>/`) oppure **tenere le modifiche**
-  (si scarica l'export, se ne fanno i sorgenti del blueprint come per un'adozione, §11, e si fa il push di una versione
-  nuova). Mai `--replace-apps` senza il suo sì. Un'app non modificata si aggiorna da sola; con una sessione aperta
-  (`BP167`) si chiede di chiuderla;
+- un aggiornamento **non riscrive mai** un'app già creata: un'app si installa una volta sola, e da lì la si aggiorna
+  in App Builder. Se l'utente vuole portare nel blueprint ciò che ha cambiato lì, si scarica l'export, se ne fanno i
+  sorgenti del blueprint come per un'adozione (§11) e si fa il push di una versione nuova: vale per chi installerà
+  dopo, non per l'app già creata. (`UpdateApp`, `--replace-apps` e `BP166`–`BP168` sono ritirati dal 31/10/2026.)
+  Un aggiornamento propone, alla fine, solo le app che la versione aggiunge;
 - finché manca l'allow-list del relay (P1 della #1566), le app si applicano solo sui tenant di collaudo, non su
   quelli dei clienti.
 

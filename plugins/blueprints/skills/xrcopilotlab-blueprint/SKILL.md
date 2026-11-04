@@ -28,26 +28,20 @@ Cosa riportare, in quest'ordine:
 2. **Cosa serve per poterlo usare**, in due righe: la CLI — che si ottiene installando il plugin
    `blueprints@hevolus`, non compilando questo repository ([`references/installazione.md`](references/installazione.md)
    anche per l'installazione a mano su macOS e Windows) e un **accesso**. L'accesso preferito è
-   `xrcopilotlab-bp login`: si apre il browser, ci si identifica con lo **stesso account con cui si entra in
-   XRCopilotLab** (email o Google), senza ruoli Azure. Dove non è ancora attivo, vale la strada di sempre: un
-   accesso `hevolus.it` — non c'entra l'account con cui si usa Claude — e, la prima volta su quella macchina,
-   un accesso ad Azure dal proprio terminale. Dettagli in [§ Con quale identità gira](#con-quale-identità-gira--da-chiarire-al-primo-comando-che-fallisce-o-prima):
-   vale la pena dirlo qui, perché è il punto contro cui si sbatte prima di riuscire a fare qualsiasi
-   altra cosa.
+   `xrcopilotlab-bp login`: si apre il browser, un clic con l'account aziendale `hevolus.it` — non c'entra
+   l'account con cui si usa Claude — e basta: niente ruoli Azure, niente chiavi (#1772). Dettagli in
+   [§ Come si entra](#come-si-entra-login-e-nientaltro): vale la pena dirlo qui, perché è il punto contro cui
+   si sbatte prima di riuscire a fare qualsiasi altra cosa.
 3. **Su cosa si può lavorare adesso.** Non recitare l'elenco degli ambienti. Prima si prova l'identità:
-   `xrcopilotlab-bp whoami --env staging` dice chi sei e su quali tenant puoi lavorare, senza ruoli Azure
-   ([§ Come si entra: prima l'identità, poi Azure](#come-si-entra-prima-lidentità-poi-azure)). Se l'identità non
-   è attiva su quell'ambiente, eseguire `xrcopilotlab-bp environments` e riportarne l'esito. Gli ambienti sono gli stessi per tutti — i
-   **permessi no**, e sono personali: quel comando li prova con l'utenza corrente e dice su quali
-   si può davvero lavorare, invece di far scoprire un errore di ruoli a lavoro cominciato. Senza
-   `--env` vale lo sviluppo, cioè il `local.settings.json` del clone. Dire che in produzione si
-   lavora solo sui tenant a cui l'utente appartiene — quelli che gli mostra l'interfaccia — e perché.
+   `xrcopilotlab-bp whoami --env staging` dice chi sei, su quali tenant puoi lavorare e se sei amministratore o
+   operatore di piattaforma ([§ Come si entra](#come-si-entra-login-e-nientaltro)); `xrcopilotlab-bp environments`
+   lo dice per ogni ambiente in una volta. Gli ambienti sono gli stessi per tutti — i **tenant no**, e sono
+   personali: quelli che l'interfaccia mostra alla persona. Senza `--env` vale `staging`. Dire che in produzione
+   si indica sempre il tenant con `--company`, e perché.
 
-   Se un ambiente risulta **non accessibile**, non proporlo come se lo fosse: distinguere il ruolo
-   mancante dall'accesso ad Azure mai fatto su quella macchina, che l'utente risolve da sé, una
-   volta, da un terminale. Il ruolo mancante **lo segnali tu al team** con `report-problem`
-   ([«Quando non lo risolvi tu»](#quando-non-lo-risolvi-tu-ruoli-mancanti-e-difetti)): i due ruoli li
-   dà in automatico il gruppo `@hevolus.it`, e se qui mancano il team deve saperlo.
+   Se un ambiente risulta **senza sessione**, è `login --env <nome>` (lo lanci tu, il clic è suo). Un permesso che
+   manca nel prodotto (non amministratore del tenant, non operatore di piattaforma) **lo segnali tu al team** con
+   `report-problem` ([«Quando non lo risolvi tu»](#quando-non-lo-risolvi-tu-ruoli-mancanti-e-difetti)).
 4. **I blueprint che esistono già**: non stanno nel repository né su disco ma solo
    nell'archivio del tenant (`xrcopilotlab-bp status` sull'ambiente indicato): elencarli con tag e versione. È la risposta più utile, perché quasi sempre chi chiede aiuto vuole ripartire da uno. Se la domanda è quali si usano di più, la risposta è `copies` (§ 6-sexies), solo per lo staff.
 5. **Cosa c'è già sul tenant**, se l'utente ha indicato un ambiente: `xrcopilotlab-bp status` lo
@@ -108,94 +102,45 @@ Due cose da sapere mentre lo dici:
 - **non è urgente**, e va detto: ciò che sta girando funziona. Se l'utente è a metà di qualcosa, si
   finisce e si aggiorna dopo.
 
-## Come si entra: prima l'identità, poi Azure
+## Come si entra: `login`, e nient'altro
 
-Esistono **due strade**, e la skill le prova in quest'ordine. La prima è quella nuova (#1333); la seconda è
-quella che c'è sempre stata e resta per ciò che la prima non copre ancora.
-
-**Strada 1 — l'identità, per ora solo dello staff Hevolus.** Ci si identifica con l'**account aziendale
-`hevolus.it`** (Entra); l'accesso con l'identità di XRCopilotLab (B2C, i clienti) esiste dietro `--b2c` ma non è
-ancora attivo e l'API non lo accetta. L'API riceve il **token della persona** e decide per tenant: niente ruoli
-Azure, niente `az login`, niente chiavi.
+La CLI lavora **solo con l'account della persona** (#1333, chiusa con la fase 5 #1772): si fa `login` una volta,
+il browser si apre, un clic con l'account aziendale `hevolus.it`, e da lì ogni comando parla con l'API con il
+token della persona. **Niente ruoli Azure, niente `az login`, niente chiavi, niente variabili da impostare**: l'app
+Entra della CLI è nel binario. L'API legge archivio, segreti e tenant con la propria identità e **autorizza per
+tenant**: utente → legge; amministratore → scrive; **operatore di piattaforma** (super-amministratore del prodotto)
+→ ogni tenant, il catalogo e l'archivio intero, con ogni accesso registrato.
 
 ```bash
-xrcopilotlab-bp whoami --env staging     # chi sei, su quali tenant, e se sei amministratore
+xrcopilotlab-bp whoami --env staging     # chi sei, su quali tenant, se sei amministratore o operatore di piattaforma
 xrcopilotlab-bp login  --env staging     # se serve: si apre il browser
 ```
 
-Funziona oggi, con l'identità, per: `whoami`, `status`, `plan`, `pull` (senza `--with-files`), `catalog list`,
-`export <orchestratore>` e `secrets set`/`secrets check` (questi ultimi tre solo se la persona è **amministratrice** del
-tenant, tranne `secrets check`; `export --scope …` no). Con l'identità il segreto lo scrive l'API con la sua identità
-gestita: nessun ruolo su Key Vault. **Tutto il resto** — `apply`, `push`, `rollback`, `delete`, `test run`, … — usa ancora i
-ruoli Azure: per quelli vale la strada 2. Non dire all'utente che «ormai non servono più i ruoli»: servono ancora
-per scrivere.
-
-**Come si decide, senza indovinare** — il codice di uscita di `whoami` dice quale strada è aperta:
+**Come si decide, senza indovinare** — il codice di uscita di `whoami` dice che cosa manca:
 
 | Esito di `xrcopilotlab-bp whoami --env <amb>` | Significa | Che fai |
 |---|---|---|
-| exit `0`, elenca i tenant | L'identità funziona | Usa `status`, `plan`, `pull`, `catalog list` senza altro; per scrivere passa alla strada 2 |
-| exit `8` («Non hai una sessione valida») | Configurata, ma manca l'accesso | Lancia `login` (vedi sotto) |
+| exit `0`, elenca i tenant | Tutto a posto | Lavora: i comandi che scrivono vogliono che la persona sia amministratrice del tenant |
+| exit `8` («Non hai una sessione valida») | Manca l'accesso su questa macchina | Lancia `login` (vedi sotto) |
 | exit `8` («non sei un utente di XRCopilotLab») | Il token è valido ma la persona non è utente di nessun tenant | Non è un errore tecnico: deve essere aggiunta da chi amministra il suo tenant. Dillo e basta |
-| exit `1`, «non è ancora configurato… mancano XRCOPILOTLAB_BP_…» | L'identità **non è attiva su questa macchina** | Strada 2, senza insistere |
-| exit `3`, «non è ancora attivo su …» | L'API dell'ambiente non ha emittenti configurati | Strada 2: è una configurazione del team, non dell'utente |
+| exit `3`, «non è ancora attivo su …» | L'API dell'ambiente è una build precedente alla #1779 senza `CliAccess:Issuers`, oppure è chiusa apposta (`CliAccess:Closed`) | Configurazione del team: segnalalo con `report-problem --kind access`, non c'è altro da fare |
 
-**`login` lo puoi lanciare tu**, a differenza di `az login`: apre il browser **sulla macchina della persona**, ed è
-lei a completare l'accesso. Il comando aspetta fino a cinque minuti, quindi lancialo con un timeout di almeno
-300 secondi e di' all'utente, *prima*, che cosa succederà («si apre il browser: scegli il tuo account»). Se il
-browser non si apre, il comando stampa l'indirizzo: riportalo all'utente perché lo apra a mano. Non ripetere
-`login` per un'attesa che sembra lunga; se scade, una volta sola.
+**`login` lo puoi lanciare tu**: apre il browser **sulla macchina della persona**, ed è lei a completare l'accesso.
+Il comando aspetta fino a cinque minuti, quindi lancialo con un timeout di almeno 300 secondi e di' all'utente,
+*prima*, che cosa succederà («si apre il browser: scegli il tuo account»). Se il browser non si apre, il comando
+stampa l'indirizzo: riportalo all'utente perché lo apra a mano. Non ripetere `login` per un'attesa che sembra
+lunga; se scade, una volta sola. Serve un `login` **per ambiente** (`--env staging`, `--env prod`): `promote` fra
+due ambienti vuole entrambi.
 
-**Scegliere la strada a mano**, se serve: `--auth identity` oppure `--auth key` (o la variabile
-`XRCOPILOTLAB_BP_AUTH`). Una scelta esplicita **non ripiega mai** sull'altra: se chiedi l'identità e non c'è,
-l'errore lo dice. Senza scelta, la CLI usa l'identità solo se è configurata **e** c'è già una sessione.
+**Tenant**: `--company` deve essere uno dei tuoi (`whoami` li elenca); su staging senza `--company` vale il tenant
+di prova. Un 403 dell'API non distingue «non sei utente» da «il tenant non esiste»: è voluto, non cercare di
+aggirarlo — dì all'utente che quel tenant non è fra i suoi. Un errore che parla di «operatore di piattaforma»
+vuol dire che il comando è dello staff (`catalog publish`, `copies`, `usage`, `access`): non lo si aggira, si
+chiede a chi ha quel ruolo.
 
-**Tenant**: con l'identità, `--company` deve essere uno dei tuoi (`whoami` li elenca). Un 403 dell'API non
-distingue «non sei utente» da «il tenant non esiste»: è voluto, non cercare di aggirarlo — dì all'utente che quel
-tenant non è fra i suoi.
-
-**Quando è attiva** (stato al 09/10/2026): la strada 1 è implementata ma richiede che il team abbia creato le app
-registration della CLI e configurato gli emittenti sull'API, e che la macchina abbia le variabili
-`XRCOPILOTLAB_BP_ENTRA_CLIENT_ID` e `XRCOPILOTLAB_BP_ENTRA_SCOPE`. Finché non è così `whoami` esce con `1` o `3` e si procede con la strada 2.
-Non chiedere all'utente di impostare quelle variabili da solo e non scriverle tu: sono un dettaglio del
-collaudo, e te le dà il team.
-
-## Con quale identità gira — la strada Azure, da chiarire al primo comando che fallisce
-
-> Questa sezione descrive la **strada 2**, quella con i ruoli Azure. Se `whoami` funziona e il comando che serve
-> è fra quelli coperti dall'identità, **non serve niente di quanto segue**.
-
-Domanda che arriva sempre, e la risposta breve è: **l'account con cui si usa Claude non c'entra
-niente.** La CLI non parla con Claude, parla con **Azure**. Personale o aziendale, il piano non
-cambia di una riga.
-
-Quello che serve è un'identità **nel tenant `hevolus.it`**, perché App Configuration, Key Vault,
-Cosmos e lo storage vivono nella sottoscrizione di Hevolus. Un account Microsoft personale non può
-funzionare: non è una questione di permessi mancanti, è che quelle risorse non sono sue.
-
-### Con la strada Azure non è l'account con cui si entra in XRCopilotLab
-
-Con `login` **non lo è** (strada 1: account aziendale) e il confronto cambia: è: la distinzione che segue vale solo per la strada Azure. È la confusione da
-sciogliere per prima quando si passa a quella, perché l'utente ha ragione a sentirsi già dentro.
-XRCopilotLab si usa con un'identità **Azure AD B2C** — la pagina di accesso è
-`xrcopilotlab.b2clogin.com`, con email e password registrate sul momento oppure **Login with
-Google**. È una directory **diversa** da quella aziendale, e le due non si incontrano mai.
-
-| | Chi **usa** XRCopilotLab | Chi **esegue** la CLI |
-|---|---|---|
-| Directory | Azure AD B2C (`xrcopilotlab.onmicrosoft.com`) | Entra ID aziendale (`hevolus.it`) |
-| Identità | email registrata, o account Google | account `hevolus.it` |
-| Serve a | chat, UI, processi, work item | leggere App Configuration e Key Vault, comandare l'API |
-| Conta qui? | **no** | sì, è l'unica che conta |
-
-Quindi, **sulla strada Azure**, non è solo che il *ruolo* dentro il prodotto non conta: **non conta nemmeno
-l'account**. Chi amministra un tenant XRCopilotLab con un'identità B2C non ha, per ciò stesso, alcun accesso
-alla CLI — e chi ha i ruoli Azure non entra, per ciò stesso, nel prodotto.
-
-Conseguenza pratica: **per scrivere, questo strumento resta per l'AI Team di Hevolus**, che configura
-XRCopilotLab a valle di un assessment. Con l'identità l'accesso in **lettura** si apre anche a chi è utente del
-proprio tenant, ma `apply` e le altre scritture non sono ancora sulla superficie nuova: non è ancora uno
-strumento da mettere in mano al cliente.
+**L'account con cui si usa Claude non c'entra niente**: la CLI parla con l'API di XRCopilotLab, e l'identità che
+conta è quella con cui la persona entra nel prodotto. Un account Microsoft personale non funziona: l'API accetta
+l'account aziendale `hevolus.it` (B2C e i clienti arriveranno dopo).
 
 ### Gli indirizzi nel manifest sono utenti del prodotto, non identità Azure
 
@@ -214,22 +159,6 @@ Attenzione a un caso che nasconde la distinzione: quando la stessa persona ha en
 identità Azure per lanciare la CLI e utente del prodotto per ricevere i compiti — la mail è la
 stessa stringa in due panni diversi, e sembra che ci sia un solo account. Non c'è.
 
-I ruoli sono due, più due solo per chi imposta segreti:
-
-| Per fare | Ruoli sull'ambiente |
-|---|---|
-| `validate` | nessuno — non tocca la rete |
-| `push`, `plan`, `apply`, `status`, `rollback`, `delete` | **App Configuration Data Reader** e **Key Vault Secrets User** |
-| in più, `secrets set` | **App Configuration Data Owner** e **Key Vault Secrets Officer** |
-
-Tutto passa da lì: la chiave di Cosmos e la stringa dello storage sono riferimenti a Key Vault
-dentro App Configuration, quindi non servono ruoli su Cosmos, sullo storage o sull'API.
-
-**Chi ha un account `@hevolus.it` non dovrebbe doverli chiedere:** sono assegnati a un gruppo Entra
-dinamico (issue [xrcopilotlab-iac-terraform#64](https://github.com/hevolusinnovation/xrcopilotlab-iac-terraform/issues/64)).
-Se un messaggio dice che mancano comunque, non si manda l'utente a cercare chi glieli dia: si segnala
-con `report-problem --kind access`.
-
 ### La consegna agli amministratori: chi chiede non è chi esegue
 
 Quando un blueprint ha passi fuori dalla piattaforma (Entra, Exchange, segreti) si scrive una
@@ -237,10 +166,10 @@ consegna da inoltrare. Chi la chiede è spesso **fuori dall'AI Team** — un Sal
 agente — e la consegna non deve trasformare la sua richiesta in privilegi per lui. Regole, senza
 eccezioni:
 
-- **Mai ruoli Azure per una persona.** Né *App Configuration Data Owner/Reader* né *Key Vault
-  Secrets Officer/User*: valgono sull'intero App Configuration e sull'intera Key Vault
-  dell'ambiente — i segreti di **tutti** i blueprint e di tutti i tenant — non sul tag di chi li
-  chiede. Se all'utente mancano, è `report-problem --kind access`, non una riga della consegna.
+- **Mai ruoli Azure per una persona.** La CLI non ne usa (#1772): né *App Configuration Data
+  Owner/Reader* né *Key Vault Secrets Officer/User*, che varrebbero sull'intero ambiente — i segreti di
+  **tutti** i blueprint e di tutti i tenant. Un permesso che manca è un ruolo **nel prodotto**
+  (amministratore del tenant, operatore di piattaforma), e lo si segnala con `report-problem --kind access`.
 - **`push`, `plan`, `apply` e `secrets set` in produzione li esegue l'AI Team.** Chi ha chiesto il
   blueprint consegna il manifest e approva il piano; non lancia la CLI su `prod`. E prima di prod
   c'è staging.
@@ -255,39 +184,6 @@ eccezioni:
   [`references/mcp-builder.md`](references/mcp-builder.md), «Quando l'agente parla con chi non è
   il titolare della casella»).
 
-Si verificano così, senza indovinare:
-
-```bash
-az account show --query "{tenant:tenantId, utente:user.name}" -o tsv
-az role assignment list --assignee <id-utente> --scope <id-della-risorsa> --include-inherited \
-  --query "[].roleDefinitionName" -o tsv
-```
-
-### `az login` non è obbligatorio, ma il primo accesso sì — e non lo puoi fare tu
-
-`BlueprintCredential` prova in quest'ordine: prima tutto ciò che è **già** configurato sulla
-macchina (variabili d'ambiente, identità gestita, Visual Studio, Azure CLI), e **solo in fondo**
-apre il browser, con un token che resta in cache fra le esecuzioni. Chi ha già fatto `az login` non
-nota differenza; chi non ha Azure CLI installata non deve installarla.
-
-C'è però una condizione che cambia tutto quando la skill gira dentro un assistente: **il ramo del
-browser esiste solo con un terminale vero.** `ConsoleOutput.IsInteractive` è falso appena
-ingresso o uscita sono rediretti — cioè sempre, quando il comando lo lancia l'assistente. È una
-scelta voluta (meglio fallire dicendo cosa manca che restare appesi a una pagina che nessuno apre),
-ma la conseguenza è precisa:
-
-> **Il primo accesso lo deve fare la persona, nel proprio terminale. Non è eseguibile nel flusso.**
-
-Quindi, davanti a un errore di autenticazione, non riprovare e non cercare scorciatoie: far
-lanciare all'utente **uno** di questi, una volta per macchina —
-
-```
-az login
-```
-
-— oppure, se non ha Azure CLI, un qualsiasi comando della CLI dal **suo** terminale (`xrcopilotlab-bp
-status`): si apre il browser, e da lì in poi il token in cache vale anche per i comandi che lanci tu.
-
 ### Se l'utente non è tecnico
 
 È il caso per cui esiste il plugin, e conviene dirgli tre cose e non di più:
@@ -295,8 +191,8 @@ status`): si apre il browser, e da lì in poi il token in cache vale anche per i
 1. la CLI se la installa il plugin da solo — `/plugin marketplace add hevolusinnovation/hevolus-claude-plugins`
    e `/plugin install blueprints@hevolus`, e serve l'accesso Hevolus, quello con cui entra nella
    posta aziendale;
-2. la prima volta si apre una pagina del browser: è normale, e succede una volta sola su quella macchina.
-   Con l'identità è l'accesso di XRCopilotLab (lo stesso della UI); sulla strada Azure è l'accesso ad Azure;
+2. la prima volta (`login`) si apre una pagina del browser: è normale, un clic, e succede una volta sola su quella
+   macchina per ambiente;
 3. se compare un errore che parla di ruoli o di permessi, non è qualcosa che può risolvere da sé, e
    **non deve nemmeno scrivere a nessuno**: lo segnali tu al team, con `report-problem`, come
    descritto in [«Quando non lo risolvi tu»](#quando-non-lo-risolvi-tu-ruoli-mancanti-e-difetti).
@@ -313,6 +209,8 @@ saperlo subito**, senza che l'utente debba ricordarsi di scrivere:
 | Che cosa è successo | `--kind` | Chi interviene |
 |---|---|---|
 | Un messaggio dice che manca il ruolo **App Configuration Data Reader** (App Configuration) o **Key Vault Secrets User** (Key Vault) sull'utenza | `access` | Di norma nessuno: i due ruoli li dà il **gruppo Entra dinamico `@hevolus.it`** (issue [xrcopilotlab-iac-terraform#64](https://github.com/hevolusinnovation/xrcopilotlab-iac-terraform/issues/64)). Se l'utente è appena entrato o il gruppo non è ancora applicato, il team |
+| Il piano avvisa `BP178`, oppure dopo l'apply un server **nativo** (PEC, posta, Google) risponde **401** o **405** a «elenca i tool» e a ogni chiamata | `access` | DevOps: la chiave di piattaforma dei server nativi è configurazione dell'Api (`NativeMcp:Servers`, #1768) e in quell'ambiente manca o non è allineata. Non è il manifest, non è la password della casella, e **non si chiede a nessuno la chiave né si incolla nell'indirizzo del server** |
+| L'API risponde che la persona non è utente o amministratrice del tenant, che serve l'operatore di piattaforma, o che l'accesso con l'identità «non è ancora attivo» sull'ambiente | `access` | Chi amministra il tenant nel prodotto (utenti e ruoli), o l'AI Team per il ruolo di piattaforma e per la configurazione dell'API (build precedente alla #1779, o `CliAccess:Closed`) |
 | Il blueprint chiede una **funzionalità che il manifest non sa esprimere** e la piattaforma non ha (nessun tipo di step, campo, connettore o capacità equivalente: hai controllato `copertura.md` (il registro di copertura, nel repository di prodotto) e `BP052`/`external` non la risolvono) | `feature` | Il team: valuta se si sviluppa o se esiste già una forma nativa che non conosci |
 | Qualcosa non funziona e la causa è la **webapp o la libreria**, non il manifest né l'utente: eccezione dell'API, 5xx, un comando o un endpoint che il manuale cita e non esiste, un esito che contraddice la documentazione, il codice di uscita `4` che non dipende dai dati | `defect` | Il team, sul codice |
 
@@ -320,13 +218,12 @@ saperlo subito**, senza che l'utente debba ricordarsi di scrivere:
 
 ```bash
 xrcopilotlab-bp report-problem --kind access --env staging --tag MARKETING --manifest-version 16 \
-    --command "plan --tag MARKETING" --message "Non hai accesso a appcs-xrcopilotlab-staging-01: serve App Configuration Data Reader."
+    --command "plan --tag MARKETING" --message "L'API risponde 403 su staging: la persona non è amministratrice del tenant Hevolus."
 ```
 
 La segnalazione arriva all'**AI Team per mail** (l'Api la manda ai destinatari di `SupportReport:NotifyEmails`,
 e chi risponde risponde a chi ha segnalato); porta **chi** sta usando la skill, l'**ambiente**, il **manifest**
-(tag, versione, file) e il messaggio. Non apre processi né attività sul tenant. Funziona anche a chi non ha i ruoli: non legge l'App Configuration, prova chi è con il
-token Entra del suo account. Dettagli e limiti in [`cli-reference.md`](references/cli-reference.md).
+(tag, versione, file) e il messaggio. Non apre processi né attività sul tenant. Prova chi è con il token della sessione di `login`. Dettagli e limiti in [`cli-reference.md`](references/cli-reference.md).
 
 Per `feature`, nel messaggio descrivi **che cosa il cliente vuole ottenere** e quale parte del manifest non lo
 esprime, non una soluzione: «il processo deve fare X, non esiste uno step che lo faccia». Vale anche quando a
@@ -348,7 +245,7 @@ Regole che non si derogano:
    dai all'utente quel testo, così com'è, da mandare all'AI Team (giuseppe.zileni@gmail.com,
    marcellomarchetti@hevolus.it), e non riprovare in cerca di un'altra strada. Su produzione la rotta non è
    ancora verificata, quindi il comando lo dice e non prova.
-5. **Se la CLI non c'è o non si può lanciare** (Claude Desktop, nessun terminale, nessun `az login`), il testo lo
+5. **Se la CLI non c'è o non si può lanciare** (Claude Desktop, nessun terminale, nessuna sessione), il testo lo
    scrivi tu, nella stessa forma: una riga d'oggetto `[blueprint] <accesso|difetto|funzionalità mancante> ·
    <ambiente> · <TAG vN>`, poi Chi, Ambiente, Manifest, Comando, Versione della CLI, «Che cosa è successo» con il
    fatto (risorsa, errore, comando) e, per `access`, i due ruoli che sbloccano. Le regole 2 e 3 valgono uguali.
@@ -444,6 +341,12 @@ lavoro». Un file su disco è un appoggio di pochi minuti, e ha un solo ciclo di
    una versione più vecchia, non c'è più: si riparte da `pull` dell'ultima. Per ripulire ciò che era
    in archivio prima della regola: `prune --env staging` (conferma scrivendo `archivio`, o il tag con
    `--tag`), mai in produzione.
+6. **Che cosa è fermo, doppio o mai usato lo dice `audit`** (#1766): `audit --env staging --company <guid>`
+   dà un giudizio per blueprint (tieni, attivo, guarda, doppio, fermo, non usato) con i motivi — ultima
+   attività nell'archivio, tag condiviso, famiglia di varianti, run da chiudere, istanze in corso — e
+   non scrive niente. Un blueprint da non proporre più si segna con `audit keep --tag <TAG> --reason
+   <testo>`; i report vecchi di un tag si tolgono con `test prune --tag <TAG>` (restano gli ultimi di
+   ogni suite e i giudicati; conferma: il tag). A smontare e cancellare restano `rollback` e `delete`.
 
 All'utente si riporta **la versione e il blob** scritti da `push` (`blueprints/<company>/<blueprint>/v<N>/…`),
 mai «salvato in cartella». Un file locale a nome del blueprint che non è nell'archivio è un difetto da
@@ -514,6 +417,28 @@ Sei errori che si fanno se non si sta attenti:
    dei tool** (`oauth_access_token`…), e solo i nostri server nativi lo leggono da lì. E se l'agente
    deve leggere il **contenuto** di PDF o Word che stanno su Drive, la strada sicura è la knowledge
    (file nel topic, indicizzati da un profilo — regola 8), non il server MCP.
+7-quater. **Una casella di posta è `kind: native, service: pec` (certificata) o `service: mail` (ordinaria)**
+   (#1750, #1751): la piattaforma ha due server nativi, PEC e `Mail (IMAP/SMTP)`, lo stesso codice con due
+   facce, e il blueprint ne crea per il tenant la copia con `mailbox:`
+   (l'indirizzo PEC, che è anche l'utente IMAP) e `password:` come **riferimento** a un segreto
+   (`Blueprints:Secrets:<TAG>:pec-password`). Niente app OAuth e niente browser: se il segreto manca
+   all'apply, la copia nasce con la sola casella e la password la mette l'amministratore dalla UI
+   (Interoperabilità › MCP Servers › Autenticazione «Mailbox (IMAP/SMTP)» › Password), oppure `secrets set` e poi
+   `mcp authorize <chiave> --tag <TAG>`, che per la PEC riscrive gli header dal segreto. Il gestore (Aruba,
+   Legalmail, Postecert, Namirial) lo trova il server dal dominio della casella o dai record MX; `imapHost`
+   si dichiara solo se non lo trova. **Non si inoltra la PEC a una casella M365** per leggerla via Graph, e
+   non si costruisce un server `builder` sopra IMAP: non è HTTP. Sola lettura: il server non cancella, non
+   sposta, non segna come letto, e l'archivio legale resta dal gestore. L'ingresso di un processo da una PEC è
+   la forma di sempre: agent task schedulato sull'agente con `mcp: [pec]` e `outputActions` `webhook` verso il
+   processo; gli allegati li porta la piattaforma dalla rotta degli allegati del server, non il tool.
+   **L'invio c'è** (`pec_send_message`, `mail_send_message`) ed è **governato**: il punto di controllo della
+   governance lo valuta come `action.email` sui domini dei destinatari, quindi il regolamento «Perimetro delle
+   comunicazioni» del tenant lo copre; `allowedDomains` nel manifest è il perimetro lato server, l'ultima linea.
+   Quando un agente deve scrivere, proporre sempre la governance (skill `xrcopilotlab-blueprint-governance`) o
+   almeno `allowedDomains`, mai un invio senza perimetro. **La chiave con cui la piattaforma parla ai propri server
+   nativi non è un affare del blueprint** (#1768): la manda l'Api dalla sua configurazione, il manifest non la
+   contiene, la copia del tenant non la porta, e un `BP178` nel piano o un 401/405 dopo l'apply si segnalano con
+   `report-problem --kind access`, mai chiedendo la chiave o scrivendola nell'indirizzo. Dettagli: [`references/mcp-builder.md`](references/mcp-builder.md#pec-e-posta-i-server-nativi-della-piattaforma).
 8. **Il topic non è il RAG.** Il topic è il repository dei file; il **profilo** è ciò che li
    indicizza e che si collega all'agente. Un agente su un topic pieno di file ma senza profilo non
    vede niente. I profili si dichiarano in `knowledge:` e sono **knowledge graph per default**; il
@@ -544,7 +469,55 @@ Sei errori che si fanno se non si sta attenti:
     che la chat mostra all'apertura, prima che l'utente scriva (max 1500 caratteri). **Non** uno step
     `sendMessage` in testa alla catena: il suo testo arriva in chat solo insieme alla risposta
     finale, quando non serve più. Scriverci la forma che una domanda deve avere e due o tre esempi
-    che funzionano davvero.
+    che funzionano davvero. Per un **agente** benvenuto e suggerimenti stanno nel primo elemento di
+    `chatEndpoints` (`welcomeMessage`, `enableSuggestions`, `suggestionMode`, `manualSuggestions`).
+13. **Un agente dichiara il suo tipo e il suo modo di rispondere, quando conta.** `type: base` per un
+    dialogo a più turni: un agente `smart` (il default, Q&A sulla knowledge) ha il grounding stretto e
+    rifiuta un seguito come «B». Poi `verbosityLevel` (`veryConcise`, `concise` di default, `verbose`,
+    `noLimit`), `searchTopK` (estratti per profilo, solo `smart`), `reasoningEffort` (`minimal`…`high`,
+    solo sui modelli che lo supportano), `enablePermanentMemory`, `disableHistory`,
+    `enableGroundednessDetection`, `minRankingScore`, `minWordsValidation`. Ciò che non si scrive prende
+    il default della UI, e in una versione nuova resta com'è sul tenant. Dal 24/10/2026 (#1612): prima
+    l'apply li ignorava e ogni agente nasceva Q&A. Dettagli in `docs/blueprints/manifest-reference.md`,
+    «Tipo, comportamento della risposta e endpoint di chat».
+14. **In un `parallelGroup` ogni membro può avere il suo messaggio e i suoi parametri**:
+    `agentMessages` e `agentSkillMetadata`, dalla chiave dell'agente al messaggio (come
+    `userMessageTemplate`) o ai parametri (come `skillMetadata`). `agentMessages` vuole un
+    `inputMapping` sul gruppo; una chiave che non è fra gli `agents` è un errore. I file generati da un
+    membro diventano `{variabile}_file` / `{variabile}_files` della sua variabile di `agentOutputs`: è
+    così che immagini, clip e voce si generano in parallelo (v4.1.0).
+15. **Un orchestratore si progetta per essere veloce.** Chi lo usa aspetta in chat: ogni secondo di
+    troppo si vede. Prima di consegnare il manifest, rileggere ogni orchestratore con queste regole:
+    - **Un modello per passo, il più piccolo che basta.** Il modello dell'agente vale anche come step di
+      orchestratore (#1552). Un agente che **non ragiona** ma rimette in forma — compone un JSON o un
+      payload per una skill, converte, estrae un campo, smista, controlla una lista — va su `-nano` o
+      `-mini`; la fascia piena resta per chi ragiona su documenti, scrive testi che leggono i clienti o
+      produce numeri ([`references/modelli.md`](references/modelli.md)). Un agente di sola forma, usato
+      solo negli orchestratori e dichiarato su un modello pieno, è `BP176`.
+    - **In parallelo ciò che non dipende da altro.** Due passi in fila dove il secondo non legge niente
+      di ciò che produce il primo si mettono in un `parallelGroup` (`agents`, `agentMessages`,
+      `agentOutputs`, `maxParallel`): girano insieme e il tempo è quello del più lento, non la somma. Il
+      caso tipico è una catena di produzione — immagini e testo, clip e audio, bozza della news e della
+      newsletter. Due agenti in fila indipendenti sono `BP175`. Restano in fila solo i passi che leggono
+      l'output del precedente, quelli con `allowAgentInteraction` e quelli dopo una domanda all'utente.
+    - **Pochi passi, ciascuno con un compito.** Un passo che fa tre cose diventa una chiamata lunga e
+      fragile; tre passi in fila che potrebbero essere uno solo sono tre chiamate. La regola è la
+      dipendenza dei dati: si divide ciò che può girare in parallelo o su un modello più piccolo, si
+      unisce ciò che la stessa chiamata farebbe comunque.
+    - **Niente output che nessuno legge.** `displayOutput: false` sui passi interni (payload, guardie,
+      riformattazioni): la chat mostra solo ciò che serve a chi aspetta, e un gruppo mostrato senza
+      sintesi è `BP096`.
+    - **Le scadenze non accorciano niente.** Un `timeoutSeconds` stretto non rende il passo più veloce:
+      lo fa fallire (le scadenze finalizzano, non cancellano: regola `chat-no-forced-timeout`). Si accelera
+      con il modello e con il parallelo, mai tagliando il tempo concesso.
+    - **Le voci si mostrano come «Nome LINGUA»**, in qualunque orchestratore e in qualunque modulo:
+      `Isabella IT`, `Ava EN`, mai `Isabella (it-IT-IsabellaMultilingualNeural)` (`BP177`). Il passo che
+      compone il payload della voce ha nel suo messaggio la tabella nome → identificativo
+      (`Isabella IT → it-IT-IsabellaMultilingualNeural`), così la persona sceglie un nome e la skill
+      riceve l'identificativo giusto.
+
+    Dopo l'apply, il collaudo di un orchestratore riporta i tempi per passo: il passo più lungo è il
+    primo candidato, a un modello più piccolo o a un gruppo parallelo.
 
 L'id dei flussi lasciarlo fuori: lo genera la CLI, e il file resta leggibile.
 
@@ -570,6 +543,7 @@ lavoro del passo.
 Un agente che deve leggere da un sistema esterno ha bisogno di un **server MCP**. Prima domanda:
 il tenant **ce l'ha già** nel catalogo? Allora è `kind: existing` (regola 7-bis) e non si costruisce
 niente. È un servizio Google da usare a nome di una persona? Allora è `kind: native` (regola 7-ter).
+È una casella PEC o di posta ordinaria? Allora è `kind: native, service: pec` o `service: mail` (regola 7-quater).
 Altrimenti la domanda da farsi è una sola: quella fonte è **HTTP interrogabile**?
 
 Se sì, non si scrive un servizio: si costruisce con **MCP Builder**, e il manifest lo **dichiara** —
@@ -703,10 +677,8 @@ Poi verificare con `xrcopilotlab-bp secrets check <manifest> --env <ambiente>`.
 `--env` non è un dettaglio: senza, la verifica può guardare un ambiente diverso da quello in cui il
 piano andrà a cercare la chiave, e si finisce a rifare due volte la stessa cosa.
 
-Se `secrets set` risponde che non sa in quale Key Vault scrivere, **non indovinare il vault dal
-nome**: si prende da quelli a cui puntano i riferimenti già presenti nell'App Configuration di
-quell'ambiente. Vault dal nome plausibile ma inutilizzati esistono davvero, e scriverci un segreto
-non dà nessun errore — semplicemente nessuno lo legge.
+I segreti li conserva la piattaforma, cifrati, per tenant e tag (#1798): `secrets set` non tocca
+né Key Vault né App Configuration, e non chiede ruoli Azure. Un segreto vale dal piano successivo.
 
 ## 5. Piano, e approvazione umana
 
@@ -797,8 +769,8 @@ risponde, `xrcopilotlab-bp mcp test <server> --tag <TAG>` mostra la risposta gre
 terze parti (l'errore di Entra, il 403 di Graph) senza passare dal modello; `mcp check` dice se
 l'agente carica davvero il server. Dopo aver corretto un segreto con `secrets set`, la connessione
 va riallineata con `connections refresh --tag <TAG>`: porta i valori risolti all'apply, e non cambia
-da sola. Un segreto scambiato con un altro si recupera dalle **versioni precedenti** in Key Vault,
-senza ruotarlo.
+da sola. Un segreto sovrascritto non ha versioni precedenti (#1798): il valore giusto si riprende
+da chi lo possiede.
 
 Due comandi dicono cosa sta succedendo davvero dopo l'apply, senza aprire l'interfaccia:
 `xrcopilotlab-bp schedule logs <chiave-task> --tag <TAG>` (quota giornaliera del task, ultime
@@ -830,6 +802,16 @@ non le crea (`BP169`, avviso) e il resto del blueprint si applica. **Copiando ve
 ha app `kind: demo`** (`promote --to prod`, `catalog install` in prod) si chiede all'utente quali app di demo vuole
 — risposta proposta: tutte — e la risposta va nel comando (`--demo-apps all|none|<k1,k2>`). Le app `kind: product`
 viaggiano sempre.
+
+**Governance e app sono facoltative** (31/10/2026). L'apply crea il blueprint senza la sezione `governance` e senza
+le app, e alla fine — la prima volta che il blueprint arriva sul tenant, anche da una copia — chiede per ciascuna se
+installarla. Dove la CLI gira senza terminale, la domanda si fa all'utente in chat: che cosa porta la governance
+(modelli, regole, schede, responsabile) e quali app; la risposta va nel comando (`apply … --governance yes|no
+--apps all|none|<k1,k2>`, oppure `extras --tag <TAG> --governance … --apps …` dopo). **Mai scegliere al suo posto**,
+e mai `--governance yes` o `--apps` senza la sua risposta. Ciò che si installa mostra il suo piano e chiede il suo sì,
+come un apply. La scelta resta nel run: un aggiornamento tiene allineata la governance accettata e non tocca quella
+rifiutata; un'app si installa una volta sola e poi si aggiorna in App Builder, e alla fine di un aggiornamento si
+propongono solo le app nuove. Ciò che è stato rifiutato si installa a richiesta con `extras`.
 
 ## 6-ter. Una versione nuova su un blueprint già applicato
 
@@ -888,10 +870,9 @@ Quattro cose da dire all'utente, perché sono le quattro che sorprendono:
    ha, `promote` li elenca: vanno impostati con `secrets set --env <destinazione>` prima del
    `plan`.
 5. **La copia è firmata e contata** (#1516): la CLI registra chi l'ha fatta, da dove a dove e
-   quando, e la riga `firmata` del risultato lo dice. La firma è l'identità Entra del terminale: se
-   la riga dice «firma non verificata», la copia è firmata con il nome utente del computer — fare
-   entrare l'utente (`az login` dal suo terminale, è un passo suo) **prima** di copiare, non dopo:
-   la firma di una copia già fatta non si corregge. Il registro è ciò da cui `copies` ricava i
+   quando, e la riga `firmata` del risultato lo dice. La firma è l'email del token con cui la persona ha
+   fatto `login`, e la mette l'API: `promote` vuole una sessione sull'ambiente di origine e una su quello di
+   destinazione. Il registro è ciò da cui `copies` ricava i
    blueprint più usati (§ 6-sexies).
 
 Per rileggere un manifest archiviato — anche senza il file, anche da un altro computer — c'è
@@ -1118,7 +1099,7 @@ disinstallato — e va detto se l'utente chiede «cosa resta» dopo un `delete`.
 | `4` | Esecuzione fallita: riportare lo stato, proporre `--resume` o `rollback`. Se la causa è un difetto della webapp o della libreria, segnalarlo con `report-problem --kind defect` |
 | `5` | In attesa di un passo manuale |
 | `6` | Manca una decisione umana. Piano non approvato: **non aggiungere `--yes` di propria iniziativa**, chiedere il sì. Tenant non scelto: riportare l'elenco dei nomi e chiedere quale |
-| `8` | Serve l'accesso con l'identità: manca la sessione (lanciare `login`, vedi [«Come si entra»](#come-si-entra-prima-lidentità-poi-azure)), il token non è accettato, oppure la persona non è utente del tenant (403). **Non è un ruolo Azure mancante**: non usare `report-problem --kind access`, e non passare alla strada Azure per aggirare un 403 su un tenant |
+| `8` | Serve l'accesso con l'identità: manca la sessione (lanciare `login`, vedi [«Come si entra»](#come-si-entra-login-e-nientaltro)), il token non è accettato, oppure la persona non è utente del tenant (403). **Non è un ruolo Azure mancante**: non usare `report-problem --kind access`, e non passare alla strada Azure per aggirare un 403 su un tenant |
 
 ## Cosa non fare
 

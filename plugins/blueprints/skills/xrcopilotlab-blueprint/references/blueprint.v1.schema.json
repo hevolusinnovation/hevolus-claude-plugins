@@ -280,7 +280,7 @@
           },
           "service": {
             "type": "string",
-            "description": "kind=native: il servizio Google da collegare (calendar, drive o gmail). Dice quale server nativo copiare e quale rotta di autorizzazione usare."
+            "description": "kind=native: il servizio nativo da collegare: calendar, drive, gmail (Google, con l'app OAuth del cliente), pec (casella di posta certificata) oppure mail (casella di posta ordinaria IMAP/SMTP), con le credenziali della casella. Dice quale server nativo copiare e quale forma di credenziali riceve la copia."
           },
           "clientId": {
             "type": "string",
@@ -289,6 +289,45 @@
           "clientSecret": {
             "type": "string",
             "description": "kind=native: riferimento al segreto con il client secret dell'app Google del cliente. Il valore non sta mai nel manifest."
+          },
+          "mailbox": {
+            "type": "string",
+            "description": "kind=native, service=pec|mail: l'indirizzo della casella PEC da leggere, che è anche l'utente IMAP (va al server nativo come header X-Pec-User)."
+          },
+          "login": {
+            "type": "string",
+            "description": "kind=native, service=pec|mail: l'utente IMAP, solo se non coincide con l'indirizzo (InfoCert Legalmail autentica con la USERID della casella). Senza, l'utente è mailbox."
+          },
+          "password": {
+            "type": "string",
+            "description": "kind=native, service=pec|mail: riferimento al segreto con la password della casella (Blueprints:Secrets:<TAG>:<nome>). Il valore non sta mai nel manifest; se il segreto manca all'apply, l'amministratore lo inserisce dalla UI."
+          },
+          "imapHost": {
+            "type": "string",
+            "description": "kind=native, service=pec|mail: host IMAP del gestore, solo se il server nativo non lo ricava dal dominio della casella o dai record MX."
+          },
+          "imapPort": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535,
+            "description": "kind=native, service=pec|mail: porta IMAP, con imapHost. Senza, 993."
+          },
+          "smtpHost": {
+            "type": "string",
+            "description": "kind=native, service=pec|mail: host SMTP per l'invio, solo se il server nativo non lo ricava dal gestore."
+          },
+          "smtpPort": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535,
+            "description": "kind=native, service=pec|mail: porta SMTP, con smtpHost. Senza, 465."
+          },
+          "allowedDomains": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "kind=native, service=pec|mail: i domini a cui la casella può scrivere, applicati dal server a ogni invio come ultima linea (la politica è la governance del tenant). Vuoto: nessun limite lato server."
           },
           "description": {
             "type": "string"
@@ -1795,6 +1834,20 @@
               }
             }
           }
+        },
+        "owner": {
+          "type": "string",
+          "format": "email",
+          "description": "Email del responsabile della governance del tenant: un amministratore del tenant, riceve gli avvisi e può cambiare le impostazioni. Il blueprint non cambia mai il modo della governance."
+        },
+        "ownerNotices": {
+          "type": "string",
+          "enum": [
+            "all",
+            "denies",
+            "off"
+          ],
+          "description": "Quali avvisi riceve per email il responsabile: all (negazioni, approvazioni, avvisi e cambi delle impostazioni), denies (senza gli avvisi), off (nessuna email). Assente: resta com'è sul tenant."
         },
         "publish": {
           "type": "boolean",

@@ -10,11 +10,12 @@ Due regole valgono ovunque nel file:
   [`naming.prefix`](#naming-come-si-chiamano-le-entità). Scriverlo a mano è un errore segnalato
   (`BP014`), perché produrrebbe `BP-TEST-BP-TEST-…`.
 - **I segreti si citano, non si scrivono.** Ogni campo che conterrebbe una credenziale porta il
-  **nome di una chiave** di App Configuration (`Blueprints:Secrets:<TAG>:<nome>`), creata con
-  `xrcopilotlab-bp secrets set`. `<TAG>` è il tag del manifest: un valore in chiaro, o la chiave di
-  un altro tag, è un errore (`BP047`) — chi applica leggerebbe la credenziale di un altro blueprint.
-  Il `<nome>` deve poter stare in Key Vault: lettere, cifre, `-`, `.` e `:`, e due nomi che
-  differiscono solo per maiuscole, `.` o `:` sono lo stesso segreto (`BP047`).
+  **nome di un segreto** (`Blueprints:Secrets:<TAG>:<nome>`), caricato con
+  `xrcopilotlab-bp secrets set` e conservato cifrato dalla piattaforma, per tenant e tag (#1798).
+  `<TAG>` è il tag del manifest: un valore in chiaro, o la chiave di un altro tag, è un errore
+  (`BP047`) — chi applica leggerebbe la credenziale di un altro blueprint. Il `<nome>`: lettere,
+  cifre, `-`, `.` e `:`, al più 200 caratteri, e due nomi che differiscono solo per le maiuscole
+  sono lo stesso segreto (`BP047`).
 
 ## Intestazione
 
@@ -386,6 +387,13 @@ agents:
 `language` di primo livello — il comportamento storico. Con uno o più elementi se ne crea uno per
 ciascuno: un agente importato con due endpoint nel tenant sorgente ne ha due anche in destinazione.
 Sempre inattivi: l'attivazione, come quella dell'agente, resta una scelta di chi importa.
+
+Nell'**apply** di un blueprint l'agente ha un solo endpoint, quello di default, attivo: è su quello che si chatta, e
+riceve `welcomeMessage`, `enableSuggestions`, `suggestionMode` e `manualSuggestions` del **primo** elemento di
+`chatEndpoints`, alla creazione e in un aggiornamento sul posto. Valgono solo i campi dichiarati: uno assente resta
+com'è sul tenant (per esempio un benvenuto scritto dalla UI). Il piano dice «messaggio di benvenuto» o
+«suggerimenti» quando cambiano. Fino alla #1700 (ottobre 2026) l'apply li ignorava, e l'endpoint nasceva con il
+benvenuto vuoto e senza suggerimenti.
 
 Il tipo e le impostazioni di risposta valgono alla creazione (ciò che non si dichiara prende il default della UI:
 Q&A, `concise`, 1.2, …) e in un aggiornamento sul posto, dove cambiano **solo** se dichiarati. Fino alla #1612
@@ -760,7 +768,73 @@ mcpServers:
   (`BP063`): `mcp authorize` la completa.
 - **Si smonta col blueprint**: il rollback toglie la riga OAuth e poi il server dal catalogo del tenant.
   Il server nativo di piattaforma non si tocca mai.
+- **La chiave di piattaforma non è nel manifest né nella copia** (#1768): il server nativo la riceve dall'Api, che la
+  legge dalla propria configurazione (`NativeMcp:Servers`, una voce per host) e la manda come header. Il manifest non ha
+  un campo per essa e nessuno la chiede a nessuno. Se il piano avvisa `BP178`, il modello del catalogo porta ancora la
+  chiave nell'indirizzo: l'apply prosegue, l'ambiente va allineato da DevOps (`report-problem --kind access`). Vale anche
+  per i server `service: pec | mail`.
 - Gli agenti lo citano in `mcp:` come qualunque altro server.
+
+#### `kind: native, service: pec | mail` — una casella di posta, con le credenziali del tenant
+
+Per leggere e scrivere da una casella di **posta elettronica certificata** (`service: pec`) o di **posta
+ordinaria** IMAP/SMTP (`service: mail`) (#1750, #1751). I due server nativi della piattaforma, `PEC` e
+`Mail (IMAP/SMTP)`, sono lo stesso codice con due facce, uno per tutti i tenant, e non conservano niente:
+la copia che il blueprint crea per il tenant porta la casella e la sua password negli header che il server
+legge a ogni chiamata. Niente app OAuth, niente `mcp authorize` interattivo.
+
+```yaml
+mcpServers:
+  - key: pec
+    kind: native
+    name: PEC protocollo                    # riceve il prefisso BP-<TAG>-
+    service: pec
+    mailbox: protocollo@pec.comune.esempio.it
+    # login: C12345                         # solo se l'utente IMAP non è l'indirizzo (Legalmail: la USERID)
+    password: Blueprints:Secrets:COMUNE:pec-password
+    # imapHost: mbox.cert.legalmail.it      # solo se il server non ricava il gestore da dominio o MX
+    # imapPort: 993
+    # smtpHost: sendm.cert.legalmail.it     # idem, per l'invio
+    allowedDomains: [comune.esempio.it, pec.comune.esempio.it]   # perimetro lato server per l'invio (facoltativo)
+  - key: posta
+    kind: native
+    name: Posta ufficio
+    service: mail                            # casella ordinaria: stessi campi
+    mailbox: ufficio@comune.esempio.it
+    password: Blueprints:Secrets:COMUNE:posta-password
+```
+
+- **La copia ha una riga di credenziali di tipo «Mailbox (IMAP/SMTP)»**, quella che la UI mostra come un client
+  di posta: casella, utente IMAP se diverso, password, server e porte, domini ammessi. La piattaforma la traduce
+  in header `X-Mail-*` a ogni chiamata. La **password** è un riferimento a un segreto (`BP047` rifiuta un valore
+  in chiaro). Se il segreto manca all'apply la copia nasce con la sola casella e il piano avvisa (`BP063`):
+  l'amministratore completa la password dalla UI (Interoperabilità › MCP Servers › Autenticazione «Mailbox
+  (IMAP/SMTP)»), oppure `secrets set` e poi `mcp authorize <chiave> --tag <TAG>`, che per un server di casella
+  riscrive la riga dal segreto e non apre nessun browser.
+- **Il gestore si trova da sé**: dal dominio della casella (`@pec.it` → Aruba) o dai record MX del dominio
+  (una casella `@pec.comune.x.it` ha l'MX del suo gestore). `imapHost` e `imapPort` servono solo se non lo
+  trova; `imapPort` senza `imapHost` è un errore.
+- **`clientId` e `clientSecret` non si usano** con `service: pec` o `mail`, e `mailbox`/`password` non si usano
+  con un servizio Google: scambiarli è `BP043`. `allowedDomains` contiene domini, non indirizzi.
+- **Sola lettura**: il server non cancella, non sposta e non segna come letto; l'unico segno è una parola
+  chiave IMAP privata che la piattaforma usa come cursore (`pec_mark_processed`). La casella del gestore resta
+  l'archivio legale.
+- **Cosa vede l'agente**: con `pec`, `pec_list_messages` (buste, ricevute, posta ordinaria, dalla data, solo non
+  processati), `pec_read_message` (dati di certificazione, esito della firma del gestore, messaggio originale,
+  elenco allegati), `pec_list_receipts` (le ricevute di un messaggio inviato e l'esito: accettato, consegnato,
+  fallito), `pec_send_message`; con `mail`, `mail_list_messages`, `mail_read_message` (una PEC arrivata in una
+  casella ordinaria viene comunque scomposta), `mail_send_message`, `mail_mark_processed`. Gli allegati li
+  scarica la piattaforma da una rotta a parte, perché superano il limite dei tool.
+- **L'invio è governato.** Il punto di controllo della governance riconosce i tool di invio (`pec_send_message`,
+  `mail_send_message`, anche `gmail_send_message`) e li valuta come `action.email`, con i domini e il numero dei
+  destinatari: il regolamento **«Perimetro delle comunicazioni»** del tenant vale per questi invii come per i
+  passi email degli orchestratori. `allowedDomains` è in più un perimetro **lato server**, l'ultima linea: un
+  destinatario fuori viene rifiutato per dominio anche se la governance è spenta. Gli allegati in uscita non
+  sono ancora disponibili.
+- **L'ingresso di un processo** da una PEC è la forma di sempre: agent task schedulato sull'agente con questo
+  server, e `outputActions` `webhook` verso `processes.<chiave>.webhook`.
+- **Si smonta col blueprint**: il rollback toglie la riga di credenziali e poi la copia del server. Il server
+  nativo di piattaforma non si tocca mai.
 
 #### `kind: existing` — un server che è già sul tenant
 
@@ -845,8 +919,8 @@ mcpServers:
 
 All'apply la connessione nasce con un indirizzo di attesa (`https://webhook-in-attesa.invalid/`,
 che non risolve); dopo la creazione del webhook l'operazione **«Scrive nella connessione indirizzo e
-chiave»** mette l'URL vero, la chiave nell'header `X-Api-Key`, e conserva la chiave in Key Vault come
-`Blueprints:Secrets:<TAG>:webhook-<chiave-processo>`. Il server MCP non si ritocca: i tool leggono la
+chiave»** mette l'URL vero, la chiave nell'header `X-Api-Key`, e conserva la chiave fra i segreti del
+tenant come `Blueprints:Secrets:<TAG>:webhook-<chiave-processo>`. Il server MCP non si ritocca: i tool leggono la
 connessione a ogni chiamata. Il corpo della POST diventa il `caseData` iniziale dell'istanza, come
 per il webhook alimentato da un agent task. `baseUrl` o `auth` insieme a `process` sono un errore
 (`BP045`), come un processo senza `webhook: { enabled: true }`.
@@ -955,7 +1029,9 @@ pausa a ogni domanda e il messaggio dopo riprende lo stesso step.
 il suo endpoint di chat (come «Default Agent Endpoint» per gli agenti), e `welcomeMessage` è ciò
 che la chat mostra **all'apertura, prima che l'utente scriva**: il posto giusto per dire come si fa
 una domanda a questa orchestrazione e suggerirne alcune. Al massimo 1500 caratteri (`BP016`);
-`language` è la lingua dell'endpoint (default `it`). Uno step `sendMessage` in testa **non** serve
+`language` è la lingua dell'endpoint (default `it`; `xx` = automatica, multilingua). Su un blueprint già applicato
+un `language` diverso da quello del tenant è un aggiornamento sul posto nel piano («lingua (xx → it)»); se non è
+dichiarato resta quello che c'è. Uno step `sendMessage` in testa **non** serve
 allo scopo: il suo testo arriva in chat solo insieme alla risposta finale.
 
 ```yaml
@@ -1275,6 +1351,8 @@ con #1652, dopo la riunione con il CTO del 26/10/2026):
 
 ```yaml
 governance:
+  owner: responsabile@cliente.it            # amministratore del tenant: riceve gli avvisi; il modo non cambia
+  ownerNotices: denies                      # all (default) | denies (senza gli avvisi) | off (nessuna email)
   models:                                   # regolamenti Hevolus, mai scritti dal blueprint
     - id: uscite-di-rete                     # per tema, o per riferimento: riferimento-gdpr, riferimento-ai-act…
       agents: [istruttoria]                  # a chi si applica; assente = tutti gli agenti
@@ -1319,9 +1397,11 @@ governance:
 | `rules[].completes` | L'id di una regola Hevolus «da completare» (vuole un valore del cliente, come i domini ammessi): la regola del manifest ne prende il posto nei regolamenti Hevolus applicati. Senza, il piano dice quali restano da completare (`BP156`); un id che non è una regola Hevolus ferma il piano (`BP157`). |
 | `ruleGroups[]` | I regolamenti del blueprint: `key`, `title` (prende il prefisso), `description`, `rules` (chiavi di `governance.rules` o id di regole Hevolus), `agents`, `enabled`. Una regola dentro un regolamento vale dove vale il regolamento; se due ambiti si sovrappongono vince il più largo (`BP157`). |
 | `systems.<agente>` | Finalità, classificazione e alternativa dell'agente nella sua scheda. **Il responsabile non si scrive qui**: è una persona del cliente, e si indica dalla scheda dopo l'installazione. |
+| `owner` | L'email del **responsabile della governance** del tenant (#1710): un **amministratore del tenant**, che riceve gli avvisi e può cambiare le impostazioni della governance; è anche il responsabile predefinito delle schede Sistemi che non ne hanno uno. Un indirizzo non valido ferma il piano (`BP170`), e lo stesso codice dice che l'indirizzo non è un amministratore del tenant. **Il blueprint non cambia mai il modo della governance**: scrive solo il responsabile, a ogni apply (anche negli aggiornamenti), e un rollback non lo toglie. |
+| `ownerNotices` | Quali avvisi riceve per email il responsabile: `all` (negazioni — in Applica e, in Osserva, «avrebbe negato» —, approvazioni, avvisi e cambi delle impostazioni), `denies` (senza gli avvisi, che sono i più frequenti) oppure `off` (nessuna email: il registro registra comunque tutto). Assente: resta com'è sul tenant, dove si cambia anche dalla Dashboard. Un valore diverso ferma il piano (`BP170`). |
 | `publish` | Pubblica la copia di lavoro del tenant dopo l'apply. Se il tenant ha modifiche non pubblicate che non sono del blueprint, il piano si ferma: pubblicherebbe il lavoro di qualcun altro. |
 
-Che cosa fa il piano (`BP148`–`BP157`):
+Che cosa fa il piano (`BP148`–`BP157`, `BP170`):
 
 - un **regolamento Hevolus** si cerca fra quelli dell'ambiente; uno già applicato **a mano** ferma il piano; le sue regole
   da completare che nessuna regola del manifest completa si dicono (`BP156`);
@@ -1331,7 +1411,17 @@ Che cosa fa il piano (`BP148`–`BP157`):
 - se la **governance del tenant è spenta** lo dice (`BP155`): le regole si scrivono e si pubblicano, ma decidono solo dopo
   che una persona la accende da Governance › Stato. **Il blueprint non la accende mai**;
 - la **pubblicazione** chiude il piano, e si ferma se la governance del tenant ha modifiche non pubblicate di altri;
+- un **aggiornamento** che non cambia la sezione `governance`, con tutto ancora sul tenant, non la riapplica e non la ripubblica (`BP173`, #1731);
+- un **regolamento già applicato a mano** a tutti gli agenti, e acceso, copre già il blueprint: avviso (`BP172`, #1730), il blueprint non lo riapplica e non lo prende in carico;
+- un **regolamento già applicato ad altri agenti** — da un altro blueprint dello stesso tenant o da una persona — si **estende** con gli agenti del blueprint, se il manifest ne nomina (`BP174`, #1740): l'inventario registra quali sono, un aggiornamento cambia solo quelli e un rollback toglie solo quelli;
 - un ambiente **senza governance** lascia fuori la sezione, con un avviso.
+
+**La governance è facoltativa** (31/10/2026). L'apply crea il blueprint senza la sezione `governance`, e alla fine
+della prima installazione — anche da una copia — chiede se installarla (`--governance yes|no` senza un terminale,
+oppure `extras` dopo): con un sì il piano qui sotto gira in un run suo, con la sua approvazione. Da lì la scelta
+resta nel run: un aggiornamento tiene allineata la governance accettata come descritto qui, e non tocca quella
+rifiutata — nemmeno il responsabile (`owner`). Una rifiutata si installa con `extras --governance yes`. Un run nato
+prima della scelta che ha la governance in inventario conta come «accettata».
 
 Che cosa fa l'apply, con gli stessi endpoint della pagina Governance › Policy:
 
@@ -1341,6 +1431,7 @@ Che cosa fa l'apply, con gli stessi endpoint della pagina Governance › Policy:
 | `CreateGovernanceRule` / `UpdateGovernanceRule` | crea la regola nella copia di lavoro, con `agent` risolto e `completes` come regola di origine; in un aggiornamento la modifica sul posto | `GovernanceRule` (id della regola) |
 | `CreateGovernanceRulebook` / `UpdateGovernanceRulebook` | crea il regolamento, con le chiavi delle regole risolte negli id del run e gli agenti nei loro id; in un aggiornamento lo modifica sul posto | `GovernanceRulebook` (id del regolamento) |
 | `DeclareGovernanceSystem` | scrive finalità, classificazione e alternativa; in un aggiornamento tiene il responsabile indicato da una persona | `GovernanceSystem` (id dell'agente) |
+| `SetGovernanceOwner` | scrive il responsabile della governance, prima della pubblicazione; il modo non si tocca. Si ripete a ogni apply | nessuna: il rollback non lo cancella |
 | `PublishGovernance` | pubblica la copia di lavoro: le regole entrano in vigore (se la governance del tenant è accesa) | `GovernancePublication` (ultima versione) |
 
 Regolamento Hevolus, scheda e pubblicazione si ripetono a ogni apply (sono idempotenti): in un aggiornamento il run
@@ -1401,25 +1492,23 @@ Le regole:
 - **Chi copia sceglie le app di demo**: `promote` e `catalog install` chiedono quali portare, con risposta proposta
   tutte (`--demo-apps`, vedi [`cli-reference.md`](cli-reference.md)). Le app `product` viaggiano sempre.
 - **Le app non stanno nei moduli**: si scelgono alla copia, non all'apply.
-- **L'apply crea ogni app in App Builder**, per ultima: un progetto con il prefisso del blueprint (il nome è
-  `title`) e, come snapshot, i sorgenti della versione. Non apre una sessione e non consuma il budget del mese: la
-  prima sessione che qualcuno apre riparte da quei file, stesi sopra il template. L'app entra nell'inventario
-  (`App`), e `rollback` e `delete` tolgono il progetto con il suo snapshot. Un progetto con una sessione aperta non
-  si toglie: va chiuso prima da App Builder.
+- **Le app sono facoltative, e si installano una volta sola** (31/10/2026). L'apply crea il blueprint senza le app;
+  alla fine chiede quali installare (`--apps` senza un terminale, oppure `extras` dopo). Un'app scelta diventa un
+  progetto in App Builder con il prefisso del blueprint (il nome è `title`) e, come snapshot, i sorgenti della
+  versione. Non apre una sessione e non consuma il budget del mese: la prima sessione che qualcuno apre riparte da
+  quei file, stesi sopra il template. L'app entra nell'inventario (`App`), e `rollback` e `delete` tolgono il
+  progetto con il suo snapshot. Un progetto con una sessione aperta non si toglie: va chiuso prima da App Builder.
 - **Con App Builder spento sul tenant** le app non si creano e il piano lo dice (`BP165`); il resto si applica.
   Un progetto con lo stesso nome già sul tenant è una collisione (`BP060`).
 - **Le app si creano solo in produzione** (`BP169` altrove): App Builder apre le sessioni solo lì. Fuori produzione
-  sezione e sorgenti restano nell'archivio e viaggiano con la copia; verso la produzione `promote` e `catalog install`
-  chiedono quali app di demo portare (proposta: tutte).
-- **Un aggiornamento riscrive un'app già creata solo se nessuno ci ha lavorato.** L'apply confronta il progetto in App
-  Builder con i file che aveva scritto:
-  - sorgenti uguali a quelli della versione applicata: niente da fare;
-  - mai aperta dopo l'apply, oppure aperta senza cambiare i file del blueprint: si aggiorna sul posto (`UpdateApp`);
-  - modificata (un file scritto dall'apply è cambiato o tolto): resta com'è (`BP166`). Per sostituirla
-    `apply --replace-apps <chiave>`, che prima salva l'export del progetto nell'archivio; per tenere le modifiche si
-    riportano nei sorgenti del blueprint e si fa il push di una versione nuova;
-  - sessione aperta: non si scrive (`BP167`);
-  - progetto tolto a mano: si ricrea (`BP168`).
+  non si propongono; sezione e sorgenti restano nell'archivio e viaggiano con la copia, e verso la produzione
+  `promote` e `catalog install` chiedono quali app di demo portare (proposta: tutte).
+- **Un aggiornamento non riscrive mai un'app già creata**: da lì la si aggiorna in App Builder. Il piano la elenca fra
+  ciò che resta com'è, e alla fine propone solo le app che la versione aggiunge. Una rifiutata non si ripropone: si
+  installa con `extras --apps <chiave>`. (Fino al 31/10/2026 un aggiornamento la riscriveva se nessuno l'aveva toccata:
+  `UpdateApp`, `--replace-apps` e i codici `BP166`–`BP168` sono ritirati.)
+- **Una versione scritta dalla chat** porta con sé i sorgenti delle app della versione precedente: la chat non carica
+  file. Un'app nuova in un manifest della chat è `WEB002`: si pubblica dal terminale con `push`.
 - **Un'app di demo lasciata all'origine da `promote`** è nel manifest ma non nell'archivio: l'apply non la crea e
   lo dice. Lo stesso per una versione scritta senza la cartella dell'app (un push fatto lontano dai sorgenti).
 
@@ -1441,4 +1530,5 @@ Come si costruisce un'app e come si adotta quella di un collega: skill `xrcopilo
 | `BP090`–`BP092` | Orchestratori: tipo di step, campi, grafo |
 | `BP132`–`BP138` | Moduli: chiavi, entità elencate, appartenenza unica, dipendenze chiuse, cicli, scelta con `--modules`, rollback di un modulo richiesto |
 | `BP139`–`BP141` | Dati di collaudo: voce incompleta, dato di collaudo in produzione (errore), elenco fuori dalla produzione (avviso) |
+| `BP170` | Governance: il responsabile (`governance.owner`) non è un indirizzo email, oppure non è un amministratore del tenant (in quel caso lo dice l'API all'apply, con un 400); oppure `ownerNotices` non è `all`, `denies` o `off` |
 | `BP145`–`BP157` | Governance: sezione malformata, regola che l'editor rifiuterebbe, agente che il manifest non dichiara; nel piano governance non letta, regolamento che l'ambiente non ha, regolamento applicato a mano, modifiche non pubblicate di altri, scheda già compilata, responsabile da indicare, valori ritirati, governance del tenant spenta, regola da completare, regolamento o `completes` che non vanno |

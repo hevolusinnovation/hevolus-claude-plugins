@@ -114,8 +114,8 @@ Testo pronto da inoltrare (adattare l'elenco dei permessi ai tool del blueprint)
 | 4. Segreti nel blueprint e `apply` | **AI Team** |
 
 L'owner di un'app può generarle credenziali nuove, cioè agire come l'app: per questo non è un
-utente senza ruoli amministrativi. E i ruoli per la CLI (App Configuration, Key Vault) **non si
-chiedono per una persona** in una consegna: valgono sui segreti di tutti i blueprint dell'ambiente.
+utente senza ruoli amministrativi. E nessun ruolo Azure **si chiede per una persona** in una consegna:
+la CLI non ne usa (#1772), e i segreti dei blueprint li conserva la piattaforma (#1798).
 
 ## 1. La registrazione applicativa (AI Team)
 
