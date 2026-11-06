@@ -3,14 +3,15 @@
 Questa pagina è per chi deve **usare** gli strumenti, non per chi li sviluppa. Non serve saper
 programmare, non serve clonare niente e non serve scrivere comandi in un terminale.
 
-Un'eccezione sola, e conviene saperla adesso: il **primo accesso ad Azure** — una volta sola, su
-quella macchina — va fatto da un terminale vero, e Claude non può farlo al posto tuo. Il perché e
-come si fa: [§ L'accesso ad Azure](accesso-azure.md). Riguarda solo i blueprint; l'assessment no.
+Una cosa sola da sapere adesso: per i blueprint si entra con il **tuo account aziendale**, una volta
+per ambiente (`xrcopilotlab-bp login`, si apre il browser e il clic è tuo, anche quando il comando lo
+lancia Claude). Niente ruoli Azure: [§ L'accesso](accesso-azure.md). Riguarda solo i blueprint;
+l'assessment no.
 Per la delivery Atlas c'è in più uno script da lanciare una volta, che collega il CMS a Claude:
 [§ Il server MCP «atlas»](#il-server-mcp-atlas--per-la-delivery-atlas).
 
-> C'è anche in forma di **pagina da aprire**, con i comandi da copiare con un clic e la richiesta
-> dei ruoli Azure già scritta: [`sito/index.html`](../sito/index.html). È la forma da girare a un
+> C'è anche in forma di **pagina da aprire**, con i comandi da copiare con un clic:
+> [`sito/index.html`](../sito/index.html). È la forma da girare a un
 > collega che non ha questo repository — si apre con un doppio clic, non ha bisogno di niente.
 
 ## Un'app sola, due schede
@@ -187,7 +188,7 @@ il plugin porta le skill e si procura da solo lo strumento a riga di comando.
 |---|---|---|
 | **L'app Claude, scheda Code** | è lì che gira il plugin | [installer per macOS e Windows](#unapp-sola-due-schede) — poi accedi e clicca **Code** |
 | **`git`** | registrare il catalogo è un clone di questo repository | chiedi a Claude, nella scheda Code: «`git --version` funziona?» |
-| **I ruoli Azure** | la CLI legge App Configuration e Key Vault dell'ambiente | [§ L'accesso ad Azure](accesso-azure.md) |
+| **Il tuo account aziendale `hevolus.it`** | la CLI entra con `login` e lavora con il tuo token; che cosa puoi fare lo decide il prodotto, tenant per tenant | [§ L'accesso](accesso-azure.md) |
 | **Google Chrome come browser predefinito, con l'estensione Claude in Chrome** | serve a `xrcopilotlab-blueprint-storyboard`: apre lo storyboard e l'applicazione in Chrome e, con l'estensione, guarda le pagine come le vede il cliente | [§ Chrome per lo storyboard](#chrome-per-lo-storyboard) |
 
 > **Nessun account GitHub.** Questo catalogo è pubblico: registrarlo e scaricare la CLI, che sta
@@ -274,9 +275,9 @@ Poi basta chiedere, in una cartella di lavoro qualsiasi:
 - «applica `blueprints/studiopolis-agenda.yml` su staging»
 - «collauda il blueprint STUDIOPOLIS»
 
-> **Prima di provare, leggi [§ L'accesso ad Azure](accesso-azure.md).** Il plugin parla con le
-> risorse Azure di Hevolus, e senza i permessi giusti si ferma al primo comando. Non è qualcosa che
-> si aggira riprovando, e l'account con cui usi Claude non c'entra.
+> **Prima di provare, leggi [§ L'accesso](accesso-azure.md).** Il primo comando ti chiederà di
+> entrare con l'account aziendale (`login`, un clic nel browser), e poi lavori sui tenant di cui sei
+> utente nel prodotto. L'account con cui usi Claude non c'entra.
 
 Cosa fanno le quattro skill del plugin `blueprints`, con che frasi si attivano e cosa producono:
 **[§ Le skill](le-skill.md)** e **[il manuale](../plugins/blueprints/docs/manuale.md)**.
@@ -288,9 +289,9 @@ Cosa fanno le quattro skill del plugin `blueprints`, con che frasi si attivano e
 | `/plugin marketplace add` non riesce | Il catalogo è pubblico, quindi non è un problema di permessi: controlla che `git` sia installato e che il computer raggiunga `github.com` (rete aziendale, proxy, VPN). Se hai un vecchio accesso configurato, prova con l'indirizzo completo: `/plugin marketplace add https://github.com/hevolusinnovation/hevolus-claude-plugins.git` |
 | «non sono riuscito a scaricare …» al primo comando | Il computer non raggiunge `github.com` (rete aziendale, proxy, VPN), oppure la release non ha il binario per la tua piattaforma. Il messaggio dice quale; nel primo caso si riprova da un'altra rete, nel secondo si chiede una release aggiornata |
 | «la release non contiene l'allegato …» | Stai su una versione pubblicata prima del mirror, oppure su una piattaforma senza binario. Chiedi al team una release aggiornata, o fatti passare il binario e indicalo con `XRCOPILOTLAB_BP_BIN` |
-| «Non è detto su quale ambiente lavorare» | Manca `--env`: fuori da un clone non c'è un ambiente predefinito. Dillo a parole («su staging») |
+| «Non hai una sessione valida» | Su questa macchina non hai fatto `login` per quell'ambiente: `xrcopilotlab-bp login --env <ambiente>`, il clic nel browser è tuo. Senza `--env` si lavora su staging |
 | Un comando «non esiste» anche se il manuale lo cita | Sulla macchina c'è un `xrcopilotlab-bp` installato a mano, che l'avviatore preferisce alla copia del plugin — e può essere vecchio di mesi. `xrcopilotlab-bp version` dice quale sta girando e da dove; poi `dotnet tool uninstall --global xrcopilotlab-bp` |
-| Errori su App Configuration o Key Vault | Mancano i ruoli Azure: [§ L'accesso ad Azure](accesso-azure.md) |
+| «non sei un utente di XRCopilotLab», o un 403 su un tenant | Sei entrato, ma nel prodotto non appartieni a quel tenant (o non ne sei amministratore): te lo assegna chi lo amministra, dall'interfaccia. [§ L'accesso](accesso-azure.md) |
 
 ## Solo lo strumento a riga di comando, sul proprio PC
 
@@ -381,9 +382,8 @@ xrcopilotlab-bp --help
 
 L'elenco che stampa è anche la risposta alla domanda «questa versione cosa sa fare»: se un comando
 citato da una guida non compare lì, il binario è più vecchio della guida — si riscarica da una
-release più recente. Fuori da un clone del repository di prodotto ogni comando che tocca la rete
-vuole `--env staging` o `--env prod`, e prima serve
-[l'accesso ad Azure](accesso-azure.md).
+release più recente. Ogni comando che tocca la rete lavora su `staging` o, con `--env prod`, sulla
+produzione, e prima serve una sessione: [`login`](accesso-azure.md).
 
 > **Se hai anche il plugin, attenzione a una cosa.** Un `xrcopilotlab-bp` installato a mano viene
 > preferito dall'avviatore a quello del plugin, e resta fermo alla versione che hai scaricato: è la

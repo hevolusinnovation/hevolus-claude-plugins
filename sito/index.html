@@ -347,9 +347,10 @@
   </p>
 
   <div class="avviso">
-    <b>Prima di tutto il resto: l'accesso ad Azure.</b> È il punto contro cui si sbatte per primo,
-    e non dipende da te. Leggi <a href="#azure">§ L'accesso ad Azure</a> e, se i ruoli non ce li
-    hai, fai partire la richiesta adesso: mentre aspetti, l'installazione la fai lo stesso.
+    <b>Prima di tutto il resto: l'accesso.</b> Si entra con il tuo account aziendale, un clic nel
+    browser, una volta per ambiente — e poi lavori sui tenant di cui sei utente nel prodotto. Leggi
+    <a href="#azure">§ L'accesso</a>: se su un tenant non ci sei, chiedi adesso a chi lo amministra
+    di aggiungerti, e intanto l'installazione la fai lo stesso.
   </div>
 
   <section class="blocco">
@@ -491,109 +492,50 @@
       «All files must be inside the top-level folder».</p>
   </section>
 
-  <!-- ─────────────────────────────  AZURE  ───────────────────────────── -->
+  <!-- ─────────────────────────────  ACCESSO  ───────────────────────────── -->
 
-  <h2 id="azure">L'accesso ad Azure</h2>
+  <h2 id="azure">L'accesso: <code>login</code>, e nient'altro</h2>
   <p>
-    Serve <b>solo</b> al plugin blueprints. Lo strumento legge la configurazione degli ambienti da
-    Azure App Configuration e i segreti da Key Vault: senza i ruoli giusti si ferma al primo
-    comando, e non è qualcosa che si aggira riprovando.
+    Serve <b>solo</b> al plugin blueprints. Dalla versione 3.0.0 lo strumento lavora con il
+    <b>tuo account</b>: si entra una volta per ambiente, e da lì ogni comando parla con la
+    piattaforma con il tuo token. <b>Niente ruoli Azure, niente Azure CLI, niente chiavi.</b> Fino al
+    4 novembre 2026 servivano due ruoli su App Configuration e Key Vault: non servono più, e se
+    qualcuno te li chiede ancora sta leggendo una pagina vecchia.
   </p>
 
   <div class="avviso">
-    <b>L'account con cui usi Claude non c'entra, e nemmeno quello con cui entri in XRCopilotLab.</b>
-    Quello che conta è il tuo account aziendale <code>@hevolus.it</code> — lo stesso della posta.
-    Dentro il prodotto si entra con un'identità diversa (Azure AD B2C, anche con Google): avere
-    XRCopilotLab da amministratore non dà alcun accesso allo strumento, e viceversa.
+    <b>L'account con cui usi Claude non c'entra.</b> Quello che conta è il tuo account aziendale
+    <code>@hevolus.it</code> — lo stesso della posta. Per ora lo strumento è solo per lo staff
+    Hevolus.
   </div>
 
-  <h3>I ruoli, per quello che devi fare</h3>
+  <h3>Come si entra</h3>
+  <p>Una volta per ambiente. Lo puoi chiedere a Claude, nella scheda Code, o lanciarlo tu:</p>
+  <div class="comando">
+    <pre><code>xrcopilotlab-bp login --env staging</code></pre>
+  </div>
+  <p>Si apre il browser: scegli l'account <code>hevolus.it</code> e chiudi la pagina. Il comando
+    aspetta fino a cinque minuti; se il browser non si apre, stampa l'indirizzo da aprire a mano. La
+    sessione resta nel portachiavi del sistema e si rinnova da sola. Per la produzione, lo stesso
+    con <code>--env prod</code>: la sessione è per ambiente.</p>
+
+  <h3>Che cosa puoi fare</h3>
+  <p>Lo decide il prodotto, tenant per tenant — gli stessi tenant che vedi nell'interfaccia:</p>
   <div class="tabella-scorrevole">
   <table>
-    <thead><tr><th>Cosa vuoi fare</th><th>Ruoli necessari</th></tr></thead>
+    <thead><tr><th>Cosa vuoi fare</th><th>Che cosa serve</th></tr></thead>
     <tbody>
-      <tr><td>Controllare un file di blueprint (<code>validate</code>)</td><td><b>nessuno</b>: non tocca la rete</td></tr>
-      <tr><td>Applicare, collaudare, annullare</td><td>App Configuration <b>Data Reader</b> · Key Vault <b>Secrets User</b></td></tr>
-      <tr><td>In più, impostare un segreto</td><td>App Configuration <b>Data Owner</b> · Key Vault <b>Secrets Officer</b></td></tr>
+      <tr><td>Controllare un file di blueprint (<code>validate</code>)</td><td><b>niente</b>: non tocca la rete</td></tr>
+      <tr><td>Leggere: stato, piano, archivio, report</td><td>essere <b>utente</b> del tenant</td></tr>
+      <tr><td>Applicare, collaudare, annullare, impostare un segreto</td><td>essere <b>amministratore</b> del tenant</td></tr>
+      <tr><td>Il catalogo e tutti i tenant</td><td>essere <b>operatore di piattaforma</b> (AI Team)</td></tr>
     </tbody>
   </table>
   </div>
 
-  <h3>Su quali risorse</h3>
-  <div class="tabella-scorrevole">
-  <table>
-    <thead><tr><th>Ambiente</th><th>App Configuration</th><th>Key Vault</th></tr></thead>
-    <tbody>
-      <tr><td><b>staging</b> — quello che si usa quasi sempre</td><td><code>appcs-xrcopilotlab-staging-01</code></td><td><code>kv-xrcopilotlab-stg-01</code></td></tr>
-      <tr><td><b>prod</b> — la produzione</td><td><code>appcs-xrcopilotlab-prod-01</code></td><td><code>kv-xrcopilotlab-prod-01</code></td></tr>
-    </tbody>
-  </table>
-  </div>
-
-  <p class="nota"><b>Gli ambienti sono due.</b> Un <code>preview</code> compariva qui fino al
-    22/09/2026, con risorse che non esistono: <code>xrcopilotlab-preview.hevolus.it</code> è un
-    secondo nome host della <b>produzione</b>, non un ambiente a sé. Chiedere un ruolo su una
-    risorsa inesistente fa perdere un giro a te e a chi amministra.</p>
-
-  <p class="nota">Nella sottoscrizione esiste anche un <code>kv-xrcopilotlab-staging</code>, che
-    <b>non</b> è quello usato da staging. Se ti viene chiesto su quale vault assegnare il ruolo, è
-    <code>kv-xrcopilotlab-stg-01</code>: indovinarlo dal nome fa scrivere i segreti in un vault che
-    nessuno legge, senza errori.</p>
-
-  <h3>Il messaggio da mandare a chi amministra</h3>
-  <p>Copialo, metti il tuo indirizzo e mandalo a un <b>Owner</b> o <b>User Access Administrator</b>
-    del resource group. Contiene già i comandi: così non deve cercare niente.</p>
-
-  <div class="comando">
-    <pre><code>Ciao, devo usare lo strumento di provisioning XRCopilotLab (plugin Claude «blueprints»)
-sull'ambiente di staging. Mi servono due ruoli del piano dati sulla mia utenza
-nome.cognome@hevolus.it, nella sottoscrizione Azure AI:
-
-  · App Configuration Data Reader  su  appcs-xrcopilotlab-staging-01
-  · Key Vault Secrets User         su  kv-xrcopilotlab-stg-01
-
-Due cose che fanno perdere tempo se non si sanno prima: essere Owner della
-sottoscrizione non basta (sono ruoli del piano dati, vanno assegnati esplicitamente),
-e sul vault non serve una access policy — ha l'autorizzazione RBAC attiva, quindi
-un'access policy non ha alcun effetto.
-
-I comandi, se ti è comodo:
-
-UTENTE=nome.cognome@hevolus.it
-SUB=/subscriptions/73961d27-722e-4282-be21-bfb36e97c0f0/resourceGroups/rg-xrcopilotlab-staging-itn-01
-APPCS=$SUB/providers/Microsoft.AppConfiguration/configurationStores/appcs-xrcopilotlab-staging-01
-KV=$SUB/providers/Microsoft.KeyVault/vaults/kv-xrcopilotlab-stg-01
-
-az role assignment create --assignee "$UTENTE" --role "App Configuration Data Reader" --scope "$APPCS"
-az role assignment create --assignee "$UTENTE" --role "Key Vault Secrets User"        --scope "$KV"
-
-Grazie!</code></pre>
-  </div>
-
-  <p class="nota">Se le persone che useranno lo strumento sono più di due o tre, conviene assegnare
-    i ruoli a un <b>gruppo di sicurezza</b>: un posto solo da guardare quando qualcuno cambia
-    squadra.</p>
-
-  <h3>E poi, una volta per macchina</h3>
-  <p>Non serve installare Azure CLI: basta lanciare <b>una volta</b> un comando del plugin
-    <b>da un terminale</b> — per esempio <code>xrcopilotlab-bp status --env staging</code> — e si
-    apre il browser per l'accesso. È l'unico passo di tutta questa pagina che vuole un terminale, e
-    <b>Claude non può farlo al posto tuo</b>: senza un terminale vero quel ramo è disattivato di
-    proposito, perché il comando resterebbe appeso ad aspettare una pagina che nessuno vede. Fatto
-    una volta, tutti i comandi successivi — compresi quelli che lancia Claude per te — usano il
-    token in cache. Se preferisci farlo con Azure CLI, o se hai più sottoscrizioni:</p>
-
-  <div class="comando">
-    <pre><code>az login --tenant hevolus.it
-az account set --subscription "Azure AI"</code></pre>
-  </div>
-
-  <div class="avviso">
-    <b>«App Configuration Data Reader» ha un nome che suona innocuo, e non lo è.</b> Dentro quella
-    configurazione c'è la chiave con cui si comanda l'API di XRCopilotLab su quell'ambiente: chi
-    legge la configurazione può agire sul backend del prodotto. Va chiesto per chi deve
-    configurare ambienti, non come un banale permesso di sola lettura.
-  </div>
+  <p class="nota"><code>xrcopilotlab-bp whoami</code> dice chi sei, su quali tenant e con quale
+    ruolo. Se ti manca un tenant, te lo assegna chi lo amministra <b>nel prodotto</b>,
+    dall'interfaccia: non è un ruolo Azure, e non c'è nessuno a cui chiederlo fuori dal prodotto.</p>
 
   <!-- ─────────────────────────────  ERRORI  ───────────────────────────── -->
 
@@ -611,8 +553,12 @@ az account set --subscription "Azure AI"</code></pre>
         <td>Il messaggio elenca le tre cause e il rimedio di ciascuna. La più frequente: sei autenticato su GitHub, ma con un account che non legge il catalogo.</td>
       </tr>
       <tr>
-        <td>«App Configuration non leggibile», «Key Vault … non è leggibile»</td>
-        <td>Mancano i ruoli: <a href="#azure">§ L'accesso ad Azure</a>. Il messaggio dice quale risorsa e quale ruolo: riportali tali e quali nella richiesta.</td>
+        <td>«Non hai una sessione valida»</td>
+        <td>Su questa macchina non hai fatto <code>login</code> per quell'ambiente: <a href="#azure">§ L'accesso</a>. Il clic nel browser è tuo, anche se il comando lo lancia Claude.</td>
+      </tr>
+      <tr>
+        <td>«non sei un utente di XRCopilotLab», o un 403 su un tenant</td>
+        <td>Sei entrato, ma nel prodotto non appartieni a quel tenant (o non ne sei amministratore). Te lo assegna chi lo amministra, dall'interfaccia: non è un ruolo Azure.</td>
       </tr>
       <tr>
         <td>Il catalogo sparisce, o il plugin non si aggiorna più</td>
@@ -621,8 +567,8 @@ az account set --subscription "Azure AI"</code></pre>
           al team.</td>
       </tr>
       <tr>
-        <td>«Non è detto su quale ambiente lavorare»</td>
-        <td>Non hai detto dove. Aggiungi «su staging» alla richiesta, o <code>--env staging</code> al comando.</td>
+        <td>Il comando lavora su staging, e volevi la produzione</td>
+        <td>Senza indicazioni vale staging. Aggiungi «su prod» alla richiesta, o <code>--env prod</code> al comando — e serve un <code>login --env prod</code>.</td>
       </tr>
       <tr>
         <td>Un comando del manuale «non esiste»</td>
@@ -670,9 +616,9 @@ az account set --subscription "Azure AI"</code></pre>
       Repository: <a href="https://github.com/hevolusinnovation/hevolus-claude-plugins" target="_blank" rel="noopener">hevolus-claude-plugins</a> ·
       manuali: <a href="https://github.com/hevolusinnovation/hevolus-claude-plugins/blob/main/plugins/assessment/docs/manuale.md" target="_blank" rel="noopener">assessment</a>,
       <a href="https://github.com/hevolusinnovation/hevolus-claude-plugins/blob/main/plugins/blueprints/docs/manuale.md" target="_blank" rel="noopener">blueprints</a> ·
-      <a href="https://github.com/hevolusinnovation/hevolus-claude-plugins/blob/main/docs/accesso-azure.md" target="_blank" rel="noopener">accesso ad Azure</a>
+      <a href="https://github.com/hevolusinnovation/hevolus-claude-plugins/blob/main/docs/accesso-azure.md" target="_blank" rel="noopener">l'accesso</a>
     </p>
-    <p>Documento interno di Hevolus Innovation: contiene le coordinate degli ambienti Azure. Si apre
+    <p>Documento interno di Hevolus Innovation: nomina gli ambienti del prodotto. Si apre
       con un doppio clic — non ha bisogno di niente installato — e si gira a un collega come si gira
       un file. Fuori dall'azienda non va.</p>
   </footer>

@@ -40,7 +40,7 @@ Si invocano anche per nome (`/xrcopilotlab-blueprint`, `/xrcopilotlab-blueprint-
 argomenti si orientano e si fermano, senza partire a fare domande.
 
 Il dettaglio di ciascuna, con esempi di manifest e di suite: [§ Le
-skill](../../docs/le-skill.md). Prima di usarlo serve l'accesso ad Azure:
+skill](../../docs/le-skill.md). Prima di usarlo si entra con l'account aziendale (`login`):
 [§ L'accesso](../../docs/accesso-azure.md).
 
 ## Cosa contiene

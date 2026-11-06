@@ -14,8 +14,8 @@ ambiente XRCopilotLab configurato e collaudato.
 | Avere una di queste skill sull'altra app — l'assessment in Claude Code, i blueprint su Desktop — o senza plugin | **Claude Desktop o Claude Code** | scarica `xrcopilotlab-….zip` dalle stesse release: su Desktop si carica in *Impostazioni → Capacità → Skill*, su Code si scompatta in `~/.claude/skills/`. I passi: [§ Una skill da sola](docs/installare.md#una-skill-da-sola-su-desktop-o-su-code) — da Desktop si scrive, non si applica |
 
 **Da girare a un collega che non ha questo repository:** [`sito/index.html`](sito/index.html) — la
-stessa cosa in una pagina sola, che si apre con un doppio clic, con i comandi da copiare, la
-richiesta dei ruoli Azure già scritta e cosa fare quando qualcosa non va. È un file: si manda, si
+stessa cosa in una pagina sola, che si apre con un doppio clic, con i comandi da copiare, come si
+entra e cosa fare quando qualcosa non va. È un file: si manda, si
 mette su una cartella condivisa, o si pubblica dove si vuole.
 
 I passi per intero, in forma di documento: [§ Installare](docs/installare.md).
@@ -104,9 +104,9 @@ porta le skill e scarica da sé lo strumento a riga di comando al primo uso, dal
 stesso catalogo. Servono `git` e un accesso GitHub a `hevolusinnovation`: **uno solo**, quello che
 serviva comunque per installare.
 
-Prima di usare `blueprints` serve l'accesso alle risorse Azure di Hevolus: è il punto contro cui si
-sbatte per primo, non si aggira riprovando, e si sistema una volta sola —
-[§ L'accesso ad Azure](docs/accesso-azure.md).
+Prima di usare `blueprints` si entra con l'account aziendale `hevolus.it` — `xrcopilotlab-bp login`,
+un clic nel browser, una volta per ambiente — e si lavora sui tenant di cui si è utenti nel
+prodotto. Niente ruoli Azure: [§ L'accesso](docs/accesso-azure.md).
 
 **Solo la riga di comando, senza Claude Code?** Il binario si scarica dalla release e non si
 installa niente — è un file solo, senza .NET:
@@ -168,7 +168,7 @@ I dettagli, compreso il vecchio strumento globale `dotnet tool` da togliere:
 | Portare un blueprint da staging a produzione, passo per passo | [§ Da staging a produzione](docs/da-staging-a-produzione.md) |
 | Avere lo strumento a riga di comando sul proprio PC, senza plugin | [§ Solo lo strumento a riga di comando](docs/installare.md#solo-lo-strumento-a-riga-di-comando-sul-proprio-pc) |
 | Collegare Claude al CMS Atlas, per la delivery | [§ Il server MCP «atlas»](docs/installare.md#il-server-mcp-atlas--per-la-delivery-atlas) · gli script in [`mcp/atlas/`](mcp/atlas/) |
-| Capire perché il plugin non ti fa entrare, e cosa chiedere a chi | [§ L'accesso ad Azure](docs/accesso-azure.md) |
+| Capire perché il plugin non ti fa entrare, e cosa chiedere a chi | [§ L'accesso](docs/accesso-azure.md) |
 | Sapere cosa fa ciascuna skill, con che frasi si attiva e cosa produce | [§ Le skill](docs/le-skill.md) |
 | Il manuale passo passo di un plugin | [assessment](plugins/assessment/docs/manuale.md) · [blueprints](plugins/blueprints/docs/manuale.md) |
 | Ogni comando di `xrcopilotlab-bp`, con tutte le opzioni, le conferme e i codici di uscita | [§ Guida completa alla CLI](plugins/blueprints/docs/cli.md) |

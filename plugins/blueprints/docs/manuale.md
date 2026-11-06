@@ -40,12 +40,11 @@ installa da [code.claude.com](https://code.claude.com).
 avvio la CLI si scarica da sola dagli allegati di quello stesso catalogo, con un semplice `curl`, e
 ne verifica l'impronta. Basta che il computer raggiunga `github.com`.
 
-**Accesso ad Azure**, con due ruoli sull'utenza aziendale: *App Configuration Data Reader* e
-*Key Vault Secrets User*. Non li puoi darti da solo: se non li hai, chiedili al team che gestisce
-gli ambienti, indicando l'ambiente su cui devi lavorare. Il plugin ti dirà chiaramente se mancano.
-
-Non devi installare Azure CLI: al primo comando che ha bisogno di Azure si apre il browser e ti fa
-accedere. Se hai già fatto `az login` per altri motivi, il plugin usa quello e non ti chiede nulla.
+**Il tuo account aziendale `hevolus.it`**, e basta: `xrcopilotlab-bp login --env staging` apre il
+browser, un clic, e da lì la CLI lavora con il tuo token. Niente ruoli Azure, niente Azure CLI, niente
+chiavi. Che cosa puoi fare lo decide il prodotto, tenant per tenant: chi è utente di un tenant legge,
+chi ne è amministratore scrive. Se ti manca un tenant, te lo assegna chi lo amministra nel prodotto,
+non il team Azure; `xrcopilotlab-bp whoami` dice su quali tenant sei e con quale ruolo.
 
 Quello che **non** ti serve: il codice di XRCopilotLab, .NET, un compilatore. Il binario che il
 plugin scarica è autonomo, ed è pubblicato per macOS (Apple Silicon e Intel), Windows (x64 e ARM) e
@@ -94,9 +93,10 @@ CLI pronta in /Users/tuonome/.claude/plugins/data/blueprints/bin/...
 
 Da lì in poi è già sul disco e non si riscarica più, finché non esce una versione nuova.
 
-**Si apre il browser per l'accesso ad Azure**, se non hai già una credenziale sulla macchina.
-Accedi con l'utenza aziendale e chiudi la pagina: il token resta in memoria per le volte
-successive.
+**Se non hai ancora una sessione per quell'ambiente**, il comando lo dice e ti chiede
+`xrcopilotlab-bp login --env <ambiente>`: si apre il browser, accedi con l'utenza aziendale e chiudi
+la pagina. La sessione resta nel portachiavi del sistema per le volte successive, ed è per ambiente:
+staging e produzione vogliono ciascuno il suo `login`.
 
 Se qualcosa si blocca qui, salta al [punto 6](#6-quando-qualcosa-non-va).
 
@@ -338,15 +338,11 @@ export XRCOPILOTLAB_BP_BIN=~/Downloads/xrcopilotlab-bp-osx-arm64
 $env:XRCOPILOTLAB_BP_BIN = "$HOME\Downloads\xrcopilotlab-bp-win-x64.exe"
 ```
 
-### «Non è detto su quale ambiente lavorare»
+### Il comando ha lavorato su staging, e volevi la produzione
 
-Manca `--env`. Dentro un clone del repository di XRCopilotLab l'ambiente si deduce dal
-`local.settings.json`; fuori — cioè nel caso normale — non c'è nulla da cui dedurlo, e la CLI si
-ferma **prima** di collegarsi a qualsiasi cosa invece di scegliere per te. Basta dire a parole dove
-vuoi lavorare («su staging»), o passare `--env staging` o `--env prod`.
-
-Un profilo in `~/.xrcopilotlab-bp/profiles.json` serve solo per un ambiente che non è fra quei tre:
-non è la strada normale, e non ti serve chiederlo a nessuno.
+Senza indicazioni vale `staging`: gli ambienti sono due, dentro la CLI, e non c'è niente da
+configurare. Basta dire a parole dove vuoi lavorare («su prod»), o passare `--env prod` — e serve
+una sessione su quell'ambiente (`login --env prod`), perché quella di staging non vale lì.
 
 ### Un comando del manuale «non esiste»
 
@@ -362,10 +358,12 @@ Dice il numero, il percorso del binario e da quale strada viene: se la riga «or
 strumento globale, è quello il problema. Si toglie con
 `dotnet tool uninstall --global xrcopilotlab-bp`, e da lì in poi vale la copia del plugin.
 
-### «App Configuration non leggibile» oppure «Key Vault ... non è leggibile»
+### «Non hai una sessione valida» oppure «non sei un utente di XRCopilotLab»
 
-Ti mancano i ruoli. Il messaggio dice quale serve. Vanno chiesti a chi gestisce l'ambiente: non è
-qualcosa che puoi sistemare tu.
+Il primo vuol dire che su questa macchina non hai fatto `login` per quell'ambiente:
+`xrcopilotlab-bp login --env <ambiente>`. Il secondo che sei entrato, ma nel prodotto non appartieni
+a nessun tenant (o non a quello che hai indicato): ti aggiunge chi lo amministra, dall'interfaccia.
+Non è un ruolo Azure, e non è qualcosa che puoi sistemare tu.
 
 ### Il piano si ferma dicendo che un nome esiste già
 
@@ -418,8 +416,7 @@ autorizzazione» vuol dire che il server c'è ma il sistema esterno rifiuta: `mc
 la risposta vera (per esempio l'errore di Microsoft Entra), senza passare dall'agente. Dopo un
 `secrets set` la connessione **non cambia da sola**: porta il valore che il segreto aveva quando il
 blueprint è stato applicato. Lancia `connections refresh --tag <TAG>` e riprova con `mcp test`. Se hai
-scambiato due segreti, il valore giusto è ancora in Key Vault fra le versioni precedenti: chiedi al
-plugin di recuperarlo, non serve generarne uno nuovo.
+scambiato due segreti, rifai `secrets set` con i valori giusti e poi di nuovo `connections refresh`.
 
 ### L'esecuzione si è fermata a metà
 

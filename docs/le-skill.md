@@ -70,7 +70,7 @@ toccare il tenant.
 | «Applica `blueprints/como-conoscenza-associati.yml` su staging» | `push`, poi `plan`: stampa il piano — quante entità, quali nomi, il grafo — e **si ferma ad aspettare il sì** |
 | «Sì, vai» (detto **dopo** aver visto il piano) | `apply --yes`, poi riporta entità create, `runId`, e la chiave del webhook se ce n'è una: compare una sola volta |
 | «Cancella il blueprint TEST» | Riporta cosa sparirebbe e chiede un sì che nomini quel tag: senza `--confirm TEST` la CLI non procede |
-| «Su quali ambienti posso lavorare?» | `environments`: prova a leggere ogni ambiente con la **tua** utenza e dice *accessibile* · *manca il ruolo* · *nessun accesso ad Azure* · *non raggiungibile*. Non è una stima: è ciò che succederà al primo comando |
+| «Su quali ambienti posso lavorare?» | `whoami` (chi sei, su quali tenant, con quale ruolo) ed `environments`, che lo dice per ogni ambiente: *n tenant* · *senza sessione* (serve `login`) · *non sei un utente* · *non raggiungibile*. Non è una stima: è ciò che succederà al primo comando |
 | «Porta STUDIOPOLIS v29 da staging a produzione» | `promote` copia la versione nell'archivio di destinazione — byte per byte, stessa impronta — poi `plan` e **si ferma**: copiare è ripetibile, creare no. I passi per intero: [§ Da staging a produzione](da-staging-a-produzione.md) |
 | «Fammi vedere il manifest della v27 che gira su staging» | `pull`: riscrive su disco il file com'era stato pubblicato, commenti compresi. Due `pull` e un `diff` dicono se due ambienti eseguono lo stesso blueprint |
 | «Cosa sai fare con i blueprint?» · la skill chiesta senza altro | Orientamento: a cosa serve, cosa serve per usarlo, ambienti, blueprint esistenti. Nessuna intervista |
