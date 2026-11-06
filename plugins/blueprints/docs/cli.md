@@ -19,7 +19,7 @@ comando si comporta in modo diverso da come è scritto qui, ha ragione il comand
 ## Indice
 
 1. [Che cos'è, e come arriva sul tuo computer](#1-che-cosè-e-come-arriva-sul-tuo-computer)
-2. [Prima di cominciare: identità e ruoli](#2-prima-di-cominciare-identità-e-ruoli)
+2. [Prima di cominciare: l'accesso](#2-prima-di-cominciare-laccesso)
 3. [Ambienti e tenant](#3-ambienti-e-tenant)
 4. [Come si scrive un comando](#4-come-si-scrive-un-comando)
 5. [Il giro tipico, con un esempio completo](#5-il-giro-tipico-con-un-esempio-completo)
@@ -40,7 +40,7 @@ Elenco dei comandi, per saltare subito dove serve:
 | Applicare e smontare | [`plan`](#plan) · [`apply`](#apply) · [`pipeline`](#pipeline) · [`status`](#status) · [`rollback`](#rollback) · [`delete`](#delete) |
 | Collaudo | [`test init`](#test-init) · [`test validate`](#test-validate) · [`test run`](#test-run) · [`test push`](#test-push) · [`test reports`](#test-reports) |
 | Un blueprint già applicato | [`schedule`](#schedule-list--pause--resume--logs) · [`mcp`](#mcp-check--orphans--publish--test) · [`connections`](#connections-list--refresh) · [`instances`](#instances-list--show--cancel) · [`knowledge`](#knowledge-list--reingest) |
-| La CLI stessa | [`environments`](#environments) · [`version`](#version) · [`update`](#update) · [`help`](#help) |
+| La CLI stessa | [`login` · `whoami` · `logout`](#login--whoami--logout) · [`environments`](#environments) · [`version`](#version) · [`update`](#update) · [`help`](#help) |
 
 ---
 
@@ -52,8 +52,8 @@ XRCopilotLab configurato. Fa da riga di comando quello che altrimenti si farebbe
 nell'interfaccia, e tiene un archivio di ogni versione del file e di ogni esecuzione.
 
 È pensata per **l'AI Team di Hevolus**, che configura XRCopilotLab a valle di un assessment. Non è uno
-strumento da dare al cliente: lui entra nel prodotto, ma non ha (e non deve avere) l'accesso ad
-Azure che la CLI richiede — vedi il [§ 2](#2-prima-di-cominciare-identità-e-ruoli).
+strumento da dare al cliente: lui entra nel prodotto, ma la CLI per ora accetta solo lo staff
+Hevolus — vedi il [§ 2](#2-prima-di-cominciare-laccesso).
 
 ### Chi la installa: il plugin
 
@@ -111,64 +111,62 @@ Una copia **installata a mano** (senza plugin) si aggiorna con [`update`](#updat
 
 ---
 
-## 2. Prima di cominciare: identità e ruoli
+## 2. Prima di cominciare: l'accesso
 
-### Con quale account gira
+### `login`, e nient'altro
 
-La CLI non parla con Claude, parla con **Azure**. Serve un'identità nel tenant aziendale
-**`hevolus.it`** (Entra ID), perché App Configuration, Key Vault, Cosmos e lo storage vivono nella
-sottoscrizione di Hevolus. L'account con cui usi Claude non c'entra.
+La CLI lavora **con il tuo account**, mai con ruoli Azure (dalla 3.0.0, #1333 e #1772). Si entra una
+volta per ambiente:
 
-E **non è l'account con cui entri in XRCopilotLab**. Il prodotto usa un'altra directory, Azure AD
-B2C (`xrcopilotlab.b2clogin.com`, email registrata o accesso con Google). Le due non si incontrano:
+```bash
+xrcopilotlab-bp login --env staging      # si apre il browser: un clic con l'account aziendale hevolus.it
+xrcopilotlab-bp whoami --env staging     # chi sei, su quali tenant, con quale ruolo
+```
 
-| | Chi **usa** XRCopilotLab | Chi **esegue** la CLI |
-|---|---|---|
-| Directory | Azure AD B2C (`xrcopilotlab.onmicrosoft.com`) | Entra ID aziendale (`hevolus.it`) |
-| Identità | email registrata, o account Google | account `hevolus.it` |
-| Serve a | chat, interfaccia, processi, compiti | leggere App Configuration e Key Vault, comandare l'API |
+Da lì ogni comando parla con l'API dell'ambiente **con il tuo token**. Non c'è niente da configurare:
+gli ambienti (`staging`, `prod`), l'indirizzo dell'API e l'app Entra della CLI stanno nel binario.
+**Niente ruoli su App Configuration, Key Vault, Cosmos o storage, niente `az login`, niente chiavi,
+niente variabili da impostare**: la CLI non legge più quelle risorse. Tutto passa dalle rotte `cli/*`
+dell'API, che legge archivio, segreti e tenant con la **propria** identità e autorizza **per tenant**
+la persona del token.
 
-Due conseguenze pratiche:
+La sessione sta nel portachiavi del sistema (Keychain, DPAPI, libsecret; dove non c'è, in un file con
+i permessi ristretti, e il comando lo dice) e si rinnova da sola finché non fai `logout`.
 
-- essere amministratore di un tenant XRCopilotLab **non** dà accesso alla CLI, e avere i ruoli Azure
-  **non** fa entrare nel prodotto;
-- gli indirizzi che scrivi nel manifest (membri dei ruoli, owner dei processi, destinatari delle
-  approvazioni) sono **utenti del prodotto**, cercati nella directory B2C del tenant. Un collega con
-  un ottimo account `hevolus.it` che non è mai entrato nel prodotto non è un membro valido: il piano
-  si ferma con `BP062`.
+**Il browser si apre anche quando il comando lo lancia un assistente**: sulla tua macchina, ed è tu a
+completare l'accesso. `login` aspetta fino a cinque minuti; se il browser non si apre, stampa
+l'indirizzo da aprire a mano.
 
-### L'accesso: una volta per macchina
+### Con quale account
 
-La CLI cerca prima una credenziale già presente sulla macchina — variabili d'ambiente, identità
-gestita, Visual Studio, `az login` — e **solo se non trova niente, e solo in un terminale vero**,
-apre il browser per farti accedere. Il token resta in cache (nome `xrcopilotlab-bp`): l'accesso si
-fa una volta per macchina, non una per comando.
+L'account aziendale **`hevolus.it`** (Entra): per ora la CLI è solo per lo staff Hevolus. L'account con
+cui usi Claude non c'entra. **Non è l'account con cui entri in XRCopilotLab** (la directory B2C del
+prodotto, email registrata o Google): l'opzione `--b2c` esiste ma non è ancora attiva.
 
-Quando la CLI la lancia un assistente, il terminale **non** c'è (ingresso e uscita sono rediretti) e
-il browser non si apre: il primo accesso lo deve fare la persona, dal proprio terminale, con
-`az login` oppure con un qualsiasi comando della CLI (`xrcopilotlab-bp environments`). Da lì in poi il
-token vale anche per i comandi lanciati dall'assistente.
+Una conseguenza pratica che non cambia: gli indirizzi che scrivi nel manifest (membri dei ruoli, owner
+dei processi, destinatari delle approvazioni) sono **utenti del prodotto**, cercati nella directory
+B2C del tenant. Un collega con un ottimo account `hevolus.it` che non è mai entrato nel prodotto non è
+un membro valido: il piano si ferma con `BP062`.
 
-### I ruoli Azure, comando per comando
+### Chi può fare che cosa
 
-I ruoli si danno **sull'ambiente** (l'App Configuration e il Key Vault di staging, o di
-produzione). Non servono ruoli su Cosmos, sullo storage o sull'API: le loro chiavi sono riferimenti a
-Key Vault dentro App Configuration, e la CLI le risolve da lì.
+Lo decide il prodotto, tenant per tenant, e `whoami` lo dice:
 
-| Per fare | Ruoli sulla tua utenza |
+| Chi | Che cosa |
 |---|---|
-| `validate`, `external`, `test init`, `test validate`, `catalog publish --check`, `version`, `help` | **nessuno** — non toccano la rete |
-| `suggest` | nessuno per la proposta; con i ruoli di lettura elenca anche i nomi dei modelli a catalogo |
-| `environments` | *App Configuration Data Reader* (legge solo i nomi delle chiavi, mai i valori) |
-| tutti gli altri comandi: `push`, `pull`, `plan`, `apply`, `status`, `rollback`, `delete`, `promote`, `test run`, `schedule`, `mcp`, `connections`, `instances`, `knowledge`, `secrets check`, … | **App Configuration Data Reader** e **Key Vault Secrets User** |
-| in più, `secrets set` | **App Configuration Data Owner** e **Key Vault Secrets Officer** |
-| in più, `apply` e `pipeline` di un manifest con una connessione `process:` (verso il webhook di un processo) | gli stessi due: l'apply salva in Key Vault la chiave del webhook appena creato, come farebbe `secrets set` |
-| `update` | nessun ruolo Azure: serve `gh` autenticato su GitHub |
+| `validate`, `external`, `test init`, `test validate`, `catalog publish --check`, `version`, `help` | **nessun accesso** — non toccano la rete |
+| **utente** di un tenant | legge: `status`, `plan`, `pull`, `catalog list`, `files ls`, `test reports`, … |
+| **amministratore** del tenant | scrive su quel tenant: `push`, `apply`, `rollback`, `delete`, `secrets set`, `test run`, `knowledge`, `mcp`, … |
+| **operatore di piattaforma** (super-amministratore del prodotto, l'AI Team) | tutto, su ogni tenant anche senza esserne utente, più il catalogo e l'archivio intero: `catalog publish`/`prune`, `copies`, `usage`, `access`. Ogni accesso è registrato |
+| `update` | nessun accesso alla piattaforma: serve `gh` autenticato su GitHub |
 
-Non puoi darteli da solo: si chiedono a chi amministra la sottoscrizione, dicendo **quale ambiente**.
-La richiesta già scritta e chi abilita chi: [§ L'accesso ad Azure](../../../docs/accesso-azure.md).
-Il comando che ti dice dove puoi lavorare davvero, prima di cominciare, è
-[`environments`](#environments).
+In produzione le scritture possono essere riservate a un elenco di persone
+(`CliAccess:WriteAllowListEnforced` dell'API): vale anche per gli operatori, e un 403 lo dice con parole
+sue.
+
+Un permesso che manca **non si chiede ad Azure**: te lo dà chi amministra il tenant nel prodotto, o
+il team per il ruolo di operatore. Il comando che ti dice dove puoi lavorare davvero, prima di
+cominciare, è [`environments`](#environments).
 
 ---
 
@@ -182,23 +180,21 @@ produzione in un riquadro rosso.
 
 Gli ambienti sono **dentro il binario**: non c'è niente da configurare.
 
-| `--env` | Etichetta nel banner | App Configuration | Key Vault (per `secrets set`) | Tenant predefinito |
-|---|---|---|---|---|
-| `staging` | Staging | `appcs-xrcopilotlab-staging-01` | `kv-xrcopilotlab-stg-01` | `4da69cbc-d935-4050-f410-08d8392ca08f` |
-| `prod` | PRODUZIONE | `appcs-xrcopilotlab-prod-01` | `kv-xrcopilotlab-prod-01` | nessuno: il tenant si sceglie sempre |
+| `--env` | Etichetta nel banner | API | Tenant predefinito |
+|---|---|---|---|
+| `staging` | Staging | `func-xrcopilotlab-staging-01` | `4da69cbc-d935-4050-f410-08d8392ca08f` |
+| `prod` | PRODUZIONE | `func-xrcopilotlab-prod-01` | nessuno: il tenant si sceglie sempre |
 
-`preview` non esiste più (tolto il 22/09/2026): era un secondo nome della produzione, senza una
-propria App Configuration. Se lo trovi citato, quella pagina è vecchia.
+`preview` non esiste più (tolto il 22/09/2026): era un secondo nome della produzione. Se lo trovi
+citato, quella pagina è vecchia.
 
-**Senza `--env`** la CLI cerca, risalendo dalla cartella corrente, il file
-`src/XRCopilotLab/XRCopilotLab.Api/local.settings.json` di un clone del repository di prodotto, e ne
-usa `AppConfigurationEndpoint`: è l'ambiente di **sviluppo**. Fuori da un clone — il caso normale per
-chi usa il plugin — non c'è niente da cui dedurlo, e la CLI si ferma **prima** di collegarsi a
-qualunque cosa con «Non è detto su quale ambiente lavorare. Indicarlo con --env» (uscita 1). Un
-`--env` esplicito vince sempre sul `local.settings.json`.
+**Senza `--env`** vale `staging`. Serve un `login` per ambiente: una sessione su staging non vale in
+produzione, e `promote` fra i due li vuole entrambi.
 
-Un `--env` che non è né `staging`, né `prod`, né il nome di un profilo scritto a mano viene rifiutato
-con l'elenco dei nomi validi (uscita 1).
+Un `--env` che non è né `staging` né `prod` viene rifiutato con l'elenco dei nomi validi (uscita 1).
+Per provare contro un'API avviata sulla tua macchina non serve un ambiente in più:
+`XRCOPILOTLAB_BP_API_URL=http://localhost:7071/api` (il token resta quello dell'ambiente scelto con
+`--env`).
 
 ### `--company`: il tenant
 
@@ -219,8 +215,8 @@ Le regole, nell'ordine in cui la CLI le applica:
 
 1. **Da dove viene il tenant.** Dal più esplicito al più implicito: `--company` sulla riga di
    comando; poi `tenant.companyId` del manifest, ma **solo** per i comandi che leggono un file
-   (`push`, `pipeline`, `secrets check`); poi il `companyId` di un profilo scritto a mano; per ultimo
-   il tenant predefinito dell'ambiente, che c'è solo su staging. `plan`, `apply` e gli altri comandi
+   (`push`, `pipeline`, `secrets check`); poi il tenant predefinito dell'ambiente, che c'è solo su
+   staging; per ultimo l'unico tenant a cui appartieni, se è uno solo. `plan`, `apply` e gli altri comandi
    che partono da un tag **non** leggono il manifest per scegliere il tenant.
 2. **Su staging** senza `--company` si lavora sul tenant di prova
    (`4da69cbc-d935-4050-f410-08d8392ca08f`), e il comando lo dice: «Tenant non indicato: si usa quello
@@ -231,89 +227,42 @@ Le regole, nell'ordine in cui la CLI le applica:
    stampato **con gli identificativi** e il comando si ferma con **6**: scegliere un tenant al posto di
    qualcuno non è una decisione automatica. Si ripete con `--company <id>` dopo che una persona ha
    scelto.
-5. **In produzione** un tenant che non è fra i tuoi viene rifiutato con **3**, anche scritto a mano
-   con `--company`. Viene rifiutato anche quando non si riesce a sapere chi sei: in produzione non
-   poterlo stabilire è una ragione per fermarsi. Se dovresti esserci, non è un ruolo Azure che manca:
-   chiedi di essere aggiunto a quel tenant **nel prodotto**.
-6. **Fuori produzione**, un tenant indicato a mano che non è nel tuo elenco viene accettato con un
-   avviso; se l'elenco non si riesce a leggere, la CLI ripiega su quello dell'ambiente (uguale per
-   tutti) e lo dice.
+5. **Un tenant che non è fra i tuoi è rifiutato** dall'API con un 403, in ogni ambiente, anche scritto
+   a mano con `--company` — e il rifiuto non dice se il tenant esista. Se dovresti esserci, non è un
+   ruolo Azure che manca: chiedi di essere aggiunto a quel tenant **nel prodotto**. Un operatore di
+   piattaforma lavora su ogni tenant, ma lo indica sempre con `--company`.
 
 > Il tenant `default` è la partizione del catalogo dei modelli,
 > non un tenant: ogni comando lo rifiuta con 1 (vedi [`catalog`](#catalog-list--publish--install--prune)).
 
-### I profili scritti a mano
+### Un'API sulla tua macchina
 
-Servono **solo** per un ambiente che non è fra quelli incorporati, o per scavalcare un singolo valore.
-Stanno in `~/.xrcopilotlab-bp/profiles.json` (percorso cambiabile con `XRCOPILOTLAB_BP_PROFILES`) e si
-scelgono con lo stesso `--env <nome>`. Il file accetta commenti e virgole finali.
+Fino alla 2.x un ambiente in più si dichiarava in un file di profili (`~/.xrcopilotlab-bp/profiles.json`),
+con l'App Configuration e il Key Vault da leggere. Dalla 3.0.0 **non c'è più niente da dichiarare**:
+la CLI non legge quelle risorse, e gli ambienti sono i due del binario. L'unico caso che resta è
+l'API avviata in locale da chi sviluppa:
 
-```jsonc
-{
-  "profiles": {
-    "collaudo": {
-      "appConfigurationEndpoint": "https://appcs-xrcopilotlab-staging-01.azconfig.io",
-      "appConfigurationLabel": "api",
-      "companyId": "4da69cbc-d935-4050-f410-08d8392ca08f",
-      "actor": "nome.cognome@hevolus.it",
-      "keyVaultUri": "https://kv-xrcopilotlab-stg-01.vault.azure.net/",
-
-      // Solo per passare dalla gestione API (APIM) invece che dalla rotta interna:
-      "apiUrl": "https://<gateway>/api/lab/",
-      "apiKey": "env:XRCOPILOTLAB_BP_APIKEY",
-      "apiVersion": "staging",
-
-      // Solo per scavalcare ciò che c'è in App Configuration:
-      "cosmos":  { "endpoint": "…", "key": "env:XRCOPILOTLAB_BP_COSMOS_KEY", "database": "…", "container": "blueprints" },
-      "storage": { "connectionString": "env:XRCOPILOTLAB_BP_STORAGE", "container": "blueprints" },
-
-      // Solo per usare il local.settings.json di un clone che non sta sopra la cartella corrente:
-      "localSettingsPath": "/percorso/di/local.settings.json"
-    }
-  }
-}
+```bash
+XRCOPILOTLAB_BP_API_URL=http://localhost:7071/api xrcopilotlab-bp status --env staging
 ```
 
-| Campo | A cosa serve | Se manca |
-|---|---|---|
-| `appConfigurationEndpoint` | l'App Configuration da cui si ricava tutto il resto | si prende dal `localSettingsPath`; se non c'è nemmeno quello, il comando si ferma |
-| `appConfigurationLabel` | un'etichetta in più da leggere, dopo `api-ao`, `api` e quella vuota (lo stesso ordine dell'API). Serve anche a `secrets set`, che scrive il riferimento con questa etichetta | si leggono solo le tre etichette standard |
-| `companyId` | il tenant da usare quando non è indicato altrove | vale il predefinito dell'ambiente, o la scelta da elenco |
-| `actor` | il nome registrato come autore delle entità create e come **approvatore** nei run | il nome utente del sistema operativo |
-| `keyVaultUri` | dove `secrets set` scrive il valore | quello dell'ambiente riconosciuto dall'endpoint (staging o prod); altrimenti `secrets set` si ferma |
-| `apiUrl` + `apiKey` | passare dal gateway APIM con la chiave di sottoscrizione | si usa la **rotta interna** verso la Function App (`InternalApi:BaseUrl` e `InternalApi:FunctionKey` da App Configuration, header `x-functions-key`), che non richiede niente |
-| `apiVersion` | il parametro `api-version` delle chiamate al gateway | la chiave `Environment` di App Configuration, altrimenti `staging` |
-| `cosmos.endpoint`, `.key`, `.database`, `.container` | l'archivio dei blueprint in Cosmos | `Cosmos:Endpoint`, `Cosmos:PrimaryKey`, `Cosmos:DatabaseName`, `Cosmos:BlueprintsContainerName` da App Configuration; container `blueprints` |
-| `storage.connectionString`, `.container` | lo storage dei manifest e dei file | `Storage:ConnectionString` o `StorageConnectionString` da App Configuration; container `blueprints` |
-| `localSettingsPath` | il `local.settings.json` da cui leggere l'endpoint | cercato risalendo dalla cartella corrente, ma **solo** se non è stato passato `--env` |
-
-Ogni valore si può scrivere direttamente o nella forma **`env:NOME`**, che lo legge dalla variabile
-d'ambiente `NOME`: è la forma da usare per qualunque credenziale, così il file non ne contiene. Una
-variabile citata e non impostata ferma il comando.
-
-Tre cose che conviene sapere:
-
-- **Un profilo con lo stesso nome di un ambiente incorporato lo sostituisce per intero**, non lo
-  completa: un profilo `staging` senza `appConfigurationEndpoint` non sa più dove andare.
-- **L'ambiente si riconosce dall'endpoint, non dal nome del profilo.** Un profilo chiamato
-  «collaudo» ma puntato all'App Configuration di produzione viene annunciato come PRODUZIONE, ne
-  eredita il Key Vault e le regole sui tenant. Il banner non può mentire.
-- **Il Key Vault non si deduce dal nome.** Nella sottoscrizione esistono sia
-  `kv-xrcopilotlab-staging` sia `kv-xrcopilotlab-stg-01`, e quello in uso è il secondo: scrivere nel
-  primo non dà errori, semplicemente nessuno legge il segreto.
-
-`environments` elenca i profili scritti a mano ma **non** li prova.
+L'indirizzo sostituisce quello dell'ambiente; il token resta quello della sessione di `--env`, e i
+dati sono quelli che l'API locale legge (di norma staging).
 
 ### Le variabili d'ambiente
 
 | Variabile | Effetto |
 |---|---|
-| `XRCOPILOTLAB_BP_PROFILES` | percorso del file dei profili, al posto di `~/.xrcopilotlab-bp/profiles.json` |
+| `XRCOPILOTLAB_BP_API_URL` | l'indirizzo dell'API al posto di quello dell'ambiente (un'API locale) |
+| `XRCOPILOTLAB_BP_WORKSPACE` | la cartella dove `files get` e il report di `test run` scrivono senza `--out`; senza, una cartella nella temporanea del sistema |
+| `XRCOPILOTLAB_BP_NO_REPORT` | con `1`, un apply fallito per un limite della piattaforma non si segnala da sé all'AI Team |
 | `XRCOPILOTLAB_BP_DEBUG` | con un valore qualsiasi, stampa la traccia completa degli errori imprevisti; in `environments`, il motivo vero di un «non raggiungibile» |
 | `NO_COLOR` | con un valore qualsiasi, niente colori. Il colore si spegne comunque quando l'uscita non va a un terminale |
 | `XRCOPILOTLAB_BP_BIN` | letta dall'avviatore del plugin: il binario da eseguire al posto di quello scaricato |
 | `CLAUDE_PLUGIN_DATA` | impostata da Claude Code: dove l'avviatore tiene la cache del binario e delle note sulle versioni |
 | `GH_TOKEN`, `GITHUB_TOKEN` | lette dall'avviatore solo come riserva, per il repository di prodotto privato: il catalogo si scarica senza |
+
+Nessuna di queste è un segreto, e nessuna serve per entrare: l'accesso è solo `login`.
 
 ---
 
@@ -387,7 +336,7 @@ e, fra archivi: pull · promote · copies · export · catalog
 |---|---|---|---|
 | 1 | `validate` | controlla il file, offline | no |
 | 2 | `suggest` | propone come dividere i documenti e che modello dare agli agenti | no |
-| 3 | `secrets check`, `secrets set` | dice quali segreti mancano; li salva in Key Vault | no (Key Vault e App Configuration sì) |
+| 3 | `secrets check`, `secrets set` | dice quali segreti mancano; li salva nella piattaforma, cifrati per tenant | no (la piattaforma sì) |
 | 4 | `push` | registra la versione nell'archivio | no |
 | 5 | `plan` | mostra cosa verrebbe creato, cosa manca, cosa si scontra | no, legge soltanto |
 | 6 | `apply` | esegue il piano, dopo il sì | **sì** |
@@ -592,8 +541,8 @@ confermare. Il perché del «un profilo per agente»: [manuale § 4-bis](manuale
 
 ### `secrets set`
 
-Salva il valore di un segreto in **Key Vault** e ne registra il riferimento in **App Configuration**.
-Il manifest cita solo il nome.
+Salva il valore di un segreto **nella piattaforma** (#1798): l'API lo cifra, come fa con le credenziali
+delle connessioni, e lo conserva per tenant e tag. Il manifest cita solo il nome.
 
 ```
 xrcopilotlab-bp secrets set --tag <TAG> <nome> [--from-env <VARIABILE>] [--env <nome>] [--company <id>]
@@ -604,35 +553,31 @@ xrcopilotlab-bp secrets set --tag <TAG> <nome> [--from-env <VARIABILE>] [--env <
 | `<nome>` | nome logico del segreto | obbligatorio | per esempio `graph-client-secret`, `webhook-avvisi` |
 | `--tag <TAG>` | tag del blueprint | obbligatorio | il blueprint a cui il segreto appartiene |
 | `--from-env <VARIABILE>` | nome di una variabile d'ambiente | nessuno | legge il valore da quella variabile invece di chiederlo: per gli usi senza terminale |
-| `--env <nome>` | ambiente | sviluppo, se sei in un clone | dove scrivere |
+| `--env <nome>` | ambiente | `staging` | dove scrivere |
 | `--company <id>` | tenant | scelto da elenco | il tenant a cui il segreto appartiene |
 
 **Cosa fa.**
 
 1. Chiede `Valore per Blueprints:Secrets:<TAG>:<nome>:` e lo legge **senza eco** (con l'ingresso
    rediretto, lo legge da lì). Un valore vuoto ferma il comando.
-2. Scrive il valore in Key Vault — il vault dell'ambiente: `kv-xrcopilotlab-stg-01` o
-   `kv-xrcopilotlab-prod-01`, oppure il `keyVaultUri` di un profilo.
-3. Crea in App Configuration la chiave `Blueprints:Secrets:<companyId>:<TAG>:<nome>` (vedi sotto) come
-   **riferimento** a quel segreto (non come valore), con l'etichetta del profilo se c'è.
-4. Aggiorna la chiave **`Sentinel`**: le API ricaricano la configurazione — riferimenti compresi —
-   solo quando cambia, entro cinque minuti. Un'API avviata in locale va invece riavviata.
+2. Lo manda all'API (`POST cli/{companyId}/secrets`), che lo cifra e lo conserva per tenant e tag. La
+   risposta porta il riferimento, mai il valore. Vale **da subito**: il prossimo `plan` lo vede, e
+   l'apply lo dà alla connessione che lo cita.
 
-> **I segreti sono del tenant.** Il comando chiede anche il tenant (con le regole del
-> [§ 3](#--company-il-tenant)) e la chiave scritta in App Configuration è `Blueprints:Secrets:<companyId>:<TAG>:<nome>`. Il manifest continua a scrivere
-> `Blueprints:Secrets:<TAG>:<nome>`: il tenant lo aggiunge la CLI. Serve perché due tenant che
-> installano lo stesso modello con lo stesso tag non si sovrascrivano le credenziali. In lettura si
-> cerca prima la chiave del tenant, poi quella senza tenant dei blueprint applicati prima della
-> regola, che quindi continuano a funzionare. Un riferimento che nel manifest porta già il tenant è
-> un errore (`BP103`).
+> **I segreti sono del tenant.** Il manifest scrive `Blueprints:Secrets:<TAG>:<nome>`; la riga che
+> l'API conserva porta anche il tenant, così due tenant che installano lo stesso modello con lo
+> stesso tag non si sovrascrivono le credenziali (#1185). Un riferimento che nel manifest porta già
+> il tenant è un errore (`BP103`).
 
-**Scrive:** Key Vault e App Configuration dell'ambiente. Niente sul tenant, niente nell'archivio.
-**Chiede:** solo il valore. **Ruoli:** *App Configuration Data Owner* e *Key Vault Secrets Officer*,
-oltre a quelli di lettura.
+Fino al 03/11/2026 il valore stava in Key Vault con un riferimento in App Configuration, e chi lo
+scriveva aveva bisogno di due ruoli Azure. Non più: **basta essere amministratore del tenant**. Un
+blueprint bloccato lo aggiorna solo un suo owner.
 
-**Esce:** 0 · 1 tag o nome mancanti, valore vuoto, variabile di `--from-env` non impostata, Key Vault
-o App Configuration non scrivibili (il messaggio nomina il ruolo che manca), ambiente senza Key Vault
-noto.
+**Scrive:** la piattaforma. Niente sul tenant, niente nell'archivio, niente su Azure.
+**Chiede:** solo il valore.
+
+**Esce:** 0 · 1 tag o nome mancanti, valore vuoto, variabile di `--from-env` non impostata · 8 senza
+sessione · un 403 se non sei amministratore del tenant.
 
 ```bash
 xrcopilotlab-bp secrets set --env staging --tag STUDIOPOLIS graph-client-secret
@@ -641,19 +586,24 @@ TOKEN_COMO=… xrcopilotlab-bp secrets set --env staging --tag COMO osm-token --
 
 **Da sapere.**
 
+- **`secrets set` non è obbligatorio** (#1234): un segreto non impostato non ferma il piano (`BP063`
+  è un avviso). La connessione nasce senza credenziali, la prova del tool che la usa si salta, e chi
+  amministra il tenant le inserisce dopo l'apply dall'interfaccia, in **Amministrazione ›
+  Connessioni** (matita sulla connessione › Autenticazione › «Set / update credentials» › Salva).
+  `secrets set` serve a chi vuole precaricarle: allora l'apply le scrive da sé.
 - **Le connessioni già create non cambiano da sole.** Portano il valore che il segreto aveva quando
   il blueprint è stato applicato. Dopo un `secrets set` su un blueprint già applicato:
   [`connections refresh`](#connections-list--refresh), poi `mcp test`.
-- **Se hai scambiato due valori**, quello giusto è ancora in Key Vault fra le versioni precedenti del
-  segreto: non serve generarne uno nuovo.
-- Il segreto del webhook di un processo, che l'apply lascia in Key Vault, si chiama
+- I segreti di un tag se ne vanno con `delete` del blueprint; `rollback` li lascia, per l'apply
+  successivo.
+- Il segreto del webhook di un processo, che l'apply conserva allo stesso modo, si chiama
   `webhook-<chiave-del-processo>`.
 
 ---
 
 ### `secrets check`
 
-Elenca i segreti che il manifest cita e dice quali mancano nell'ambiente.
+Elenca i segreti che il manifest cita e dice quali mancano sul tenant.
 
 ```
 xrcopilotlab-bp secrets check <file.yml> [--env <nome>] [--company <id>]
@@ -662,14 +612,15 @@ xrcopilotlab-bp secrets check <file.yml> [--env <nome>] [--company <id>]
 | Argomento / opzione | Valore | Default | Significato |
 |---|---|---|---|
 | `<file.yml>` | percorso | obbligatorio | il manifest |
-| `--env`, `--company` | | | l'ambiente; il tenant (usato per cercare la chiave del tenant; qui si prende da `--company`, dal manifest, dal profilo o dal predefinito, **senza** elenco) |
+| `--env`, `--company` | | | l'ambiente; il tenant (qui si prende da `--company`, dal manifest o dal predefinito, **senza** elenco) |
 
-**Cosa fa.** Raccoglie ogni riferimento `Blueprints:Secrets:…` del manifest, lo cerca fra le chiavi
-di App Configuration, stampa `presente` o `assente` per ciascuno e, per gli assenti, il comando
-`secrets set` già scritto. Non legge i valori.
+**Cosa fa.** Raccoglie ogni riferimento `Blueprints:Secrets:…` del manifest, chiede all'API quali
+esistono per quel tenant e quel tag (`POST cli/{companyId}/secrets/check`), stampa `presente` o
+`assente` per ciascuno e, per gli assenti, il comando `secrets set` già scritto. Non legge i valori:
+l'API risponde solo sì o no.
 
-**Scrive:** niente. **Esce:** 0 tutti presenti (o nessuno citato) · 3 almeno uno assente · 2 manifest
-illeggibile.
+**Scrive:** niente. **Esce:** 0 anche se ne manca qualcuno (le connessioni che li citano nasceranno
+senza credenziali, da inserire dall'interfaccia, #1234) · 2 manifest illeggibile.
 
 ```bash
 xrcopilotlab-bp secrets check blueprints/studiopolis-agenda.yml --env staging
@@ -894,9 +845,8 @@ xrcopilotlab-bp promote --env staging --tag LEGAL --from-company <cliente-A> --t
 ### `copies`
 
 **Quali blueprint si usano di più** (CLI 2.22.0): la classifica delle copie fra tenant e ambienti. Ogni
-`promote` e ogni `catalog install` — anche dalla webapp — è **firmata** (l'email Entra del terminale;
-senza `az login`, il nome del computer, segnato come non verificato) e lascia una traccia che `delete`
-non cancella.
+`promote` e ogni `catalog install` — anche dalla webapp — è **firmata** dall'API con l'email della
+persona del token, e lascia una traccia che `delete` non cancella.
 
 ```bash
 xrcopilotlab-bp copies [--tag <TAG>] [--env <e>|all] [--since <aaaa-mm-gg>] [--top <n>] [--json]
@@ -1093,10 +1043,10 @@ e il comando stampa le due strade: `--resume <runId>` oppure `rollback --run <ru
 
 **Scrive:** il tenant (topic, profili e documenti, ruoli e membri, agenti con skill e server MCP,
 connessioni, server MCP, orchestratori, agent task con le loro schedulazioni e uscite, processi
-pubblicati con webhook); l'archivio (il run, con inventario e approvazione; i `.bpmn` esportati); Key
-Vault e App Configuration per la chiave del webhook di un processo, quando una connessione `process:`
-la usa (segreto `webhook-<processo>`): per questo, in quel caso, l'apply vuole anche i ruoli di
-scrittura di `secrets set`.
+pubblicati con webhook); l'archivio (il run, con inventario e approvazione; i `.bpmn` esportati); fra
+i segreti del tenant la chiave del webhook di un processo, quando una connessione `process:` la usa
+(segreto `webhook-<processo>`), perché `connections refresh` la ritrovi. Lo esegue la piattaforma con
+la propria identità: serve essere amministratore del tenant, nessun ruolo Azure.
 
 **Esce:** 0 · 3 piano bloccato, o run registrato da una CLI più recente in uno stato sconosciuto · 4
 esecuzione fallita a metà · 6 approvazione mancante · 1 tag, versione o run inesistenti.
@@ -1206,7 +1156,7 @@ xrcopilotlab-bp status --env staging --run 790b20470820 --watch
 
 ### `environments`
 
-Su quali ambienti **la tua utenza** può lavorare davvero, prima di cominciare.
+Su quali ambienti **hai già una sessione**, e chi sei lì, prima di cominciare.
 
 ```
 xrcopilotlab-bp environments [--env <nome>]
@@ -1214,23 +1164,34 @@ xrcopilotlab-bp environments [--env <nome>]
 
 | Opzione | Default | Significato |
 |---|---|---|
-| `--env <nome>` | tutti | prova un ambiente solo (solo `staging` o `prod`: i profili non si provano) |
+| `--env <nome>` | tutti | prova un ambiente solo (`staging` o `prod`) |
 
-Per ogni ambiente prova a leggere i **nomi** delle chiavi della sua App Configuration con la tua
-credenziale — lo stesso permesso che serve a tutto il resto — e dice uno di quattro esiti:
+Per ogni ambiente del binario chiede all'API chi è la persona del token — nessun segreto, niente
+scritture, nessun ruolo Azure — e dice uno di questi esiti:
 
 | Esito | Vuol dire | Cosa fai |
 |---|---|---|
-| **accessibile** | la lettura è riuscita | lavori; per staging aggiunge che senza `--company` si usa il tenant di prova, per la produzione che si lavora solo sui tuoi tenant |
-| **manca il ruolo 'App Configuration Data Reader'** | sei autenticato, ma senza il ruolo | lo chiedi a chi amministra la sottoscrizione |
-| **nessun accesso ad Azure su questa macchina** | nessuna credenziale | fai l'accesso una volta, da un terminale |
+| **n tenant**, ed eventualmente **operatore di piattaforma** | la sessione c'è e il prodotto ti riconosce | lavori; per staging aggiunge che senza `--company` si usa il tenant di prova |
+| **senza sessione: xrcopilotlab-bp login --env …** | su questa macchina non hai fatto `login` per quell'ambiente | lo fai: si apre il browser |
+| **token valido, ma non sei un utente di XRCopilotLab: nessun tenant** | sei entrato, ma nel prodotto non appartieni a nessun tenant | chiedi a chi amministra il tenant di aggiungerti: non è un errore tecnico |
+| **non è ancora attivo** | l'API di quell'ambiente non ha la build con l'accesso della CLI, o è chiusa apposta | `report-problem --kind access`: è configurazione del team |
 | **non raggiungibile adesso** | rete, DNS, endpoint | riprovi; non è un permesso (il motivo vero con `XRCOPILOTLAB_BP_DEBUG=1`) |
 
-Elenca anche i profili scritti a mano, senza provarli. Non tocca Key Vault e non legge valori.
-**Non** dice quali tenant vedrai dentro un ambiente: quello lo decide la tua appartenenza ai tenant
-nel prodotto.
+```
+$ xrcopilotlab-bp environments
 
-**Esce:** 0 almeno un ambiente accessibile · 3 nessuno · 1 nome sconosciuto.
+Ambienti
+  La prova chiede all'API chi sei: nessun segreto, niente scritture.
+
+✓ staging   Staging     3 tenant · operatore di piattaforma
+    senza --company si lavora sul tenant di prova di questo ambiente
+! prod      PRODUZIONE  senza sessione: xrcopilotlab-bp login --env prod
+```
+
+Quali *tenant* vedrai dentro un ambiente lo dice [`whoami`](#login--whoami--logout): sono quelli a
+cui appartieni nel prodotto.
+
+**Esce:** 0 almeno un ambiente utilizzabile · 8 nessuno · 1 nome sconosciuto.
 
 ```bash
 xrcopilotlab-bp environments
@@ -1677,7 +1638,7 @@ xrcopilotlab-bp connections refresh [<connessione>] --tag <TAG> [--run <runId>] 
 | `--run <runId>` | l'ultimo run completato | da quale inventario |
 
 Una connessione porta i segreti **risolti** al momento dell'apply. Correggere un segreto con
-`secrets set` corregge App Configuration, **non** la connessione.
+`secrets set` corregge il segreto conservato dalla piattaforma, **non** la connessione.
 
 - **`list`** — per ogni connessione: chiave, nome, provider, indirizzo base e tipo di autenticazione;
   per quelle verso un processo (`process:`), il webhook e il segreto `webhook-<processo>`.
@@ -1803,6 +1764,41 @@ xrcopilotlab-bp knowledge reingest bilanci  --tag COMO --env staging --pending -
 
 ---
 
+### `login` · `whoami` · `logout`
+
+L'accesso con il proprio account (#1333, #1772): l'unica strada della CLI dalla 3.0.0.
+
+```
+xrcopilotlab-bp login  [--env <nome>] [--b2c]
+xrcopilotlab-bp whoami [--env <nome>] [--b2c]
+xrcopilotlab-bp logout [--env <nome>] [--b2c]
+```
+
+| Opzione | Default | Significato |
+|---|---|---|
+| `--env <nome>` | `staging` | l'ambiente: la sessione è **per ambiente** |
+| `--b2c` | no | accesso con l'identità di XRCopilotLab (B2C, anche Google) invece dell'account aziendale `hevolus.it`. **Non ancora attivo**: per ora l'API accetta solo lo staff Hevolus |
+
+- **`login`** apre il browser di sistema (il browser è obbligatorio: B2C non ha il device code), aspetta fino a
+  cinque minuti che tu scelga l'account `hevolus.it`, poi mostra chi sei e i tuoi tenant. Se il browser non si
+  apre, stampa l'indirizzo da aprire a mano. Lanciato da un assistente, il browser si apre comunque sulla tua
+  macchina: il clic è tuo. La sessione resta nel portachiavi del sistema e si rinnova da sola.
+- **`whoami`** chiede all'API chi sei per il prodotto (`GET cli/me`) e, per ogni tenant dove sei utente, se
+  sei **amministratore** (può scrivere) o solo utente (sola lettura), e se sei operatore di piattaforma. **Non
+  crea mai un utente**: un token valido non basta, e chi non è utente vede «nessun tenant».
+- **`logout`** toglie dalla cache il token dell'ambiente. Senza sessione non fa niente e lo dice.
+
+**Esce:** 0 · **8** senza sessione, token non accettato, o persona che non è un utente del prodotto ·
+**3** se l'API dell'ambiente è chiusa (`CliAccess:Closed`) o è una build precedente senza l'accesso
+della CLI: si segnala con `report-problem --kind access`.
+
+```bash
+xrcopilotlab-bp login  --env prod      # serve una sessione per ogni ambiente: promote le vuole entrambe
+xrcopilotlab-bp whoami --env prod
+```
+
+---
+
 ### `version`
 
 Quale CLI sta girando e da dove viene. Vedi il [§ 1](#che-versione-sto-usando).
@@ -1860,8 +1856,8 @@ versioni che hanno già un accesso restano com'erano.
 xrcopilotlab-bp help
 ```
 
-L'elenco dei comandi e delle opzioni **della versione che hai installata**, con il percorso del file
-dei profili. È il riferimento più affidabile quando questa guida e il tuo binario non coincidono.
+L'elenco dei comandi e delle opzioni **della versione che hai installata**. È il riferimento più
+affidabile quando questa guida e il tuo binario non coincidono.
 
 ---
 
@@ -1879,6 +1875,7 @@ Distinti perché uno script — o una skill di Claude — possa reagire senza in
 | `5` | Fermo su un passo manuale: `external` con ingresso push, `status` di un run in quello stato | fai i passi che il comando elenca |
 | `6` | Manca una decisione umana: piano non approvato, tenant non scelto senza terminale, conferma di `delete` mancante o sbagliata, `promote`/`catalog` verso la produzione senza `--yes`, `instances cancel`, `mcp orphans --remove` o `knowledge reingest` senza `--yes` | fai leggere l'uscita a una persona; solo dopo il suo sì, ripeti con `--yes`, `--company <id>` o `--confirm <TAG>` |
 | `7` | `test run` è arrivato in fondo e almeno un caso non è passato | leggi il report: non è un errore della CLI, è l'esito del collaudo |
+| `8` | Serve l'accesso: non c'è una sessione valida per quell'ambiente, il token non è accettato, o la persona non è un utente del prodotto (`login`, `whoami`, `environments`) | `xrcopilotlab-bp login --env <nome>`; se sei entrato ma «nessun tenant», chiedi di essere aggiunto al tenant nel prodotto |
 | `70` | Errore imprevisto — oppure, dall'avviatore del plugin, il download della CLI non è riuscito | rilancia con `XRCOPILOTLAB_BP_DEBUG=1` e manda la traccia al team; per il download, i tre casi del [§ 1](#chi-la-installa-il-plugin) |
 
 Ctrl+C interrompe il lavoro in corso lasciando che il comando chiuda il run in modo pulito, ed esce
@@ -1945,7 +1942,7 @@ risponderà male o non verrà applicato.
 | `BP060` | Un nome è già occupato da un'entità che il blueprint non ha creato: il piano non parte |
 | `BP061` | La skill citata non è nel catalogo del tenant |
 | `BP062` | L'utente citato non esiste nel tenant (è un utente del prodotto, non un'identità Azure) |
-| `BP063` | Il segreto citato non esiste in App Configuration |
+| `BP063` | Il segreto citato non è impostato sul tenant (avviso: la connessione nasce senza credenziali, da inserire dall'interfaccia) |
 | `BP064` | Il topic da riusare non esiste |
 | `BP065` | Il modello citato non è nel catalogo del tenant |
 | `BP066` | L'endpoint AI citato non esiste fra quelli della company |
@@ -1983,51 +1980,47 @@ di ogni campo del manifest: [riferimento del manifest](../skills/xrcopilotlab-bl
 
 ## 9. Quando qualcosa non va
 
-### «Non è detto su quale ambiente lavorare»
+### «Non hai una sessione valida» (uscita 8)
 
-Manca `--env`, e non sei dentro un clone del repository di prodotto. Aggiungi `--env staging` o
-`--env prod`. La CLI si ferma **prima** di collegarsi a qualunque cosa, quindi non è successo niente.
+Su questa macchina non hai fatto `login` per quell'ambiente — la sessione è per ambiente, e quella di
+staging non vale in produzione. `xrcopilotlab-bp login --env <nome>`: si apre il browser, il clic è
+tuo. `xrcopilotlab-bp environments` dice su quali ambienti la sessione c'è già.
 
-### «Non hai accesso a Staging (…)» / «Serve il ruolo 'App Configuration Data Reader'»
+### «token valido, ma non sei un utente di XRCopilotLab» (uscita 8) / un 403 su un tenant
 
-Ti manca il ruolo di lettura su quell'ambiente — oppure stai lavorando sull'ambiente sbagliato.
-`xrcopilotlab-bp environments` dice dove puoi lavorare. Il ruolo va chiesto a chi amministra la
-sottoscrizione: [§ L'accesso ad Azure](../../../docs/accesso-azure.md).
+Sei entrato, ma nel prodotto non appartieni a quel tenant, o non ne sei amministratore (i comandi che
+scrivono lo richiedono). Non è un ruolo Azure che manca, e non c'è niente da chiedere al team
+Azure: ti aggiunge chi amministra il tenant nel prodotto, dall'interfaccia. In produzione, oltre a
+essere amministratore, l'email può dover stare nell'elenco di chi scrive (`CliAccess:WriteAllowList`):
+il 403 lo dice con parole sue.
 
-### «Key Vault non scrivibile» / «App Configuration non scrivibile»
+### «non è ancora attivo su …» (uscita 3)
 
-Succede solo con `secrets set`: servono anche *Key Vault Secrets Officer* e *App Configuration Data
-Owner*. Il messaggio nomina il ruolo e la risorsa.
+L'API di quell'ambiente è una build precedente senza l'accesso della CLI, oppure è chiusa apposta
+(`CliAccess:Closed`). Non dipende da te: `report-problem --kind access --env <nome>`.
 
-### Nessun browser si apre, e l'autenticazione fallisce
+### Nessun browser si apre al `login`
 
-Il comando l'ha lanciato un assistente: senza un terminale vero il browser non si apre, di proposito.
-Fai tu il primo accesso, dal tuo terminale: `az login`, oppure `xrcopilotlab-bp environments`. Da lì
-il token resta in cache anche per i comandi dell'assistente.
+Il comando stampa l'indirizzo: aprilo a mano, sulla tua macchina, e scegli l'account `hevolus.it`.
+`login` aspetta fino a cinque minuti; se scade, rilancialo una volta sola. Vale anche quando il comando
+lo lancia un assistente: il browser si apre sulla macchina della persona, che completa l'accesso.
 
 ### «Nessun terminale a cui chiedere quale tenant» (uscita 6)
 
 La CLI ha stampato l'elenco dei tuoi tenant, con gli identificativi, e si è fermata: scegli tu, e
 ripeti con `--company <id>`. Su staging non succede: senza `--company` vale il tenant di prova.
 
-### «Il tenant … non è fra quelli su cui si può intervenire in PRODUZIONE» (uscita 3)
+### «Il tenant … non è fra quelli su cui si può intervenire» / «Nessun terminale a cui chiedere quale tenant»
 
-In produzione si lavora solo sui tenant a cui **appartieni nel prodotto**, gli stessi che vedi
-nell'interfaccia. Non è un ruolo Azure che manca: chiedi di essere aggiunto a quel tenant. Lo stesso
-messaggio compare se la CLI non riesce a sapere chi sei: verifica l'accesso con `environments` e che
-la tua utenza esista nel prodotto.
+Si lavora solo sui tenant a cui **appartieni nel prodotto**, gli stessi che vedi nell'interfaccia
+(`whoami` li elenca). Un tenant che non è fra i tuoi è rifiutato con un 403 che non dice se esista.
+Con più tenant e nessun `--company`, senza terminale la CLI li elenca con gli identificativi e si
+ferma con 6: scegli tu, e ripeti con `--company <id>`. In produzione il tenant si indica sempre.
 
-### «Non ho accesso allo strumento» in chat, oppure un 404 senza spiegazione
+### «Non ho accesso allo strumento» in chat
 
-Due cose diverse.
-
-- **L'agente non carica il server MCP**: `mcp check --tag <TAG>` dice se manca la definizione, la
-  riga del catalogo o il collegamento; `mcp publish <server>` ricrea la riga del catalogo.
-- **Un 404 da ogni chiamata all'API**, su un profilo scritto a mano con `apiUrl` e `apiKey`: il
-  gateway APIM vuole il parametro `api-version`, e senza non trova l'API e risponde 404 invece di un
-  errore che lo dica. Aggiungi `apiVersion` al profilo (`staging`, `prod`…), oppure togli `apiUrl` e
-  `apiKey` e lascia che la CLI usi la rotta interna, che non ne ha bisogno. Gli ambienti incorporati
-  usano la rotta interna: lì il problema non si presenta.
+L'agente non carica il server MCP: `mcp check --tag <TAG>` dice se manca la definizione, la riga del
+catalogo o il collegamento; `mcp publish <server>` ricrea la riga del catalogo.
 
 ### «Errore di autorizzazione» da un agente, anche dopo aver corretto il segreto
 
@@ -2094,14 +2087,14 @@ xrcopilotlab-bp rollback --env staging --run <runId>
 | **Archivio — storage**, container `blueprints` | `blueprints/<companyId>/<blueprint>/v<n>/manifest.yaml` (il testo com'è stato scritto), `files/…` (i documenti di knowledge), i `.bpmn` esportati; `tests/<nome>.v<k>.tests.yml` (le suite); `reports/<timbro>/` (report e giudizi); `docs/`, `attachments/` | `push`, `pipeline`, `promote`, `catalog`, `apply`; `test push`, `test run`, `test judge`, `files put` |
 | **Archivio — Cosmos**, container `blueprints`, partizione = tenant | il manifest interpretato di ogni versione, con impronta e provenienza; i **run** con inventario, fasi e approvazione | `push`, `promote`, `catalog`, `apply`, `pipeline`, `rollback`, `delete` |
 | **Il tenant XRCopilotLab** | topic, profili e documenti, ruoli e membri, agenti, skill assegnate, connessioni, server MCP e loro pubblicazione, orchestratori, agent task, processi e webhook | `apply`, `pipeline`, `rollback`, `delete --with-entities`, e gli interventi puntuali di `schedule`, `mcp`, `connections`, `instances`, `knowledge`; `test run` apre conversazioni e istanze |
-| **Key Vault** dell'ambiente | i valori dei segreti | `secrets set`, e `apply` per la chiave dei webhook |
-| **App Configuration** dell'ambiente | i riferimenti ai segreti (`Blueprints:Secrets:…`) e la chiave `Sentinel` | `secrets set` |
-| **Il tuo disco**, cartella di lavoro `~/.xrcopilotlab/blueprints/<TAG>/` | manifest scaricati o esportati, suite di collaudo, report | `pull --out`, `export`, `test init`, `test run`, `files get` |
+| **I segreti del tenant**, nella piattaforma (cifrati dall'API, per tenant e tag) | i valori dei segreti del manifest e la chiave dei webhook | `secrets set`, e `apply` per la chiave dei webhook; `delete` di un blueprint toglie quelli del suo tag |
+| **Il tuo disco**, la cartella di lavoro (`XRCOPILOTLAB_BP_WORKSPACE`, altrimenti nella temporanea del sistema) | manifest scaricati o esportati, suite di collaudo, report: copie di appoggio, la sede è l'archivio | `pull --out`, `export`, `test init`, `files get` |
 
 Il manifest non contiene mai il valore di un segreto: solo il suo nome, nella forma
-`Blueprints:Secrets:<TAG>:<nome>`. La chiave vera in App Configuration porta anche il tenant:
-`Blueprints:Secrets:<companyId>:<TAG>:<nome>` (quelle dei blueprint applicati prima della regola
-restano valide in lettura).
+`Blueprints:Secrets:<TAG>:<nome>`. La riga che la piattaforma conserva porta anche il tenant, così
+due tenant con lo stesso tag non condividono una credenziale (quelle dei blueprint applicati prima
+della regola restano valide in lettura). Niente va su Key Vault o App Configuration: dal 03/11/2026
+(#1798) non sono più usati.
 
 ---
 

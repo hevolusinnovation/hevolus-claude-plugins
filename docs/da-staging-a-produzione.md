@@ -11,26 +11,26 @@ plugin («non dev»). Dove serve, dice anche cosa chiedere e a chi.
 
 ## 0. Le due cose che fermano tutto
 
-### 0.1 I ruoli Azure sulla produzione
+### 0.1 Una sessione sulla produzione
 
-Ogni comando della CLI legge la configurazione dell'ambiente. Per la produzione servono, sulla
-**tua** utenza `hevolus.it`:
+La sessione della CLI è **per ambiente**: quella di staging non vale in produzione. Prima di tutto,
+sulla **tua** macchina:
 
-| Ruolo | Su | Serve a |
-|---|---|---|
-| **App Configuration Data Reader** | `appcs-xrcopilotlab-prod-01` | leggere le coordinate dell'ambiente |
-| **Key Vault Secrets User** | `kv-xrcopilotlab-prod-01` | risolvere i segreti citati dal manifest |
-| **Key Vault Secrets Officer** | `kv-xrcopilotlab-prod-01` | solo se devi **scrivere** un segreto (`secrets set`) |
+```bash
+xrcopilotlab-bp login --env prod
+```
 
-Verifica in un comando, senza rischiare niente:
+Si apre il browser, un clic con l'utenza `hevolus.it`, e la sessione resta. Niente ruoli Azure: dalla
+3.0.0 la CLI lavora con il tuo account, e che cosa puoi fare lo decide il prodotto, tenant per tenant
+([§ L'accesso](accesso-azure.md)). Verifica in un comando, senza rischiare niente:
 
 ```bash
 xrcopilotlab-bp environments
 ```
 
-Risponde ambiente per ambiente: *accessibile*, *manca il ruolo*, *nessun accesso ad Azure*, *non
-raggiungibile*. Se `prod` non è accessibile, la richiesta dei ruoli si fa a chi amministra la
-sottoscrizione — il modello del messaggio è in [§ L'accesso ad Azure](accesso-azure.md).
+Risponde ambiente per ambiente: *n tenant*, *senza sessione* (serve `login`), *non sei un utente*,
+*non raggiungibile*. Se su `prod` sei entrato ma non vedi il tenant del cliente, la richiesta si fa a
+chi amministra quel tenant nel prodotto, non ad Azure.
 
 ### 0.2 In produzione si lavora sui tenant a cui appartieni
 
@@ -43,9 +43,8 @@ Quindi la domanda da farsi prima di cominciare è una sola: **sei censito nel pr
 tenant di produzione?** Se sì, puoi lavorarci. Se no, non è un ruolo Azure che manca e non c'è un
 flag che aggiri: chiedi di essere aggiunto a quel tenant, come si farebbe per usare l'interfaccia.
 
-Se non si riesce a stabilire chi sei — nessun accesso ad Azure, o un'utenza che il prodotto non
-conosce — in produzione il comando **si ferma**. Fuori produzione ripiega sull'elenco
-dell'ambiente, dicendolo.
+Se non si riesce a stabilire chi sei — nessuna sessione, o un'utenza che il prodotto non conosce —
+il comando **si ferma** con 8, in ogni ambiente: `login`, oppure chiedi di essere aggiunto al tenant.
 
 > Fino alla 2.12.1 la regola era un'altra: in produzione passava il solo tenant di Hevolus, per
 > tutti, perché l'elenco veniva da una chiave di configurazione condivisa. Se leggi ancora quella
@@ -59,19 +58,12 @@ dell'ambiente, dicendolo.
 | Passo | Dev | Non dev |
 |---|---|---|
 | Installare | clone del repository di prodotto, oppure il plugin come tutti | app Claude → scheda **Code** → le due righe di [§ Installare](installare.md) |
-| Primo accesso ad Azure | `az login` o un comando qualsiasi dal terminale | **un comando, una volta, da un terminale** — vedi qui sotto |
-| Verificare | `xrcopilotlab-bp environments` | lo stesso, chiedendolo a Claude |
+| Entrare | `xrcopilotlab-bp login --env prod` | lo stesso, chiedendolo a Claude: il browser si apre sulla tua macchina, il clic è tuo |
+| Verificare | `xrcopilotlab-bp whoami --env prod` | lo stesso, chiedendolo a Claude |
 
-L'unico passo che oggi vuole un terminale vero è il **primo accesso ad Azure** su quella macchina:
-senza un terminale il ramo che apre il browser è disattivato di proposito, perché il comando
-resterebbe appeso ad aspettare una pagina che nessuno vede.
-
-```bash
-xrcopilotlab-bp status --env staging
-```
-
-Si apre il browser, si accede con l'utenza aziendale, e da lì in poi **tutti** i comandi — compresi
-quelli che lancia Claude per te — usano il token in cache. Succede una volta per macchina.
+Non c'è più un passo che vuole un terminale vero: `login` apre il browser anche quando lo lancia
+Claude, e aspetta fino a cinque minuti che tu scelga l'account. Fatto una volta per ambiente, tutti i
+comandi successivi — compresi quelli che lancia Claude per te — usano la sessione.
 
 ---
 
@@ -178,8 +170,8 @@ processo, la coda dei compiti — è lo strato che sa rompersi da solo lasciando
 
 | Cosa vedi | Cosa vuol dire |
 |---|---|
-| `environments` dice «manca il ruolo» su prod | i ruoli si chiedono a chi amministra la sottoscrizione: [§ L'accesso ad Azure](accesso-azure.md) |
-| exit **3** «il tenant non è fra quelli su cui si può intervenire» | è il passo 0.2: non sei censito su quel tenant nel prodotto. Non è un ruolo Azure che manca |
+| `environments` dice «senza sessione» su prod | è il passo 0.1: `xrcopilotlab-bp login --env prod`, il clic nel browser è tuo — [§ L'accesso](accesso-azure.md) |
+| exit **8** «non sei un utente di XRCopilotLab», o un 403 sul tenant | è il passo 0.2: non sei censito su quel tenant nel prodotto. Non è un ruolo Azure che manca |
 | exit **6** «serve --yes» | non c'è un terminale a cui chiedere: la conferma la dà una persona, a parole |
 | «il segreto X non esiste in produzione» | `promote` li aveva elencati: `secrets set --env prod` prima del `plan` |
 | un nome esiste già | il blueprint non sovrascrive: si decide, non si forza |
