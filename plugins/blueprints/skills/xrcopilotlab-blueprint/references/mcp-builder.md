@@ -344,6 +344,79 @@ token arriva al server come **argomento dei tool** (`oauth_client_id`, `oauth_ac
 file nel topic, indicizzati da un profilo ([`knowledge.md`](knowledge.md)). Il server MCP serve a
 cercare e a elencare.
 
+## PEC e posta: i server nativi della piattaforma
+
+Una casella di posta parla IMAP e SMTP, non HTTP: MCP Builder non la raggiunge, e inoltrare una PEC in una
+casella M365 per leggerla via Graph perde la firma del gestore e le ricevute. La piattaforma ha **due server
+nativi**, `PEC` (`service: pec`) e `Mail (IMAP/SMTP)` (`service: mail`): lo stesso codice con due facce (repo
+`mcp/xrcopilotlab-pec-mcp`, Container App che scalano a zero), uno per tutti i tenant e senza stato: la copia
+del tenant porta la casella e la password negli header, e il server apre la casella a ogni chiamata. Per una
+casella ordinaria si usa `service: mail` con gli stessi campi; per Gmail a nome di una persona resta
+`service: gmail` (OAuth).
+
+```yaml
+mcpServers:
+  - key: pec
+    kind: native
+    name: PEC protocollo
+    service: pec
+    mailbox: protocollo@pec.comune.esempio.it            # l'indirizzo PEC
+    # login: C12345                                      # Legalmail: l'utente IMAP è la USERID, non l'indirizzo
+    password: Blueprints:Secrets:COMUNE:pec-password     # mai il valore
+    allowedDomains: [comune.esempio.it]                  # perimetro lato server per l'invio
+agents:
+  - key: protocollo
+    name: Protocollo PEC
+    systemMessage: …
+    mcp: [pec]
+agentTasks:
+  - key: sorveglia-pec
+    agent: protocollo
+    trigger: scheduled
+    schedule: { cron: "*/5 * * * *", timeZone: Europe/Rome }
+    prompt: Elenca le PEC non ancora processate con pec_list_messages (onlyUnprocessed=true), leggi ciascuna con pec_read_message, consegna i dati al processo e poi segnala con pec_mark_processed.
+    outputActions: [{ type: webhook, url: processes.presa-in-carico.webhook }]
+```
+
+1. **Credenziali**: `password` è un riferimento a un segreto del tenant, da impostare con `secrets set`
+   nel terminale di chi ha i ruoli. Se manca all'apply, la copia nasce con la sola casella e il piano avvisa
+   (`BP063`): l'amministratore completa la password dalla UI (Interoperabilità › MCP Servers › Autenticazione «Mailbox
+   (IMAP/SMTP)»), oppure `mcp authorize pec --tag <TAG>` riscrive gli header dal segreto. Per la PEC quel comando
+   non apre nessun browser: non c'è un consenso da dare.
+2. **Gestore**: il server lo ricava dal dominio della casella o dai record MX; `imapHost`/`imapPort` solo se
+   non lo trova (il piano e `mcp test` lo dicono). Postecert e InfoCert Legalmail (`mbox.cert.legalmail.it`,
+   login = USERID InfoCert, da mettere in `login:`) sono verificati; Aruba e Namirial vanno confermati sulle
+   pagine del gestore prima del primo collegamento.
+3. **Cosa fanno i tool**: `pec_list_messages` elenca e classifica (busta certificata, ricevuta di
+   accettazione / consegna / errore, anomalia, posta ordinaria); `pec_read_message` restituisce i dati di
+   certificazione del gestore, l'esito della firma S/MIME (`Valid`, `Invalid`, `NotSigned`, `NotVerified`),
+   il messaggio originale e l'elenco degli allegati; `pec_list_receipts` lega le ricevute a un Message-ID
+   inviato e dice l'esito; `pec_mark_processed` segna i messaggi già consegnati al processo con una parola
+   chiave IMAP privata, il cursore della piattaforma.
+4. **Nel prompt dell'agente**: fidarsi solo delle buste con firma `Valid`; una `NotVerified` si riporta, non
+   si scarta; una ricevuta non è una PEC da protocollare; dopo aver consegnato al processo, chiamare
+   `pec_mark_processed` una volta. Gli allegati non passano dal tool (limite di 1 MiB): li scarica la
+   piattaforma dalla rotta `/attachments/{uid}/{n}` del server.
+5. **La lettura non tocca la casella**: nessuna cancellazione, nessuno spostamento, nessun «letto». La casella
+   del gestore resta l'archivio legale (conservazione a norma).
+5-bis. **L'invio è governato.** `pec_send_message` e `mail_send_message` mandano via SMTP del gestore con le
+   stesse credenziali e restituiscono il Message-ID (per la PEC è quello a cui si legano le ricevute). Il punto
+   di controllo della governance (`GovernedToolProvider`) riconosce i tool di invio e li valuta anche come
+   `action.email`, sui domini e sul numero dei destinatari: il regolamento «Perimetro delle comunicazioni» del
+   tenant copre quindi anche gli invii in chat, e in modalità Enforce un destinatario fuori perimetro viene
+   negato prima che la chiamata parta. `allowedDomains` nel manifest è l'ultima linea, applicata dal server
+   anche a governance spenta. Un agente che può inviare va dichiarato alla governance (skill
+   `xrcopilotlab-blueprint-governance`), e il prompt deve dire di rileggere destinatari e testo e di inviare
+   una volta sola. Allegati in uscita: non ancora.
+6. **Rollback e delete** smontano la riga di credenziali e la copia del server. Il server nativo di
+   piattaforma non si tocca mai.
+7. **La chiave di piattaforma non c'entra con il blueprint** (#1768, vale anche per i server Google): il server
+   nativo chiede una chiave della piattaforma, e la manda l'Api dalla propria configurazione (`NativeMcp:Servers`,
+   una voce per host). Il manifest non ha un campo per essa, la copia del tenant non la porta e nessuno la chiede
+   all'utente. Se il piano avvisa `BP178` (il modello del catalogo porta ancora la chiave nell'indirizzo) o dopo
+   l'apply il server risponde 401/405 a «elenca i tool», è l'ambiente da allineare: `report-problem --kind access`.
+   L'indirizzo del server non si riporta in chat né nei report.
+
 ## Server MCP remoti con OAuth: cosa si collega e cosa no
 
 Un server MCP **già ospitato** (`kind: external`) che chiede OAuth a nome di una persona ricade in uno

@@ -1,85 +1,79 @@
-# La guida video nel tenant: topic Guide, video, agente
+# La guida video nel tenant: l'agente con i video allegati
 
 **Obbligatorio**, **dopo** i video narrati ([`video-narrato.md`](video-narrato.md)). Il video smette di essere un
-file da mandare e diventa **una guida che il cliente interroga**: i video stanno nel topic **Guide** del
-suo blueprint, un profilo di knowledge li indicizza e **un agente video per manifest** risponde alle domande
-citando il video che le spiega.
+file da mandare e diventa **una guida che il cliente interroga**: un **agente video per manifest**, con i video
+**allegati all'agente**, risponde alle domande dicendo in quale video e in quale punto si vede la risposta.
 
 Si aggiunge **al manifest del cliente** (stesso tag), come versione nuova: non è un blueprint a parte.
 L'`apply` lo tratta come aggiornamento sul posto (regola 2 di `.claude/rules/blueprints.md`): crea ciò che
 manca, non tocca il resto.
 
-## La regola: il topic «Guide» lo crea il manifest, un agente video per manifest
+## La regola: i video stanno sull'agente, mai in un profilo di knowledge
 
-- **Il manifest dichiara il topic** `Guide` con `name`: il planner lo crea come **`BP-<TAG>-Guide`**, con il
-  prefisso del blueprint, e lo mette nell'inventario del run. Non c'è nessun controllo «esiste già?» da
-  fare a mano: il blueprint crea ciò che manca, e a un aggiornamento successivo lo ritrova nell'inventario
-  e non lo ricrea (regola 2 di `.claude/rules/blueprints.md`).
-- **Una guida per blueprint, non una per tenant.** Un cliente con due blueprint (due tag) ha due topic
-  `BP-<TAGA>-Guide` e `BP-<TAGB>-Guide`. Il rollback di un blueprint porta via la sua guida con le altre
-  sue entità: è voluto, la guida descrive quello scenario.
+Un agente risponde da un video in due modi molto diversi, e solo uno funziona:
+
+| Dove sta il video | Che cosa succede | Esito |
+|---|---|---|
+| **File dell'agente** (`agents[].files`) | All'attivazione l'agente lo manda all'analisi dei video: Content Understanding ne trascrive **tutti i segmenti**, descrive i fotogrammi chiave e tiene i tempi. In chat l'agente riceve i dati dei suoi video e può citare segmento e minuto | **Si usa questo** |
+| Profilo di knowledge (`knowledge[].files`) | Il video entra nel knowledge graph come testo, ma la libreria legge **solo il primo segmento** del risultato di Content Understanding (15–30 secondi): il resto del video non c'è | Non si usa |
+
+Lo si è visto con SCHOOL v17 (29/10/2026). Profilo con tre video da 2–7 minuti e agente collegato:
+indicizzazione «completata», ma l'agente rispondeva che nei video non c'era ciò che la voce diceva dopo il primo
+mezzo minuto. La guida è stata tolta con la v19. Il percorso, riletto nel codice:
+
+- **video sull'agente**: `IndexFiles` di un agente Smart con file video chiama `IndexFileByAgent` →
+  `VideoFeatureProcessor` → coda di analisi dei media → `MediaAnalysisWorker`, che legge la trascrizione di tutti
+  i segmenti;
+- **video in un profilo**: `ParseContentUnderstandingResponse` della libreria del knowledge graph legge
+  `contents[0]`, cioè solo il primo segmento.
+
+Il tipo «Video» dell'agente è obsoleto e non serve: un agente **Smart** (il default del manifest) con dei video
+fra i suoi file attiva da solo il percorso dei video.
+
+## Le altre regole
+
 - **Un agente video per manifest**, con **tutti i video di quel manifest** (di solito `01-come-si-crea`,
-  `02-come-si-usa`, `03-processo-in-funzione`) in un solo profilo. Il nome del file per argomento è ciò
-  che gli fa citare il video giusto. Non un agente per video: ogni agente e ogni profilo consumano licenza
-  (`BP071`), e un agente con più video risponde meglio alle domande che li attraversano.
+  `02-come-si-usa`, `03-processo-in-funzione`). Non un agente per video: ogni agente consuma licenza (`BP071`),
+  e uno solo risponde meglio alle domande che attraversano più video.
 - **Il nome dell'agente** nel manifest è «Agente video - <Scenario>» (per Studio Polis: «Agente video -
-  Agenda»): il planner antepone `BP-<TAG>-`, quindi il cliente non va scritto nel nome.
-- Se in quel tenant esiste già un topic che si chiama `BP-<TAG>-Guide` **non creato dal blueprint**, il piano
-  si ferma (`BP060`): lo si rinomina o si cambia il nome nel manifest. Non si sovrascrive.
+  Agenda»). Il planner antepone `BP-<TAG>-`, quindi il cliente non va scritto nel nome.
+- **Nel topic di `tenant`**: i file dell'agente si caricano nel topic dell'agente. Un topic in più («Guide») non
+  serve: è un'altra licenza di topic e un altro posto da smontare.
+- **Niente profilo di knowledge** per i video, per la regola sopra. Un profilo serve solo se la guida deve
+  rispondere anche da documenti scritti, ed è un'altra cosa.
+- **Il nome del file dice di che cosa parla il video**: è con quello che l'agente lo cita.
+- **Fuori dal modello del catalogo**, salvo i video registrati su un tenant che mostra solo cose del cliente:
+  quelli girati sul tenant di collaudo di Hevolus mostrano contatori, preferiti e progetti interni.
 
-Se i video non sono consegnabili (passo 1) il passo si salta, ma **va scritto nel riepilogo** con il
-motivo: senza agente video il prodotto è incompleto e chi legge deve saperlo.
-
-## Cosa fa la piattaforma, e cosa no
-
-- Un `.mp4` in un profilo di knowledge **viene ingerito**: Content Understanding ne ricava trascrizione e
-  fotogrammi chiave, e il grafo li indicizza come ogni altro documento. Il validatore non lo rifiuta
-  (`BP027` riguarda solo `.xls`).
-- L'agente risponde **da ciò che i video dicono**: la voce che racconta e i fotogrammi. Non «apre il video a
-  un minuto preciso»: non lo si promette. Lo si fa citare per **nome del file**.
-- Il profilo consuma licenza (`XRCopilotLab.Profile`) e l'agente anche (`XRCopilotLab.Agent`): il piano si
-  ferma con `BP071` se il tenant le supererebbe. L'indicizzazione prosegue dopo l'apply: un video da 7
-  minuti richiede qualche minuto, e finché non ha finito l'agente risponde su una guida parziale.
+Se i video non sono consegnabili (passo 1) il passo si salta, ma **va scritto nel riepilogo** con il motivo:
+senza agente video il prodotto è incompleto e chi legge deve saperlo.
 
 ## Il frammento
 
-Si aggiunge al manifest esistente (provato con `xrcopilotlab-bp validate`):
+Si aggiunge al manifest esistente:
 
 ```yaml
-topics:
-  - key: guida
-    name: Guide                   # il planner lo crea come BP-<TAG>-Guide
-
-knowledge:
-  - key: guida-video
-    name: Video dello scenario
-    description: I video che spiegano come si crea lo scenario, come si usa e il processo in funzione
-    language: it
-    topic: guida
-    files:                        # niente fileType: è original, la forma giusta
-      - path: video-guida/01-come-si-crea.mp4
-      - path: video-guida/02-come-si-usa.mp4
-      - path: video-guida/03-processo-in-funzione.mp4
-
 agents:
   - key: agente-video
     name: Agente video - Agenda   # «- <Scenario>»; il planner mette BP-<TAG>- davanti
-    description: Risponde alle domande sullo scenario citando il video che le spiega
+    description: Risponde alle domande sullo scenario indicando il video e il punto in cui si vede la risposta
     language: it
     model: gpt-5.4-mini           # dichiararlo (BP015); niente temperature (BP018)
-    topic: guida
+    files:                        # i video allegati all'agente: niente fileType (è reference)
+      - path: video-guida/01-come-si-crea.mp4
+      - path: video-guida/02-come-si-usa.mp4
+      - path: video-guida/03-processo-in-funzione.mp4
     systemMessage: |
-      Sei la guida video di questo scenario. Il tuo unico materiale sono i video che ti sono collegati.
+      Sei la guida video di questo scenario. Il tuo unico materiale sono i video che ti sono allegati.
       Rispondi in italiano, in poche frasi, solo con ciò che i video dicono o mostrano.
-      Chiudi ogni risposta indicando il video che la contiene, con il suo nome file.
+      Chiudi ogni risposta indicando il video che la contiene, con il suo nome file e il minuto.
       Se nessun video tratta la domanda, dillo: «Nei video non c'è, chiedi a una persona del team».
-      Non dedurre, non completare con ciò che «di solito» si fa, non citare minuti che non conosci.
-    knowledge: [guida-video]
+      Non dedurre e non completare con ciò che «di solito» si fa.
 ```
 
-I nomi dei file contengono ciò che distingue i video: dentro un profilo i file si selezionano **per nome**
-([`manifest-reference.md`](../../xrcopilotlab-blueprint/references/manifest-reference.md) § «Come si dividono i file»).
-Se un manifest ha più video su uno stesso argomento, il nome dice quale.
+L'apply carica i video nel topic, li collega all'agente e, perché sono file `reference`, aggiunge
+l'operazione **«Attiva l'agente e ne accoda l'indicizzazione dei file»**: è quella che li manda all'analisi.
+Senza di lei (un agente salvato attivo ma non passato dalla rotta di attivazione) i video non si analizzano.
 
 ## Passi
 
@@ -88,26 +82,32 @@ Se un manifest ha più video su uno stesso argomento, il nome dice quale.
    caricato nel tenant di un cliente lo vede chiunque in quel tenant. Si caricano solo video **oscurati o
    registrati su un tenant che contiene solo cose del cliente**; la conferma la dà l'utente.
 2. **I file accanto al manifest.** Si scaricano dall'archivio (`xrcopilotlab-bp files get --tag <TAG>
-   --kind attachment ...`) con `--out <scratch>/video-guida/` (cartella temporanea della sessione, da eliminare a fine lavoro), con nomi per argomento.
-   I percorsi del manifest sono relativi alla sua cartella.
+   --kind attachment ...`) in `<scratch>/video-guida/` (cartella temporanea della sessione, da eliminare a fine
+   lavoro). I percorsi del manifest sono relativi alla sua cartella.
 3. **Validare.** `xrcopilotlab-bp validate <manifest> --graph`: zero errori; `BP027` = file mancante.
-4. **Il piano.** Si segue [`xrcopilotlab-blueprint`](../../xrcopilotlab-blueprint/SKILL.md): `push`,
-   `plan`, si **mostra il piano** (un topic `BP-<TAG>-Guide`, un profilo con N file, un agente) e si
-   attende il sì. Scrive sul tenant: ambiente e company si dichiarano, mai assunti. I video viaggiano con
-   la versione del manifest (`push` li archivia in `v<N>/files/`).
-5. **Apply e attesa.** Dopo l'apply si controlla che l'indicizzazione sia finita, **poi** si prova: una
-   domanda per video, la cui risposta è nel video, e una fuori argomento che deve rispondere «non c'è».
-6. **Consegna.** Nel riepilogo: nome dell'agente, topic `BP-<TAG>-Guide`, versione del manifest, esito delle domande di prova.
-7. **Dirlo nell'artifact.** Sotto il video una riga «Chiedi all'agente video» con il nome dell'agente e il
-   topic `BP-<TAG>-Guide`. Niente link a entità del tenant se l'artifact esce dall'organizzazione.
+4. **Il piano.** Si segue [`xrcopilotlab-blueprint`](../../xrcopilotlab-blueprint/SKILL.md): `push`, `plan`, si
+   **mostra il piano** (l'agente, N video caricati e collegati, l'attivazione con l'indicizzazione) e si attende
+   il sì. Scrive sul tenant: ambiente e company si dichiarano, mai assunti. I video viaggiano con la versione
+   del manifest (`push` li archivia in `v<N>/files/`).
+5. **Apply e attesa.** L'analisi dei video prosegue dopo l'apply (qualche minuto per un video di 7 minuti). Si
+   prova solo quando è finita.
+6. **Prova.** Una domanda per video, la cui risposta sta **oltre il primo minuto** (è lì che si vede se l'agente
+   ha il video intero), e una fuori argomento che deve rispondere «Nei video non c'è». Con
+   `xrcopilotlab-bp test run`, in una suite `kind: agent` archiviata con il blueprint.
+7. **Consegna.** Nel riepilogo: nome dell'agente, versione del manifest, esito delle domande di prova.
+8. **Dirlo nell'artifact.** Sotto il video una riga «Chiedi all'agente video» con il nome dell'agente. Niente
+   link a entità del tenant se l'artifact esce dall'organizzazione.
+
+## Una guida già fatta con il profilo
+
+Le guide create prima di questa regola (topic `BP-<TAG>-Guide` e profilo con i video) si smontano con una
+versione che non le dichiara più, poi `xrcopilotlab-bp undeclared --tag <TAG> --remove` (#1702): toglie agente,
+profilo, topic e video caricati, con la conferma del tag. Poi si rifà la guida con il frammento qui sopra.
 
 ## Cosa non fare
 
-- Non mettere i video nel topic di `tenant`: un file nel topic non è interrogabile da nessuno finché un
-  profilo non lo seleziona, e si mescolerebbe con la knowledge dello scenario.
-- Non cambiare il nome del topic dopo il primo apply: il blueprint lo ritrova per nome nell'inventario.
+- Non mettere i video in un profilo di knowledge: se ne legge solo il primo segmento.
 - Non fare un agente per video: uno per manifest, con tutti i suoi video.
-- Non promettere «ti porta al minuto giusto»: l'agente cita il file, non il secondo.
-- Non attivare il profilo senza licenza: l'API risponde 403 e il run si ferma a metà (`BP071`).
+- Non promettere un minuto che l'agente non ha restituito: lo cita se lo trova nei dati del video.
 - Non applicare senza il sì dell'utente sul piano, né con `--yes` dichiarato al posto suo.
 - Non caricare video con nomi di altri clienti in vista.

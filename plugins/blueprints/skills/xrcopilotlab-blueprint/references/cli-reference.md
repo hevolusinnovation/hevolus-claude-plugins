@@ -6,158 +6,60 @@ Panoramica e concetti: [`manuale.md`](../../../docs/manuale.md). Formato del fil
 xrcopilotlab-bp <comando> [argomenti] [opzioni]
 ```
 
-## Configurazione: quasi nulla
+## Configurazione: `login` e basta
 
-Dentro un clone del repository **non serve configurare niente**. La CLI legge
-`src/XRCopilotLab/XRCopilotLab.Api/local.settings.json`, che uno sviluppatore ha già impostato per
-far girare l'API in locale, ne prende `AppConfigurationEndpoint`, e da Azure App Configuration
-ricava tutto il resto: Cosmos, storage e le coordinate con cui raggiungere l'API. Le etichette si
-leggono nello stesso ordine dell'API (`api-ao`, `api`, etichetta nulla), quindi la CLI vede
-esattamente i valori che vede l'API.
+La CLI lavora **con l'account della persona**, mai con ruoli Azure (#1333, chiusa con la fase 5, #1772):
 
 ```bash
-xrcopilotlab-bp status --company <guid>
+xrcopilotlab-bp login --env staging      # si apre il browser: un clic con l'account aziendale hevolus.it
+xrcopilotlab-bp status                   # da qui in poi ogni comando parla con l'API con il tuo token
 ```
 
-Serve un accesso ad Azure e, sull'utenza corrente, i ruoli *App Configuration Data Reader* e
-*Key Vault Secrets User*. L'accesso si prende dove già c'è — variabili d'ambiente, identità
-gestita, Visual Studio, `az login` — e **solo se non c'è nulla, e solo in un terminale**, la CLI
-apre il browser per farlo fare. Il token resta in cache fra le esecuzioni: l'accesso si fa una
-volta per macchina, non una per comando. Chi ha già fatto `az login` non nota differenza, perché
-quella strada viene provata prima.
+Non c'è niente da configurare: gli ambienti (`staging`, `prod`), l'indirizzo dell'API e l'app Entra
+della CLI stanno **nel binario**. La sessione resta nel portachiavi del sistema e si rinnova da sola
+finché non si fa `logout`. Nessun ruolo su App Configuration, Key Vault, Cosmos o storage: la CLI
+non li legge più. Tutto passa dalle rotte `cli/*` dell'API, che legge archivio, segreti e tenant con
+la **propria** identità e autorizza **per tenant** la persona del token.
 
-I ruoli servono perché: diverse voci dello store — fra cui la
-chiave di Cosmos — non sono valori ma **riferimenti a Key Vault**, che la CLI risolve al volo per
-le sole chiavi che le servono.
+Per provare contro un'API avviata in locale: `XRCOPILOTLAB_BP_API_URL=http://localhost:7071/api`
+(il token resta quello dell'ambiente scelto con `--env`).
 
-### Come raggiunge l'API
+### Chi può fare che cosa
 
-Due strade, scelte in quest'ordine:
+| Chi | Che cosa |
+|---|---|
+| utente di un tenant | legge: `status`, `plan`, `pull`, `catalog list`, `files ls`, `test reports`… |
+| **amministratore** del tenant | scrive su quel tenant: `push`, `apply`, `rollback`, `delete`, `secrets set`, `test run`, `knowledge`, `mcp`… |
+| **operatore di piattaforma** | tutto, su ogni tenant anche senza esserne utente, più il catalogo e l'archivio intero (`catalog publish`/`prune`, `copies`, `usage`, `access`). È il **super-amministratore del prodotto**: lo assegna il prodotto, non l'appartenenza a `hevolus.it`, e l'API registra ogni accesso con quel ruolo |
 
-1. **Rotta interna** (default): `InternalApi:BaseUrl` e `InternalApi:FunctionKey` da App
-   Configuration, con l'header `x-functions-key`. È la stessa strada che percorrono
-   `.Api.AsyncOperations` e `.SandboxEdge` per le loro chiamate interne, e non richiede alcuna
-   configurazione aggiuntiva.
-2. **Gestione API**: quando un profilo dichiara `apiUrl` e `apiKey`, si passa dal gateway con la
-   chiave di sottoscrizione e il parametro `api-version`. Senza quel parametro APIM non risolve
-   l'API e risponde 404, con un errore che non dice perché.
+In produzione le scritture possono essere riservate a un elenco di persone
+(`CliAccess:WriteAllowListEnforced`): vale anche per gli operatori.
 
 ## Ambiente e tenant: si scelgono per nome
 
-Gli ambienti sono **dentro il binario** — `staging` e `prod` — e si scelgono con
-`--env`. Nessun file da scrivere, nessuno da scaricare:
+Gli ambienti sono **dentro il binario** — `staging` (default) e `prod` — e si scelgono con `--env`:
 
 ```bash
-xrcopilotlab-bp plan --env prod --tag COMO
+xrcopilotlab-bp plan --env prod --tag COMO --company <guid>
 ```
 
-Senza `--env`, dentro un clone, vale l'ambiente del `local.settings.json`. Un `--env` esplicito
-vince sempre su quello: chiederne uno e ritrovarsi altrove sarebbe il peggiore dei difetti.
+**Il tenant è uno dei tuoi.** `--company <guid>` se è fra quelli a cui appartieni; senza, su
+`staging` vale il tenant di prova dell'ambiente, altrove l'unico che hai. Con più tenant e nessuna
+scelta il comando li elenca e si ferma: scegliere un tenant al posto di qualcuno non è una decisione da
+prendere in automatico. Un tenant che non è fra i tuoi è rifiutato (403), e il rifiuto non dice se il
+tenant esista. Un operatore di piattaforma indica sempre il tenant con `--company`.
 
-**Il tenant non si scrive, si sceglie.** Quando `--company` non c'è, la CLI elenca i tenant
-dell'ambiente per nome e chiede quale:
-
-```
-  Per quale tenant, in Staging?
-
-   1. Confindustria Como
-   2. Studio Polis
-   3. Hevolus Innovation
-
-  Numero (1-3), oppure vuoto per annullare: 1
-```
-
-`--company <guid>` continua a valere per gli script e per chi lo sa già. Se il tenant è uno solo,
-viene preso senza chiedere. Se non c'è un terminale — la CLI eseguita da un assistente, o in una
-pipeline — l'elenco viene stampato e l'esecuzione si ferma con **6**: scegliere un tenant al posto
-di qualcuno non è una decisione da prendere in automatico.
-
-**Su `staging` la domanda non viene posta**: c'è un ambiente di prova e non ce n'è un secondo
-plausibile, quindi senza `--company` si lavora su quello, e il comando lo dice — «Tenant non
-indicato: si usa quello predefinito di Staging» — prima del banner. La precedenza resta dal più
-esplicito al più implicito: `--company`, poi `tenant.companyId` del manifest, poi il `companyId`
-del profilo, e solo alla fine il default dell'ambiente. Nessun altro ambiente ne ha uno, e la
-produzione non deve averlo: lì «quale tenant» è la domanda giusta.
-
-### In produzione si lavora sui tenant a cui appartieni
-
-**Dalla 2.13.0** (issue #1114) l'elenco è quello della **persona**: la CLI chiede alla piattaforma
-l'utente con le sue company — la stessa domanda che l'interfaccia fa dopo il login — e offre
-quelli. Due colleghi con diritti diversi vedono elenchi diversi, come nell'interfaccia.
-
-Prima l'elenco era dell'**ambiente**: una chiave di configurazione uguale per tutti, che in
-produzione lasciava passare i soli tenant il cui nome contiene «hevolus». Il difetto non era la
-severità ma la grana: quella chiave è una sottostringa sola, quindi poteva aprire *tutti* i clienti
-o sostituire quello corrente, mai aggiungerne uno.
-
-Il controllo vale anche per `--company` scritto a mano: in produzione un tenant fuori dal tuo
-elenco viene rifiutato con **3**, e lo è pure quando l'identità non si riesce a stabilire — non
-sapere chi sei non è una ragione per mostrarti di più. Fuori produzione, in quel caso, si ripiega
-sull'elenco dell'ambiente dicendolo.
+Prima di ogni comando la CLI annuncia ambiente, tenant e con quale identità sta lavorando.
 
 Provisionare in produzione l'ambiente di un cliente **non si fa da riga di comando**: si fa
 dall'interfaccia. Non è un permesso che manca, è una scelta.
-
-Prima di ogni comando che scrive, la CLI annuncia dove sta per lavorare. L'ambiente è riconosciuto
-dall'**endpoint** di App Configuration a cui si è effettivamente collegati, non dal nome del
-profilo: un profilo chiamato «collaudo» ma puntato alla produzione viene annunciato come
-produzione.
-
-## Profili: quando servono ancora
-
-Ora quasi mai. Servono per un ambiente che non è fra quelli noti, o per sovrascrivere un singolo
-valore. Stanno in `~/.xrcopilotlab-bp/profiles.json`, si selezionano con lo stesso `--env <nome>`, e
-un profilo con lo stesso nome di un ambiente noto vince su quello.
-
-```jsonc
-{
-  "profiles": {
-    "staging": {
-      // Tutto è facoltativo: ciò che si omette viene dedotto come sopra.
-      "localSettingsPath": "/percorso/di/local.settings.json",
-      "appConfigurationEndpoint": "https://appcs-xrcopilotlab-staging-01.azconfig.io",
-      "companyId": "11111111-1111-1111-1111-111111111111",
-      "actor": "nome.cognome@hevolus.it",
-
-      // Solo per passare dalla gestione API invece che dalla rotta interna:
-      "apiUrl": "https://apim-hipexr-prod-italynorth.azure-api.net/api/lab/",
-      "apiKey": "env:XRCOPILOTLAB_BP_APIKEY",
-      "apiVersion": "staging",
-
-      // Solo per scavalcare ciò che c'è in App Configuration:
-      "cosmos":  { "endpoint": "...", "key": "env:...", "database": "...", "container": "blueprints" },
-      "storage": { "connectionString": "env:XRCOPILOTLAB_BP_STORAGE", "container": "blueprints" },
-      "keyVaultUri": "https://kv-xrcopilotlab-stg-01.vault.azure.net/"
-    }
-  }
-}
-```
-
-Ogni valore può essere scritto direttamente oppure nella forma **`env:NOME`**, che legge una
-variabile d'ambiente: è la forma da preferire per tutto ciò che è una credenziale, così il file non
-ne contiene nessuna.
-
-`keyVaultUri` serve solo a `secrets set`, che deve sapere dove scrivere il valore. Per `staging` e
-`prod` **non va scritto**: lo portano gli ambienti incorporati. Resta da indicare a mano solo per un
-endpoint non riconosciuto.
-
-⚠️ Se lo si scrive, va preso dai riferimenti a Key Vault **già presenti** nell'App Configuration di
-quell'ambiente — non dedotto dal nome. Nella sottoscrizione esistono sia `kv-xrcopilotlab-staging`
-sia `kv-xrcopilotlab-stg-01`: il nome più ovvio è quello sbagliato, e scriverci un segreto non dà
-nessun errore — semplicemente nessuno lo legge.
-
-Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
-
-`--env locale` non è un ambiente incorporato: esiste solo se il profilo `locale` è nel tuo
-`profiles.json`, e lo scrive [`profile init-local`](#profile-init-local).
 
 ## Opzioni comuni
 
 | Opzione | Significato |
 |---|---|
-| `--env <nome>` | Ambiente: `staging` o `prod`, o un profilo scritto a mano. Senza, vale lo sviluppo (il `local.settings.json` del clone). |
-| `--company <guid>` | Tenant. Senza, lo si sceglie per nome da un elenco. |
-| `--auth <identity\|key>` | Come si arriva ai dati (#1333, fase 2): `identity` = token utente verso l'API, nessun ruolo Azure; `key` = i ruoli Azure di sempre. Vale per `status`, `plan`, `pull`, `catalog list` ed `export <orchestratore>`. Senza, è `identity` solo se hai già fatto `login` su quell'ambiente; altrimenti `key`. Una scelta esplicita non ripiega mai sull'altra. |
+| `--env <nome>` | Ambiente: `staging` (default) o `prod`. |
+| `--company <guid>` | Tenant, fra quelli a cui appartieni. Senza, il tenant di prova di staging o l'unico che hai. |
 | `--tag <TAG>` | Blueprint su cui operare, per i comandi che partono da uno già pubblicato. |
 | `--version <n>` | Versione del manifest. Senza, si usa la più recente. |
 | `--yes` | Non chiede conferma. |
@@ -180,7 +82,7 @@ Percorso del file sovrascrivibile con `XRCOPILOTLAB_BP_PROFILES`.
 | `--file <giudizio.json>` | In `test judge`, i verdetti caso per caso. |
 | `--summary <giudizio.md>` | In `test judge`, il riepilogo in Markdown: diagnosi, costo, attese da correggere. |
 
-Variabili d'ambiente: `XRCOPILOTLAB_BP_AUTH` (come `--auth`), `XRCOPILOTLAB_BP_PROFILES` (percorso dei profili), `XRCOPILOTLAB_BP_DEBUG`
+Variabili d'ambiente: `XRCOPILOTLAB_BP_API_URL` (l'indirizzo dell'API al posto di quello dell'ambiente), `XRCOPILOTLAB_BP_DEBUG`
 (traccia completa degli errori), `NO_COLOR` (output senza colore).
 
 ## Codici di uscita
@@ -258,45 +160,35 @@ proposti per esclusione.
 
 ## `secrets set --company <tenant> --tag <TAG> <nome>`
 
-Salva un segreto in Key Vault e ne registra il riferimento in App Configuration. Il manifest lo cita
-come `Blueprints:Secrets:<TAG>:<nome>`; la chiave vera porta anche il **tenant** —
-`Blueprints:Secrets:<companyId>:<TAG>:<nome>` — perché un segreto appartiene a un tenant, e due
-tenant che installano lo stesso modello del catalogo con lo stesso tag non devono scriversi addosso
-(#1185).
+Salva un segreto **nella piattaforma** (#1798): l'API lo cifra, come fa con le credenziali delle
+connessioni, e lo conserva per tenant e tag. Il manifest lo cita come `Blueprints:Secrets:<TAG>:<nome>`;
+la riga porta anche il **tenant**, perché un segreto appartiene a un tenant, e due tenant che
+installano lo stesso modello del catalogo con lo stesso tag non devono scriversi addosso (#1185).
+Niente Key Vault, niente App Configuration: fino al 03/11/2026 il valore stava lì, e chi lo scriveva
+aveva bisogno di due ruoli Azure.
 
-**Con il token (#1518).** Se la CLI ha una sessione (`login`), il valore va all'API (`POST cli/{companyId}/secrets`),
-che lo scrive in Key Vault con la sua identità gestita: non servono ruoli su Key Vault né su App Configuration, solo
-essere utente Hevolus e amministratore del tenant. La risposta porta la chiave, mai il valore. Un blueprint bloccato lo
-aggiorna solo un suo owner. Senza sessione resta la strada con i ruoli Azure. Allo stesso modo `secrets check` chiede
-all'API solo se ogni segreto c'è (`POST cli/{companyId}/secrets/check`).
+Il valore va all'API (`POST cli/{companyId}/secrets`, #1518): basta essere amministratore del tenant, nessun ruolo
+Azure. La risposta porta il riferimento, mai il valore. Un blueprint bloccato lo aggiorna solo un suo owner. Allo stesso
+modo `secrets check` chiede all'API solo se ogni segreto c'è (`POST cli/{companyId}/secrets/check`).
 
 ```bash
 xrcopilotlab-bp secrets set --company <tenant> --tag STUDIOPOLIS graph-client-secret
 # Valore per Blueprints:Secrets:STUDIOPOLIS:graph-client-secret: ●●●●●●●●
 ```
 
-Quando legge un segreto, la CLI cerca prima la chiave del tenant, poi quella senza tenant dei
-blueprint applicati prima della regola: questi continuano a funzionare senza riapplicarli. Un
-segreto impostato di nuovo va nella chiave del tenant, che da lì in poi vince.
-
 Il valore si digita **senza eco**, non compare a video, non entra nel manifest e non finisce nei
 log. Per gli usi non interattivi: `--from-env NOME_VARIABILE`.
 
-Il comando aggiorna anche la chiave **`Sentinel`** di App Configuration: le API ricaricano la
-configurazione — riferimenti a Key Vault compresi — solo quando quella chiave cambia, ogni cinque
-minuti. Senza, un segreto corretto resterebbe quello vecchio in ogni Function App fino al riavvio,
-e l'unico sintomo sarebbe un agente che dice «errore di autorizzazione». Un'istanza **locale**
-dell'API va comunque riavviata: legge App Configuration all'avvio. E le **connessioni** già create
-non cambiano da sole: `connections refresh --tag <TAG>` (sotto).
-
-Servono i ruoli *Key Vault Secrets Officer* e *App Configuration Data Owner* sull'utenza corrente.
+Vale **da subito**: il prossimo `plan` lo vede, e l'apply lo dà alla connessione che lo cita. Le
+**connessioni** già create non cambiano da sole: `connections refresh --tag <TAG>` (sotto). I
+segreti di un tag se ne vanno con `delete` del blueprint; `rollback` li lascia, per l'apply successivo.
 
 **`secrets set` non è obbligatorio** (#1234): un segreto non impostato non ferma il piano
 (`BP063` è un avviso). La connessione nasce senza credenziali, la prova del tool che la usa si salta,
 e chi amministra il tenant le inserisce dopo l'apply dalla UI, in **Amministrazione › Connessioni**
 (matita sulla connessione › Autenticazione › «Set / update credentials» › Salva). `secrets set` serve
-a chi vuole precaricarle: allora l'apply le scrive da sé. **La chat dei blueprint non scrive
-segreti**: spiega alla persona dove inserirli, e non chiede mai il valore.
+a chi vuole precaricarle: allora l'apply le scrive da sé. **La chat dei blueprint non chiede mai il
+valore di un segreto**: spiega alla persona dove inserirlo.
 
 ## `secrets check <file.yml>`
 
@@ -308,6 +200,8 @@ inserire dalla UI (#1234).
 
 Registra una versione del manifest: il testo YAML nello storage, il manifest interpretato in
 Cosmos. Stampa identificativo, versione, percorso del blob e impronta SHA-256.
+
+> **Con il token utente** (`login`, #1770): manifest e file viaggiano nella richiesta e scrive l'API; vedi [«Senza ruoli Azure»](#senza-ruoli-azure-come-lavora-la-cli-1333-1772).
 
 Una versione pubblicata è **immutabile**: ripubblicare la stessa viene rifiutato. Si alza `version:`
 nel manifest, oppure — solo per iterare in sviluppo — si usa `--overwrite`.
@@ -351,6 +245,9 @@ di ripubblicare da quel file.
 
 Se la versione è arrivata lì per copia, stampa anche da dove.
 
+
+Con `--with-files` arrivano anche i file della versione, dove il manifest li dichiara (#1732): la knowledge nei suoi `path` (relativi alla cartella del manifest) e i sorgenti di ogni app nella sua `source`. La cartella si valida e si ripubblica così com'è. Un file di knowledge il cui percorso non si può usare — assoluto, fuori dalla cartella, o dichiarato due volte con percorsi diversi — finisce in `files/`, e il comando lo dice. Vale anche per `catalog pull --with-files`.
+
 ## `files ls` · `files put <file>` · `files get <percorso>` · `files rm <percorso>` · `files open <percorso>` · `files share <percorso>` · `files consolidate`
 
 Tutto ciò che un blueprint produce o richiede, oltre al manifest, sta nell'archivio nel cloud accanto
@@ -374,7 +271,7 @@ si leggono ancora, e `files consolidate` li porta nei posti di oggi.
 |---|---|
 | `files ls --tag <TAG> [--kind <specie>]` | Elenca ogni file del blueprint: specie, percorso, dimensione, data, impronta (SHA-256) e autore |
 | `files put <file> --tag <TAG> --kind <suite\|report\|doc\|draft\|attachment> [--name <nome>] [--version <n>] [--stamp <aaaammgg-hhmmss>]` | Archivia un file. Una suite diventa una versione nuova fra le suite del tag, come con `test push` ma senza la verifica contro il manifest; un report va sotto il timbro (default: adesso). Con una **cartella** archivia tutti i file con un solo accesso all'ambiente, ciascuno con il suo percorso relativo: per i report la prima sottocartella è il timbro (`20261006-141450/report.md`), a meno di `--stamp`. I file identici a quelli già archiviati si saltano, quelli nascosti anche |
-| `files get <percorso> --tag <TAG> [--out <cartella>] [--overwrite]` | Scarica un file, col percorso che mostra `files ls` |
+| `files get <percorso> --tag <TAG> [--out <cartella>\|<file>] [--overwrite]` | Scarica un file, col percorso che mostra `files ls`. `--out` è la cartella di lavoro (il file va in `<cartella>/<TAG>/<percorso>`); se invece è il nome di un file (ha un'estensione e non è una cartella che esiste), il file va esattamente lì (#1734). Si scaricano anche i file nascosti che il push ha archiviato, come `.env.example` di un'app (#1733) |
 | `files get --all --tag <TAG> [--kind <specie>] [--out <cartella>]` | Scarica tutto, o una specie |
 | `files rm <percorso> --tag <TAG> [--yes]` | Toglie **un solo** file. Solo suite, report, guide, bozze e allegati: il manifest, la knowledge e ciò che un apply ha prodotto fanno parte di una versione, e si tolgono con `delete --version`. Chiede `[s/N]`; senza terminale si ferma con **6** finché non c'è `--yes`. Non si annulla |
 | `files open <percorso> --tag <TAG>` | Scarica il file (sempre una copia fresca) e lo apre con l'applicazione predefinita; senza terminale stampa solo il percorso |
@@ -433,7 +330,7 @@ Due adattamenti che l'esportatore fa, e dice:
 ## `export --scope <ambito> [<oggetto>] --tag <TAG> [--out <cartella>] [--keep-people] [--overwrite]`
 
 La lettura di un **tenant intero, o di una sua parte**, in un manifest (#1173). Sul tenant fa solo
-letture. Scrive una cartella con tre file:
+letture, e le fa la **piattaforma** (job accodato dall'API, #1772): la CLI aspetta e scarica. Scrive una cartella con tre file:
 
 | File | Che cosa contiene |
 |---|---|
@@ -500,6 +397,8 @@ conosce gli owner, l'export di quelle entità non si fa.
 
 ## `access migrate --owners <email,…> [--all | --catalog | --company <tenant>] [--apply] [--yes]`
 
+> **Operatore di piattaforma** (#1772): questo comando passa dalle rotte `cli/platform/*`, riservate al super-amministratore del prodotto; con più ambienti serve un `login` per ciascuno. L'API registra ogni accesso.
+
 La migrazione una tantum di `access` (#1518): alle versioni archiviate prima che esistesse dà scope e owner,
 **nei soli campi d'accesso del documento d'archivio** — il manifest e la sua impronta non cambiano.
 
@@ -528,6 +427,8 @@ partizioni orfane si vedono e si cancellano con `access orphans`.
 
 ## `access retag --tag <VECCHIO> --to <NUOVO> --company <tenant> [--blueprint <id>] [--apply] [--yes]`
 
+> **Operatore di piattaforma** (#1772): questo comando passa dalle rotte `cli/platform/*`, riservate al super-amministratore del prodotto; con più ambienti serve un `login` per ciascuno. L'API registra ogni accesso.
+
 Cambia il tag delle versioni archiviate di un blueprint (#1518): la riga `tag:` e i riferimenti
 `Blueprints:Secrets:<TAG>:` nel testo del manifest, il documento d'archivio e l'impronta; il tag di prima resta in
 `previousTags`. Solo l'archivio, quindi si rifiuta se il tag vecchio ha **entità vive** sul tenant (i loro nomi
@@ -539,6 +440,8 @@ un blueprint si riuniscono così). I segreti già impostati per il tag vecchio n
 Come `migrate`, si rifiuta (`3`) se il tenant non esiste più o se non si è potuto verificare.
 
 ## `access orphans [--env <e>] [--delete <GUID> --confirm <GUID>]`
+
+> **Operatore di piattaforma** (#1772): questo comando passa dalle rotte `cli/platform/*`, riservate al super-amministratore del prodotto; con più ambienti serve un `login` per ciascuno. L'API registra ogni accesso.
 
 Le partizioni dell'archivio e il tenant a cui appartengono (#1518): **tenant vivo**, **orfana** (il tenant non esiste
 più), **non verificata** o catalogo, con quanti blueprint e documenti contiene ognuna. Senza `--delete` legge e basta.
@@ -628,12 +531,13 @@ servizio di quella protezione.
 **Ogni copia è firmata e registrata** (#1516). Oltre a `promotedFrom` sul documento, la copia lascia
 un evento nella partizione della destinazione: chi l'ha fatta, da dove a dove (ambiente, tenant con
 il nome della company), quando, per quale strada e da quale **origine prima** — una copia di una
-copia porta l'origine della prima. La firma è l'email Entra del token con cui la CLI parla con
-Azure; senza (nessun `az login`), il campo `actor` del profilo o il nome utente del computer, e il
-comando lo dice: `firmata gzileni (firma non verificata: …)`. L'evento non si riscrive e `delete`
+copia porta l'origine della prima. La firma è l'email del token con cui la CLI parla con
+l'API, e la mette l'API: `firmata nome.cognome@hevolus.it`. L'evento non si riscrive e `delete`
 non lo porta via: è la misura di quanto il blueprint si usa (`copies`).
 
 ## `copies [--tag <TAG>] [--env <e>|all] [--since <aaaa-mm-gg>] [--top <n>] [--json]`
+
+> **Operatore di piattaforma** (#1772): questo comando passa dalle rotte `cli/platform/*`, riservate al super-amministratore del prodotto; con più ambienti serve un `login` per ciascuno. L'API registra ogni accesso.
 
 **Quali blueprint si usano di più**: la classifica delle copie fra tenant e ambienti (#1516). Legge
 e basta, da tutte le partizioni di ogni ambiente — per questo è un comando dello **staff**: dice dove
@@ -665,6 +569,8 @@ classifica lo dichiara. `--since` restringe le copie, non i run.
 
 ## `usage [--tag <TAG>] [--env <e>|all] [--out <file>] [--json]`
 
+> **Operatore di piattaforma** (#1772): questo comando passa dalle rotte `cli/platform/*`, riservate al super-amministratore del prodotto; con più ambienti serve un `login` per ciascuno. L'API registra ogni accesso.
+
 **Dove vive ogni blueprint** (#1665). `copies` conta solo ciò che è passato da `promote` o dal
 catalogo; un blueprint pubblicato e applicato direttamente sul tenant del cliente non lascia una copia,
 ma lascia un run. `usage` conta le **installazioni** — un blueprint su un tenant di un ambiente con un
@@ -691,17 +597,58 @@ rollback di un apply fallito ha lo stesso stato di quello di un apply riuscito, 
 diretta di una sola versione, poi smontata, non si conta: il numero delle disinstallate è un minimo.
 
 Il nome del tenant viene dall'evento di copia o dall'elenco dei tenant dell'ambiente (`GET companies`,
-con la chiave di funzione dell'API presa da App Configuration). In produzione quell'elenco è filtrato
+letto dall'API per l'operatore di piattaforma che chiede: `GET cli/platform/usage?names=true`). In produzione quell'elenco è filtrato
 (`Companies:ListingFilter`) perché non pubblichi la lista dei clienti: per i tenant con un blueprint che
 l'elenco non nomina, il nome si chiede uno alla volta a `GET companies/{id}/existence`, come fa
 `access orphans` — solo per loro, non per enumerare l'ambiente. Un tenant senza nome nemmeno in HevoHub
 resta senza, e si conta in `totals.unnamedTenants`. Il JSON porta gli id dei tenant: chi lo pubblica altrove li toglie prima.
 
+## `audit [--tag <TAG>] [--idle <giorni>] [--archive-only] [--json] [--out <file>]` · `audit keep` · `audit release`
+
+Che cosa, fra i blueprint di un tenant, è **fermo**, **doppio** o **mai usato** (#1766), con i segnali che lo
+dicono: la lettura unica da cui parte la pulizia di staging, al posto di decine di `status`, `usage`,
+`test reports`, `instances list` e `schedule list` per tag. Legge e basta.
+
+```bash
+xrcopilotlab-bp audit --env staging --company <guid>                 # tutti i blueprint del tenant, un giudizio per riga
+xrcopilotlab-bp audit --env staging --company <guid> --idle 45       # fermo = oltre 45 giorni senza attività (default 30)
+xrcopilotlab-bp audit --env staging --company <guid> --archive-only  # senza leggere istanze e schedulazioni sul tenant
+xrcopilotlab-bp audit --env staging --company <guid> --json          # il riepilogo intero, per la skill che pulisce
+xrcopilotlab-bp audit keep --tag PERONISOP --reason "demo del 15/11" --env staging --company <guid>
+xrcopilotlab-bp audit release --tag PERONISOP --env staging --company <guid>
+```
+
+Per ogni blueprint: i tag, le versioni, quella installata, i giorni dall'**ultima attività nell'archivio**
+(versione, run, suite o report: l'archivio non vede le conversazioni, quindi «fermo» è un giudizio
+sull'archivio, e ogni riga dice da quale segnale viene), se è un modello del catalogo, suite e report,
+e — salvo `--archive-only` — le istanze in corso dei suoi processi e le schedulazioni attive dei suoi
+agent task. I giudizi, nell'ordine in cui si stampano:
+
+| Giudizio | Quando | Che cosa si fa |
+|---|---|---|
+| `keep` (tieni) | tenuto apposta con `audit keep`, o modello del catalogo | niente: non si propone mai |
+| `active` (attivo) | installato, attività recente, niente che lo segnali | niente |
+| `review` (guarda) | installato e recente, ma il nome dice prova: `test`, `prova`, `demo`, una data | si chiede a chi l'ha fatto |
+| `duplicate` (doppio) | lo stesso tag su più nomi, una famiglia di almeno tre con lo stesso primo segmento (`peroni-*`), una variante nel nome (`-rag`, `-mcp`, `-multi`) | se ne tiene una: `rollback` e `delete` per le altre |
+| `idle` (fermo) | installato e senza attività da oltre la soglia | `rollback --run`, e `delete --tag` se l'archivio non serve |
+| `unused` (non usato) | nell'archivio senza un'installazione: mai applicato, o smontato | `delete --tag` |
+
+Fra i motivi compaiono anche i **run da chiudere** (completati senza più niente da smontare: `rollback --run` li
+chiude), le versioni vecchie trattenute da run installati, e le istanze in corso: un blueprint con istanze
+aperte si smonta dopo `instances cancel`. Il giudizio è una proposta: a decidere è chi legge, e a eseguire
+restano `rollback` e `delete`, con le loro conferme.
+
+**`audit keep`** segna un blueprint come tenuto apposta, con il motivo scritto (`--reason`): l'audit lo mostra
+con quel motivo e non lo propone, così la stessa domanda non torna a ogni pulizia. È un documento `keep` nella
+partizione del tenant; **`audit release`** lo toglie, e `delete --tag` lo porta via con l'archivio.
+
 ## `catalog list` · `catalog publish <modello.yml>` · `catalog install <modello>` · `catalog prune`
 
 Il **catalogo** dei blueprint pronti, curati da Hevolus e installabili da qualunque tenant (#1185).
 Vive nello stesso archivio dei tenant, nella partizione `default`; perché e come si scrive un
-modello: [`catalogo.md`](catalogo.md).
+modello: [`catalogo.md`](catalogo.md). `list`, `pull` e `install` li fa ogni utente sul proprio tenant;
+`publish` e `prune` passano da `cli/platform/catalog/*` e sono dell'**operatore di piattaforma** (#1772):
+la CLI mostra l'anteprima (ritenzione, versioni che escono) e chiede, l'API riapplica la regola e scrive.
 
 ```bash
 xrcopilotlab-bp catalog list --env staging [--company <tenant>]
@@ -791,13 +738,16 @@ operazioni sono quelle, con i nomi già qualificati.
 
 Esce con `0` se applicabile, `3` altrimenti.
 
-## `apply --tag <TAG> [--version <n>] [--modules <k1,k2>] [--replace-apps <k1,k2>] [--resume <runId>]`
+## `apply --tag <TAG> [--version <n>] [--modules <k1,k2>] [--governance yes|no] [--apps all|none|<k1,k2>] [--resume <runId>]`
 
 Stampa il piano, **ne chiede l'approvazione** e solo dopo esegue. In un terminale la domanda si
 risponde; dove non c'è un terminale — uno script, un assistente che esegue comandi — non c'è nessuno
 a cui chiedere, quindi l'esecuzione si ferma con codice `6` e serve `--yes`. Quel flag è la forma
 scritta di un'approvazione data altrove, e finisce nel run insieme a chi l'ha dichiarata e a quando:
 `status --run <runId>` la mostra.
+
+> **Con il token utente** (`login`, #1770): il piano lo esegue la piattaforma e la CLI segue il run; vedi
+> [«Senza ruoli Azure»](#senza-ruoli-azure-come-lavora-la-cli-1333-1772).
 
 Ogni entità creata finisce **subito** in inventario, non alla fine: se una chiamata fallisce a metà,
 ciò che è stato creato è già registrato ed è quindi smontabile.
@@ -807,6 +757,21 @@ perché l'API non li mostra due volte — url, `hookId` e chiave dei webhook cre
 
 Con `--resume` riparte da un run esistente: le operazioni già in inventario vengono saltate.
 
+**Governance e app sono facoltative (31/10/2026).** L'apply crea il blueprint senza le policy di `governance` e
+senza le app di `apps`. Alla fine, la prima volta che il blueprint arriva sul tenant (anche da una copia), chiede per
+ciascuna se installarla; ciò che si sceglie ha il suo piano e la sua approvazione, come un apply. Senza un terminale
+le risposte si danno con `--governance yes|no` e `--apps all|none|<chiavi>`; senza né terminale né flag l'apply
+finisce lo stesso, e stampa il comando `extras` da lanciare dopo averlo chiesto a una persona. La scelta resta nel
+run e passa da un run al successivo:
+
+- un aggiornamento tiene allineata la governance accettata, e non tocca quella rifiutata;
+- un'app si installa **una volta sola**: da lì la si aggiorna in App Builder, e nessun aggiornamento del blueprint
+  la riscrive. Un aggiornamento propone, alla fine, solo le app che la versione aggiunge;
+- ciò che è stato rifiutato non si ripropone: si installa a richiesta con `extras`.
+
+Un run nato prima della scelta conta come «installato» per ciò che ha in inventario: la governance e le app che
+aveva creato restano del blueprint, e un aggiornamento le tratta come accettate.
+
 ### Una versione nuova su un blueprint già applicato (#1126)
 
 Se sul tenant c'è già un run **completato** dello stesso blueprint, `plan` e `apply` non si fermano
@@ -815,7 +780,7 @@ nuova.
 
 - **Si crea** ciò che la versione nuova aggiunge: agenti, skill assegnate, server MCP, step.
 - **Una connessione `process:` spostata su un processo nuovo si ricabla**: indirizzo e chiave del webhook nuovo
-  vanno nella connessione e la chiave in Key Vault. Fino al 18/10/2026 il cablaggio si saltava perché la
+  vanno nella connessione e la chiave fra i segreti del tenant. Fino al 18/10/2026 il cablaggio si saltava perché la
   connessione esisteva già, e la chiave — mostrata una volta sola — non si salvava (HEVBPMKT v12).
 - **Si aggiorna sul posto** ciò che il blueprint possiede ed è cambiato, confrontandolo con il
   **tenant** — non con il manifest precedente, perché fra una versione e l'altra le cose possono
@@ -853,6 +818,11 @@ nuova.
   aggiornano solo gli owner), e se passi, bivi o flussi sono cambiati rispetto alla versione applicata il piano
   si ferma con `BP067` e dice quali. Prima il cambio veniva ignorato in silenzio, mentre i prompt di agenti e
   agent task cambiavano. Si smonta il blueprint (`rollback`) e si riapplica, oppure si modifica il processo dall'interfaccia.
+  Dal 03/11/2026 vale anche per il **tipo di un profilo di knowledge** (#1790): se la versione nuova dichiara
+  `knowledgeGraph` diverso da come il profilo è sul tenant (knowledge graph o indice di ricerca), il piano si ferma
+  con `BP067`. Prima il profilo restava com'era e gli agenti venivano ricollegati a quello di prima senza che il
+  piano lo dicesse. Si smonta il blueprint e si riapplica, oppure si dà al profilo un nome nuovo nel manifest:
+  l'aggiornamento ne crea uno nuovo del tipo nuovo, e quello di prima resta (`BP068`).
 
 Un nome occupato da un'entità che il blueprint **non** ha creato resta una collisione (`BP060`),
 come prima.
@@ -917,53 +887,39 @@ di destinazione e confrontano ogni operazione con il ruolo che la webapp chiede 
 mancanti si vedono come avvisi nel piano, e `apply` non parte finché ne manca uno — meglio fermarsi prima che a metà,
 quando l'API rifiuterebbe. L'amministratore del tenant passa ogni controllo.
 
-**App del blueprint (#1566).** Per ultima, `apply` crea in App Builder ogni app di `apps`: un progetto con il
-prefisso (il nome è `title`), e come snapshot i sorgenti archiviati con la versione sotto `apps/<chiave>/`. Non apre
-una sessione né consuma il budget del mese. Il progetto va in inventario (`App`), e `rollback` e `delete` lo tolgono,
-snapshot compreso; con una sessione aperta su quel progetto si fermano e chiedono di chiuderla prima. Con App Builder
-spento sul tenant l'app non si crea (`BP165`, avviso).
+**App del blueprint (#1566).** Un'app scelta alla fine dell'apply (o con `extras`) diventa in App Builder un
+progetto con il prefisso (il nome è `title`), e come snapshot i sorgenti archiviati con la versione sotto
+`apps/<chiave>/`. Non apre una sessione né consuma il budget del mese. Il progetto va in inventario (`App`), e
+`rollback` e `delete` lo tolgono, snapshot compreso; con una sessione aperta su quel progetto si fermano e chiedono
+di chiuderla prima. Con App Builder spento sul tenant l'app non si crea (`BP165`, avviso).
 
-**Solo in produzione.** App Builder apre le sessioni solo in produzione, quindi fuori di lì il piano non crea le app
-(`BP169`, una riga per app): sezione `apps` e sorgenti restano nell'archivio e viaggiano con la copia. Quali app di
-demo portare si sceglie una volta sola, alla copia verso la produzione (`promote`, `catalog install`); l'apply in
-produzione crea tutte quelle che la copia ha portato, senza altre domande. Un'app di demo lasciata all'origine da
-`promote --demo-apps` è nel manifest ma non nell'archivio: l'apply non la crea e lo dice.
+**Solo in produzione.** App Builder apre le sessioni solo in produzione, quindi fuori di lì le app non si propongono
+né si creano (`BP169`, una riga per app): sezione `apps` e sorgenti restano nell'archivio e viaggiano con la copia.
+Quali app di demo portare si sceglie alla copia verso la produzione (`promote`, `catalog install`); quali installare,
+alla fine dell'apply in produzione. Un'app di demo lasciata all'origine da `promote --demo-apps` è nel manifest ma
+non nell'archivio: non si crea, e l'apply lo dice.
 
-**Un'app già creata, in un aggiornamento.** L'apply legge il progetto in App Builder e lo confronta con i file che
-aveva scritto (la voce d'inventario sa di quale versione: `sourceVersion`). Con sorgenti nuovi diversi, l'app si
-aggiorna sul posto (`UpdateApp`) se nessuno ci ha lavorato — mai aperta dopo l'apply, o aperta senza cambiare i file
-del blueprint. Se è stata modificata resta com'è (`BP166`, con i file cambiati e la data dell'ultima sessione), e
-`--replace-apps <chiave,chiave>` la sostituisce comunque: prima l'export del progetto va nell'archivio
-(`attachments/app-backup/<chiave>/<timbro>.zip`, si rilegge con `files get`), poi i sorgenti nuovi. Con una sessione
-aperta non si scrive (`BP167`); un progetto tolto a mano si ricrea (`BP168`). Un progetto che non si riesce a
-leggere, o la cui versione applicata non è più nell'archivio, conta come modificato.
+**Un'app già creata non si riscrive.** Fino al 31/10/2026 un aggiornamento riscriveva lo snapshot di un'app non
+toccata in App Builder (`UpdateApp`, con `--replace-apps` per quelle modificate). Non lo fa più: il piano la elenca
+fra ciò che resta com'è, e chi vuole cambiarla lo fa in App Builder. I codici `BP166`–`BP168` sono ritirati.
 
-## `profile init-local [--port <porta>] [--key-env <VARIABILE>] [--yes]`
+## `extras --tag <TAG> [--governance yes|no] [--apps all|none|<k1,k2>] [--yes]`
 
-Scrive il profilo **`locale`** per l'Api avviata sulla tua macchina, così che `--env locale` funzioni.
-Senza, la CLI risponde «Quelli disponibili: staging, prod» — e senza `--env` va sull'indirizzo di
-staging, che da una rete senza accesso a quell'host dà «No such host is known». Non serve
-reinstallare la CLI.
+Le parti facoltative di un blueprint **già applicato**: le policy di governance e le app. È la stessa domanda con cui
+finisce `apply`, fatta dopo — per rispondere quando l'apply è girato senza un terminale, o per installare ciò che era
+stato rifiutato.
 
-```bash
-xrcopilotlab-bp profile init-local                 # cerca l'Api in ascolto
-xrcopilotlab-bp profile init-local --port 7013     # se ce n'è più d'una, o non la trova
-export XRCOPILOTLAB_BP_LOCAL_APIKEY=<function key locale>
-xrcopilotlab-bp test run <suite.yml> --tag <TAG> --env locale
-```
+- Senza flag chiede ciò che non è mai stato deciso; se non c'è niente, lo dice e ricorda i flag.
+- Con i flag sceglie fra tutto ciò che si può ancora installare, rifiutato compreso: `--apps all` installa ogni app
+  non ancora creata, `--apps none` le rifiuta, un elenco installa quelle e rifiuta le altre.
+- Ciò che si installa passa dal piano delle sole parti facoltative e dalla sua approvazione (`--yes` dove non c'è un
+  terminale), in un run nuovo che prende in carico le entità del precedente. Un rifiuto non tocca il tenant: si
+  registra nel run in vigore.
 
-- **La porta** si cerca fra i processi `dotnet`/`func` in ascolto, tenendo quelli che rispondono come
-  un host delle Functions (`/admin/host/status`). Api e AsyncOperations sono entrambe host Functions e
-  da fuori non si distinguono: con più di una candidata il comando chiede quale è l'Api, e senza
-  terminale si ferma e vuole `--port`.
-- **La chiave** non finisce nel file: il profilo porta `env:XRCOPILOTLAB_BP_LOCAL_APIKEY` (o la
-  variabile data con `--key-env`) e il comando avvisa se in quella shell non è impostata.
-- **I dati** restano quelli di staging (App Configuration): è ciò che fa l'Api locale col suo
-  `local.settings.json`.
-- Mostra cosa scrive e chiede conferma (`--yes` la dà per presa). **Non sovrascrive** un profilo
-  `locale` già scritto, e riscrivendo il file salva prima una copia `profiles.json.bak`.
-- Dopo, prima di leggere un giro come «locale», si verifica che lo sia: `lsof -nP -a -p <pid> -iTCP`
-  sul processo `xrcopilotlab-bp` deve mostrare una connessione verso quella porta.
+Lavora sulla versione che il run in vigore ha applicato, non sull'ultima pubblicata. Anche questo passa dall'API con il
+token (#1772): ciò che resta da decidere lo dice `GET cli/{companyId}/blueprints/{tag}/extras`, un rifiuto si registra con
+`…/extras/decline`, e ciò che si installa è un piano con le parti facoltative nel corpo di `plan` e di `apply`, che la
+piattaforma esegue come ogni altro apply.
 
 ## `status [--run <runId>] [--watch]`
 
@@ -980,51 +936,30 @@ Installati (2)
 
 ## `environments [--env <nome>]`
 
-Su quali ambienti l'utenza corrente può davvero lavorare.
-
-Gli ambienti stanno **dentro il binario** e sono gli stessi per chiunque — `staging` e `prod`. I permessi no: sono ruoli di Azure sulla tua utenza, e fino a qui la differenza si scopriva
-al primo comando, come errore di autorizzazione a lavoro già cominciato. Chi non è tecnico, davanti
-a quell'errore, non sa nemmeno se il problema sia suo, dell'ambiente o del manifest.
-
-Il comando prova a leggere l'App Configuration di ogni ambiente con la credenziale corrente, ed è
-lo stesso permesso che serve a tutto il resto: quello che risponde qui è esattamente quello che
-risponderà al primo comando vero. Non è una stima.
+Su quali ambienti hai già una sessione, e chi sei lì. Per ogni ambiente del binario (`staging`, `prod`) la
+CLI chiede all'API chi è la persona del token: quanti tenant, e se è un operatore di piattaforma. Un ambiente
+senza sessione dice di fare `login --env <nome>`. Nessun segreto, niente scritture, nessun ruolo Azure (#1772).
 
 ```
 $ xrcopilotlab-bp environments
 
 Ambienti
-  La prova legge le chiavi di App Configuration con la tua utenza Azure: nessun segreto, niente scritture.
+  La prova chiede all'API chi sei: nessun segreto, niente scritture.
 
-✓ staging   Staging     accessibile
+✓ staging   Staging     3 tenant · operatore di piattaforma
     senza --company si lavora sul tenant di prova di questo ambiente
-! prod      PRODUZIONE  manca il ruolo 'App Configuration Data Reader' sulla tua utenza
+! prod      PRODUZIONE  senza sessione: xrcopilotlab-bp login --env prod
 ```
 
-Quattro esiti, e distinguerli conta perché mandano da persone diverse:
-
-| Esito | Cosa vuol dire | Cosa si fa |
-|---|---|---|
-| **accessibile** | la lettura è riuscita | si lavora |
-| **manca il ruolo** | sei autenticato, ma l'utenza non legge quell'App Configuration | si chiede il ruolo a chi amministra la sottoscrizione ([`manuale.md`](../../../docs/manuale.md)) |
-| **nessun accesso ad Azure** | nessuna credenziale sulla macchina | l'accesso si fa **una volta**, da un terminale |
-| **non raggiungibile** | rete, DNS, endpoint | si riprova; non è un problema di permessi |
-
-La prova chiede solo i **nomi** delle chiavi, mai i valori: non tocca Key Vault e non le passa
-davanti nessun segreto. Con `--env <nome>` si prova un ambiente solo. Se nessuno è utilizzabile
-esce **3**, così uno script — o la skill — se ne accorge senza leggere il testo.
-
-I **profili scritti a mano** non vengono provati, solo elencati: puntano dove ha deciso chi li ha
-scritti, e darli per buoni significherebbe affermare qualcosa che non è stato verificato.
-
-Quello che questo comando **non** dice è quali *tenant* vedrai dentro un ambiente: quell'elenco lo
-filtra il server sulla chiave `Companies:ListingFilter`, ed è uguale per tutti — in produzione, il
-solo tenant di Hevolus. Il permesso personale riguarda l'ambiente, non il tenant.
+Se nessun ambiente è utilizzabile esce **8**, così uno script — o la skill — se ne accorge senza leggere il testo.
+Quali *tenant* vedrai dentro un ambiente lo dice `whoami`: sono quelli a cui appartieni nel prodotto.
 
 ## `rollback --run <runId> [--module <k>]`
 
 Smonta ciò che il run ha creato, leggendo l'inventario **a ritroso**. Rimuove solo le voci con
 azione `Created`: un'entità adottata perché già presente non è nostra e resta dov'è.
+
+> **Con il token utente** (`login`, #1770): smonta la piattaforma e la CLI segue il run; vedi [«Senza ruoli Azure»](#senza-ruoli-azure-come-lavora-la-cli-1333-1772).
 
 Con `--module <k>` smonta solo le entità di quel modulo, ricavate dal manifest della versione applicata;
 il run resta completato con gli altri moduli. È rifiutato (`BP138`) se un altro modulo installato dipende
@@ -1044,6 +979,36 @@ cancellano uno per uno (sono documenti del cliente), ma se il topic era del blue
 con lui e l'inventario lo registra. Se un run smontato da una CLI precedente è rimasto
 «completato» con i soli file di un topic che non c'è più, ripetere `rollback --run` lo chiude: il
 comando verifica il topic sul tenant e toglie le voci rimaste.
+
+Lo stesso vale per ogni voce rimasta **senza il padre** (#1766): la versione pubblicata di un processo che non
+c'è più, la schedulazione di un task tolto. Non hanno un'operazione inversa propria, e tenevano il run
+«completato» con il blueprint fra gli installati (PERONIPROC, 02/11/2026). `rollback --run` verifica sul
+tenant che il padre sia sparito e le toglie dall'inventario; `audit` le segnala come «run da chiudere».
+
+## `undeclared --tag <TAG> [--version <n>] [--remove] [--confirm <TAG>]`
+
+Elenca le entità che il blueprint ha creato e che l'**ultima versione dell'archivio** (o quella di `--version`, non più
+vecchia di quella applicata) **non dichiara più** (#1702): sono quelle
+dell'avviso `BP068`, che un aggiornamento lascia sul tenant. Con `--remove` le toglie dal tenant e dall'inventario
+del run, con lo stesso codice del rollback.
+
+- **Contro l'ultima versione, non contro quella del run**: una versione che toglie soltanto non ha niente da applicare,
+  l'`apply` non registra un run nuovo e il run resta alla versione di prima. Si fa `push`, poi `undeclared`.
+- **Solo ciò che il blueprint ha creato**: il confine è l'inventario del run completato del tag, come per
+  `rollback`. Un'entità fatta a mano, anche con il prefisso del blueprint, non compare.
+- **Anche i topic in più** (`topics`): un topic che la versione non dichiara esce con i file caricati dentro di lui.
+- **Né per chiave né per nome**: un'entità esce solo se la versione non la dichiara in nessuno dei due modi. Una
+  chiave rinominata con lo stesso nome, o un nome cambiato sulla stessa chiave, è la stessa entità e resta.
+- **Con ciò che la accompagna**: skill, server MCP, file ed endpoint di un agente; pianificazione e uscite di un
+  agent task; versione, ruoli di avvio e webhook di un processo; pubblicazione di un server MCP.
+- **La conferma è quella di `delete`**: si scrive il tag, al terminale o con `--confirm <TAG>`; `--yes` non vale e
+  senza terminale il comando esce **6**. Sotto lease il run si rilegge: se l'elenco è cambiato nel frattempo non si
+  toglie niente (**3**).
+- Le istanze già chiuse di un processo tolto e i file caricati nel topic restano. Se una rimozione fallisce il
+  comando esce **4**: l'inventario elenca ciò che resta, e si ripete.
+
+Il caso tipico è un processo da ridisegnare: un aggiornamento non riscrive un processo (`BP067`), quindi la versione
+nuova ne dichiara uno con un'altra chiave e un altro nome; dopo l'`apply`, `undeclared --remove` toglie il vecchio.
 
 ## `prune [--tag <TAG>] [--keep <n>] [--confirm <TAG|archivio>]`
 
@@ -1065,6 +1030,8 @@ Toglie un blueprint dall'**archivio**: le versioni del manifest in Cosmos, i fil
 il `.bpmn` esportato compreso — e i run che lo riguardano. Con `--version` si cancella una versione
 sola, con i suoi run; senza, l'intero blueprint. `--blueprint <id>` serve quando due blueprint
 condividono il tag.
+
+> **Con il token utente** (`login`, #1770): cancella l'API, solo l'archivio; `--with-entities` non c'è, prima `rollback --run`. Vedi [«Senza ruoli Azure»](#senza-ruoli-azure-come-lavora-la-cli-1333-1772).
 
 **Cancellare l'archivio e smontare il tenant sono due cose diverse**, e il comando le tiene
 separate. Finché le entità create vivono, l'inventario del run è l'unica cosa che sa come si
@@ -1126,7 +1093,7 @@ xrcopilotlab-bp pipeline docs/blueprints/esempi/test-agenda.yml --yes --skip-ext
 xrcopilotlab-bp pipeline docs/blueprints/esempi/test-agenda.yml --resume a1b2c3d4e5f6
 ```
 
-## `test init` · `test validate` · `test run` · `test push` · `test reports` · `test report` · `test judge`
+## `test init` · `test validate` · `test run` · `test push` · `test reports` · `test report` · `test judge` · `test prune`
 
 Il collaudo di un blueprint **applicato**: una suite di domande per gli agenti, input per gli
 orchestratori e dati di avvio per i processi, con le attese; l'esecuzione sul tenant; un report
@@ -1202,6 +1169,20 @@ Esce `0` se tutti i casi passano, **`7`** se almeno uno non passa, `2` se la sui
 `3` se il tag non ha un run sul tenant. Formato della suite, esiti, sospetti e codici `BT0xx`:
 [`testing.md`](../../xrcopilotlab-blueprint-test/references/testing.md).
 
+### `test prune` — togliere i report vecchi di un tag
+
+```bash
+xrcopilotlab-bp test prune --tag STUDIOPOLIS --env staging --company <guid>                 # restano gli ultimi 5 di ogni suite
+xrcopilotlab-bp test prune --tag STUDIOPOLIS --keep 10 --before 2026-10-01 --env staging    # escono solo i più vecchi del 1° ottobre
+xrcopilotlab-bp test prune --tag STUDIOPOLIS --confirm STUDIOPOLIS --env staging            # senza terminale: il tag scritto
+```
+
+Un tenant di staging aveva 600 report il 02/11/2026, e `files rm` li toglieva uno per uno (#1766). Restano
+sempre gli ultimi `--keep` di **ogni suite** (default 5), i report **giudicati** (il giudizio è il lavoro di
+una persona, e `--compare` parte da lì) e quelli ancora in corso; con `--before` escono solo i più vecchi di
+quella data. Con un report se ne va la sua cartella (`reports/<timbro>/`: evidenze, markdown, giudizio). La
+decisione è `TestReportRetention`, pura; il cancello è quello di `delete`: si scrive il tag, mai `--yes`.
+
 ## `schedule list` · `schedule pause <task>` · `schedule resume <task>` · `schedule logs <task>`
 
 Le schedulazioni degli agent task creati da un blueprint. Servono quando il blueprint è applicato
@@ -1251,11 +1232,10 @@ corregge la fonte (`secrets set`, permessi, policy), e si riprendono.
 
 ## `connections list` · `connections refresh [<connessione>]`
 
-Una connessione porta i segreti **risolti** al momento dell'apply: il manifest li cita per nome, la
-CLI li legge da App Configuration e ne scrive il valore nella connessione. Correggere un segreto con
-`secrets set` corregge App Configuration, **non** la connessione, che continua a presentarsi al
-sistema esterno con il valore vecchio — e l'agente dice «errore di autorizzazione» anche dopo la
-correzione.
+Una connessione porta i segreti **risolti** al momento dell'apply: il manifest li cita per nome, il
+runtime li legge dall'API e ne scrive il valore nella connessione. Correggere un segreto con
+`secrets set` corregge il segreto, **non** la connessione, che continua a presentarsi al sistema
+esterno con il valore vecchio — e l'agente dice «errore di autorizzazione» anche dopo la correzione.
 
 ```bash
 xrcopilotlab-bp connections list            --tag STUDIOPOLIS --env staging --company <guid>
@@ -1272,15 +1252,14 @@ credenziali che ha: quelle inserite dalla UI non si cancellano.
 
 Una connessione con `process:` (verso il webhook di un processo del blueprint) si ricostruisce da
 altre due fonti: l'indirizzo dal webhook com'è sul tenant, la chiave dal segreto
-`Blueprints:Secrets:<TAG>:webhook-<chiave>` che l'apply ha lasciato in Key Vault. Se il webhook è
-stato rigenerato dall'interfaccia, prima `secrets set <TAG> webhook-<chiave>` con la nuova chiave,
-poi `refresh`.
+`Blueprints:Secrets:<TAG>:webhook-<chiave>` che l'apply ha lasciato fra i segreti del tenant. Se il
+webhook è stato rigenerato dall'interfaccia, prima `secrets set <TAG> webhook-<chiave>` con la nuova
+chiave, poi `refresh`.
 
 Emerso il **2026-09-14**: i due segreti Graph di Studio Polis erano scambiati fin dall'11/09
-(`graph-client-id` conteneva il secret, `graph-client-secret` l'id). Correggerli in App
-Configuration non è bastato — la connessione aveva i valori dell'apply — e `mcp test` continuava a
-mostrare `AADSTS700016`. Il valore giusto è stato recuperato dalla **versione precedente** del
-segreto in Key Vault, senza ruotare nulla.
+(`graph-client-id` conteneva il secret, `graph-client-secret` l'id). Correggerli non è bastato — la
+connessione aveva i valori dell'apply — e `mcp test` continuava a mostrare `AADSTS700016`. Un segreto
+sovrascritto non ha versioni precedenti (#1798): il valore giusto si riprende da chi lo possiede.
 
 ## `knowledge list [<profilo>]` · `knowledge reingest <profilo>` · `knowledge rm <profilo>`
 
@@ -1410,7 +1389,13 @@ quando l'agente dice «errore di autorizzazione» e il log dice solo `ok: true`:
 del sistema di terze parti — per esempio l'`AADSTS…` di Entra — senza passare dal modello. Senza
 `--tool` usa il `testTool` del manifest, in sola lettura.
 
-### `mcp authorize <server>` — l'accesso a Google di un server nativo
+### `mcp authorize <server>` — l'accesso a Google di un server nativo, o le credenziali di una PEC
+
+Su un server nativo **PEC** (`service: pec`, #1751) il comando non apre nessun browser: se la riga di credenziali è
+nata senza la password (segreto non impostato all'apply), la legge ora dal segreto del manifest e riscrive gli header
+`X-Pec-User` / `X-Pec-Password`; se c'è già, lo dice ed esce **0**. Senza il segreto esce **3** con i passi per
+l'amministratore (UI: Interoperabilità › MCP Servers › Autenticazione «Mailbox (IMAP/SMTP)»). Il resto di questa sezione riguarda Google.
+
 
 Un server `kind: native` (vedi il manifest) è la copia, per il tenant, di un server nativo Google, con
 l'app OAuth del cliente. L'apply lo crea ma **non lo autorizza**: il consenso lo dà una persona con il
@@ -1547,9 +1532,8 @@ xrcopilotlab-bp report-problem --kind access --env staging --tag MARKETING --man
 | `--command` | Il comando che era in corso, senza argomenti sensibili |
 | `--tag` · `--manifest-version` · `--manifest` | Il blueprint a cui si riferisce: tag, versione pubblicata, nome del file (non il percorso) |
 
-**Funziona anche senza i ruoli** su App Configuration e Key Vault, ed è per questo che non passa da
-quelli: conosce l'indirizzo della rotta `support/report` della Function App dell'ambiente e prova chi
-sei con un token Entra del tuo account (lo stesso di `az login --tenant hevolus.it`), senza chiavi.
+**Funziona anche senza alcun ruolo Azure**, ed è per questo che non passa da App Configuration: conosce l'indirizzo della rotta `support/report` della Function App dell'ambiente e prova chi
+sei con il token della sessione di `login`, senza chiavi (#1772).
 Chi segnala lo ricava il server dal token: il client non lo scrive. La mail porta chi, ambiente,
 manifest (tag, versione, file), comando, versione della CLI e il messaggio.
 
@@ -1581,12 +1565,12 @@ arriva). Il tenant Entra ha il default di `hevolus.it`.
 Fino al 18/10/2026 il piano aggiungeva a ogni manifest il ruolo e il processo «Assistenza XRCopilotLab», dove la
 segnalazione diventava un'attività: sono stati tolti, e il codice `BP106` è ritirato.
 
-## `login [--env <nome>] [--b2c]` — l'accesso senza ruoli Azure (#1333, fase 1)
+## `login [--env <nome>] [--b2c]` — l'accesso con il proprio account (#1333)
 
-Un'alternativa ai ruoli Azure: ci si identifica con l'account aziendale `hevolus.it` (Entra), e
-l'API riceve il **token della persona** invece di una chiave. **Per ora solo per lo staff Hevolus**: l'accesso è con l'account aziendale `hevolus.it` (Entra); B2C e i clienti arriveranno dopo. È la **fase 1**: oggi serve a identificarsi e a
-sapere dove si può lavorare; gli altri comandi continuano a usare i ruoli Azure finché le fasi 2–4 non li
-spostano sulla superficie `cli/*`.
+Ci si identifica con l'account aziendale `hevolus.it` (Entra) e l'API riceve il **token della persona**: è
+l'unica strada della CLI (fase 5, #1772). Nessun ruolo Azure, nessuna chiave, nessuna variabile da impostare:
+l'app Entra della CLI (client pubblico, senza segreto) è nel binario. **Per ora solo per lo staff Hevolus**; B2C e
+i clienti arriveranno dopo.
 
 ```bash
 xrcopilotlab-bp login  --env staging [--b2c]     # si apre il browser; poi mostra chi sei e i tuoi tenant
@@ -1608,20 +1592,98 @@ xrcopilotlab-bp logout --env staging [--b2c]     # toglie il token dalla cache
 
 ---
 
-### Senza ruoli Azure: la fase 2 di `login` (#1333)
+### Senza ruoli Azure: come lavora la CLI (#1333, #1772)
 
-`status`, `plan`, `pull` e `catalog list` funzionano anche con il token utente, dopo `login`: i dati li legge
-l'API con la sua identità e **autorizza per tenant** — chi non è utente del tenant riceve 403, che non dice se
-il tenant esista. Le rotte sono `cli/{companyId}/...`, di sola lettura, e lo stesso codice che con i ruoli Azure
-gira nella CLI qui gira sul server: il piano che si vede è lo stesso.
+Ogni comando passa dalle rotte `cli/{companyId}/...` dell'API, che legge e scrive con la sua identità e
+**autorizza per tenant** — chi non è utente del tenant riceve 403, che non dice se il tenant esista. Lo stesso
+codice del runtime che gira per la chat gira per la CLI: il piano che si vede è lo stesso. Le operazioni sull'archivio
+intero e sul catalogo passano da `cli/platform/*`, riservate all'operatore di piattaforma. Qui sotto, comando per
+comando, che cosa fa l'API.
 
 - **Tenant**: `--company` se è fra i tuoi; altrimenti il predefinito dell'ambiente (non in produzione); altrimenti
   l'unico che hai. Se ne hai più d'uno e non ne indichi uno, il comando li elenca e si ferma.
-- **Scrivere** (`apply`, `push`, …) non è ancora sulla superficie nuova: continua a chiedere i ruoli Azure.
+- **`apply` funziona con l'identità** (#1770, fase 3): il piano arriva dall'API con la sua impronta, lo approvi a video
+  come sempre, l'API lo accoda e **la piattaforma lo esegue** con la propria identità (lo stesso worker delle
+  installazioni dal catalogo); la CLI segue il run e stampa ogni entità creata, e chiudere il terminale non lo ferma.
+  Chi approva lo registra l'API dal token; serve essere **amministratore** del tenant (403 altrimenti), e un 409 dice che
+  il piano è cambiato, che il tenant ha già un run in corso o che il piano non si applica. `--resume` e `--modules`
+  valgono come sempre (`--replace-apps` è ritirato: un'app si installa una volta sola, poi vive in App Builder).
+- **`rollback` funziona con l'identità** (#1770): l'elenco delle entità si vede e si conferma come sempre, l'API lo accoda
+  e la piattaforma smonta; la CLI segue il run (ogni entità che sparisce dall'inventario, e la fase `rollback` del run,
+  che dice in coda · in corso · completato · fallito). Vale anche `--module`. Amministratori; 409 se l'elenco è
+  cambiato, se il run è stato superato o se un rollback dello stesso run è già in corso.
+- **`delete` funziona con l'identità** (#1770), per il solo archivio: il piano arriva dall'API, si conferma scrivendo il
+  tag, e l'API cancella versioni, run, file e collaudi con la propria identità. **`--with-entities` non c'è su questa
+  strada**: prima `rollback --run <runId>` per ogni run con entità vive, poi `delete`.
+- **`push` funziona con l'identità** (#1770): il manifest si valida in locale come sempre, poi manifest e file dichiarati
+  (knowledge dei profili e degli agenti, sorgenti delle app) viaggiano in una richiesta e **scrive l'API**, che rivalida il
+  manifest, applica le regole degli owner (#1518) e archivia solo i file ai percorsi che il manifest implica. Tetto di
+  25 MB per richiesta: file più pesanti si caricano dal topic dopo l'apply. Vale `--overwrite`; la ritenzione di staging
+  (#1596) si applica da sola. Il tenant è `--company`, altrimenti `tenant.companyId` del manifest.
+- **`pipeline` funziona con l'identità** (#1770): validazione in locale, segreti verificati dall'API, push all'API,
+  piano e apply come sopra (eseguito dalla piattaforma, la CLI segue il run). Il passo «risorse esterne» resta un
+  avviso: con un ingresso `logicapp` la fase `external` del run non si scrive da questa strada.
+- **`undeclared` funziona con l'identità** (#1770): l'elenco si calcola dal run e dal manifest letti dall'API; con
+  `--remove` si conferma scrivendo il tag (anche l'API lo ricontrolla), l'API accoda e la piattaforma toglie; la CLI
+  segue il run come per il rollback.
+- **In produzione scrive solo chi è nell'elenco** (#1770): oltre a essere amministratore del tenant, l'email deve stare in
+  `CliAccess:WriteAllowList` dell'API di quell'ambiente (`CliAccess:WriteAllowListEnforced: true`); un 403 lo dice con
+  parole sue. Il controllo è del server, e un elenco spento (staging) non cambia niente.
+- **`catalog install` funziona con l'identità** (#1770): modello e installazione precedente arrivano dalle rotte di
+  lettura, le scelte (tag, topic, persone, sostituzioni, app di demo) e la conferma restano a video, e l'API copia il
+  modello nell'archivio del tenant con i suoi file, firmando la copia con l'identità del token. Chi non è utente del
+  tenant lo dice l'API (409): si ripete con `--members` / `--replace`.
+- **`pull --with-files` e `promote` funzionano con l'identità** (#1771): i file di una versione (knowledge e sorgenti
+  delle app) si scaricano dall'API; `promote` vuole due sessioni (`login --env <origine>` e `login --env <destinazione>`),
+  legge dalla prima e pubblica sulla seconda con i metadati della copia, che l'API firma con l'identità del token.
+- **`files ls`, `files put` (guide, bozze, allegati, report), `files get`, `files rm`, `files open` funzionano con l'identità**
+  (#1771): l'API elenca, scrive (con lo stesso scanner dei segreti e le stesse regole dei percorsi) e toglie. `files put`
+  di una suite passa dall'archivio dei collaudi (validata contro il manifest, come `test push`); **`files share`** firma il
+  link con l'identità dell'API e ne registra la traccia prima di darlo; **`files consolidate`** sposta suite e report dai
+  posti di prima.
+- **`connections list` e `connections refresh` funzionano con l'identità** (#1771): il riallineamento è un'operazione
+  della piattaforma (`PlatformOperations`) che esegue l'API, che legge i segreti con i propri ruoli e riporta l'esito
+  connessione per connessione. Nessun segreto viaggia nella
+  risposta: solo «riallineata» o il motivo per cui non lo è.
+- **`mcp check`, `mcp test`, `mcp publish`, `mcp authorize` e `mcp orphans` funzionano con l'identità** (#1771):
+  definizione, tool del catalogo e collegamenti degli agenti arrivano da rotte `cli/*`; l'autorizzazione Google parte
+  dall'API (che completa la riga OAuth con i segreti dell'app del cliente, se la riga è nata vuota) e la CLI segue lo
+  stato ogni tre secondi. `mcp orphans --remove` chiede all'API, che **riscansiona prima di cancellare** e toglie solo le
+  voci senza server e senza agenti: una lista mandata dalla CLI non basta.
+- **`knowledge list`, `knowledge add`, `knowledge reingest` e `knowledge rm` funzionano con l'identità** (#1771): i file
+  di `add` viaggiano nella richiesta (stesso tetto di 25 MB di `push`); `rm` manda il tag scritto dalla persona e l'API
+  lo confronta di nuovo prima di togliere il profilo, sotto lease, con le stesse regole di blocco
+  (`KnowledgeProfileRemoval`, ora nella libreria).
+- **`instances` (list, show, cancel) e `schedule` (list, logs, on/off) funzionano con l'identità** (#1771): le
+  istanze di processo e le pianificazioni degli agent task passano da rotte `cli/*` che l'API esegue con la propria
+  identità; chi annulla un'istanza è l'email del token.
+- **`test push`, `test reports`, `test report`, `test judge` e `test run` funzionano con l'identità** (#1771): suite e
+  report passano dalle rotte `cli/*` con le stesse regole (validazione contro il manifest, scanner dei segreti, giudizio
+  sostituibile solo con `--overwrite`). **`test run` lo esegue la piattaforma**: una suite da file si archivia prima sul
+  tenant, l'API crea il report con l'approvazione della persona e lo accoda, la CLI lo segue caso per caso. Gli allegati
+  dei casi `flow` viaggiano con la richiesta (#1772, stesso tetto di 25 MB) e la piattaforma li legge dall'archivio del
+  report. `--no-archive` e `--out` non valgono: il report è nell'archivio, `test report` lo scarica.
+- **Il tag dev'essere di questo tenant** (`CLI003`, lo stesso rilievo `WEB003` della chat): con il token è l'API a leggere
+  i segreti, e un segreto mancante nella chiave del tenant si cerca nella chiave senza tenant dei blueprint applicati prima
+  del #1185, indicizzata solo per tag. `push`, `plan`, `apply`, `catalog install`, `connections refresh` e `mcp authorize`
+  si fermano (409) con un tag già usato da un altro tenant dell'ambiente.
+- **`knowledge add` e `knowledge reingest` vanno a gruppi di 50 file per richiesta**: una rotta HTTP resta corta, la CLI
+  pagina da sé e mostra l'avanzamento.
+- **`catalog list`, `catalog pull` e `catalog install` funzionano con l'identità** (#1771): il catalogo si legge dalle rotte
+  `cli/{tenant}/catalog/…` del tenant della persona (ogni tenant lo può leggere).
+- **`catalog publish`, `catalog prune`, `copies`, `usage`, `access migrate/retag/orphans`** passano da `cli/platform/*`
+  (#1772): solo un operatore di piattaforma (super-amministratore del prodotto), e l'API registra ogni accesso. La CLI
+  mostra l'anteprima e chiede la conferma; la regola (ritenzione del catalogo, partizione orfana, tag valido) la riapplica
+  l'API prima di scrivere.
+- **`prune`** (#1596) legge il piano da `GET cli/{companyId}/blueprints/retention` e toglie con `POST …/prune`, con il tag
+  scritto dalla persona; in produzione l'API si rifiuta. **`voice`** e **`suggest`** chiedono voci, sintesi e modelli
+  all'API (`cli/{companyId}/voices|speech|models`): la chiave Speech resta sul server.
 - **`export <orchestratore>`** funziona con l'identità, ma l'API lo concede solo agli **amministratori** del tenant: è una
-  copia della configurazione (prompt, agenti, profili), non un elenco. **`export --scope …`** no: legge un tenant
-  intero e non sta in una richiesta HTTP dell'API (per quello c'è il backup); resta con `--auth key`.
-- **Non ancora** con l'identità: `pull --with-files` (fase 4).
+  copia della configurazione (prompt, agenti, profili), non un elenco. **`export --scope …`** legge un tenant intero,
+  quindi è un **job** (#1772): `POST cli/{companyId}/exports` lo accoda, AsyncOperations lo esegue con lo stesso
+  esportatore e scrive manifest, rapporto ed elenco dei segreti nell'archivio del tenant
+  (`blueprints/{companyId}/exports/{exportId}/`); la CLI aspetta fino a 15 minuti e scarica i tre file nella cartella.
+- **`report-problem`** firma con il token della sessione di `login`: niente `az login`.
 
 ---
 
@@ -1643,7 +1705,8 @@ Toglie dalla cache il token dell'ambiente e della directory indicati. Senza sess
   e `XRCOPILOTLAB_BP_ENTRA_TENANT` sostituiscono i default; `XRCOPILOTLAB_BP_API_URL` punta a un'API diversa da quella
   dell'ambiente. Nessun valore è un segreto.
 - **Codici di uscita**: `8` se non c'è una sessione, il token non è accettato o la persona non è un utente;
-  `3` se l'ambiente non ha ancora emittenti configurati (l'API risponde 503).
+  `3` se l'API dell'ambiente è chiusa (`CliAccess:Closed`, o una build precedente senza emittenti: risponde 503). Senza
+  configurazione l'API accetta lo staff `hevolus.it` da sé, con gli stessi identificativi del binario.
 
 ---
 

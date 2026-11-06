@@ -98,6 +98,11 @@ Dopo il sì, sul manifest appena scaricato (`pull`, regola 6):
    nuova, `plan` (il piano elenca regolamenti, regole, schede e la pubblicazione, e dice se la governance del tenant
    è spenta, `BP155`), chiede l'approvazione e fa `apply`. Questa skill non fa né push né apply da sola.
 
+   **La governance è facoltativa** (31/10/2026): l'apply del blueprint non la installa, e alla fine chiede se farlo.
+   Su un blueprint mai deciso, o su cui la governance è stata rifiutata, il piano dell'apply non la elenca: la si
+   installa con `extras --tag <TAG> --governance yes`, che mostra il suo piano e chiede il suo sì. Dopo un sì, ogni
+   aggiornamento la tiene allineata alla versione; dopo un no, gli aggiornamenti non la toccano.
+
 Dopo l'apply si dice alla persona che cosa resta a lei: indicare il responsabile nelle schede Sistemi (se il
 manifest non lo porta), accendere la governance in **Osserva** da Governance › Stato, poi lanciare `collauda`.
 
@@ -129,6 +134,14 @@ la cintura di sicurezza per quando il modello sbaglia: che sia **in vigore** lo 
 (`rulesInForce`), e il caso in chat si scrive come prova del **rifiuto** — `contains` sulle parole del rifiuto e
 `expect.governance.notDecisions` sull'operazione — non come prova della regola. Un caso che fa scattare davvero una
 regola serve un agente che quell'azione la fa: un'email, un webhook, un tool che il prompt non vieta.
+
+**Si lancia per chiave, non per tag**: `test run … --only governance-in-vigore,<chiave del caso>`. `--only governance`
+seleziona anche i casi di un **modulo** che si chiama `governance` (SCHOOL ce l'ha: l'«AI consapevole»), e su SCHOOL ha
+aperto due processi veri sul tenant di collaudo (30/10/2026).
+
+**Un regolamento condiviso fra blueprint** (#1740): se un altro blueprint del tenant ha già applicato lo stesso regolamento
+Hevolus, il piano lo **estende** con gli agenti di questo (`BP174`) o lo dà per coperto se vale per tutti (`BP172`); il caso
+`kind: governance` controlla che gli agenti del blueprint siano **inclusi**, non che siano i soli.
 
 Si parte dalla suite nell'archivio (`files get tests/<nome>.v<k>.tests.yml --tag <TAG> …`), altrimenti da `test init`;
 si aggiungono i casi, si controlla la suite con `test validate`, si mostrano, e dopo un sì `test push`. L'esecuzione e il giudizio sono della skill `xrcopilotlab-blueprint-test`, in
