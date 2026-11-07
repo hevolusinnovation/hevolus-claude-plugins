@@ -43,7 +43,7 @@ Riferimenti, da leggere quando si arriva al passo:
 Orientare e fermarsi. In ordine: a cosa serve (collaudare un blueprint applicato, con report e
 triage); che cosa serve (la CLI, che si ottiene installando il plugin `blueprints@hevolus` e non
 compilando il repository — vedi la skill `xrcopilotlab-blueprint`, `references/installazione.md` —
-e lo stesso accesso: un'identità `hevolus.it` e `az login` fatto una volta; vedi la skill `xrcopilotlab-blueprint`, § «Con quale identità gira»);
+e lo stesso accesso: `xrcopilotlab-bp login` fatto una volta per ambiente con l'account aziendale `hevolus.it`, niente ruoli Azure; vedi la skill `xrcopilotlab-blueprint`, § «Come si entra: `login`, e nient'altro»);
 quali suite ha già l'archivio (`xrcopilotlab-bp files ls --tag <TAG> --kind suite`); quali blueprint hanno un run sul tenant
 (`xrcopilotlab-bp status --env <ambiente> --company <guid>`, **solo** se l'utente ha indicato un
 ambiente). Poi la domanda: quale blueprint, su quale ambiente.
@@ -211,6 +211,11 @@ Cose da sapere sull'esecuzione:
 - `--only chiave,tag,entità` esegue una parte. Utile per i casi con il tag `m365` o simili, che
   dipendono da una connessione esterna, e per rilanciare un solo caso dopo una correzione. Un valore
   combacia **anche con il target**: `--only agenda` prende pure i casi simulati sull'agente `agenda`.
+- Un caso su **agente** può allegare file alla conversazione con `attachments: [./allegati/…]`, relativi alla
+  cartella della suite: una scansione, un PDF, una registrazione. Il collaudo li carica come file temporanei,
+  aspetta che la piattaforma li abbia analizzati e poi manda il messaggio; nel report ogni allegato porta peso,
+  tempo di analisi e frammenti. Solo file di prova: documenti di fantasia e voci sintetiche, mai una scansione o
+  una registrazione vera. Dettagli in `docs/blueprints/testing.md` § «Allegare un file a una chat».
 - Un caso su **processo** avvia un'istanza vera e la segue finché arriva al compito umano atteso
   (o allo stato atteso, o al timeout). L'istanza resta lì: chi ha il ruolo la vedrà fra i suoi
   compiti. Dirlo all'utente prima, perché è la cosa che sorprende.

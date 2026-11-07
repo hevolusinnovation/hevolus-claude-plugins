@@ -252,30 +252,32 @@ footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--rule);font-si
     Serve solo <code>git</code>: il catalogo è pubblico, quindi non servono né un account GitHub né <code>gh</code>.</p>
   </div>
 
-  <h3><span class="k">Claude Code</span>L'accesso ad Azure: il punto contro cui si sbatte per primo</h3>
+  <h3><span class="k">Claude Code</span>L'accesso: <code>login</code>, e nient'altro</h3>
   <div class="prose">
-    <p>La CLI non parla con Claude: parla con Azure. Conta solo il tuo account <strong><code>hevolus.it</code></strong>
-    — non quello con cui usi Claude, e nemmeno quello con cui entri in XRCopilotLab, che è un'identità
-    B2C di un'altra directory. Servono ruoli sul piano dati, che chiedi a chi amministra la
-    sottoscrizione <em>Azure AI</em> indicando l'ambiente:</p>
+    <p>La CLI lavora con il <strong>tuo account aziendale <code>hevolus.it</code></strong> — non quello con cui
+    usi Claude. Si fa <code>xrcopilotlab-bp login --env &lt;ambiente&gt;</code> una volta per ambiente: si apre
+    il browser, un clic, e da lì ogni comando parla con la piattaforma con il tuo token. <strong>Niente ruoli
+    Azure, niente <code>az login</code>, niente chiavi.</strong> Che cosa puoi fare lo decide il prodotto, tenant
+    per tenant:</p>
   </div>
   <div class="tbl"><table>
-    <thead><tr><th>Per fare</th><th>Ruoli sull'App Configuration e sul Key Vault dell'ambiente</th></tr></thead>
+    <thead><tr><th>Per fare</th><th>Che cosa serve</th></tr></thead>
     <tbody>
-      <tr><td><code>validate</code> — controllare un manifest</td><td>nessuno: non tocca la rete</td></tr>
-      <tr><td><code>push</code> · <code>plan</code> · <code>apply</code> · <code>test run</code> · <code>status</code></td><td><strong>App Configuration Data Reader</strong> · <strong>Key Vault Secrets User</strong></td></tr>
-      <tr><td>in più, <code>secrets set</code></td><td><strong>App Configuration Data Owner</strong> · <strong>Key Vault Secrets Officer</strong></td></tr>
+      <tr><td><code>validate</code> — controllare un manifest</td><td>niente: non tocca la rete</td></tr>
+      <tr><td><code>status</code> · <code>pull</code> · <code>test report</code> — leggere</td><td>essere utente del tenant</td></tr>
+      <tr><td><code>push</code> · <code>plan</code> · <code>apply</code> · <code>test run</code> · <code>secrets set</code> — scrivere</td><td>essere <strong>amministratore</strong> del tenant</td></tr>
+      <tr><td>il catalogo e tutti i tenant</td><td>essere <strong>operatore di piattaforma</strong> (AI Team)</td></tr>
     </tbody></table></div>
-  <div class="note"><b>Il primo accesso lo fai tu, non Claude</b><p>Una volta per macchina, dal
-  <strong>tuo</strong> terminale: <code>az login --tenant hevolus.it</code>, oppure un comando qualsiasi
-  come <code>xrcopilotlab-bp status</code>, che apre il browser. Senza un terminale vero quel ramo è spento
-  di proposito, altrimenti il comando resterebbe appeso a una pagina che nessuno vede. Dopo, il token
-  resta in cache e i comandi che lancia Claude funzionano.</p></div>
+  <div class="note"><b>Il clic è tuo, il comando può lanciarlo Claude</b><p><code>login</code> apre il browser
+  sulla tua macchina e aspetta fino a cinque minuti che tu scelga l'account. Se il browser non si apre, il
+  comando stampa l'indirizzo da aprire a mano. Un permesso che manca — non sei amministratore del tenant, non sei
+  utente — lo assegna chi amministra il tenant, non Azure: Claude lo segnala al team con
+  <code>report-problem</code>.</p></div>
 
   <h3><span class="k">Verifica</span>La prima frase da scrivere</h3>
   <div class="says">
     <div class="say"><q>Su quali ambienti posso lavorare?</q><button class="copy" type="button">Copia</button>
-      <div class="then">Claude lancia <code>xrcopilotlab-bp environments</code>, che prova ogni ambiente con la tua utenza e dice <em>accessibile</em> · <em>manca il ruolo</em> · <em>nessun accesso ad Azure</em> · <em>non raggiungibile</em>. Non è una stima: è ciò che succederà al primo comando.</div></div>
+      <div class="then">Claude lancia <code>xrcopilotlab-bp whoami --env staging</code> (chi sei, su quali tenant, se sei amministratore o operatore di piattaforma) e <code>xrcopilotlab-bp environments</code>, che lo dice per ogni ambiente: <em>i tuoi tenant</em> · <em>senza sessione</em> (serve <code>login</code>) · <em>non sei un utente</em> · <em>non raggiungibile</em>. Non è una stima: è ciò che succederà al primo comando.</div></div>
   </div>
 
   <h3><span class="k">Facoltativo</span>Una skill da sola, sull'altra app</h3>
@@ -412,7 +414,7 @@ xrcopilotlab-bp apply    --tag &lt;TAG&gt; --env staging --yes      <span class=
       <tr><td>Prefisso <code>BP-&lt;TAG&gt;-</code></td><td>Nel manifest i nomi si scrivono <strong>senza</strong>: lo aggiunge il planner. Scritto a mano diventa <code>BP-TAG-BP-TAG-…</code></td></tr>
       <tr><td>Un nome occupato ferma il piano (<code>BP060</code>)</td><td>Il blueprint non sovrascrive mai ciò che non ha creato. Tre strade, la scelta è tua: rinominare, cambiare tag, togliere l'entità esistente</td></tr>
       <tr><td>Nessuna creazione senza un sì</td><td>Senza terminale interattivo la CLI esce con <code>6</code>: la skill ti chiede, non aggiunge il flag da sola</td></tr>
-      <tr><td>Segreti per nome</td><td>Nel manifest c'è <code>Blueprints:Secrets:&lt;TAG&gt;:&lt;nome&gt;</code>; il valore va in Key Vault con <code>secrets set</code>, dal tuo terminale</td></tr>
+      <tr><td>Segreti per nome</td><td>Nel manifest c'è <code>Blueprints:Secrets:&lt;TAG&gt;:&lt;nome&gt;</code>; il valore lo tiene la piattaforma, cifrato per tenant: <code>secrets set</code> dal terminale, la chat, o a mano in Amministrazione › Connessioni</td></tr>
       <tr><td>Un profilo di knowledge per agente</td><td>Il topic è il magazzino dei file, il profilo li rende interrogabili. Un agente senza profilo non vede niente</td></tr>
       <tr><td>Il modello si dichiara</td><td>Senza <code>model:</code> l'agente nasce sul default (<code>BP015</code> avvisa); un nome fuori catalogo ferma il piano (<code>BP065</code>)</td></tr>
     </tbody></table></div>
@@ -753,8 +755,9 @@ cases:
     <thead><tr><th>Cosa vedi</th><th>Cosa è successo</th></tr></thead>
     <tbody>
       <tr><td><code>/plugin marketplace add</code> non riesce</td><td>Il catalogo è pubblico, non è un problema di account: controlla che <code>git</code> sia installato e che il computer raggiunga <code>github.com</code> (rete aziendale, proxy, VPN)</td></tr>
-      <tr><td>«App Configuration non leggibile» · «Key Vault … non è leggibile»</td><td>Mancano i ruoli Azure della tappa 1: il messaggio nomina risorsa e ruolo da chiedere</td></tr>
-      <tr><td>Errore di autenticazione ad Azure</td><td>Il primo accesso non è stato fatto su questa macchina: dal tuo terminale, non da Claude</td></tr>
+      <tr><td>«Non hai una sessione valida» (exit <code>8</code>)</td><td>Manca il <code>login</code> su questa macchina per quell'ambiente: <code>xrcopilotlab-bp login --env &lt;ambiente&gt;</code>, il clic nel browser è tuo</td></tr>
+      <tr><td>«non sei un utente di XRCopilotLab» · un 403</td><td>Il token è valido ma non sei utente, o non amministratore, di quel tenant: te lo assegna chi lo amministra, non è un problema tecnico</td></tr>
+      <tr><td>«non è ancora attivo su …» (exit <code>3</code>)</td><td>L'API di quell'ambiente non ha ancora la build con l'accesso della CLI, o è chiusa apposta: Claude lo segnala con <code>report-problem --kind access</code></td></tr>
       <tr><td>Un comando del manuale «non esiste»</td><td>Gira una copia vecchia installata a mano. <code>xrcopilotlab-bp version</code> dice quale e da dove</td></tr>
       <tr><td>Il piano si ferma su un nome esistente</td><td>Non è un guasto (<code>BP060</code>): rinomina, cambia tag o togli l'entità</td></tr>
       <tr><td>Un'attività programmata sbaglia a ogni giro</td><td>La fonte non è pronta: «metti in pausa …», poi <code>schedule resume</code></td></tr>
