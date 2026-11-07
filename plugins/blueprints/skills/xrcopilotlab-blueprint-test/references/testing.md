@@ -91,6 +91,7 @@ cases:
     target: agenda                   # chiave nel manifest
     message: |                       # oppure conversation: [turno 1, turno 2]  (stessa conversazione)
       TRIBUNALE DI BARI — R.G. 4127/2025 — udienza 14 ottobre 2026 ore 9:30
+    attachments: [./allegati/avviso.pdf]   # solo agent: file allegati alla conversazione prima del primo messaggio
     language: it                     # override del default
     timeoutSeconds: 60
     expect:
@@ -454,6 +455,40 @@ verdetto: la tabella evidenza → verifica è nella skill
 | `BT024` | Attese di governance sul tipo di caso sbagliato (`expect.governance` fuori da agente o orchestratore; `rulesInForce`, `rulesNotInForce`, `models`, `rulebooks`, `systems`, `suspensionTest` fuori da `kind: governance`), decisione o operazione sconosciute, voce attesa vuota, `nothing: true` insieme a `decisions`, `governanceSwitch` diverso da `on`/`off` | errore |
 | `BT025` | Una regola citata non è una `key` del manifest né una regola di un suo modello: si confronta con gli id del tenant così com'è scritta | avviso |
 | `BT026` | Un «Deny» atteso su un'email o un webhook: in Osserva l'azione parte lo stesso, il caso va scritto verso caselle o sistemi di prova | avviso |
+| `BT027` | `attachments` su un caso che non è un agente, oppure un allegato senza percorso | errore |
+
+## Allegare un file a una chat
+
+Un caso su **agente** può allegare file alla conversazione, come fa una persona dalla chat della webapp: una
+scansione, un PDF, una fotografia, una registrazione.
+
+```yaml
+  - key: traduzione-scansione
+    kind: agent
+    target: translater
+    attachments: [./allegati/certificato.pdf]     # relativi alla cartella della suite
+    message: Traduci il documento allegato.
+    timeoutSeconds: 300                            # comprende l'analisi del file
+    expect:
+      contains: ["Origine del testo: file allegato"]
+```
+
+Il collaudo carica i file come **file temporanei della conversazione**, aspetta che la piattaforma li abbia
+analizzati (riconoscimento del testo, trascrizione dell'audio) e solo allora manda il primo messaggio, con
+`tempFiles: true` su ogni turno. Il tempo di analisi conta nel tempo del caso: una scansione di poche pagine
+chiede decine di secondi, un audio di qualche minuto di più. Nel report ogni allegato compare con peso, tempo
+di analisi e numero di frammenti; se l'analisi non finisce entro il tempo del caso, il messaggio non parte e il
+caso esce in errore dicendo quale file mancava.
+
+- Vale solo per `kind: agent` (`BT027`): un orchestratore riceve i file dai suoi passi, un processo dai campi
+  `type: file` delle attività (passo `complete` di un caso `flow`).
+- **Una registrazione viene trascritta nella lingua del caso** (`language` del caso, o quello dei `defaults`),
+  come dalla chat della webapp nella lingua della chat: senza, la piattaforma indovina la lingua frase per frase
+  e il testo che l'agente riceve lo dice in testa (#1842). Per misurare la trascrizione, la lingua va dichiarata.
+- Con l'identità (`login`) gli allegati viaggiano con la richiesta di collaudo, come quelli dei casi `flow`;
+  dalla chat della webapp un caso con allegati esce in errore e dice di lanciarlo dal terminale.
+- **Solo file di prova**: una scansione o una registrazione vera contiene dati personali che non si possono
+  togliere. Si usano documenti di fantasia e voci sintetiche.
 
 ## Dalla chat della webapp
 

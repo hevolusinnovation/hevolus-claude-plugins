@@ -1312,6 +1312,13 @@ contenuto vecchio. È l'unico modo di aggiornare un documento: il piano confront
 contenuto cambiato, e `knowledge reingest --only` rilegge il contenuto che c'è. Chiede un sì come l'apply. Per tenere il manifest allineato, aggiungere gli stessi file a `knowledge[].files` alla versione dopo:
 il piano li riconoscerà come già presenti.
 
+Un profilo **vettoriale nato senza file** non è attivo: l'attivazione dell'apply non trova niente da indicizzare e la
+piattaforma lo lascia spento, e la reindicizzazione di un file rifiuta un profilo spento. In quel caso `knowledge add`
+collega i file e poi **attiva il profilo**, una volta: l'attivazione indicizza tutti i suoi file, e il comando lo dice.
+Vale lo stesso per i documenti aggiunti dalla chat e per i file che una versione nuova aggiunge a un profilo così.
+Fino al 05/11/2026 il primo documento restava collegato e mai indicizzato («Profile … is not active»). Se il tenant
+non ha una licenza di profilo libera l'attivazione viene rifiutata: i file restano collegati e il comando esce con errore.
+
 
 **`knowledge rm <profilo> --tag <TAG> [--confirm <TAG>]`** (#1567) toglie dal tenant **un solo** profilo che il
 blueprint ha creato, e lo toglie dall'inventario del run. Serve per un profilo che una versione nuova non dichiara
