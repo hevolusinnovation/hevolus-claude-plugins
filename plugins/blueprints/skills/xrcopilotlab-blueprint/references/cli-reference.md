@@ -632,6 +632,7 @@ agent task. I giudizi, nell'ordine in cui si stampano:
 | `duplicate` (doppio) | lo stesso tag su più nomi, una famiglia di almeno tre con lo stesso primo segmento (`peroni-*`), una variante nel nome (`-rag`, `-mcp`, `-multi`) | se ne tiene una: `rollback` e `delete` per le altre |
 | `idle` (fermo) | installato e senza attività da oltre la soglia | `rollback --run`, e `delete --tag` se l'archivio non serve |
 | `unused` (non usato) | nell'archivio senza un'installazione: mai applicato, o smontato | `delete --tag` |
+| `expired` (scaduto) | scaduto senza proroga (`expiry`): il timer ha già spento le sue entità | `rollback --run` e `delete --tag`, oppure `expiry extend` se serve ancora |
 
 Fra i motivi compaiono anche i **run da chiudere** (completati senza più niente da smontare: `rollback --run` li
 chiude), le versioni vecchie trattenute da run installati, e le istanze in corso: un blueprint con istanze
@@ -641,6 +642,33 @@ restano `rollback` e `delete`, con le loro conferme.
 **`audit keep`** segna un blueprint come tenuto apposta, con il motivo scritto (`--reason`): l'audit lo mostra
 con quel motivo e non lo propone, così la stessa domanda non torna a ogni pulizia. È un documento `keep` nella
 partizione del tenant; **`audit release`** lo toglie, e `delete --tag` lo porta via con l'archivio.
+
+## `expiry [--tag <TAG>]` · `expiry extend`
+
+Fuori dalla produzione un blueprint **scade** (#1916): staging è dove i blueprint nascono e si provano, e niente ne
+usciva da solo. Allo scadere il timer dell'AsyncOperations **spegne** ciò che il blueprint ha acceso sul tenant e non
+cancella niente: togliere resta manuale, con `rollback`/`delete` e la skill `xrcopilotlab-blueprint-clean`.
+
+```bash
+xrcopilotlab-bp expiry --env staging --company <guid>                          # quando scade ogni blueprint, e che cosa è spento
+xrcopilotlab-bp expiry --tag MININTERNO --env staging --company <guid> --json  # uno solo, intero
+xrcopilotlab-bp expiry extend --tag MININTERNO --env staging --company <guid>  # oggi + 14 giorni, e riaccende ciò che era spento
+xrcopilotlab-bp expiry extend --tag MININTERNO --days 30 --env staging --company <guid>
+```
+
+| Che cosa | Regola |
+|---|---|
+| Quando nasce | Con la **prima versione** scritta sul tenant (`push`, `apply`, la chat, `promote`, `catalog install`): **14 giorni**. Una versione nuova **non** sposta la data |
+| Chi c'era già | Il timer dà ai blueprint senza scadenza **7 giorni dal giorno in cui la dà** (non dalla loro creazione) |
+| Dove non vale | **Produzione** (una copia promossa lì nasce senza), il **catalogo**, un ambiente che la CLI non riconosce |
+| Chi non scade | I blueprint tenuti apposta con `audit keep` e i modelli del catalogo installati sul tenant |
+| Che cosa si spegne | Nell'ordine: le schedulazioni degli agent task (in pausa), i processi pubblicati (pubblicazione ritirata; le istanze in corso restano), gli orchestratori, gli agenti, i profili di knowledge. Solo ciò che il run ha creato o adottato, e solo ciò che era acceso |
+| Quando | Ogni giorno alle 05:00 UTC. Ciò che non si spegne (un processo con istanze che bloccano il ritiro) resta «da spegnere» con il motivo, e il giro successivo ritenta |
+| Proroga | `expiry extend` porta la data a oggi + `--days` (default 14, massimo 90) e **riaccende** ciò che la scadenza aveva spento: un processo si ripubblica nella versione che aveva, un profilo si reindicizza. Ciò che non si riaccende (una licenza, il tetto dei profili attivi) si dice, ed esce con codice 4 |
+
+Si spegne con le stesse rotte dell'interfaccia, mai con un aggiornamento diretto del database: l'attivazione di un
+profilo ha una logica sua (indicizzazione, deduplica delle richieste). La scadenza è un documento `expiry` nella
+partizione del tenant; `delete --tag` la porta via con l'archivio. `audit` mostra lo stato e dà il giudizio `expired`.
 
 ## `catalog list` · `catalog publish <modello.yml>` · `catalog install <modello>` · `catalog prune`
 

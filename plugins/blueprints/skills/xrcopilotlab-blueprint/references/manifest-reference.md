@@ -693,7 +693,7 @@ connections:
 
 mcpServers:
   - key: calendario
-    kind: builder                          # builder | external
+    kind: builder                          # builder | existing | native (external: BP179)
     name: Calendario
     connection: graph
     systemPrompt: |                        # istruzioni d'uso, che viaggiano col server
@@ -727,17 +727,24 @@ mcpServers:
     testArguments: { start: "2026-01-01T00:00:00Z", end: "2026-01-02T00:00:00Z" }
     publish: true
 
-  - key: normattiva
-    kind: external
-    name: Normattiva
-    url: https://.../mcp
-    auth: { kind: CustomHeaders, header: X-API-Key, secret: Blueprints:Secrets:TEST:mcp-apikey }
-
   - key: web-search
     kind: existing                         # già nel catalogo del tenant: solo collegato
     name: Web Search                       # il nome ESATTO del catalogo, senza prefisso
     # mcpId: 8f1c…                         # solo se più server hanno lo stesso nome
 ```
+
+#### `kind: external` — non si applica (`BP179`)
+
+Un server MCP **già ospitato** altrove (un indirizzo `…/mcp` con la sua chiave) un apply non lo crea: si registra
+dall'interfaccia, in Amministrazione › MCP, da chi conosce l'indirizzo e la chiave, e il blueprint lo cita con
+`kind: existing` e il nome del catalogo. Fino al 07/11/2026 `validate` e `plan` lo accettavano e l'apply si fermava a
+metà, con le altre entità già create (#1867); ora è un errore (`BP179`) prima di toccare il tenant.
+
+Se il servizio ha un'**API HTTP**, la strada senza passi a mano è `kind: builder`: una connessione con le credenziali
+come riferimento a un segreto del tag e i tool come chiamate HTTP. È ciò che fanno le aziende sintetiche con il
+gestionale demo: `baseUrl` fino al prefisso dell'azienda (`…/api/companies/<TAG>`), `CustomHeaders` `X-API-Key`, e tool
+come `cerca` con `path: /{{tabella}}?{{filtri}}` — il percorso si compone senza escape, quindi un parametro può portare
+una query string intera.
 
 #### `kind: native` — un server nativo Google, con l'app del cliente
 

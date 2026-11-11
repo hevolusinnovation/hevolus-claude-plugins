@@ -555,7 +555,8 @@ casella o un calendario.
 
 Se no — la fonte non è HTTP, richiede logica di trasformazione, o custodisce un token per ogni
 entità autorizzata come LinkedIn — il server va scritto, e **non è dichiarabile**: `kind: external`
-pretende l'URL di un server già ospitato, e inventarlo metterebbe nel manifest un dato falso. Si
+non si applica (`BP179`: un server già ospitato si registra dalla UI e si cita con `kind: existing`), e
+inventarne l'URL metterebbe nel manifest un dato falso. Si
 annota nella `description` dell'agente che lo userà e finisce fra i passi manuali del piano di
 attivazione.
 
@@ -747,6 +748,18 @@ Al termine riportare: quante entità sono state create, il `runId`, gli eventual
 risolti nei processi, e — se è stato creato un webhook — che la chiave compare **una sola volta** e
 va conservata adesso.
 
+**Su staging dire anche la scadenza** (#1916, CLI 3.1.0). Fuori dalla produzione un blueprint vive **14 giorni dalla
+sua prima versione** (una versione nuova non sposta la data); allo scadere il timer spegne schedulazioni, processi
+pubblicati, orchestratori, agenti e profili, senza cancellare niente. Leggerla e riferirla con la data:
+
+```bash
+xrcopilotlab-bp expiry --tag <TAG> --env staging --company <guid>
+```
+
+Se serve più a lungo (una demo in calendario, un collaudo con il cliente): `expiry extend --tag <TAG> [--days <n>]`,
+che riaccende anche ciò che era già stato spento; se non deve scadere mai, `audit keep --tag <TAG> --reason "<perché>"`.
+Non proporre la proroga per riflesso: la scadenza esiste perché staging non si riempia di prove dimenticate.
+
 Se l'applicazione fallisce a metà, dire com'è messo: cosa è stato creato, che il run riparte con
 `--resume <runId>`, e che `rollback --run <runId>` smonta ciò che l'inventario elenca.
 
@@ -857,7 +870,7 @@ xrcopilotlab-bp promote --tag <TAG> --version <n> \
     --to-env   prod    --to-company   <guid-destinazione>
 ```
 
-Quattro cose da dire all'utente, perché sono le quattro che sorprendono:
+Sei cose da dire all'utente, perché sono quelle che sorprendono:
 
 1. **Non crea niente sul tenant.** La copia è solo in archivio: dopo servono ancora `plan` e
    `apply`, con la loro approvazione. Riferire il comando di `plan` che la CLI stampa alla fine.
@@ -869,7 +882,10 @@ Quattro cose da dire all'utente, perché sono le quattro che sorprendono:
 4. **I segreti non viaggiano** — nel manifest ci sono solo i nomi. Quelli che la destinazione non
    ha, `promote` li elenca: vanno impostati con `secrets set --env <destinazione>` prima del
    `plan`.
-5. **La copia è firmata e contata** (#1516): la CLI registra chi l'ha fatta, da dove a dove e
+5. **In produzione la copia nasce senza scadenza** (#1916): la scadenza di 14 giorni vale solo fuori dalla
+   produzione, e la decide l'ambiente di destinazione. Una copia verso un altro tenant di **staging** riceve invece
+   la sua, nuova, di 14 giorni.
+6. **La copia è firmata e contata** (#1516): la CLI registra chi l'ha fatta, da dove a dove e
    quando, e la riga `firmata` del risultato lo dice. La firma è l'email del token con cui la persona ha
    fatto `login`, e la mette l'API: `promote` vuole una sessione sull'ambiente di origine e una su quello di
    destinazione. Il registro è ciò da cui `copies` ricava i
