@@ -296,6 +296,12 @@ agents:
 Un agente **senza `knowledge`** non ha accesso ai documenti, per quanti file ci siano nel topic:
 vede i profili, non il repository.
 
+`language` è la lingua dell'endpoint di default (default `it`; `xx` = automatica, multilingua). Su un blueprint già
+applicato un `language` diverso da quello del tenant è un aggiornamento sul posto nel piano («lingua (it → xx)»), e
+l'apply lo scrive sull'endpoint; se non è dichiarato resta quello che c'è. Vale il `language` di primo livello, non
+quello di `chatEndpoints`: è da quello che l'apply costruisce l'endpoint. Fino alla #1858 (novembre 2026) un
+aggiornamento non lo confrontava, e la lingua cambiata andava impostata a mano dalla UI.
+
 ### `files`: un foglio per una skill
 
 ```yaml
@@ -439,6 +445,50 @@ agentTasks:
 La casella in-app riceve **sempre** l'esito e non va dichiarata: in `outputActions` si elencano le
 destinazioni aggiuntive.
 
+#### Non mandare quando non c'è nulla: `skipWhen`
+
+Un task schedulato gira anche quando non c'è niente da segnalare. Su un'uscita `email` o `webhook` si può dichiarare una
+regola che, se la risposta dell'agente la soddisfa, **non fa partire la consegna**:
+
+```yaml
+    outputActions:
+      - type: webhook
+        url: processes.presa-in-carico.webhook
+        skipWhen:
+          equals: NESSUNA RICHIESTA      # oppure: contains: "nessuna richiesta"
+```
+
+- Una sola tra `equals` (tutta la risposta, senza spazi ai bordi) e `contains` (la risposta contiene il testo); il
+  confronto ignora le maiuscole. Un testo vuoto, o le due chiavi insieme, è `BP180`.
+- Quando la regola scatta l'esecuzione resta `Completed` e il registro di consegna dell'uscita riporta `skipped`: non è un
+  tentativo di consegna, quindi non si ritenta e la governance non lo vede. Senza `skipWhen` non cambia nulla.
+- Che l'uscita sia stata saltata si legge nel registro di consegna (`schedule logs`, stato `skipped`), non in quello dell'esecuzione, che è scritto prima della consegna.
+- Il «test» di una destinazione, dall'editor del task, consegna sempre: non valuta la regola.
+- In un aggiornamento sul posto la regola si aggiorna solo sulle uscite `email`; quelle `webhook` non si riscrivono.
+
+#### Scrivere l'esito in un profilo: `type: knowledge` (#2052)
+
+Un'uscita `knowledge` scrive la risposta dell'agente come **file di un profilo di knowledge** del manifest, e il file
+viene indicizzato, senza passaggi umani. Serve soprattutto come passo automatico di un processo, dopo che una persona
+ha confermato qualcosa: le righe di uno storico trascritte e convalidate, un riepilogo approvato.
+
+```yaml
+    outputActions:
+      - type: knowledge
+        profile: storico-civile               # chiave di un profilo della sezione knowledge
+        fileName: storico-civile-{{date}}.csv # {{date}}, {{datetime}}, {{execution}}; l'estensione dice il formato
+```
+
+- È la stessa operazione di `knowledge add` della CLI, fatta dalla piattaforma nel tenant dell'esecuzione: il profilo
+  di un altro tenant non si trova.
+- Un file con lo stesso nome **si sostituisce**: con `{{date}}` si ha un file al giorno, con `{{execution}}` uno per
+  esecuzione.
+- L'estensione deve essere un formato che la knowledge legge (`.csv`, `.md`, `.txt`…); `skipWhen` vale come per le
+  altre uscite. Una risposta vuota non scrive niente e il registro di consegna lo dice.
+- Senza `profile` o con un `fileName` non leggibile: `InvalidOutputAction`; un profilo che non è nel manifest:
+  riferimento sconosciuto. L'uscita dipende dal profilo, che il piano crea prima.
+- L'editor degli agent task nella webapp non la mostra, ma la conserva quando si salva il task.
+
 #### Gli allegati del messaggio: `attachments.fromMessage`
 
 Un'uscita `webhook` verso `processes.<chiave>.webhook` porta al processo solo il **testo**. Perché il processo
@@ -455,6 +505,7 @@ riceva anche gli **allegati** del messaggio di posta, si dichiara da dove si leg
           fromMessage:
             connection: graph-posta       # connessione del manifest, auth OAuth2ClientCredentials verso Graph
             mailbox: gare@azienda.it      # l'indirizzo (o l'id) della casella in cui sta il messaggio
+            archive: true                 # facoltativo (#2051): archiviati e indicizzati in «Allegati posta»
 ```
 
 - L'agente nomina il messaggio con la riga `MAIL_MESSAGE_ID: <id>` alla fine del proprio testo (il `prompt` del
@@ -466,11 +517,27 @@ riceva anche gli **allegati** del messaggio di posta, si dichiara da dove si leg
   `shareAttachments` e il work item interattivo.
 - **Limiti per messaggio**: 30 file, 25 MB l'uno, 100 MB in tutto. Ciò che non entra — oltre i limiti, immagini
   «inline» (loghi e firme), link a file nel cloud — non sparisce in silenzio: una riga per file in
-  `allegatiMailErrori`. Gli ZIP e le mail allegate (anche la busta di una PEC) restano com'è: le skill delle gare li
-  aprono quando leggono.
+  `allegatiMailErrori`. Gli ZIP e le mail allegate (anche la busta di una PEC, con l'originale `postacert.eml` dentro)
+  si **aprono** (#2051): sull'istanza ci sono il contenitore e i file che contiene, senza i file di servizio della
+  busta (`daticert.xml`, firme `.p7s`, `IndiceBusta.xml`). I limiti contano anche i file estratti.
 - **Costo**: i file importati dalla mail **non** passano da Content Understanding (che si paga a pagina) quando un
   passo li condivide con un agente: le skill delle gare li leggono dall'URL, in locale. Un agente senza skill riceve il
-  testo di `.docx` e `.xlsx`, non quello dei PDF.
+  testo di `.docx` e `.xlsx`. L'eccezione è il **PDF scansionato** (solo immagini, nessun font): va all'analisi, con
+  l'OCR, perché senza nessuno lo legge — la data di un avviso è spesso solo lì (#2051).
+- **Archivio** (`archive: true`, facoltativo, #2051): dopo l'avvio dell'istanza i file leggibili del messaggio
+  (non i contenitori, non i file di servizio, solo formati accettati dalla knowledge) vengono aggiunti al profilo
+  **«Allegati posta»** del topic dell'agente che ha letto la mail, e indicizzati, senza passaggi umani, con un nome che
+  porta davanti il giorno e l'istanza (`2026-11-23_1a2b3c4d_verbale.pdf`): due messaggi con lo stesso `verbale.pdf`
+  non si sovrascrivono.
+  - Il profilo è **uno per topic** e non si dichiara: se non c'è, la piattaforma lo crea al primo file e lo collega
+    all'agente del task. Gli altri agenti che devono ritrovare gli avvisi (es. la verifica settimanale) lo citano in
+    `knowledge:` come ogni altro profilo, o si collegano dalla UI. Un manifest può anche **dichiararlo** (un profilo
+    di nome `Allegati posta`, senza file) per collegarlo da subito agli agenti che devono rileggere gli avvisi: il
+    prefisso del blueprint davanti al nome è ammesso, e un «Allegati posta» esatto, se c'è, ha la precedenza.
+  - Un profilo attivo consuma una licenza `XRCopilotLab.Profile`. Se non ce n'è una libera, i file restano sull'istanza
+    ma non si archiviano, la cronologia dell'istanza lo dice (`MailAttachmentsNotArchived`) e il messaggio successivo
+    riprova. Un «Allegati posta» spento a mano non si riaccende: l'archivio si ferma, con la stessa riga.
+  - Se l'archivio non riesce, l'istanza ha comunque i suoi file.
 - Vale solo con `type: webhook` verso `processes.<chiave>.webhook` e una connessione `OAuth2ClientCredentials` del
   manifest; altrimenti `BP144`. La connessione deve avere il permesso di lettura della posta (`Mail.Read`) sulla casella.
 
@@ -527,6 +594,84 @@ Dopo la creazione la CLI **esporta il `.bpmn`** risultante accanto al manifest: 
 standard con cui il processo si riapre nel designer o si porta su un altro tenant.
 
 La chiave del webhook viene mostrata **una sola volta** al termine di `apply`.
+
+### `kpi`: il cruscotto KPI del processo
+
+Un processo può dichiarare gli indicatori con cui si misura. L'apply crea per lui un **cruscotto KPI**, lo
+stesso della pagina KPI del processo, con il nome «KPI – {nome del processo qualificato}» (il prefisso è quello
+del blueprint). Un cruscotto per ogni processo che ha la sezione; un cruscotto creato a mano sullo stesso processo
+non è del blueprint e non si tocca.
+
+```yaml
+processes:
+  - key: richiesta-preventivo
+    # …
+    kpi:
+      minCases: 5                                   # casi minimi per giudicare un indicatore (default 5, non sotto 1)
+      baseline:
+        process: richiesta-preventivo-manuale       # facoltativo: la chiave di un altro processo del manifest
+      indicators:
+        - use: handsOnTime
+          target: { change: -40% }
+        - use: leadTime
+          target: { value: 2, unit: giorni }
+        - key: preventivi-corretti
+          name: Preventivi senza errori
+          from: { caseVariable: senzaErrori, aggregate: percentTrue }
+          direction: up
+          target: { value: 95% }
+```
+
+Ogni indicatore è **del catalogo** (`use`) oppure **proprio** (`key`, `from`, `direction`); non entrambi
+(`BP181`).
+
+| Campo | Significato |
+|---|---|
+| `use` | Un indicatore del catalogo: `handsOnTime`, `leadTime`, `casesHandled`, `correctionRate`, `reworkRate`. Nome, unità e direzione sono quelli del catalogo. |
+| `key` | La chiave di un indicatore proprio (lettere, cifre e `-`, inizia con una lettera, fino a 100 caratteri). |
+| `name` | Il nome mostrato; se manca, quello del catalogo o la chiave. |
+| `from` | Da dove viene il valore di un indicatore proprio: `caseVariable` (la variabile del caso) con `aggregate` (`mean`, `median`, `sum`, `percentTrue`; senza `aggregate` il planner usa `mean`), oppure `declared: true` per un valore dichiarato a mano a ogni rilevazione. |
+| `unit` | L'unità di un indicatore proprio. Se manca vale `percent` con l'aggregazione `percentTrue`. |
+| `direction` | `up` (più è meglio) o `down`; per un indicatore del catalogo è quella del catalogo. |
+| `target` | L'obiettivo: `change: -40%` (variazione percentuale) oppure `value` (`95%` o un numero). Per un indicatore di tempo `value` accetta `unit: giorni`, `ore` o `minuti` e viene convertito in minuti, l'unità dei tempi del catalogo. Un obiettivo che non si converte è `BP181`. |
+| `method`, `source` | Testi liberi: come si misura e da dove vengono i dati. |
+| `minCases` | Casi minimi perché un indicatore sia giudicato. |
+| `baseline` | Chiede la rilevazione di confronto; `process` è la coorte (un altro processo del manifest, per esempio la versione manuale), senza `process` vale il processo stesso. Una chiave che non è un processo del manifest è `BP182`. |
+
+**Il manifest non porta parametri economici.** Costo orario, valuta, prezzo dei token e canone non hanno un
+campo, né nello schema né nel validatore: sono dati del cliente e si inseriscono dalla pagina KPI.
+
+#### Che cosa fanno apply, aggiornamento, rollback ed eliminazione
+
+- **Apply, prima volta.** Crea il cruscotto **in bozza**, senza parametri economici. Una rilevazione di confronto
+  nasce **solo** se c'è il blocco `baseline:`: coorte il processo indicato (o il processo stesso), **tutte le
+  versioni**, periodo da 365 giorni prima dell'apply a 365 giorni dopo (le misure dei passi durano 365 giorni). Il
+  blueprint la lascia **aperta**: la data di fine si stringe dalla pagina prima di congelare. Senza `baseline` non
+  nasce nessuna rilevazione.
+- **Aggiornamento di una bozza pulita** (nessuna rilevazione congelata). La definizione si riscrive sul posto,
+  intera, e i parametri economici già inseriti restano. Se la sezione è identica a quella già scritta
+  (impronta: non conta come è scritta, solo che cosa dice) il piano non fa niente e lo elenca fra le cose
+  invariate.
+- **Cruscotto bloccato** (non più una bozza, oppure con una rilevazione congelata): il blueprint non lo riscrive e
+  non apre revisioni. Il piano non fa niente su quel cruscotto, né sulla sua rilevazione di confronto, e lo dice
+  con un avviso (`BP183`); per cambiarlo si apre una revisione dalla pagina KPI.
+- **Cruscotti non leggibili** (l'ambiente non risponde): le sezioni `kpi` restano fuori dal piano, il resto del
+  blueprint si applica (`BP184`); un apply successivo le aggiunge.
+- **Cruscotto tolto a mano.** Se il blueprint l'aveva creato e non c'è più sul tenant, il prossimo apply lo
+  crea di nuovo.
+- **Rollback ed eliminazione** (`rollback`, `delete --with-entities`). Una rilevazione di confronto aperta si
+  toglie, e così una bozza senza rilevazioni congelate (con le rilevazioni che una persona ha aggiunto alla
+  bozza: se ne vanno con lei). Un cruscotto con una rilevazione congelata (o non più
+  in bozza) **resta, leggibile**: è la prova di ciò che era vero a quella data. Il comando lo dice con un
+  dettaglio, non è un fallimento e `delete --with-entities` prosegue. Il cruscotto non dipende dal processo:
+  sopravvive alla sua cancellazione. Ciò che resta esce dall'inventario del run, che diventa `RolledBack`
+  (così `delete` non si ferma più con `BP080`): un apply successivo crea un cruscotto nuovo. Il cruscotto e la
+  rilevazione di un processo seguono il modulo del processo (`rollback --module`, `undeclared --remove`).
+  Un testo della sezione `kpi` oltre i limiti della piattaforma è `BP181` prima dell'apply: `validate` ferma
+  nome dell'indicatore (200 caratteri), unità (50), `caseVariable` (200) e `source` (400); il piano ferma il nome
+  del cruscotto «KPI – …» (200) e l'etichetta della rilevazione di confronto (200), che dipendono dal prefisso dei nomi.
+- **Il blueprint non congela e non conferma mai** un cruscotto o una rilevazione, e non sposta versioni o date di
+  una coorte esistente: sono decisioni di chi lo usa.
 
 ### `spec` — il grafo BPMN 2.0
 
@@ -693,7 +838,7 @@ connections:
 
 mcpServers:
   - key: calendario
-    kind: builder                          # builder | external
+    kind: builder                          # builder | existing | native (external: BP179)
     name: Calendario
     connection: graph
     systemPrompt: |                        # istruzioni d'uso, che viaggiano col server
@@ -727,17 +872,24 @@ mcpServers:
     testArguments: { start: "2026-01-01T00:00:00Z", end: "2026-01-02T00:00:00Z" }
     publish: true
 
-  - key: normattiva
-    kind: external
-    name: Normattiva
-    url: https://.../mcp
-    auth: { kind: CustomHeaders, header: X-API-Key, secret: Blueprints:Secrets:TEST:mcp-apikey }
-
   - key: web-search
     kind: existing                         # già nel catalogo del tenant: solo collegato
     name: Web Search                       # il nome ESATTO del catalogo, senza prefisso
     # mcpId: 8f1c…                         # solo se più server hanno lo stesso nome
 ```
+
+#### `kind: external` — non si applica (`BP179`)
+
+Un server MCP **già ospitato** altrove (un indirizzo `…/mcp` con la sua chiave) un apply non lo crea: si registra
+dall'interfaccia, in Amministrazione › MCP, da chi conosce l'indirizzo e la chiave, e il blueprint lo cita con
+`kind: existing` e il nome del catalogo. Fino al 07/11/2026 `validate` e `plan` lo accettavano e l'apply si fermava a
+metà, con le altre entità già create (#1867); ora è un errore (`BP179`) prima di toccare il tenant.
+
+Se il servizio ha un'**API HTTP**, la strada senza passi a mano è `kind: builder`: una connessione con le credenziali
+come riferimento a un segreto del tag e i tool come chiamate HTTP. È ciò che fanno le aziende sintetiche con il
+gestionale demo: `baseUrl` fino al prefisso dell'azienda (`…/api/companies/<TAG>`), `CustomHeaders` `X-API-Key`, e tool
+come `cerca` con `path: /{{tabella}}?{{filtri}}` — il percorso si compone senza escape, quindi un parametro può portare
+una query string intera.
 
 #### `kind: native` — un server nativo Google, con l'app del cliente
 
@@ -1164,8 +1316,8 @@ sul server, ed è da lì che arrivano i messaggi dei rilievi `BP092`.
 
 #### `skillMetadata` — le chiavi che il motore riconosce
 
-`skillMetadata` è una mappa di stringhe libera: il validatore non ne controlla le chiavi. Due sono
-riservate al motore e decidono come lo step interroga la knowledge dei suoi agenti. Valgono sugli
+`skillMetadata` è una mappa di stringhe libera: il validatore non ne controlla le chiavi. Tre sono
+riservate al motore: `conversation.turns`, più sotto, e le due che decidono come lo step interroga la knowledge dei suoi agenti. Queste due valgono sugli
 step `agent` e, passate dal gruppo ai membri, sui `parallelGroup` e `handoffGroup`. Senza la chiave non
 cambia niente; un valore sconosciuto lascia il comportamento di default.
 
@@ -1184,6 +1336,58 @@ cambia niente; un valore sconosciuto lascia il comportamento di default.
 
 Esempio reale: il manifest di `COMO` (`xrcopilotlab-bp pull --tag COMO`). Le chiavi sono definite in
 `StepKnowledgeQuery` e `StepKnowledgeRecords` (`XRCopilotLab.Core/Services/Orchestration/`).
+
+**`conversation.turns: previous` — lo step vede i turni precedenti della chat** (#1859). Ogni messaggio di una chat
+con un orchestratore avvia un'esecuzione nuova, e ogni agente ricorda solo i turni a cui ha risposto lui: un turno a
+cui ha risposto un altro step gli resta invisibile. Con questa chiave su uno step `agent`, il suo system prompt riceve
+ciò che la persona ha scritto e ciò che ha ricevuto nelle esecuzioni precedenti **completate** della stessa
+conversazione (le ultime 10, il messaggio che ha avviato ciascuna e la risposta finale), segnato come solo contesto.
+Contano solo le esecuzioni dello stesso orchestratore, dello stesso tenant e avviate dalla stessa persona (gli
+anonimi fra loro): ogni chat ha un identificativo di conversazione suo, e chi lo riusasse per un altro utente non gli
+passerebbe i turni del primo.
+
+| Chiave | Valori | Effetto |
+|---|---|---|
+| `conversation.turns` | `previous` | Il system prompt dello step riporta i turni precedenti della conversazione, con l'istruzione di riportare nella richiesta ciò a cui il messaggio si riferisce («inoltralo», «sì», «e a che ora chiude?») invece di chiederlo di nuovo. |
+
+Va sullo step che legge **per primo** il messaggio della persona — tipicamente lo smistamento — e che lo riscrive in
+una richiesta completa: gli step a valle ricevono quella richiesta con le variabili e restano isolati dai turni degli
+altri. Le risposte date durante una pausa (un recapito, una conferma) non ci sono: restano nella memoria dell'agente
+che le ha chieste.
+
+```yaml
+- key: smista
+  type: agent
+  agent: smistamento
+  skillMetadata:
+    conversation.turns: previous
+  outputMapping:
+    intento: "informazione oppure passaggio."
+    richiesta: "Il messaggio dell'ospite riscritto per intero, con ciò a cui si riferisce nei turni precedenti."
+```
+
+Definita in `StepConversationTurns` (`XRCopilotLab.Core/Services/Orchestration/`).
+
+#### `{{input}}` — il testo che ha avviato l'orchestratore, quando lo lancia un agent task
+
+Quando un orchestratore è lanciato da un **agent task** (schedulato, da webhook o da un passo di processo), il
+testo risolto del prompt del task è disponibile agli step come variabile `{{input}}`, così com'è. Serve a
+consegnare quel testo a una skill senza farlo ricopiare da un agente: un modello che ricopia un testo lungo lo
+taglia (un decreto di 31.000 caratteri arrivava in Word con il 30% delle parole).
+
+```yaml
+- key: word
+  type: agent
+  agent: decreto-word
+  skillMetadata:
+    skill.office.text: "{{input}}"      # il testo del task, messo nel documento così com'è
+    skill.office.formats: docx
+    skill.office.skipAnalyzer: "true"
+```
+
+Vale solo per le esecuzioni avviate da un agent task: in una chat con l'orchestratore `{{input}}` non è
+valorizzata, e il primo step riceve il messaggio come sempre. Definita in `AgentTaskOrchestrationContext`
+(`XRCopilotLab.Core/Services/AgentTasks/`).
 
 #### `outputMapping` `skill:` — i dati strutturati di una skill diventano variabili
 
@@ -1531,4 +1735,5 @@ Come si costruisce un'app e come si adotta quella di un collega: skill `xrcopilo
 | `BP132`–`BP138` | Moduli: chiavi, entità elencate, appartenenza unica, dipendenze chiuse, cicli, scelta con `--modules`, rollback di un modulo richiesto |
 | `BP139`–`BP141` | Dati di collaudo: voce incompleta, dato di collaudo in produzione (errore), elenco fuori dalla produzione (avviso) |
 | `BP170` | Governance: il responsabile (`governance.owner`) non è un indirizzo email, oppure non è un amministratore del tenant (in quel caso lo dice l'API all'apply, con un 400); oppure `ownerNotices` non è `all`, `denies` o `off` |
+| `BP181`–`BP184` | Cruscotto KPI di un processo (`processes[].kpi`): sezione non valida — indicatore, obiettivo, `minCases` (`BP181`); `baseline.process` che non è un processo del manifest (`BP182`); cruscotto già sul tenant che il blueprint non riscrive perché confermato o con una rilevazione congelata (`BP183`, avviso); cruscotti non leggibili, sezioni `kpi` fuori dal piano (`BP184`, avviso) |
 | `BP145`–`BP157` | Governance: sezione malformata, regola che l'editor rifiuterebbe, agente che il manifest non dichiara; nel piano governance non letta, regolamento che l'ambiente non ha, regolamento applicato a mano, modifiche non pubblicate di altri, scheda già compilata, responsabile da indicare, valori ritirati, governance del tenant spenta, regola da completare, regolamento o `completes` che non vanno |

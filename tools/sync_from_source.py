@@ -139,6 +139,12 @@ COPIE = [
 # I link da riscrivere sui file copiati: file → [(prima, dopo), …].
 RISCRITTURE = {
     DEST / "SKILL.md": [
+        # La guida del rilascio verso il cloud del cliente (#1971) non viaggia con il plugin: i comandi sono nel
+        # riferimento della CLI.
+        (
+            "Documentazione: [`docs/blueprints/export/README.md`](../../../docs/blueprints/export/README.md).",
+            "Comandi e opzioni: [`references/cli-reference.md`](references/cli-reference.md), § `release`.",
+        ),
         (
             "[`docs/blueprints/manifest-reference.md`](../../../docs/blueprints/manifest-reference.md)",
             "[`references/manifest-reference.md`](references/manifest-reference.md)",
@@ -223,8 +229,10 @@ RISCRITTURE = {
     ],
     DEST_TEST / "SKILL.md": [
         # La skill del marketplace è del team e non viaggia con il plugin: si cita senza link.
+        # Dal 11/2026 la sorgente la cita con il link al repository del marketplace, che è privato: chi installa il
+        # plugin non lo apre, quindi resta la citazione senza link.
         (
-            "[`xrcopilotlab-blueprint-marketplace`](../xrcopilotlab-blueprint-marketplace/SKILL.md)",
+            "[`xrcopilotlab-blueprint-marketplace`](https://github.com/hevolusinnovation/hevolus-blueprint-marketplace/blob/main/.claude/skills/xrcopilotlab-blueprint-marketplace/SKILL.md)",
             "`xrcopilotlab-blueprint-marketplace` (del team: chiedila a chi cura il marketplace)",
         ),
         (

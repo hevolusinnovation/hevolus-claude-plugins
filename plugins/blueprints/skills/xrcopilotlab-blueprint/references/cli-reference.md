@@ -395,6 +395,65 @@ una copia per un'altra strada. Contano solo le entità create dal blueprint, non
 esistente). Vale anche per l'export di un orchestratore dalla CLI con il token; dall'editor della webapp, che non
 conosce gli owner, l'export di quelle entità non si fa.
 
+## `release check <file.yml>|--tag <TAG> --process <processo> --target <cloud>` · `release build <file.yml>|--tag <TAG> --process <processo> --target <cloud> [--version <n>] [--grade <n>] [--out <cartella|file.zip>] [--force]`
+
+Porta **un processo** di un manifest verso il cloud di un cliente (#1971), insieme ai processi che chiama. Il processo si indica con `--process` (chiave o nome); senza, con più processi nel blueprint, il comando li elenca ed esce (`BP308`). Lo zip si chiama `<blueprint>-<processo>-v<versione>-<cloud>-grade<n>.zip`, e le risorse portano l'etichetta `<blueprint>-<processo>/<prefisso>`: due processi dello stesso blueprint sono due installazioni distinte: XRCopilotLab valida il
+processo, il sistema del cliente lo esegue. È il giro opposto di `apply`, e **non** è `export`, che
+va dal tenant al manifest. Il blueprint si legge da un **file** (senza rete, come `validate`) oppure
+dall'**archivio del tenant** con `--tag` e `--version` (sola lettura, come `pull`). In entrambi i casi il
+pacchetto lo compone lo stesso codice della chat dei blueprint: dalla CLI e dal menu dei cloud (icona della nuvola)
+della webapp escono gli stessi byte.
+
+- **`release check`** dice se il blueprint si può rilasciare e che cosa si perde. Gli errori
+  (`BP300`–`BP307`) fermano il rilascio; gli avvisi (`BP310`–`BP318`) sono le perdite della
+  traduzione. Un manifest che non passa `validate` non arriva a queste regole.
+- **`release build`** scrive lo zip. Senza `--out` finisce nella cartella corrente, con il nome
+  `<blueprint>-v<versione>-<cloud>-grade<n>.zip`; un file che esiste già non si sovrascrive senza
+  `--force`. Lo stesso manifest dà gli stessi byte: voci ordinate, data fissa.
+
+| Opzione | Valori | Note |
+|---|---|---|
+| `--target` | `azure` | `aws` e `gcp` sono riconosciuti e rifiutati con `BP300` finché mancano gli emettitori (#1976, #1977). |
+| `--grade` | `3` (default), `1` | `3` = **tutto su Azure**: il percorso su Logic Apps e gli agenti dei passi automatici ricreati su Microsoft Foundry (risorsa, progetto e modelli creati solo se mancano). `1` = solo il percorso, ogni passo è un punto di aggancio. `2` (ibrido) è rifiutato con `BP301`. |
+
+**Che cosa c'è nello zip.** Lo installa l'amministratore dello spazio cloud del cliente, da
+terminale, con un solo script:
+
+| File | Che cos'è |
+|---|---|
+| `install.sh`, `install.ps1` | Lo script unico di installazione, nelle due forme (Bash, PowerShell 7). Stessi passi nello stesso ordine: integrità del pacchetto, parametri, prerequisiti, anteprima (`what-if`), conferma, deployment, verifica. `--dry-run`/`-DryRun`, `--yes`/`-Yes`, `--skip-verify`/`-SkipVerify`, `--uninstall`/`-Uninstall` (con `--purge`/`-Purge` toglie anche le risorse create). |
+| `uninstall.sh`, `uninstall.ps1` | La rimozione completa (rollback): `install.sh --uninstall --purge`. Toglie tutto ciò che l'installazione ha creato, gruppo di risorse compreso se è suo ed è rimasto vuoto, e niente di ciò che esisteva. `--dry-run`, `--yes`, `--keep-shared`. |
+| `parameters.env` | I parametri da compilare: sottoscrizione, gruppo di risorse, regione, prefisso dei nomi, indirizzo dei passi e sua audience Entra. Nessun segreto. |
+| `infra/main.bicep` | Un Logic App a consumo per processo, con identità gestita e l'etichetta `xrcopilotlabRelease`. |
+| `process/<chiave>.workflow.json` | La definizione del workflow. |
+| `process/<chiave>.spec.json` | La spec validata da cui è ricavata. |
+| `identity/roles.json` | I ruoli da associare ai gruppi del cliente. |
+| `docs/contract.md` | Che cosa il workflow invia a ogni passo e che cosa si aspetta in risposta. |
+| `test.sh`, `test.ps1` | Lo script di prova, nelle due forme: installa con il prefisso `<NAME_PREFIX>-test` accanto a un risponditore che fa le veci del sistema del cliente, porta alla fine un caso per processo, stampa l'errore di un caso fallito e rimuove tutto. `--yes`/`-Yes`, `--keep`/`-Keep` (lascia le risorse per guardarle), `--cleanup`/`-Cleanup` (rimuove soltanto). |
+| `test/` | Il risponditore (`responder.bicep`, `responder.workflow.json`), le risposte di prova a ogni passo (`answers.json`) e i dati di avvio di ogni caso (`start/`). Il risponditore accetta solo token Entra ID del tenant della sottoscrizione per Azure Resource Manager: nessuna chiave, nessuna registrazione di applicazione. |
+| `LOSSES.md` | Le perdite, con i codici. |
+| `manifest.json`, `checksums.sha256` | Versione, cloud, grado e SHA-256 di ogni file. |
+
+**Come diventa un workflow.** Logic Apps non sa scrivere un ramo che torna indietro, quindi il
+workflow è una macchina a stati: una variabile dice a quale passo è il caso, un ciclo esegue un passo
+per giro e ne calcola il successivo. I gateway esclusivi spariscono dentro quel calcolo, e le
+condizioni seguono il motore di XRCopilotLab (testo senza maiuscole né spazi per `eq`/`neq`, numero
+per gli altri). Ogni passo è una chiamata con ritorno (`HttpWebhook`) all'indirizzo del cliente,
+autenticata con l'identità gestita del workflow. Una `CallActivity` avvia il workflow del processo
+chiamato, che è nello stesso pacchetto, e aspetta che dica di aver finito: passano solo i dati di
+`inputMapping` e `outputMapping`, come sul motore.
+
+**Idempotenza.** Lo script guarda lo stato reale sul cloud, mai un file locale: il gruppo di risorse
+si crea solo se manca, il deployment ha un nome fisso ed è incrementale, la rimozione toglie solo le
+risorse con l'etichetta di quella installazione. Rilanciarlo dopo un errore completa il lavoro.
+
+**Non ancora nel pacchetto:** la suite di conformità e il rapporto di validazione, la firma (oggi
+l'integrità sono gli hash) e i gateway paralleli. Il pacchetto non è ancora
+salvato nell'archivio del tenant né scaricabile dalla chat dei blueprint (#1974).
+
+Esce con `0` se il rilascio è possibile, `2` se il manifest non è valido, `3` se un impedimento lo
+blocca.
+
 ## `access migrate --owners <email,…> [--all | --catalog | --company <tenant>] [--apply] [--yes]`
 
 > **Operatore di piattaforma** (#1772): questo comando passa dalle rotte `cli/platform/*`, riservate al super-amministratore del prodotto; con più ambienti serve un `login` per ciascuno. L'API registra ogni accesso.
@@ -603,6 +662,15 @@ l'elenco non nomina, il nome si chiede uno alla volta a `GET companies/{id}/exis
 `access orphans` — solo per loro, non per enumerare l'ambiente. Un tenant senza nome nemmeno in HevoHub
 resta senza, e si conta in `totals.unnamedTenants`. Il JSON porta gli id dei tenant: chi lo pubblica altrove li toglie prima.
 
+**Il marketplace interno legge da sé.** La pagina delle statistiche d'uso non aspetta più che un operatore lanci
+`usage`: l'API del marketplace chiama la stessa rotta, `GET cli/platform/usage`, su ogni ambiente con la sua chiave
+di servizio (intestazione `X-Marketplace-Key`; nell'API è `Marketplace:UsageKey`, un riferimento a Key Vault di
+almeno 32 caratteri). Con la chiave la rotta non restituisce l'istantanea ma il riepilogo dell'ambiente
+(`{ report, sources }`): le installazioni portano un'impronta (`key`) al posto dell'id del tenant, e `sources` le
+impronte dei tenant da cui è partita una copia, così chi unisce staging e produzione riconosce l'origine di una copia
+arrivata nell'altro ambiente. La chiave non apre nessun'altra rotta; senza chiave configurata l'accesso è chiuso e
+la rotta resta dei soli operatori. Per ruotarla si cambia il segreto in Key Vault e l'impostazione del marketplace.
+
 ## `audit [--tag <TAG>] [--idle <giorni>] [--archive-only] [--json] [--out <file>]` · `audit keep` · `audit release`
 
 Che cosa, fra i blueprint di un tenant, è **fermo**, **doppio** o **mai usato** (#1766), con i segnali che lo
@@ -632,6 +700,7 @@ agent task. I giudizi, nell'ordine in cui si stampano:
 | `duplicate` (doppio) | lo stesso tag su più nomi, una famiglia di almeno tre con lo stesso primo segmento (`peroni-*`), una variante nel nome (`-rag`, `-mcp`, `-multi`) | se ne tiene una: `rollback` e `delete` per le altre |
 | `idle` (fermo) | installato e senza attività da oltre la soglia | `rollback --run`, e `delete --tag` se l'archivio non serve |
 | `unused` (non usato) | nell'archivio senza un'installazione: mai applicato, o smontato | `delete --tag` |
+| `expired` (scaduto) | scaduto senza proroga (`expiry`): il timer ha già spento le sue entità | `rollback --run` e `delete --tag`, oppure `expiry extend` se serve ancora |
 
 Fra i motivi compaiono anche i **run da chiudere** (completati senza più niente da smontare: `rollback --run` li
 chiude), le versioni vecchie trattenute da run installati, e le istanze in corso: un blueprint con istanze
@@ -642,6 +711,33 @@ restano `rollback` e `delete`, con le loro conferme.
 con quel motivo e non lo propone, così la stessa domanda non torna a ogni pulizia. È un documento `keep` nella
 partizione del tenant; **`audit release`** lo toglie, e `delete --tag` lo porta via con l'archivio.
 
+## `expiry [--tag <TAG>]` · `expiry extend`
+
+Fuori dalla produzione un blueprint **scade** (#1916): staging è dove i blueprint nascono e si provano, e niente ne
+usciva da solo. Allo scadere il timer dell'AsyncOperations **spegne** ciò che il blueprint ha acceso sul tenant e non
+cancella niente: togliere resta manuale, con `rollback`/`delete` e la skill `xrcopilotlab-blueprint-clean`.
+
+```bash
+xrcopilotlab-bp expiry --env staging --company <guid>                          # quando scade ogni blueprint, e che cosa è spento
+xrcopilotlab-bp expiry --tag MININTERNO --env staging --company <guid> --json  # uno solo, intero
+xrcopilotlab-bp expiry extend --tag MININTERNO --env staging --company <guid>  # oggi + 14 giorni, e riaccende ciò che era spento
+xrcopilotlab-bp expiry extend --tag MININTERNO --days 30 --env staging --company <guid>
+```
+
+| Che cosa | Regola |
+|---|---|
+| Quando nasce | Con la **prima versione** scritta sul tenant (`push`, `apply`, la chat, `promote`, `catalog install`): **14 giorni**. Una versione nuova **non** sposta la data |
+| Chi c'era già | Il timer dà ai blueprint senza scadenza **7 giorni dal giorno in cui la dà** (non dalla loro creazione) |
+| Dove non vale | **Produzione** (una copia promossa lì nasce senza), il **catalogo**, un ambiente che la CLI non riconosce |
+| Chi non scade | I blueprint tenuti apposta con `audit keep` e i modelli del catalogo installati sul tenant |
+| Che cosa si spegne | Nell'ordine: le schedulazioni degli agent task (in pausa), i processi pubblicati (pubblicazione ritirata; le istanze in corso restano), gli orchestratori, gli agenti, i profili di knowledge. Solo ciò che il run ha creato o adottato, e solo ciò che era acceso |
+| Quando | Ogni giorno alle 05:00 UTC. Ciò che non si spegne (un processo con istanze che bloccano il ritiro) resta «da spegnere» con il motivo, e il giro successivo ritenta |
+| Proroga | `expiry extend` porta la data a oggi + `--days` (default 14, massimo 90) e **riaccende** ciò che la scadenza aveva spento: un processo si ripubblica nella versione che aveva, un profilo si reindicizza. Ciò che non si riaccende (una licenza, il tetto dei profili attivi) si dice, ed esce con codice 4 |
+
+Si spegne con le stesse rotte dell'interfaccia, mai con un aggiornamento diretto del database: l'attivazione di un
+profilo ha una logica sua (indicizzazione, deduplica delle richieste). La scadenza è un documento `expiry` nella
+partizione del tenant; `delete --tag` la porta via con l'archivio. `audit` mostra lo stato e dà il giudizio `expired`.
+
 ## `catalog list` · `catalog publish <modello.yml>` · `catalog install <modello>` · `catalog prune`
 
 Il **catalogo** dei blueprint pronti, curati da Hevolus e installabili da qualunque tenant (#1185).
@@ -649,6 +745,11 @@ Vive nello stesso archivio dei tenant, nella partizione `default`; perché e com
 modello: [`catalogo.md`](catalogo.md). `list`, `pull` e `install` li fa ogni utente sul proprio tenant;
 `publish` e `prune` passano da `cli/platform/catalog/*` e sono dell'**operatore di piattaforma** (#1772):
 la CLI mostra l'anteprima (ritenzione, versioni che escono) e chiede, l'API riapplica la regola e scrive.
+
+`publish`, e solo `publish`, lo fa anche chi l'ambiente elenca in `CliAccess:CatalogPublishers` (App Configuration,
+un elenco di email: nessun segreto): un membro di Hevolus con l'email verificata nel token, che non diventa per questo
+operatore — `prune`, `copies`, `usage`, `access` e i tenant di cui non è utente gli restano chiusi. Il modello lo
+pubblica comunque solo un suo owner (`BP127`), e l'API registra ogni pubblicazione con il motivo dell'accesso.
 
 ```bash
 xrcopilotlab-bp catalog list --env staging [--company <tenant>]

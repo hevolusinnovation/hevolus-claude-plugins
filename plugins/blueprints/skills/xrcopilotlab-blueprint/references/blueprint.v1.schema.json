@@ -910,8 +910,17 @@
                 "type": {
                   "enum": [
                     "email",
-                    "webhook"
+                    "webhook",
+                    "knowledge"
                   ]
+                },
+                "profile": {
+                  "type": "string",
+                  "description": "Solo type: knowledge. Chiave del profilo della sezione 'knowledge' in cui la risposta dell'agente diventa un file indicizzato."
+                },
+                "fileName": {
+                  "type": "string",
+                  "description": "Solo type: knowledge. Nome del file con i segnaposto {{date}}, {{datetime}}, {{execution}}; l'estensione dice il formato (es. storico-{{date}}.csv). Un file con lo stesso nome si sostituisce."
                 },
                 "recipients": {
                   "type": "array",
@@ -922,6 +931,33 @@
                 },
                 "subject": {
                   "type": "string"
+                },
+                "skipWhen": {
+                  "type": "object",
+                  "description": "Facoltativo, per email e webhook: se la risposta dell'agente coincide (equals: tutto il testo, senza spazi ai bordi) o contiene (contains) il testo indicato, ignorando le maiuscole, la destinazione non viene servita e il registro di consegna riporta skipped. Una sola delle due chiavi.",
+                  "additionalProperties": false,
+                  "oneOf": [
+                    {
+                      "required": [
+                        "equals"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "contains"
+                      ]
+                    }
+                  ],
+                  "properties": {
+                    "equals": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "contains": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
                 },
                 "url": {
                   "type": "string",
@@ -961,6 +997,10 @@
                         "mailbox": {
                           "type": "string",
                           "description": "La casella in cui sta il messaggio: un indirizzo o l'id della casella."
+                        },
+                        "archive": {
+                          "type": "boolean",
+                          "description": "Facoltativo: true archivia e indicizza i file del messaggio, senza passaggi umani, nel profilo 'Allegati posta' del topic dell'agente che ha letto la mail, creato al primo file e collegato a quell'agente."
                         }
                       }
                     }
@@ -1367,6 +1407,110 @@
                 "type": "array",
                 "items": {
                   "type": "string"
+                }
+              }
+            }
+          },
+          "kpi": {
+            "type": "object",
+            "description": "Cruscotto di indicatori e obiettivi del processo. Nessun costo, valuta o prezzo: sono dati del cliente e si inseriscono dalla pagina. Struttura non valida = BP181; baseline.process che non è un processo del manifest = BP182.",
+            "additionalProperties": false,
+            "properties": {
+              "minCases": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Casi minimi perché un indicatore sia giudicato (BP181 sotto 1)."
+              },
+              "baseline": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "process": {
+                    "type": "string",
+                    "description": "Chiave di un altro processo del manifest (BP182 se non esiste). Senza, vale il processo del cruscotto."
+                  }
+                }
+              },
+              "indicators": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "description": "Un indicatore del catalogo (use) oppure proprio (key, from, direction): BP181.",
+                  "properties": {
+                    "use": {
+                      "type": "string",
+                      "description": "handsOnTime, leadTime, casesHandled, correctionRate o reworkRate."
+                    },
+                    "key": {
+                      "type": "string",
+                      "pattern": "^[a-zA-Z][a-zA-Z0-9-]{0,99}$"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "from": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "caseVariable": {
+                          "type": "string"
+                        },
+                        "aggregate": {
+                          "type": "string",
+                          "description": "How the case values are combined. Without it the planner uses mean.",
+                          "enum": [
+                            "mean",
+                            "median",
+                            "sum",
+                            "percentTrue"
+                          ]
+                        },
+                        "declared": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "unit": {
+                      "type": "string",
+                      "description": "Unità di un indicatore proprio; se manca vale percent con l'aggregazione percentTrue."
+                    },
+                    "direction": {
+                      "type": "string",
+                      "enum": [
+                        "up",
+                        "down"
+                      ]
+                    },
+                    "target": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "description": "change: -40% (variazione); value: 95% oppure 2; unit: giorni, ore o minuti per un indicatore di tempo (BP181 se non si converte). L'unità di un indicatore proprio è la sua 'unit', oppure percent se l'aggregazione è percentTrue.",
+                      "properties": {
+                        "change": {
+                          "type": [
+                            "string",
+                            "number"
+                          ]
+                        },
+                        "value": {
+                          "type": [
+                            "string",
+                            "number"
+                          ]
+                        },
+                        "unit": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "method": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
