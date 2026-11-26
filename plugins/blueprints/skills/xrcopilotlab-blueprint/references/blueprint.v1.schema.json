@@ -469,10 +469,11 @@
           },
           "url": {
             "type": "string",
-            "description": "kind=external: URL del server già ospitato."
+            "description": "kind=external: URL https del server MCP già ospitato (es. https://server.example.it/mcp). L'apply lo registra nel catalogo del tenant (#2093)."
           },
           "auth": {
-            "$ref": "#/$defs/auth"
+            "$ref": "#/$defs/auth",
+            "description": "kind=external: None, Bearer (header Authorization) o CustomHeaders (header a scelta), con il valore come riferimento a un segreto del tag. Basic e OAuth2ClientCredentials no: sui server MCP la piattaforma li passerebbe come argomenti dei tool (BP179)."
           },
           "timeoutSeconds": {
             "type": "integer",
