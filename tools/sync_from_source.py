@@ -139,6 +139,12 @@ COPIE = [
 # I link da riscrivere sui file copiati: file → [(prima, dopo), …].
 RISCRITTURE = {
     DEST / "SKILL.md": [
+        # La guida del rilascio verso il cloud del cliente (#1971) non viaggia con il plugin: i comandi sono nel
+        # riferimento della CLI.
+        (
+            "Documentazione: [`docs/blueprints/export/README.md`](../../../docs/blueprints/export/README.md).",
+            "Comandi e opzioni: [`references/cli-reference.md`](references/cli-reference.md), § `release`.",
+        ),
         (
             "[`docs/blueprints/manifest-reference.md`](../../../docs/blueprints/manifest-reference.md)",
             "[`references/manifest-reference.md`](references/manifest-reference.md)",

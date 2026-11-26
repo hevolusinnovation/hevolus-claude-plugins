@@ -1136,7 +1136,7 @@ xrcopilotlab-bp release build <file.yml> --process <chiave> --target azure      
 - Chi installa è l'**amministratore dello spazio cloud del cliente**: consegnagli lo zip e il README che
   contiene, non i comandi della CLI.
 
-Documentazione: [`docs/blueprints/export/README.md`](../../../docs/blueprints/export/README.md).
+Comandi e opzioni: [`references/cli-reference.md`](references/cli-reference.md), § `release`.
 
 ## 7. Cancellare un blueprint
 
