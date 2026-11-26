@@ -207,8 +207,8 @@ Tre cose da sapere scrivendo i tool:
 
 **Quando invece il MCP va scritto come servizio** — perché la fonte non è HTTP, richiede logica di
 trasformazione, o custodisce un token per ogni entità autorizzata come nel caso di LinkedIn — non è
-dichiarabile in questa forma: `kind: external` pretende l'URL di un server già ospitato. In quel
-caso si annota nella `description` dell'agente che lo userà e si mette fra i passi manuali del piano
+dichiarabile in questa forma, e nemmeno come `kind: external`, che un apply non crea (`BP179`): un server
+già ospitato si registra dalla UI e si cita con `kind: existing`. Altrimenti si annota nella `description` dell'agente che lo userà e si mette fra i passi manuali del piano
 di attivazione.
 
 **Quando il server è già nel catalogo del tenant** — `web-search`, un server registrato a mano,

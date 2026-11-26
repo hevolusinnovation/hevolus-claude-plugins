@@ -78,7 +78,7 @@ version: 4                           # versione del manifest per cui è scritta 
 description: Collaudo dello scenario Agenda
 
 defaults:
-  language: it                       # answerLanguage di ogni caso, salvo override
+  # language: it                     # solo se la lingua dell'endpoint non si legge (vedi «La lingua di un caso»)
   timeoutSeconds: 180                # oltre → il caso è in errore
   userId: collaudo@hevolus.it        # per conto di chi si parla (default: l'utente della CLI)
                                      # un'email si traduce nell'id dell'utente sul tenant: serve
@@ -92,7 +92,7 @@ cases:
     message: |                       # oppure conversation: [turno 1, turno 2]  (stessa conversazione)
       TRIBUNALE DI BARI — R.G. 4127/2025 — udienza 14 ottobre 2026 ore 9:30
     attachments: [./allegati/avviso.pdf]   # solo agent: file allegati alla conversazione prima del primo messaggio
-    language: it                     # override del default
+    language: it                     # override della lingua dell'endpoint: di norma non si scrive
     timeoutSeconds: 60
     expect:
       answer: >                      # NON verificata dalla CLI: è per il giudizio umano
@@ -106,7 +106,7 @@ cases:
       wrongAnswers:                  # risposte sbagliate note: se compaiono, fail con la diagnosi
         - { number: 5, means: "campione del recupero, non la popolazione", suspect: KnowledgeGraph }
         - { contains: "giroconto", means: "criterio per importo, vietato dal prompt" }
-      language: it
+      language: it                   # la lingua in cui la risposta è SCRITTA, riconosciuta dal testo
       maxSeconds: 60
       noError: true                  # default true: scriverlo solo per toglierlo
       knowledge:
@@ -181,7 +181,7 @@ lo dichiara, con il modulo scritto nella suite.
 | `tool` | Chiama un tool di un server MCP del blueprint (`server`, `name`, `args`). Con `capture: { nome: value[0].id }` prende un valore dalla risposta JSON, usabile poi come `{{vars.nome}}`; con `optional: true` un errore non ferma il giro (una pulizia su qualcosa che può non esserci) | il tool non risponde con un errore (o è `optional`), e la risposta contiene `contains` e non `notContains` |
 | `waitInstance` | Aspetta un'istanza del processo target avviata dopo l'inizio del caso, il cui caseData contiene i frammenti in `caseData` | compare entro `withinSeconds`; con `absent: true`, se **non** compare |
 | `complete` | Prende e completa il compito aperto sull'attività, con `form` e, se l'attività li chiede, gli allegati di `files` | il compito c'è entro `withinSeconds`, i file esistono, e il completamento riesce |
-| `expect` | Le stesse attese di `expect.process`, verificate finché si assestano | tutte vere entro `withinSeconds` |
+| `expect` | Le stesse attese di `expect.process`, verificate finché si assestano. Su un'istanza appena finita (`Completed`, `Cancelled`, `Faulted`) rilegge ogni secondo finché la cronologia porta l'evento di chiusura (`InstanceCompleted`…), al più 10 s: il motore salva lo stato un secondo prima degli ultimi eventi. Se l'evento non arriva, l'esito lo dice («cronologia dell'istanza non chiusa») | tutte vere entro `withinSeconds` |
 | `chat` | Una conversazione a più turni con un agente del blueprint (`agent`, `turns`), nella stessa chat: il dettato dell'avvocato, la rilettura, il «sì» che fa aprire la pratica. I turni compaiono nel report | nessun turno in errore, e l'ultima risposta contiene `contains` e non `notContains` |
 | `start` | Avvia un'istanza del processo target con `caseData`, per conto di `defaults.userId`, come la avvierebbe una persona dal modulo di avvio: serve ai processi che non nascono da un ingresso (#1454) | l'istanza nasce e si legge entro 60 s |
 | `interactive` | Conduce la chat di un compito **interattivo** (Umano + AI con «Interattiva»): prende il compito, apre la stessa sessione della Web, manda il contesto della pratica e poi i `turns`; dopo ogni risposta l'API apre il testo nei campi del modulo, come fa la Web. Con `complete: true` completa il compito con il modulo ottenuto, più gli eventuali valori di `form` (quelli che spettano alla persona) | nessun turno in errore; ogni campo di `expectForm` è pieno e contiene il frammento (`""` = basta che sia pieno); ogni campo di `emptyFields` è vuoto o falso; e, con `complete`, il completamento riesce |
@@ -234,7 +234,7 @@ precedente non fallisce «GIÀ PRESENTE» per caso (16/09/2026). Esempio complet
 | `agent` | Una chat sincrona con `enableLogs: true` sull'endpoint `default`, un turno per messaggio nella stessa conversazione | alla risposta dell'ultimo turno |
 | `orchestrator` (`via: direct`, default) | `execute-blocking` sull'orchestratore; solo se quella chiamata scade, `execute` e poi lo stato ogni 3 secondi | a `completed`, `failed`, `cancelled`, `paused` (HITL: esce in errore; sul passo di `pausesAt` è la fine del turno) o al timeout |
 | `orchestrator` con `via: chat` | Avvia l'esecuzione e segue lo **stream degli eventi**, la stessa strada che percorre un utente; alle domande risponde con i turni di `conversation` — e, dalla chat della webapp, finiti quelli, con la risposta di chi collauda | a `completed`, `failed`, `cancelled`, quando le domande superano i turni scritti (e nessuno risponde), o al timeout |
-| `process` | Avvia un'istanza con `caseData`, poi legge istanza, eventi e compiti ogni 3 secondi | quando c'è un compito aperto su `waitingAt` (o, senza, un compito aperto qualsiasi), quando lo stato non è più `Running`, o al timeout |
+| `process` | Avvia un'istanza con `caseData`, poi legge istanza, eventi e compiti ogni 3 secondi | quando c'è un compito aperto su `waitingAt` (o, senza, un compito aperto qualsiasi), quando lo stato non è più `Running` (su uno stato finale, dopo aver visto l'evento di chiusura dell'istanza, al più 10 s), o al timeout |
 | `governance` | Nessun messaggio: legge le regole in vigore, i modelli applicati, le schede Sistemi degli agenti e fa la prova della sospensione (#1636) | subito, quando ha letto |
 
 Per conto di chi si parla e si avvia lo decide `defaults.userId`: un'**email** si traduce nell'id
@@ -276,6 +276,39 @@ ha mostrato fin lì: i messaggi dei passi `sendMessage`, poi l'output finale. Un
 passo — un'approvazione umana, una domanda diversa — o un giro che termina senza fermarsi fanno
 fallire il caso: il giro non ha percorso la strada attesa. Esempio: i casi `consultazione-*` di
 `como-conoscenza-associati.tests.yml`.
+
+### La lingua di un caso (#1856)
+
+Un caso manda la lingua che manderebbe la **chat dell'Hub**: la `DefaultLanguage` dell'endpoint
+dell'agente (l'endpoint `default`, altrimenti il primo attivo) o dell'orchestratore (il primo endpoint
+attivo), letta dal tenant una volta per bersaglio. Un endpoint **Multilingual** (`xx`) si manda com'è, e
+l'API risponde nella lingua dell'utente.
+
+| Da dove viene la lingua | Quando |
+|---|---|
+| `language` del caso | il caso la dichiara: è un **override**, e il collaudo non vede più ciò che vede l'Hub |
+| l'endpoint | il caso non la dichiara: è il default, ed è la cosa giusta quasi sempre |
+| `defaults.language` della suite | solo se la lingua dell'endpoint non si è potuta leggere (la CLI lo avvisa) |
+
+Fino al 09/11/2026 l'ordine era caso → suite, e ogni suite generata da `test init` aveva
+`defaults.language: it`: un caso «ospite tedesco» scritto con `language: de` passava in tedesco, mentre
+nell'Hub, con l'endpoint in italiano, lo stesso messaggio riceveva una risposta in italiano. HOSPITALITY
+ha passato tutti i casi in inglese e in tedesco dal 27/10 al 03/11, e le prove a mano del 04-05/11 hanno
+trovato quattro risposte in italiano.
+
+**Per provare un utente che scrive in un'altra lingua, si scrive il messaggio in quella lingua**, senza
+`language`, e si mette `expect.language` con la lingua in cui la risposta deve arrivare. Se l'endpoint è in
+italiano e il cliente si aspetta una risposta in tedesco, il caso deve fallire: è il difetto da vedere.
+
+**`expect.language` si giudica dal testo della risposta**, con un riconoscimento delle parole funzionali di
+italiano, inglese, tedesco, francese, spagnolo e portoghese. La lingua che l'API riporta è l'eco di quella
+chiesta (una risposta tedesca a una richiesta italiana risultava «it»), e per un orchestratore non c'era
+affatto. Quando il testo non basta — poche parole, o una lingua che il riconoscimento non conosce — il
+controllo passa e lo dice: «non determinabile dal testo». Il report scrive per ogni caso la lingua chiesta
+con la sua provenienza e la lingua della risposta.
+
+La chat di un **compito interattivo** di un caso `flow` fa eccezione: nella Web manda la lingua
+dell'interfaccia di chi lavora, che la CLI non conosce, e il collaudo usa `defaults.language`.
 
 Per scrivere i casi di un processo serve il modello di esecuzione del motore (token, gateway,
 work item, soglie) e le domande da farsi sul grafo: sono in
@@ -482,9 +515,10 @@ caso esce in errore dicendo quale file mancava.
 
 - Vale solo per `kind: agent` (`BT027`): un orchestratore riceve i file dai suoi passi, un processo dai campi
   `type: file` delle attività (passo `complete` di un caso `flow`).
-- **Una registrazione viene trascritta nella lingua del caso** (`language` del caso, o quello dei `defaults`),
-  come dalla chat della webapp nella lingua della chat: senza, la piattaforma indovina la lingua frase per frase
-  e il testo che l'agente riceve lo dice in testa (#1842). Per misurare la trascrizione, la lingua va dichiarata.
+- **Una registrazione viene trascritta nella lingua chiesta dal caso** (quella dell'endpoint, salvo `language`
+  sul caso: #1856), come dalla chat della webapp nella lingua della chat. Con un endpoint `xx` e nessun
+  `language` non se ne dichiara nessuna, e la piattaforma indovina la lingua frase per frase: il testo che
+  l'agente riceve lo dice in testa (#1842).
 - Con l'identità (`login`) gli allegati viaggiano con la richiesta di collaudo, come quelli dei casi `flow`;
   dalla chat della webapp un caso con allegati esce in errore e dice di lanciarlo dal terminale.
 - **Solo file di prova**: una scansione o una registrazione vera contiene dati personali che non si possono

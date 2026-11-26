@@ -555,7 +555,8 @@ casella o un calendario.
 
 Se no — la fonte non è HTTP, richiede logica di trasformazione, o custodisce un token per ogni
 entità autorizzata come LinkedIn — il server va scritto, e **non è dichiarabile**: `kind: external`
-pretende l'URL di un server già ospitato, e inventarlo metterebbe nel manifest un dato falso. Si
+non si applica (`BP179`: un server già ospitato si registra dalla UI e si cita con `kind: existing`), e
+inventarne l'URL metterebbe nel manifest un dato falso. Si
 annota nella `description` dell'agente che lo userà e finisce fra i passi manuali del piano di
 attivazione.
 
@@ -747,6 +748,18 @@ Al termine riportare: quante entità sono state create, il `runId`, gli eventual
 risolti nei processi, e — se è stato creato un webhook — che la chiave compare **una sola volta** e
 va conservata adesso.
 
+**Su staging dire anche la scadenza** (#1916, CLI 3.1.0). Fuori dalla produzione un blueprint vive **14 giorni dalla
+sua prima versione** (una versione nuova non sposta la data); allo scadere il timer spegne schedulazioni, processi
+pubblicati, orchestratori, agenti e profili, senza cancellare niente. Leggerla e riferirla con la data:
+
+```bash
+xrcopilotlab-bp expiry --tag <TAG> --env staging --company <guid>
+```
+
+Se serve più a lungo (una demo in calendario, un collaudo con il cliente): `expiry extend --tag <TAG> [--days <n>]`,
+che riaccende anche ciò che era già stato spento; se non deve scadere mai, `audit keep --tag <TAG> --reason "<perché>"`.
+Non proporre la proroga per riflesso: la scadenza esiste perché staging non si riempia di prove dimenticate.
+
 Se l'applicazione fallisce a metà, dire com'è messo: cosa è stato creato, che il run riparte con
 `--resume <runId>`, e che `rollback --run <runId>` smonta ciò che l'inventario elenca.
 
@@ -857,7 +870,7 @@ xrcopilotlab-bp promote --tag <TAG> --version <n> \
     --to-env   prod    --to-company   <guid-destinazione>
 ```
 
-Quattro cose da dire all'utente, perché sono le quattro che sorprendono:
+Sei cose da dire all'utente, perché sono quelle che sorprendono:
 
 1. **Non crea niente sul tenant.** La copia è solo in archivio: dopo servono ancora `plan` e
    `apply`, con la loro approvazione. Riferire il comando di `plan` che la CLI stampa alla fine.
@@ -869,7 +882,10 @@ Quattro cose da dire all'utente, perché sono le quattro che sorprendono:
 4. **I segreti non viaggiano** — nel manifest ci sono solo i nomi. Quelli che la destinazione non
    ha, `promote` li elenca: vanno impostati con `secrets set --env <destinazione>` prima del
    `plan`.
-5. **La copia è firmata e contata** (#1516): la CLI registra chi l'ha fatta, da dove a dove e
+5. **In produzione la copia nasce senza scadenza** (#1916): la scadenza di 14 giorni vale solo fuori dalla
+   produzione, e la decide l'ambiente di destinazione. Una copia verso un altro tenant di **staging** riceve invece
+   la sua, nuova, di 14 giorni.
+6. **La copia è firmata e contata** (#1516): la CLI registra chi l'ha fatta, da dove a dove e
    quando, e la riga `firmata` del risultato lo dice. La firma è l'email del token con cui la persona ha
    fatto `login`, e la mette l'API: `promote` vuole una sessione sull'ambiente di origine e una su quello di
    destinazione. Il registro è ciò da cui `copies` ricava i
@@ -1069,6 +1085,58 @@ non ne ha bisogno.
 - `status` mostra versione e moduli installati; `rollback --run <id> --module <k>` smonta un modulo solo, ed è rifiutato
   (`BP138`) se un altro modulo installato ne dipende. `test run --only <modulo>` collauda un modulo.
 - Riportare all'utente che la versione è del blueprint: tutti i moduli installati sono alla stessa versione.
+
+## 6-novies. Portare i processi nel cloud del cliente: `release`
+
+Quando l'utente chiede di «esportare», «portare su Azure» o «consegnare al cliente» i processi di un
+blueprint, il comando è `release` (#1971). Non è `export`, che fa il giro opposto (dal tenant al manifest),
+e non è il backup del tenant. Oggi c'è solo **Azure**: AWS e Google Cloud arrivano dopo, e la CLI li rifiuta
+con `BP300`. Il grado predefinito è il **completo** (`--grade 3`): il processo gira tutto su Azure, con il
+percorso su Logic Apps, gli agenti dei passi automatici su **Microsoft Foundry** e i loro profili di knowledge su
+**Foundry IQ**, con l'entity graph ricavato dal grafo che la piattaforma ha costruito per il profilo.
+`--grade 1` porta il solo percorso.
+
+**Si esporta un processo alla volta**, insieme ai processi che chiama. Prima di tutto chiedi
+all'utente **quale processo di quale blueprint** vuole portare nel cloud. Se non sa quali processi ha il
+blueprint, `release check --tag <TAG> --target azure` senza `--process` li elenca (`BP308`): mostraglieli
+e fagli scegliere.
+
+```bash
+xrcopilotlab-bp release check --tag <TAG> --target azure                        # elenca i processi
+xrcopilotlab-bp release check --tag <TAG> --process <chiave> --target azure     # si può? che cosa si perde? casi di prova
+xrcopilotlab-bp release build --tag <TAG> --process <chiave> --target azure     # scrive lo zip nella cartella corrente
+xrcopilotlab-bp release build <file.yml> --process <chiave> --target azure      # da un file, senza rete
+```
+
+- **Impedimenti** `BP300`–`BP307`: il pacchetto non si produce. Spiegali in parole semplici e di' che cosa
+  cambiare nel manifest (un gateway parallelo, una chiamata a un processo fuori dal manifest, un passo con
+  più seguiti).
+- **Impedimenti del grado completo** `BP319`–`BP322`, `BP324`: un orchestratore con step `handoffGroup`,
+  `userQuestion`, `humanApproval` o `action`, un agente con skill senza un equivalente su Foundry o con server MCP, i documenti di un profilo che mancano nell'archivio della versione.
+  Fogli di calcolo e documenti Office (Code Interpreter), immagini (`gpt-image-1`) e la ricerca web del catalogo
+  (Web IQ, fuori dal perimetro di conformità) arrivano invece come strumenti, con l'avviso `BP327`/`BP328`. Gli
+  altri orchestratori arrivano come workflow figlio che chiama gli agenti su Foundry seguendo il grafo (`BP329`).
+- **Perdite** `BP310`–`BP318`, `BP323`, `BP325`–`BP329`: il pacchetto si produce e le riporta in `LOSSES.md`.
+  Riassumi quelle che contano per il cliente, senza elencarle tutte: i passi svolti da persone vanno collegati
+  a un sistema del cliente, le persone vanno associate ai suoi gruppi, un profilo può arrivare senza entity
+  graph (`BP325`: il blueprint non è applicato o l'indicizzazione non è finita) o con un'ontologia semplificata
+  (`BP326`).
+- **Knowledge**: con `--tag` i documenti vengono dall'archivio della versione e l'ontologia dal grafo del
+  profilo applicato sul tenant; da un file i documenti si leggono accanto al manifest e il grafo no (`BP325`).
+  Il servizio Azure AI Search del cliente, livello Basic, si paga a ore anche quando non lavora: dillo.
+- **Nello zip**: un solo script di installazione in due forme (`install.sh`, `install.ps1`), uno di prova
+  (`test.sh`, `test.ps1`) che installa con il prefisso `<NAME_PREFIX>-test` accanto a un risponditore,
+  porta alla fine un caso per processo e rimuove tutto, e la rimozione completa (`uninstall.sh`,
+  `uninstall.ps1`: il rollback, che toglie tutto ciò che l'installazione ha creato, gruppo compreso se è suo e
+  resta vuoto, e niente di ciò che esisteva); `parameters.env` è l'unico file da compilare e non contiene segreti.
+- **Dalla webapp**: nella chat dei blueprint l'icona della nuvola sotto il nome del blueprint (menu dei cloud ›
+  Microsoft Azure) apre una finestra che chiede quale processo e scarica subito lo zip; oppure il comando
+  `release` dell'assistente, che apre la stessa finestra: il processo lo sceglie la persona, mai l'assistente. Stesso pacchetto, byte
+  per byte.
+- Chi installa è l'**amministratore dello spazio cloud del cliente**: consegnagli lo zip e il README che
+  contiene, non i comandi della CLI.
+
+Documentazione: [`docs/blueprints/export/README.md`](../../../docs/blueprints/export/README.md).
 
 ## 7. Cancellare un blueprint
 

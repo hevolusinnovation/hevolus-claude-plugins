@@ -152,7 +152,7 @@ per tipo. Un gateway che non scatta è quasi sempre questo.
 | `contains` | un dato che **deve** esserci, in forma stabile (un numero, un nome) | non su frasi intere: il modello le riformula |
 | `notContains` | una violazione che riconosci da una parola («scadenza», «giorni prima») | scegliere parole che compaiono **solo** nella violazione |
 | `matches` | un formato (una riga «DATA — x — y») | regex con `(?i)`; testarla prima |
-| `language` | ogni agente con `language:` nel manifest | l'API riporta `it`, `en`… |
+| `language` | la lingua in cui la risposta deve arrivare, soprattutto quando il messaggio è in un'altra lingua | si giudica dal **testo** della risposta (#1856); su un testo troppo breve passa con «non determinabile». Il `language` **del caso** è un'altra cosa: un override della lingua dell'endpoint, che di norma non si scrive — per un ospite tedesco si scrive il messaggio in tedesco |
 | `maxSeconds` | un budget di tempo che ha senso per il cliente | non stringere troppo: staging è lento |
 | `knowledge.used/files/notFiles` | ogni agente con profili | il nome si confronta per **contenimento**, senza maiuscole |
 | `skills` / `noSkills` | ogni agente con skill, e uno `noSkills` per gli altri | — |
