@@ -838,7 +838,7 @@ connections:
 
 mcpServers:
   - key: calendario
-    kind: builder                          # builder | existing | native (external: BP179)
+    kind: builder                          # builder | external | existing | native
     name: Calendario
     connection: graph
     systemPrompt: |                        # istruzioni d'uso, che viaggiano col server
@@ -878,18 +878,48 @@ mcpServers:
     # mcpId: 8f1c…                         # solo se più server hanno lo stesso nome
 ```
 
-#### `kind: external` — non si applica (`BP179`)
+#### `kind: external` — un server MCP già ospitato
 
-Un server MCP **già ospitato** altrove (un indirizzo `…/mcp` con la sua chiave) un apply non lo crea: si registra
-dall'interfaccia, in Amministrazione › MCP, da chi conosce l'indirizzo e la chiave, e il blueprint lo cita con
-`kind: existing` e il nome del catalogo. Fino al 07/11/2026 `validate` e `plan` lo accettavano e l'apply si fermava a
-metà, con le altre entità già create (#1867); ora è un errore (`BP179`) prima di toccare il tenant.
+Un server MCP **già ospitato** altrove (un indirizzo `https://…/mcp`, con o senza chiave) l'apply lo **registra nel
+catalogo del tenant**, come farebbe la UI in Interoperabilità › MCP Servers, e lo collega agli agenti che lo citano in
+`mcp:` (#2093). Prima del 26/11/2026 era un errore (`BP179`) e andava registrato a mano.
 
-Se il servizio ha un'**API HTTP**, la strada senza passi a mano è `kind: builder`: una connessione con le credenziali
-come riferimento a un segreto del tag e i tool come chiamate HTTP. È ciò che fanno le aziende sintetiche con il
-gestionale demo: `baseUrl` fino al prefisso dell'azienda (`…/api/companies/<TAG>`), `CustomHeaders` `X-API-Key`, e tool
-come `cerca` con `path: /{{tabella}}?{{filtri}}` — il percorso si compone senza escape, quindi un parametro può portare
-una query string intera.
+```yaml
+mcpServers:
+  - key: marketplace
+    kind: external
+    name: Blueprint Marketplace                 # riceve il prefisso BP-<TAG>-
+    url: https://hev-blueprints-mcp.politerock-97a4b973.italynorth.azurecontainerapps.io/mcp
+    auth:
+      kind: CustomHeaders                       # None | Bearer | CustomHeaders
+      header: X-Api-Key
+      secret: Blueprints:Secrets:HVPRESALES:marketplace-api-key
+    systemPrompt: |                             # facoltativo: istruzioni d'uso che viaggiano col server
+      Cerca con parole italiane; riporta sempre il link alla pagina.
+    timeoutSeconds: 120                         # facoltativo
+```
+
+- **`url`** è obbligatorio e deve essere `https`: la piattaforma manda le credenziali a quell'indirizzo.
+- **`auth`** dice come arriva la chiave al server, sempre in un **header HTTP**: `Bearer` → `Authorization: Bearer
+  <valore>`; `CustomHeaders` → l'header indicato in `header`; senza `auth` (o `None`) nessuna credenziale. Il valore è
+  un riferimento a un segreto del tag (`BP047` per un valore in chiaro), impostato con `secrets set`. `Basic` e
+  `OAuth2ClientCredentials` sono `BP179`: sui server MCP la piattaforma li passerebbe come argomenti dei tool, che un
+  server MCP standard non legge. Un server che vuole il login di una persona (OAuth con PKCE) non si dichiara: si
+  registra dalla UI e si cita con `existing`.
+- **Il piano** crea due operazioni: la riga del catalogo e la riga di autenticazione. Niente prova né pubblicazione:
+  è già un server MCP. Un nome già nel catalogo del tenant è una collisione.
+- **Segreto mancante all'apply**: il piano lo avvisa, l'apply registra il server con la riga di autenticazione vuota
+  («da autorizzare»), e `xrcopilotlab-bp mcp authorize <chiave> --tag <TAG>` la completa dal segreto. Lo stesso comando
+  riscrive l'header dopo una rotazione della chiave con `secrets set`.
+- **Aggiornamenti**: un server già registrato resta com'è in una versione nuova (indirizzo e header non si
+  riallineano da soli); la chiave si riallinea con `mcp authorize`. Il `rollback` lo toglie dal catalogo insieme alla sua
+  riga di autenticazione.
+
+Se il servizio non è un server MCP ma ha un'**API HTTP**, la strada resta `kind: builder`: una connessione con le
+credenziali come riferimento a un segreto del tag e i tool come chiamate HTTP. È ciò che fanno le aziende sintetiche con
+il gestionale demo: `baseUrl` fino al prefisso dell'azienda (`…/api/companies/<TAG>`), `CustomHeaders` `X-API-Key`, e
+tool come `cerca` con `path: /{{tabella}}?{{filtri}}` — il percorso si compone senza escape, quindi un parametro può
+portare una query string intera.
 
 #### `kind: native` — un server nativo Google, con l'app del cliente
 

@@ -207,9 +207,9 @@ Tre cose da sapere scrivendo i tool:
 
 **Quando invece il MCP va scritto come servizio** — perché la fonte non è HTTP, richiede logica di
 trasformazione, o custodisce un token per ogni entità autorizzata come nel caso di LinkedIn — non è
-dichiarabile in questa forma, e nemmeno come `kind: external`, che un apply non crea (`BP179`): un server
-già ospitato si registra dalla UI e si cita con `kind: existing`. Altrimenti si annota nella `description` dell'agente che lo userà e si mette fra i passi manuali del piano
-di attivazione.
+dichiarabile in questa forma: va scritto e ospitato, e quando è online si dichiara con `kind: external` (sotto,
+«Server MCP remoti»). Finché non c'è si annota nella `description` dell'agente che lo userà e si mette fra i passi
+manuali del piano di attivazione.
 
 **Quando il server è già nel catalogo del tenant** — `web-search`, un server registrato a mano,
 uno creato da un altro blueprint — non si dichiara come `builder` né come `external`, e non si
@@ -417,21 +417,36 @@ agentTasks:
    l'apply il server risponde 401/405 a «elenca i tool», è l'ambiente da allineare: `report-problem --kind access`.
    L'indirizzo del server non si riporta in chat né nei report.
 
-## Server MCP remoti con OAuth: cosa si collega e cosa no
+## Server MCP remoti: che cosa si dichiara e che cosa no
 
-Un server MCP **già ospitato** (`kind: external`) che chiede OAuth a nome di una persona ricade in uno
-di due casi, e va capito **prima** di scrivere il manifest:
+Un server MCP **già ospitato** (`kind: external`, #2093) l'apply lo registra nel catalogo del tenant con la riga di
+autenticazione, e lo collega agli agenti. Che cosa si dichiara dipende da **come il server vuole la credenziale**:
 
-| Il server… | Si collega? |
+| Il server… | Nel manifest |
 |---|---|
-| pubblica i metadati OAuth e accetta la **registrazione dinamica del client** (RFC 7591) | Sì, ma **dalla UI**: «OAuth 2.1 + PKCE» sul server MCP. Il manifest non lo esprime: `external` non porta autenticazione. |
-| chiede un **client OAuth statico** (client id e secret creati a mano dal provider, senza registrazione dinamica) | **No**, né dalla UI né dal blueprint. Sintomo in UI: «Failed to initiate the OAuth flow». |
+| non chiede credenziali | `kind: external` con `url`, senza `auth` |
+| vuole una chiave fissa in un header (`X-Api-Key`, `Authorization: Bearer …`) | `kind: external` con `auth` `CustomHeaders` (`header` + `secret`) o `Bearer` (`secret`); il valore è un segreto del tag, impostato con `secrets set` |
+| pubblica i metadati OAuth e accetta la **registrazione dinamica del client** (RFC 7591), a nome di una persona | Non si dichiara: «OAuth 2.1 + PKCE» **dalla UI**, poi `kind: existing` |
+| chiede un **client OAuth statico** (client id e secret creati a mano, senza registrazione dinamica: è il caso di Entra ID) | **No**, né dalla UI né dal blueprint (hevolusinnovation/xrcopilotlab-webapp-dotnet#2093). Sintomo in UI: «Failed to initiate the OAuth flow», o una pagina 404 prima del login. Se il server lo permette, gli si chiede una chiave di servizio e si torna alla seconda riga |
 
-Il secondo caso la piattaforma lo sa fare solo sulle **Connessioni** («OAuth 2.1 + PKCE (Generic)»),
-non sui server MCP. Dirlo all'utente prima di applicare, senza scrivere un `kind: external` che
-nascerebbe senza credenziali: le alternative sono `kind: native` se è Google, MCP Builder se la fonte
-è un'API HTTP con un'autenticazione che una macchina può dare da sola, altrimenti un server da
-scrivere e ospitare.
+`Basic` e `OAuth2ClientCredentials` su un server MCP sono `BP179`: la piattaforma li passerebbe come argomenti dei
+tool, non come header, e un server MCP standard non li legge. Per lo stesso motivo una chiave **non** si registra dalla
+UI come «API Key»: finisce negli argomenti dei tool; la forma che arriva al server è «Custom Headers».
+
+Esempio, il Blueprint Marketplace di Hevolus nel blueprint HVPRESALES:
+
+```yaml
+mcpServers:
+  - key: marketplace
+    kind: external
+    name: Blueprint Marketplace
+    url: https://hev-blueprints-mcp.politerock-97a4b973.italynorth.azurecontainerapps.io/mcp
+    auth: { kind: CustomHeaders, header: X-Api-Key, secret: Blueprints:Secrets:HVPRESALES:marketplace-api-key }
+```
+
+La chiave: `xrcopilotlab-bp secrets set --env <amb> --company <tenant> --tag HVPRESALES marketplace-api-key`, nel
+terminale della persona (mai con `!`, mai in chat). Se all'apply mancava, o dopo una rotazione:
+`xrcopilotlab-bp mcp authorize marketplace --tag HVPRESALES` riscrive l'header dal segreto.
 
 ## Posta, calendario, file: Microsoft 365 si collega così
 

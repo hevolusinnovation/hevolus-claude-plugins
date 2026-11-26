@@ -544,6 +544,12 @@ Un agente che deve leggere da un sistema esterno ha bisogno di un **server MCP**
 il tenant **ce l'ha già** nel catalogo? Allora è `kind: existing` (regola 7-bis) e non si costruisce
 niente. È un servizio Google da usare a nome di una persona? Allora è `kind: native` (regola 7-ter).
 È una casella PEC o di posta ordinaria? Allora è `kind: native, service: pec` o `service: mail` (regola 7-quater).
+È **già un server MCP ospitato** altrove (un `https://…/mcp`, con o senza chiave)? Allora è `kind: external`: `url`,
+e `auth` con `Bearer` o `CustomHeaders` e il valore come riferimento a un segreto del tag. **La CLI lo crea**: lo
+registra nel catalogo del tenant con la riga di autenticazione e lo collega agli agenti (#2093); la chiave la imposta
+la persona con `secrets set`, e se all'apply mancava `mcp authorize <chiave> --tag <TAG>` completa l'header. Resta
+fuori solo un server che vuole il login di una persona (OAuth con PKCE): quello si registra dalla UI e si cita con
+`existing` ([`references/mcp-builder.md`](references/mcp-builder.md), «Server MCP remoti»).
 Altrimenti la domanda da farsi è una sola: quella fonte è **HTTP interrogabile**?
 
 Se sì, non si scrive un servizio: si costruisce con **MCP Builder**, e il manifest lo **dichiara** —
@@ -554,9 +560,9 @@ e pubblicazione, più il collegamento all'agente. Le autenticazioni coprono `Non
 casella o un calendario.
 
 Se no — la fonte non è HTTP, richiede logica di trasformazione, o custodisce un token per ogni
-entità autorizzata come LinkedIn — il server va scritto, e **non è dichiarabile**: `kind: external`
-non si applica (`BP179`: un server già ospitato si registra dalla UI e si cita con `kind: existing`), e
-inventarne l'URL metterebbe nel manifest un dato falso. Si
+entità autorizzata come LinkedIn — il server va scritto e ospitato prima: finché non ha un indirizzo non è
+dichiarabile, perché `kind: external` vuole l'URL di un server che esiste, e inventarlo metterebbe nel manifest un
+dato falso. Quando è online, si dichiara con `kind: external`. Fino ad allora si
 annota nella `description` dell'agente che lo userà e finisce fra i passi manuali del piano di
 attivazione.
 
